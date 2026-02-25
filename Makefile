@@ -7,7 +7,7 @@ SERVER_BIN ?= $(BIN_DIR)/server
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
-.PHONY: build build-frontend build-server sqlc run
+.PHONY: build build-frontend build-server sqlc run watch
 build: build-frontend build-server
 
 build-frontend:
@@ -35,3 +35,10 @@ sqlc:
 
 run: build-server
 	./$(SERVER_BIN)
+
+watch:
+	@if command -v air >/dev/null 2>&1; then \
+		air -c .air.toml; \
+	else \
+		$(GO) run github.com/air-verse/air@v1.61.7 -c .air.toml; \
+	fi

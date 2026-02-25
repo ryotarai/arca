@@ -1,0 +1,26 @@
+root = "."
+tmp_dir = ".cache/air"
+
+[build]
+cmd = "make build-server"
+bin = "./bin/server"
+full_bin = "./bin/server"
+delay = 300
+stop_on_error = true
+send_interrupt = true
+kill_delay = "500ms"
+include_ext = ["go", "sql", "tpl", "tmpl", "html"]
+exclude_dir = [
+  ".git",
+  ".cache",
+  "bin",
+  "web/node_modules",
+  "web/dist",
+  "internal/server/ui/dist",
+  "internal/db/sqlc/postgresql",
+  "internal/db/sqlc/sqlite"
+]
+exclude_regex = ["_test\\.go"]
+
+[log]
+time = true
