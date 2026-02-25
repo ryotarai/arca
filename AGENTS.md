@@ -49,3 +49,9 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - Split unrelated changes into separate commits.
 - In PRs, include purpose, key changes, test results (`go test ./...`), linked issues, and screenshots for UI changes.
 - Confirm regenerated artifacts and docs updates when behavior or operations change.
+
+## Agent Workflow
+- After completing a clear, self-contained requested change, create a commit proactively without requiring an extra user prompt.
+- Keep each proactive commit focused to the completed task only; do not include unrelated or generated local artifacts (for example `*.db`).
+- Use concise, imperative commit subjects that describe the delivered outcome.
+- If the user explicitly asks not to commit, skip this workflow.
