@@ -55,3 +55,4 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - Keep each proactive commit focused to the completed task only; do not include unrelated or generated local artifacts (for example `*.db`).
 - Use concise, imperative commit subjects that describe the delivered outcome.
 - If the user explicitly asks not to commit, skip this workflow.
+- If environment setup is required to complete requested work and the setup is non-destructive (for example installing missing runtime or browser dependencies), proceed without asking for additional confirmation.
