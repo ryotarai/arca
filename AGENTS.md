@@ -28,6 +28,12 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Naming: exported `CamelCase`, unexported `camelCase`, short lowercase package names.
 - Pass `context.Context` through request and I/O paths.
 
+## Frontend UI Guidelines
+- For UI changes, prefer `shadcn/ui` components with Tailwind CSS utilities.
+- Add components via CLI (for example, `npx shadcn@latest add button`) instead of hand-copying component source.
+- Keep a modern, clean developer-tool visual language (similar to Linear or ChatGPT) and preserve responsiveness on desktop/mobile.
+- Keep design tokens and global styles in `web/src/index.css`; do not hardcode one-off inline styles when reusable utility classes or tokens are appropriate.
+
 ## Testing Guidelines
 - Run tests with `go test ./...` before pushing.
 - Keep tests near code as `*_test.go`; prefer table-driven tests for handlers and DB logic.
