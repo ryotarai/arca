@@ -1,61 +1,61 @@
 # AGENTS.md
 
-このファイルは、このリポジトリで作業する人間/エージェント向けの共通ガイドです。
+This file provides shared guidelines for humans and agents working in this repository.
 
 ## Project Overview
 - Module: `github.com/ryotarai/hayai`
 - Go version: `1.22`
 - Backend: Go (`cmd/server`, `internal/...`)
 - Frontend: Vite + React (`web/`)
-- DB access: `sqlc` 生成コードを利用
+- DB access: generated code from `sqlc`
 
 ## Repository Layout
-- `cmd/server/`: サーバー起動エントリポイント
-- `internal/server/`: ルーター・配信処理
-- `internal/db/`: DB接続・設定・マイグレーション・ストア
-- `internal/db/sqlc/`: SQL定義と生成コード
-- `web/`: フロントエンドソース
-- `internal/server/ui/dist/`: フロントエンドビルド成果物
+- `cmd/server/`: server entrypoint
+- `internal/server/`: routing and asset serving
+- `internal/db/`: DB configuration, migration, and store
+- `internal/db/sqlc/`: SQL definitions and generated code
+- `web/`: frontend source
+- `internal/server/ui/dist/`: built frontend artifacts
 
 ## Setup
-1. Go `1.22` を用意
-2. Node.js + npm を用意
-3. `sqlc` をインストール
-4. 依存解決
+1. Install Go `1.22`
+2. Install Node.js and npm
+3. Install `sqlc`
+4. Install dependencies
    - Go: `go mod download`
    - Web: `npm --prefix web ci`
 
 ## Build / Generate
-- 全体ビルド: `make build`
-- フロントエンドのみ: `make build-frontend`
-- サーバーのみ: `make build-server`
-- sqlcコード生成: `make sqlc`
+- Build all: `make build`
+- Build frontend only: `make build-frontend`
+- Build server only: `make build-server`
+- Generate sqlc code: `make sqlc`
 
-`make build-server` は内部で `make sqlc` を実行します。
+`make build-server` runs `make sqlc` internally.
 
 ## Run / Test
-- サーバー起動（ビルド済みバイナリ）: `./bin/server`
-- 単体テスト: `go test ./...`
+- Run server (built binary): `./bin/server`
+- Run unit tests: `go test ./...`
 
 ## Coding Guidelines (Go)
-- フォーマット: `gofmt`（必要なら `go fmt ./...`）
-- 静的解析: `go vet ./...`
-- コンテキスト付きI/O処理を優先し、`context.Context` を適切に受け渡す
-- `internal/` 配下の既存責務を尊重し、境界をまたぐ変更は最小化
+- Formatting: `gofmt` (or `go fmt ./...` when needed)
+- Static analysis: `go vet ./...`
+- Prefer context-aware I/O and pass `context.Context` properly
+- Respect existing boundaries under `internal/` and minimize cross-boundary changes
 
 ## Generated Files
-以下は生成物のため、手編集を避ける。
+Avoid manual edits to generated files:
 - `internal/db/sqlc/postgresql/*.go`
 - `internal/db/sqlc/sqlite/*.go`
 - `internal/server/ui/dist/*`
 
-変更が必要な場合はソースを編集して再生成する。
-- sqlc: `internal/db/sqlc/schema.sql`, `internal/db/sqlc/query.sql` を編集して `make sqlc`
-- UI: `web/src/*` を編集して `make build-frontend`
+If changes are needed, edit source files and regenerate:
+- sqlc: edit `internal/db/sqlc/schema.sql` and `internal/db/sqlc/query.sql`, then run `make sqlc`
+- UI: edit `web/src/*`, then run `make build-frontend`
 
 ## Change Checklist
-- 関連する生成処理を再実行した
-- `go test ./...` が通ることを確認した
-- 不要な差分（キャッシュ、ローカル設定）を含めていない
-- 変更内容に応じてドキュメントを更新した
-- 適宜、適切な単位で `git commit` した
+- Regenerated related artifacts when required
+- Verified `go test ./...` passes
+- Excluded unnecessary diffs (cache files, local settings)
+- Updated docs when behavior or operation changed
+- Committed changes in appropriate, incremental units
