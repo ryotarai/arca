@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "e2e:install": "playwright install chromium",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -14,6 +17,7 @@
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@vitejs/plugin-react": "^4.4.1",
     "vite": "^5.4.14"
   }
