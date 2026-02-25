@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"io"
 	"io/fs"
 	"net/http"
@@ -12,7 +14,15 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func NewRouter() http.Handler {
+type Dependencies struct {
+	HealthChecker HealthChecker
+}
+
+type HealthChecker interface {
+	Ping(context.Context) error
+}
+
+func NewRouter(deps Dependencies) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -22,10 +32,24 @@ func NewRouter() http.Handler {
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	r.Route("/api", func(r chi.Router) {
-		r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
+		r.Get("/health", func(w http.ResponseWriter, req *http.Request) {
+			statusCode := http.StatusOK
+			body := `{"status":"ok","db":"ok"}`
+			if deps.HealthChecker == nil {
+				statusCode = http.StatusServiceUnavailable
+				body = `{"status":"degraded","db":"unconfigured"}`
+			} else if err := deps.HealthChecker.Ping(req.Context()); err != nil {
+				statusCode = http.StatusServiceUnavailable
+				if err == sql.ErrNoRows {
+					body = `{"status":"degraded","db":"schema_uninitialized"}`
+				} else {
+					body = `{"status":"degraded","db":"error"}`
+				}
+			}
+
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"status":"ok"}`))
+			w.WriteHeader(statusCode)
+			_, _ = w.Write([]byte(body))
 		})
 		r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
