@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -22,11 +23,6 @@ async function api(path, options = {}) {
 
 export function App() {
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [user, setUser] = useState(null)
 
   useEffect(() => {
@@ -39,6 +35,55 @@ export function App() {
     }
     run()
   }, [])
+
+  const logout = async () => {
+    await api('/api/auth/logout', { method: 'POST' })
+    setUser(null)
+  }
+
+  if (loading) {
+    return <main><p>Loading...</p></main>
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage user={user} onLogout={logout} />} />
+      <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function HomePage({ user, onLogout }) {
+  if (user == null) {
+    return (
+      <main>
+        <h1>Hayai</h1>
+        <p><Link to="/login">Login</Link></p>
+      </main>
+    )
+  }
+
+  return (
+    <main>
+      <h1>Hayai</h1>
+      <p>Signed in as {user.email}</p>
+      <button type="button" onClick={onLogout}>Logout</button>
+    </main>
+  )
+}
+
+function LoginPage({ user, onLogin }) {
+  const navigate = useNavigate()
+  const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  if (user != null) {
+    return <Navigate to="/" replace />
+  }
 
   const submit = async (event) => {
     event.preventDefault()
@@ -63,30 +108,9 @@ export function App() {
       return
     }
 
-    setUser(body.user)
+    onLogin(body.user)
     setPassword('')
-  }
-
-  const logout = async () => {
-    await api('/api/auth/logout', { method: 'POST' })
-    setUser(null)
-    setNotice('')
-    setError('')
-    setMode('login')
-  }
-
-  if (loading) {
-    return <main><p>Loading...</p></main>
-  }
-
-  if (user) {
-    return (
-      <main>
-        <h1>Hayai</h1>
-        <p>Signed in as {user.email}</p>
-        <button type="button" onClick={logout}>Logout</button>
-      </main>
-    )
+    navigate('/', { replace: true })
   }
 
   return (
