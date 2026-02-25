@@ -33,6 +33,10 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Add components via CLI (for example, `npx shadcn@latest add button`) instead of hand-copying component source.
 - Keep a modern, clean developer-tool visual language (similar to Linear or ChatGPT) and preserve responsiveness on desktop/mobile.
 - Keep design tokens and global styles in `web/src/index.css`; do not hardcode one-off inline styles when reusable utility classes or tokens are appropriate.
+- Unless the user explicitly requests otherwise, follow the current login page design direction as the default visual baseline.
+- Baseline style: dark neutral base, subtle gradient/grid background texture, restrained accent colors, high-contrast typography, soft borders, and glass-like card surfaces.
+- Reuse existing spacing, radius, and density patterns from the login page to keep visual consistency across new screens.
+- Prefer composition with existing `shadcn/ui` primitives and shared utility classes; avoid introducing a competing visual language per page.
 
 ## Testing Guidelines
 - Run tests with `go test ./...` before pushing.
