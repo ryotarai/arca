@@ -36,6 +36,7 @@ This file provides shared guidelines for humans and agents working in this repos
 ## Run / Test
 - Run server (built binary): `./bin/server`
 - Run unit tests: `go test ./...`
+- For browser-related verification, proactively use `chrome-headless-shell` when possible
 
 ## Coding Guidelines (Go)
 - Formatting: `gofmt` (or `go fmt ./...` when needed)
