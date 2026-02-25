@@ -1,12 +1,13 @@
 GO ?= go
 NPM ?= npm
+SQLC ?= sqlc
 WEB_DIR ?= web
 BIN_DIR ?= bin
 SERVER_BIN ?= $(BIN_DIR)/server
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
-.PHONY: build build-frontend build-server
+.PHONY: build build-frontend build-server sqlc
 build: build-frontend build-server
 
 build-frontend:
@@ -21,6 +22,13 @@ build-frontend:
 	fi
 	$(NPM) --prefix $(WEB_DIR) run build
 
-build-server:
+build-server: sqlc
 	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
 	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -o $(SERVER_BIN) ./cmd/server
+
+sqlc:
+	@if command -v $(SQLC) >/dev/null 2>&1; then \
+		$(SQLC) generate; \
+	else \
+		$(GO) run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0 generate; \
+	fi

@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ryotarai/hayai/internal/db"
 	"github.com/ryotarai/hayai/internal/server"
 )
 
@@ -18,14 +19,30 @@ func main() {
 		addr = ":8080"
 	}
 
-	httpServer := &http.Server{
-		Addr:              addr,
-		Handler:           server.NewRouter(),
-		ReadHeaderTimeout: 5 * time.Second,
+	dbConfig := db.ConfigFromEnv()
+	sqlDB, err := db.Open(dbConfig)
+	if err != nil {
+		log.Fatalf("db open failed: %v", err)
 	}
+	store := db.NewStore(sqlDB, dbConfig.Driver)
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("db close failed: %v", err)
+		}
+	}()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	if err := db.ApplyMigrations(ctx, sqlDB); err != nil {
+		log.Fatalf("db migration failed: %v", err)
+	}
+
+	httpServer := &http.Server{
+		Addr:              addr,
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store}),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 
 	errCh := make(chan error, 1)
 	go func() {
