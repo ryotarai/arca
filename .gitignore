@@ -1,2 +1,3 @@
 .cache/
+web/node_modules/
 bin/
