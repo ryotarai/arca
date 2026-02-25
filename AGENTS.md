@@ -56,6 +56,7 @@ If changes are needed, edit source files and regenerate:
 ## Change Checklist
 - Regenerated related artifacts when required
 - Verified `go test ./...` passes
+- Strongly encouraged writing and running both unit tests and E2E tests
 - Excluded unnecessary diffs (cache files, local settings)
 - Updated docs when behavior or operation changed
 - Committed changes in appropriate, incremental units
