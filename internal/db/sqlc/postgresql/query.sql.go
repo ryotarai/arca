@@ -9,6 +9,44 @@ import (
 	"context"
 )
 
+const createSession = `-- name: CreateSession :exec
+INSERT INTO sessions (id, user_id, token_hash, expires_at)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateSessionParams struct {
+	ID            string
+	UserID        string
+	TokenHash     string
+	ExpiresAtUnix int64
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createSession,
+		arg.ID,
+		arg.UserID,
+		arg.TokenHash,
+		arg.ExpiresAtUnix,
+	)
+	return err
+}
+
+const createUser = `-- name: CreateUser :exec
+INSERT INTO users (id, email, password_hash)
+VALUES ($1, $2, $3)
+`
+
+type CreateUserParams struct {
+	ID           string
+	Email        string
+	PasswordHash string
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
+	_, err := q.db.ExecContext(ctx, createUser, arg.ID, arg.Email, arg.PasswordHash)
+	return err
+}
+
 const getMeta = `-- name: GetMeta :one
 SELECT value
 FROM app_meta
@@ -21,6 +59,83 @@ func (q *Queries) GetMeta(ctx context.Context, key string) (string, error) {
 	var value string
 	err := row.Scan(&value)
 	return value, err
+}
+
+const getUserByActiveSessionTokenHash = `-- name: GetUserByActiveSessionTokenHash :one
+SELECT u.id, u.email, u.password_hash, u.created_at
+FROM sessions s
+JOIN users u ON u.id = s.user_id
+WHERE s.token_hash = $1
+  AND s.revoked_at IS NULL
+  AND s.expires_at > $2
+LIMIT 1
+`
+
+type GetUserByActiveSessionTokenHashParams struct {
+	TokenHash string
+	NowUnix   int64
+}
+
+func (q *Queries) GetUserByActiveSessionTokenHash(ctx context.Context, arg GetUserByActiveSessionTokenHashParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByActiveSessionTokenHash, arg.TokenHash, arg.NowUnix)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, password_hash, created_at
+FROM users
+WHERE email = $1
+LIMIT 1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, email, password_hash, created_at
+FROM users
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const revokeSessionByTokenHash = `-- name: RevokeSessionByTokenHash :exec
+UPDATE sessions
+SET revoked_at = CURRENT_TIMESTAMP
+WHERE token_hash = $1
+  AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeSessionByTokenHash(ctx context.Context, tokenHash string) error {
+	_, err := q.db.ExecContext(ctx, revokeSessionByTokenHash, tokenHash)
+	return err
 }
 
 const upsertMeta = `-- name: UpsertMeta :exec

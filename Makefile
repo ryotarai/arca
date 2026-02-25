@@ -7,7 +7,7 @@ SERVER_BIN ?= $(BIN_DIR)/server
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
-.PHONY: build build-frontend build-server sqlc
+.PHONY: build build-frontend build-server sqlc run
 build: build-frontend build-server
 
 build-frontend:
@@ -32,3 +32,6 @@ sqlc:
 	else \
 		$(GO) run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0 generate; \
 	fi
+
+run: build-server
+	./$(SERVER_BIN)

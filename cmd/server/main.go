@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ryotarai/hayai/internal/auth"
 	"github.com/ryotarai/hayai/internal/db"
 	"github.com/ryotarai/hayai/internal/server"
 )
@@ -37,10 +38,11 @@ func main() {
 	if err := db.ApplyMigrations(ctx, sqlDB); err != nil {
 		log.Fatalf("db migration failed: %v", err)
 	}
+	authService := auth.NewService(store)
 
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

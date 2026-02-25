@@ -51,6 +51,10 @@ func (s *Store) Ping(ctx context.Context) error {
 		_, err := s.pgQueries.GetMeta(ctx, "schema_version")
 		return err
 	default:
-		return fmt.Errorf("unsupported driver %q", s.driver)
+		return unsupportedDriverError(s.driver)
 	}
+}
+
+func unsupportedDriverError(driver string) error {
+	return fmt.Errorf("unsupported driver %q", driver)
 }

@@ -4,7 +4,28 @@
 
 package postgresql
 
+import (
+	"database/sql"
+	"time"
+)
+
 type AppMetum struct {
 	Key   string
 	Value string
+}
+
+type Session struct {
+	ID        string
+	UserID    string
+	TokenHash string
+	ExpiresAt int64
+	RevokedAt sql.NullTime
+	CreatedAt time.Time
+}
+
+type User struct {
+	ID           string
+	Email        string
+	PasswordHash string
+	CreatedAt    time.Time
 }
