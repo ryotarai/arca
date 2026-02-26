@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ryotarai/hayai/internal/auth"
+	"github.com/ryotarai/hayai/internal/gen/hayai/v1/hayaiv1connect"
 )
 
 type Dependencies struct {
@@ -203,6 +204,11 @@ func NewRouter(deps Dependencies) http.Handler {
 			writeJSONError(w, http.StatusNotFound, "not found")
 		})
 	})
+
+	if deps.Authenticator != nil {
+		path, handler := hayaiv1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator))
+		r.Mount(path, handler)
+	}
 
 	r.NotFound(spaHandler())
 	return r

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package hayai.v1;
+
+option go_package = "github.com/ryotarai/hayai/internal/gen/hayai/v1;hayaiv1";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc Me(MeRequest) returns (MeResponse);
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  User user = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  User user = 1;
+}
+
+message LogoutRequest {}
+
+message LogoutResponse {
+  string status = 1;
+}
+
+message MeRequest {}
+
+message MeResponse {
+  User user = 1;
+}
