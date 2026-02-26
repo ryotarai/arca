@@ -17,6 +17,7 @@ exclude_dir = [
   "web/node_modules",
   "web/dist",
   "internal/server/ui/dist",
+  "internal/gen",
   "internal/db/sqlc/postgresql",
   "internal/db/sqlc/sqlite"
 ]
