@@ -480,7 +480,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
                               <span className="text-xs text-slate-300">desired: {machine.desiredStatus}</span>
                             </div>
                             {machine.lastError != null && machine.lastError !== '' && (
-                              <p className="text-xs text-red-300">error: {machine.lastError}</p>
+                              <p className="text-xs text-red-300 break-all">error: {machine.lastError}</p>
                             )}
                           </div>
                         )}
@@ -679,7 +679,7 @@ function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                 {machine.lastError != null && machine.lastError !== '' && (
                   <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
                     <p className="text-sm text-red-200">last error</p>
-                    <p className="mt-1 text-xs text-red-100">{machine.lastError}</p>
+                    <p className="mt-1 text-xs text-red-100 break-all">{machine.lastError}</p>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
