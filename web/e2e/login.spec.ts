@@ -76,10 +76,24 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   await page.getByRole('button', { name: 'Create new account' }).click()
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
+  const registerRequest = page.waitForRequest(
+    (request) =>
+      request.url().endsWith('/hayai.v1.AuthService/Register') &&
+      request.method() === 'POST',
+  )
   await page.getByRole('button', { name: 'Register' }).click()
+  await registerRequest
+  await expect(page.getByText('registered. please log in.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible()
 
+  const loginRequest = page.waitForRequest(
+    (request) =>
+      request.url().endsWith('/hayai.v1.AuthService/Login') &&
+      request.method() === 'POST',
+  )
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Login' }).click()
+  await loginRequest
   await expect(page).toHaveURL('/')
 
   await page.getByRole('link', { name: 'Machines' }).click()
