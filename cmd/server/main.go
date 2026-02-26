@@ -42,7 +42,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

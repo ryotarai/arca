@@ -9,6 +9,21 @@ import (
 	"context"
 )
 
+const createMachine = `-- name: CreateMachine :exec
+INSERT INTO machines (id, name)
+VALUES (?1, ?2)
+`
+
+type CreateMachineParams struct {
+	ID   string
+	Name string
+}
+
+func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) error {
+	_, err := q.db.ExecContext(ctx, createMachine, arg.ID, arg.Name)
+	return err
+}
+
 const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES (?1, ?2, ?3, ?4)
@@ -45,6 +60,57 @@ type CreateUserParams struct {
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	_, err := q.db.ExecContext(ctx, createUser, arg.ID, arg.Email, arg.PasswordHash)
 	return err
+}
+
+const createUserMachine = `-- name: CreateUserMachine :exec
+INSERT INTO user_machines (user_id, machine_id, role)
+VALUES (?1, ?2, ?3)
+`
+
+type CreateUserMachineParams struct {
+	UserID    string
+	MachineID string
+	Role      string
+}
+
+func (q *Queries) CreateUserMachine(ctx context.Context, arg CreateUserMachineParams) error {
+	_, err := q.db.ExecContext(ctx, createUserMachine, arg.UserID, arg.MachineID, arg.Role)
+	return err
+}
+
+const deleteMachineIfNoUsers = `-- name: DeleteMachineIfNoUsers :exec
+DELETE FROM machines
+WHERE id = ?1
+  AND NOT EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machines.id
+  )
+`
+
+func (q *Queries) DeleteMachineIfNoUsers(ctx context.Context, machineID string) error {
+	_, err := q.db.ExecContext(ctx, deleteMachineIfNoUsers, machineID)
+	return err
+}
+
+const deleteUserMachineByMachineIDForOwner = `-- name: DeleteUserMachineByMachineIDForOwner :execrows
+DELETE FROM user_machines
+WHERE machine_id = ?1
+  AND user_id = ?2
+  AND role = 'owner'
+`
+
+type DeleteUserMachineByMachineIDForOwnerParams struct {
+	MachineID string
+	UserID    string
+}
+
+func (q *Queries) DeleteUserMachineByMachineIDForOwner(ctx context.Context, arg DeleteUserMachineByMachineIDForOwnerParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUserMachineByMachineIDForOwner, arg.MachineID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getMeta = `-- name: GetMeta :one
@@ -126,6 +192,37 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	return i, err
 }
 
+const listMachinesByUser = `-- name: ListMachinesByUser :many
+SELECT m.id, m.name, m.created_at
+FROM machines m
+JOIN user_machines um ON um.machine_id = m.id
+WHERE um.user_id = ?1
+ORDER BY m.created_at DESC
+`
+
+func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]Machine, error) {
+	rows, err := q.db.QueryContext(ctx, listMachinesByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Machine
+	for rows.Next() {
+		var i Machine
+		if err := rows.Scan(&i.ID, &i.Name, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const revokeSessionByTokenHash = `-- name: RevokeSessionByTokenHash :exec
 UPDATE sessions
 SET revoked_at = CURRENT_TIMESTAMP
@@ -136,6 +233,33 @@ WHERE token_hash = ?1
 func (q *Queries) RevokeSessionByTokenHash(ctx context.Context, tokenHash string) error {
 	_, err := q.db.ExecContext(ctx, revokeSessionByTokenHash, tokenHash)
 	return err
+}
+
+const updateMachineNameByIDForOwner = `-- name: UpdateMachineNameByIDForOwner :execrows
+UPDATE machines
+SET name = ?1
+WHERE id = ?2
+  AND EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machines.id
+      AND um.user_id = ?3
+      AND um.role = 'owner'
+  )
+`
+
+type UpdateMachineNameByIDForOwnerParams struct {
+	Name      string
+	MachineID string
+	UserID    string
+}
+
+func (q *Queries) UpdateMachineNameByIDForOwner(ctx context.Context, arg UpdateMachineNameByIDForOwnerParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateMachineNameByIDForOwner, arg.Name, arg.MachineID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const upsertMeta = `-- name: UpsertMeta :exec
