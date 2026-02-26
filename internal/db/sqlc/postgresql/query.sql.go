@@ -232,6 +232,44 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 	return i, err
 }
 
+const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+JOIN user_machines um ON um.machine_id = m.id
+WHERE m.id = $1
+  AND um.user_id = $2
+LIMIT 1
+`
+
+type GetMachineByIDForUserParams struct {
+	MachineID string
+	UserID    string
+}
+
+type GetMachineByIDForUserRow struct {
+	ID            string
+	Name          string
+	Status        string
+	DesiredStatus string
+	ContainerID   string
+	LastError     string
+}
+
+func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDForUserParams) (GetMachineByIDForUserRow, error) {
+	row := q.db.QueryRowContext(ctx, getMachineByIDForUser, arg.MachineID, arg.UserID)
+	var i GetMachineByIDForUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Status,
+		&i.DesiredStatus,
+		&i.ContainerID,
+		&i.LastError,
+	)
+	return i, err
+}
+
 const getMeta = `-- name: GetMeta :one
 SELECT value
 FROM app_meta

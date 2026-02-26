@@ -326,6 +326,45 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 	}
 }
 
+func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID string) (Machine, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetMachineByIDForUser(ctx, sqlitesqlc.GetMachineByIDForUserParams{
+			MachineID: machineID,
+			UserID:    userID,
+		})
+		if err != nil {
+			return Machine{}, err
+		}
+		return Machine{
+			ID:            row.ID,
+			Name:          row.Name,
+			Status:        row.Status,
+			DesiredStatus: row.DesiredStatus,
+			ContainerID:   row.ContainerID,
+			LastError:     row.LastError,
+		}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetMachineByIDForUser(ctx, postgresqlsqlc.GetMachineByIDForUserParams{
+			MachineID: machineID,
+			UserID:    userID,
+		})
+		if err != nil {
+			return Machine{}, err
+		}
+		return Machine{
+			ID:            row.ID,
+			Name:          row.Name,
+			Status:        row.Status,
+			DesiredStatus: row.DesiredStatus,
+			ContainerID:   row.ContainerID,
+			LastError:     row.LastError,
+		}, nil
+	default:
+		return Machine{}, unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) UpdateMachineRuntimeStateByMachineID(ctx context.Context, machineID, status, desiredStatus, containerID, lastError string) error {
 	nowUnix := time.Now().Unix()
 	switch s.driver {

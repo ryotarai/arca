@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -36,11 +37,37 @@ func newMachineRouter(authenticator Authenticator, store MachineStore) func(r ch
 	return func(r chi.Router) {
 		r.Get("/", api.list)
 		r.Post("/", api.create)
+		r.Get("/{machineID}", api.get)
 		r.Put("/{machineID}", api.update)
 		r.Post("/{machineID}/start", api.start)
 		r.Post("/{machineID}/stop", api.stop)
 		r.Delete("/{machineID}", api.delete)
 	}
+}
+
+func (a *machineAPI) get(w http.ResponseWriter, req *http.Request) {
+	userID, ok := a.authenticate(w, req)
+	if !ok {
+		return
+	}
+
+	machineID := strings.TrimSpace(chi.URLParam(req, "machineID"))
+	if machineID == "" {
+		writeError(w, http.StatusBadRequest, "machine id is required")
+		return
+	}
+
+	machine, err := a.store.GetMachineByIDForUser(req.Context(), userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "machine not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to get machine")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toMachineResponse(machine))
 }
 
 func (a *machineAPI) list(w http.ResponseWriter, req *http.Request) {

@@ -2,7 +2,7 @@ import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError, createClient } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import { useEffect, useState } from 'react'
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import {
   AuthService,
   LoginRequestSchema,
@@ -79,6 +79,17 @@ async function createMachine(name: string): Promise<Machine> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ name }),
+  })
+  const payload = (await response.json()) as Machine & { error?: string }
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'request failed')
+  }
+  return payload
+}
+
+async function getMachine(id: string): Promise<Machine> {
+  const response = await fetch(`/api/machines/${id}`, {
+    credentials: 'include',
   })
   const payload = (await response.json()) as Machine & { error?: string }
   if (!response.ok) {
@@ -185,6 +196,7 @@ export function App() {
       <Route path="/" element={<HomePage user={user} onLogout={logout} />} />
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
       <Route path="/machines" element={<MachinesPage user={user} onLogout={logout} />} />
+      <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={logout} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -233,6 +245,32 @@ function HomePage({ user, onLogout }: HomePageProps) {
 type MachinesPageProps = {
   user: User | null
   onLogout: () => Promise<void>
+}
+
+function statusTone(status: string): string {
+  switch (status) {
+    case 'running':
+      return 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
+    case 'starting':
+    case 'pending':
+      return 'border-sky-400/40 bg-sky-500/15 text-sky-200'
+    case 'stopping':
+      return 'border-amber-400/40 bg-amber-500/15 text-amber-200'
+    case 'stopped':
+      return 'border-slate-400/40 bg-slate-500/15 text-slate-200'
+    case 'failed':
+      return 'border-red-400/40 bg-red-500/15 text-red-200'
+    default:
+      return 'border-slate-400/40 bg-slate-500/15 text-slate-200'
+  }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-[0.08em] ${statusTone(status)}`}>
+      {status}
+    </span>
+  )
 }
 
 function MachinesPage({ user, onLogout }: MachinesPageProps) {
@@ -410,7 +448,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl text-white">Machine list</CardTitle>
-            <CardDescription className="text-slate-300">一覧から名前変更・起動・停止・削除ができます。</CardDescription>
+            <CardDescription className="text-slate-300">一覧から名前変更・起動・停止・削除・詳細確認ができます。</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
@@ -437,7 +475,10 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
                         ) : (
                           <div>
                             <p className="font-medium text-white">{machine.name}</p>
-                            <p className="text-xs text-slate-300">status: {machine.status}</p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <StatusBadge status={machine.status} />
+                              <span className="text-xs text-slate-300">desired: {machine.desiredStatus}</span>
+                            </div>
                             {machine.lastError != null && machine.lastError !== '' && (
                               <p className="text-xs text-red-300">error: {machine.lastError}</p>
                             )}
@@ -505,6 +546,9 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
                           >
                             Delete
                           </Button>
+                          <Button asChild type="button" variant="secondary" className="h-9 px-3">
+                            <Link to={`/machines/${machine.id}`}>Details</Link>
+                          </Button>
                         </div>
                       </div>
                     </li>
@@ -515,6 +559,154 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
 
             {error !== '' && (
               <p role="alert" className="mt-4 rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
+                {error}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+    </main>
+  )
+}
+
+type MachineDetailPageProps = {
+  user: User | null
+  onLogout: () => Promise<void>
+}
+
+function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
+  const { machineID } = useParams()
+  const [machine, setMachine] = useState<Machine | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (user == null || machineID == null || machineID === '') {
+      return
+    }
+
+    const run = async () => {
+      try {
+        const item = await getMachine(machineID)
+        setMachine(item)
+        setError('')
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'request failed')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void run()
+    const timer = window.setInterval(() => {
+      void run()
+    }, 3000)
+    return () => window.clearInterval(timer)
+  }, [user, machineID])
+
+  if (user == null) {
+    return <Navigate to="/login" replace />
+  }
+  if (machineID == null || machineID === '') {
+    return <Navigate to="/machines" replace />
+  }
+
+  const handleStart = async () => {
+    setError('')
+    try {
+      await startMachine(machineID)
+      setMachine((prev) => (prev == null ? prev : { ...prev, status: 'pending', desiredStatus: 'running', lastError: '' }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'request failed')
+    }
+  }
+
+  const handleStop = async () => {
+    setError('')
+    try {
+      await stopMachine(machineID)
+      setMachine((prev) => (prev == null ? prev : { ...prev, status: 'stopping', desiredStatus: 'stopped', lastError: '' }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'request failed')
+    }
+  }
+
+  return (
+    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
+
+      <section className="relative z-10 mx-auto w-full max-w-3xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Hayai</p>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Machine detail</h1>
+            <p className="mt-1 text-xs text-slate-400">{machineID}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button asChild type="button" variant="secondary">
+              <Link to="/machines">Back</Link>
+            </Button>
+            <Button type="button" variant="secondary" onClick={onLogout}>
+              Logout
+            </Button>
+          </div>
+        </header>
+
+        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+          <CardHeader className="space-y-2 p-6 pb-3">
+            <CardTitle className="text-xl text-white">Runtime</CardTitle>
+            <CardDescription className="text-slate-300">現在状態と目標状態を表示します。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 p-6 pt-3">
+            {loading ? (
+              <p className="text-sm text-slate-300">Loading...</p>
+            ) : machine == null ? (
+              <p className="text-sm text-slate-300">Machine not found.</p>
+            ) : (
+              <>
+                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-300">Name</p>
+                  <p className="text-lg font-semibold text-white">{machine.name}</p>
+                </div>
+                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-300">Status</p>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={machine.status} />
+                    <span className="text-sm text-slate-300">desired: {machine.desiredStatus}</span>
+                  </div>
+                </div>
+                {machine.lastError != null && machine.lastError !== '' && (
+                  <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
+                    <p className="text-sm text-red-200">last error</p>
+                    <p className="mt-1 text-xs text-red-100">{machine.lastError}</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-9 px-3"
+                    onClick={() => void handleStart()}
+                    disabled={machine.desiredStatus === 'running' && machine.status !== 'failed'}
+                  >
+                    Start
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-9 px-3"
+                    onClick={() => void handleStop()}
+                    disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
+                  >
+                    Stop
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {error !== '' && (
+              <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
                 {error}
               </p>
             )}
