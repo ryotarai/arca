@@ -9,7 +9,7 @@ delay = 300
 stop_on_error = true
 send_interrupt = true
 kill_delay = "500ms"
-include_ext = ["go", "sql", "tpl", "tmpl", "html"]
+include_ext = ["go", "sql", "tpl", "tmpl", "html", "ts", "tsx", "js", "jsx", "css"]
 exclude_dir = [
   ".git",
   ".cache",
