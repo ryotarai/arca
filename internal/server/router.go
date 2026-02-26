@@ -11,12 +11,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ryotarai/hayai/internal/db"
 	"github.com/ryotarai/hayai/internal/gen/hayai/v1/hayaiv1connect"
 )
 
 type Dependencies struct {
 	HealthChecker HealthChecker
 	Authenticator Authenticator
+	MachineStore  MachineStore
 }
 
 type HealthChecker interface {
@@ -28,6 +30,13 @@ type Authenticator interface {
 	Login(context.Context, string, string) (string, string, string, time.Time, error)
 	Authenticate(context.Context, string) (string, string, error)
 	Logout(context.Context, string) error
+}
+
+type MachineStore interface {
+	CreateMachineWithOwner(context.Context, string, string) (db.Machine, error)
+	ListMachinesByUser(context.Context, string) ([]db.Machine, error)
+	UpdateMachineNameByIDForOwner(context.Context, string, string, string) (bool, error)
+	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 }
 
 const sessionCookieName = "hayai_session"
@@ -44,6 +53,9 @@ func NewRouter(deps Dependencies) http.Handler {
 	if deps.Authenticator != nil {
 		path, handler := hayaiv1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator))
 		r.Mount(path, handler)
+	}
+	if deps.Authenticator != nil && deps.MachineStore != nil {
+		r.Route("/api/machines", newMachineRouter(deps.Authenticator, deps.MachineStore))
 	}
 
 	r.NotFound(spaHandler())

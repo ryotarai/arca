@@ -67,3 +67,34 @@ test('register, login, and logout via Connect RPC', async ({ page }) => {
 
   await expect(page.getByRole('link', { name: 'Login' })).toBeVisible()
 })
+
+test('machine CRUD screen works for authenticated user', async ({ page }) => {
+  const email = `machine-${Date.now()}@example.com`
+  const password = 'password123'
+
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'Create new account' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Register' }).click()
+
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Login' }).click()
+  await expect(page).toHaveURL('/')
+
+  await page.getByRole('link', { name: 'Machines' }).click()
+  await expect(page).toHaveURL('/machines')
+  await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
+
+  await page.getByLabel('Name').fill('alpha-machine')
+  await page.getByRole('button', { name: 'Create' }).click()
+  await expect(page.getByText('alpha-machine')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Edit' }).first().click()
+  await page.getByLabel('Edit machine name').fill('beta-machine')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('beta-machine')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Delete' }).first().click()
+  await expect(page.getByText('No machines yet.')).toBeVisible()
+})

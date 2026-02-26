@@ -44,3 +44,45 @@ UPDATE sessions
 SET revoked_at = CURRENT_TIMESTAMP
 WHERE token_hash = sqlc.arg(token_hash)
   AND revoked_at IS NULL;
+
+-- name: CreateMachine :exec
+INSERT INTO machines (id, name)
+VALUES (sqlc.arg(id), sqlc.arg(name));
+
+-- name: CreateUserMachine :exec
+INSERT INTO user_machines (user_id, machine_id, role)
+VALUES (sqlc.arg(user_id), sqlc.arg(machine_id), sqlc.arg(role));
+
+-- name: ListMachinesByUser :many
+SELECT m.id, m.name, m.created_at
+FROM machines m
+JOIN user_machines um ON um.machine_id = m.id
+WHERE um.user_id = sqlc.arg(user_id)
+ORDER BY m.created_at DESC;
+
+-- name: UpdateMachineNameByIDForOwner :execrows
+UPDATE machines
+SET name = sqlc.arg(name)
+WHERE id = sqlc.arg(machine_id)
+  AND EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machines.id
+      AND um.user_id = sqlc.arg(user_id)
+      AND um.role = 'owner'
+  );
+
+-- name: DeleteUserMachineByMachineIDForOwner :execrows
+DELETE FROM user_machines
+WHERE machine_id = sqlc.arg(machine_id)
+  AND user_id = sqlc.arg(user_id)
+  AND role = 'owner';
+
+-- name: DeleteMachineIfNoUsers :exec
+DELETE FROM machines
+WHERE id = sqlc.arg(machine_id)
+  AND NOT EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machines.id
+  );

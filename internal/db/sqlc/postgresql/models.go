@@ -14,6 +14,12 @@ type AppMetum struct {
 	Value string
 }
 
+type Machine struct {
+	ID        string
+	Name      string
+	CreatedAt time.Time
+}
+
 type Session struct {
 	ID        string
 	UserID    string
@@ -28,4 +34,11 @@ type User struct {
 	Email        string
 	PasswordHash string
 	CreatedAt    time.Time
+}
+
+type UserMachine struct {
+	UserID    string
+	MachineID string
+	Role      string
+	CreatedAt time.Time
 }

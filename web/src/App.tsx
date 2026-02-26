@@ -20,6 +20,11 @@ type User = {
   email: string
 }
 
+type Machine = {
+  id: string
+  name: string
+}
+
 const authClient = createClient(
   AuthService,
   createConnectTransport({
@@ -46,6 +51,71 @@ function messageFromError(error: unknown): string {
     return error.rawMessage !== '' ? error.rawMessage : 'request failed'
   }
   return 'request failed'
+}
+
+async function parseMachineResponse(response: Response): Promise<Machine[]> {
+  const payload = (await response.json()) as { machines?: Machine[]; error?: string }
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'request failed')
+  }
+  return payload.machines ?? []
+}
+
+async function listMachines(): Promise<Machine[]> {
+  const response = await fetch('/api/machines', {
+    credentials: 'include',
+  })
+  return parseMachineResponse(response)
+}
+
+async function createMachine(name: string): Promise<Machine> {
+  const response = await fetch('/api/machines', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  })
+  const payload = (await response.json()) as Machine & { error?: string }
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'request failed')
+  }
+  return {
+    id: payload.id,
+    name: payload.name,
+  }
+}
+
+async function updateMachine(id: string, name: string): Promise<Machine> {
+  const response = await fetch(`/api/machines/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  })
+  const payload = (await response.json()) as Machine & { error?: string }
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'request failed')
+  }
+  return {
+    id: payload.id,
+    name: payload.name,
+  }
+}
+
+async function deleteMachine(id: string): Promise<void> {
+  const response = await fetch(`/api/machines/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (response.status === 204) {
+    return
+  }
+  const payload = (await response.json()) as { error?: string }
+  throw new Error(payload.error ?? 'request failed')
 }
 
 export function App() {
@@ -88,6 +158,7 @@ export function App() {
     <Routes>
       <Route path="/" element={<HomePage user={user} onLogout={logout} />} />
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
+      <Route path="/machines" element={<MachinesPage user={user} onLogout={logout} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -120,10 +191,244 @@ function HomePage({ user, onLogout }: HomePageProps) {
         <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Hayai</p>
         <h1 className="mt-2 text-2xl font-semibold">Dashboard</h1>
         <p className="mt-3 text-sm text-slate-300">Signed in as {user.email}</p>
-        <Button type="button" variant="secondary" className="mt-6" onClick={onLogout}>
-          Logout
-        </Button>
+        <div className="mt-6 flex items-center gap-3">
+          <Button asChild type="button">
+            <Link to="/machines">Machines</Link>
+          </Button>
+          <Button type="button" variant="secondary" onClick={onLogout}>
+            Logout
+          </Button>
+        </div>
       </div>
+    </main>
+  )
+}
+
+type MachinesPageProps = {
+  user: User | null
+  onLogout: () => Promise<void>
+}
+
+function MachinesPage({ user, onLogout }: MachinesPageProps) {
+  const [machines, setMachines] = useState<Machine[]>([])
+  const [loading, setLoading] = useState(true)
+  const [name, setName] = useState('')
+  const [editingID, setEditingID] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (user == null) {
+      return
+    }
+
+    const run = async () => {
+      try {
+        const items = await listMachines()
+        setMachines(items)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'request failed')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void run()
+  }, [user])
+
+  if (user == null) {
+    return <Navigate to="/login" replace />
+  }
+
+  const submitCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const trimmed = name.trim()
+    if (trimmed === '') {
+      setError('name is required')
+      return
+    }
+
+    setError('')
+    try {
+      const created = await createMachine(trimmed)
+      setMachines((prev) => [created, ...prev])
+      setName('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'request failed')
+    }
+  }
+
+  const submitUpdate = async (machineID: string) => {
+    const trimmed = editingName.trim()
+    if (trimmed === '') {
+      setError('name is required')
+      return
+    }
+
+    setError('')
+    try {
+      const updated = await updateMachine(machineID, trimmed)
+      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
+      setEditingID(null)
+      setEditingName('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'request failed')
+    }
+  }
+
+  const submitDelete = async (machineID: string) => {
+    setError('')
+    try {
+      await deleteMachine(machineID)
+      setMachines((prev) => prev.filter((machine) => machine.id !== machineID))
+      if (editingID === machineID) {
+        setEditingID(null)
+        setEditingName('')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'request failed')
+    }
+  }
+
+  return (
+    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
+
+      <section className="relative z-10 mx-auto w-full max-w-4xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Hayai</p>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Machines</h1>
+            <p className="mt-1 text-sm text-slate-300">Signed in as {user.email}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button asChild type="button" variant="secondary">
+              <Link to="/">Back</Link>
+            </Button>
+            <Button type="button" variant="secondary" onClick={onLogout}>
+              Logout
+            </Button>
+          </div>
+        </header>
+
+        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+          <CardHeader className="space-y-2 p-6 pb-3">
+            <CardTitle className="text-xl text-white">Create machine</CardTitle>
+            <CardDescription className="text-slate-300">名前だけ付けられる最小構成です。</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 pt-3">
+            <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submitCreate}>
+              <div className="w-full space-y-2">
+                <Label htmlFor="machine-name" className="text-slate-200">
+                  Name
+                </Label>
+                <Input
+                  id="machine-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                  placeholder="my-machine"
+                  required
+                />
+              </div>
+              <Button type="submit" className="h-10 self-end bg-white text-slate-900 hover:bg-slate-100">
+                Create
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+          <CardHeader className="space-y-2 p-6 pb-3">
+            <CardTitle className="text-xl text-white">Machine list</CardTitle>
+            <CardDescription className="text-slate-300">一覧からそのまま更新・削除できます。</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 pt-3">
+            {loading ? (
+              <p className="text-sm text-slate-300">Loading...</p>
+            ) : machines.length === 0 ? (
+              <p className="text-sm text-slate-300">No machines yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {machines.map((machine) => {
+                  const editing = editingID === machine.id
+                  return (
+                    <li
+                      key={machine.id}
+                      className="rounded-lg border border-white/10 bg-white/[0.03] p-4"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        {editing ? (
+                          <Input
+                            value={editingName}
+                            onChange={(event) => setEditingName(event.target.value)}
+                            className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45 sm:max-w-sm"
+                            aria-label="Edit machine name"
+                          />
+                        ) : (
+                          <p className="font-medium text-white">{machine.name}</p>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          {editing ? (
+                            <>
+                              <Button
+                                type="button"
+                                className="h-9 bg-white px-3 text-slate-900 hover:bg-slate-100"
+                                onClick={() => void submitUpdate(machine.id)}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                className="h-9 px-3"
+                                onClick={() => {
+                                  setEditingID(null)
+                                  setEditingName('')
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="h-9 px-3"
+                              onClick={() => {
+                                setEditingID(machine.id)
+                                setEditingName(machine.name)
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="h-9 px-3"
+                            onClick={() => void submitDelete(machine.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+
+            {error !== '' && (
+              <p role="alert" className="mt-4 rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
+                {error}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </main>
   )
 }
