@@ -5,19 +5,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-async function api(path, options = {}) {
+type User = {
+  email: string
+}
+
+type AuthMeResponse = {
+  user: User
+}
+
+type AuthResponse = {
+  user?: User
+  error?: string
+}
+
+async function api<T>(path: string, options: RequestInit = {}) {
   const response = await fetch(path, {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
+      ...(options.headers ?? {}),
     },
     ...options,
   })
 
-  let body = null
+  let body: T | null = null
   try {
-    body = await response.json()
+    body = (await response.json()) as T
   } catch {
     body = null
   }
@@ -27,17 +40,17 @@ async function api(path, options = {}) {
 
 export function App() {
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     const run = async () => {
-      const { response, body } = await api('/api/auth/me')
-      if (response.ok) {
+      const { response, body } = await api<AuthMeResponse>('/api/auth/me')
+      if (response.ok && body?.user != null) {
         setUser(body.user)
       }
       setLoading(false)
     }
-    run()
+    void run()
   }, [])
 
   const logout = async () => {
@@ -46,7 +59,11 @@ export function App() {
   }
 
   if (loading) {
-    return <main><p>Loading...</p></main>
+    return (
+      <main>
+        <p>Loading...</p>
+      </main>
+    )
   }
 
   return (
@@ -58,7 +75,12 @@ export function App() {
   )
 }
 
-function HomePage({ user, onLogout }) {
+type HomePageProps = {
+  user: User | null
+  onLogout: () => Promise<void>
+}
+
+function HomePage({ user, onLogout }: HomePageProps) {
   if (user == null) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(circle_at_top_left,_#f8fafc_10%,_#e2e8f0_55%,_#cbd5e1_100%)] px-6">
@@ -88,9 +110,14 @@ function HomePage({ user, onLogout }) {
   )
 }
 
-function LoginPage({ user, onLogin }) {
+type LoginPageProps = {
+  user: User | null
+  onLogin: (user: User) => void
+}
+
+function LoginPage({ user, onLogin }: LoginPageProps) {
   const navigate = useNavigate()
-  const [mode, setMode] = useState('login')
+  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -100,19 +127,19 @@ function LoginPage({ user, onLogin }) {
     return <Navigate to="/" replace />
   }
 
-  const submit = async (event) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
     setNotice('')
 
     const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login'
-    const { response, body } = await api(endpoint, {
+    const { response, body } = await api<AuthResponse>(endpoint, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
 
     if (!response.ok) {
-      setError(body?.error || 'request failed')
+      setError(body?.error ?? 'request failed')
       return
     }
 
@@ -123,9 +150,14 @@ function LoginPage({ user, onLogin }) {
       return
     }
 
+    if (body?.user == null) {
+      setError('request failed')
+      return
+    }
+
     onLogin(body.user)
     setPassword('')
-    navigate('/', { replace: true })
+    void navigate('/', { replace: true })
   }
 
   return (
@@ -158,7 +190,9 @@ function LoginPage({ user, onLogin }) {
           <CardContent className="space-y-6 p-8 pt-2">
             <form className="space-y-4" onSubmit={submit}>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200">Email</Label>
+                <Label htmlFor="email" className="text-slate-200">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -171,7 +205,9 @@ function LoginPage({ user, onLogin }) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200">Password</Label>
+                <Label htmlFor="password" className="text-slate-200">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
