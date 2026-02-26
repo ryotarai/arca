@@ -11,8 +11,9 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command: 'cd .. && make build-server && SERVER_ADDR=127.0.0.1:18080 ./bin/server',
-    url: 'http://127.0.0.1:18080/api/health',
+    command:
+      'cd .. && mkdir -p bin .cache/go-build .cache/go-mod && GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod go build -o ./bin/server ./cmd/server && SERVER_ADDR=127.0.0.1:18080 ./bin/server',
+    url: 'http://127.0.0.1:18080/',
     reuseExistingServer: true,
     timeout: 120_000,
   },
