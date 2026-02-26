@@ -99,6 +99,15 @@ JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.id = sqlc.arg(machine_id)
 LIMIT 1;
 
+-- name: GetMachineByIDForUser :one
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+JOIN user_machines um ON um.machine_id = m.id
+WHERE m.id = sqlc.arg(machine_id)
+  AND um.user_id = sqlc.arg(user_id)
+LIMIT 1;
+
 -- name: UpdateMachineStateForOwner :execrows
 UPDATE machine_states
 SET status = sqlc.arg(status),
