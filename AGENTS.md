@@ -42,6 +42,8 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Run tests with `go test ./...` before pushing.
 - Keep tests near code as `*_test.go`; prefer table-driven tests for handlers and DB logic.
 - Add/update E2E or browser checks for UI/routing behavior; prefer `chrome-headless-shell` for browser verification.
+- If tests fail, automatically attempt a fix and re-run tests without waiting for an extra user prompt.
+- When a failing test indicates a product bug, fix implementation first; only adjust tests when the expected behavior is incorrect or the test is flaky.
 
 ## Generated Files & Regeneration
 Do not manually edit generated outputs:
