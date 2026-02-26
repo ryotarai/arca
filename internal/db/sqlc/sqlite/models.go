@@ -20,6 +20,29 @@ type Machine struct {
 	CreatedAt time.Time
 }
 
+type MachineJob struct {
+	ID         string
+	MachineID  string
+	Kind       string
+	Status     string
+	Attempt    int64
+	NextRunAt  int64
+	LeaseOwner sql.NullString
+	LeaseUntil sql.NullInt64
+	LastError  sql.NullString
+	CreatedAt  int64
+	UpdatedAt  int64
+}
+
+type MachineState struct {
+	MachineID     string
+	Status        string
+	DesiredStatus string
+	ContainerID   string
+	LastError     string
+	UpdatedAt     int64
+}
+
 type Session struct {
 	ID        string
 	UserID    string

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/ryotarai/hayai/internal/db"
 )
 
 type machineAPI struct {
@@ -20,8 +21,11 @@ type machinePayload struct {
 }
 
 type machineResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Status        string `json:"status"`
+	DesiredStatus string `json:"desiredStatus"`
+	LastError     string `json:"lastError,omitempty"`
 }
 
 func newMachineRouter(authenticator Authenticator, store MachineStore) func(r chi.Router) {
@@ -33,6 +37,8 @@ func newMachineRouter(authenticator Authenticator, store MachineStore) func(r ch
 		r.Get("/", api.list)
 		r.Post("/", api.create)
 		r.Put("/{machineID}", api.update)
+		r.Post("/{machineID}/start", api.start)
+		r.Post("/{machineID}/stop", api.stop)
 		r.Delete("/{machineID}", api.delete)
 	}
 }
@@ -51,10 +57,7 @@ func (a *machineAPI) list(w http.ResponseWriter, req *http.Request) {
 
 	items := make([]machineResponse, 0, len(machines))
 	for _, machine := range machines {
-		items = append(items, machineResponse{
-			ID:   machine.ID,
-			Name: machine.Name,
-		})
+		items = append(items, toMachineResponse(machine))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"machines": items})
 }
@@ -82,10 +85,7 @@ func (a *machineAPI) create(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, machineResponse{
-		ID:   machine.ID,
-		Name: machine.Name,
-	})
+	writeJSON(w, http.StatusCreated, toMachineResponse(machine))
 }
 
 func (a *machineAPI) update(w http.ResponseWriter, req *http.Request) {
@@ -121,10 +121,57 @@ func (a *machineAPI) update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, machineResponse{
-		ID:   machineID,
-		Name: name,
-	})
+	writeJSON(w, http.StatusOK, map[string]string{"id": machineID, "name": name})
+}
+
+func (a *machineAPI) start(w http.ResponseWriter, req *http.Request) {
+	userID, ok := a.authenticate(w, req)
+	if !ok {
+		return
+	}
+
+	machineID := strings.TrimSpace(chi.URLParam(req, "machineID"))
+	if machineID == "" {
+		writeError(w, http.StatusBadRequest, "machine id is required")
+		return
+	}
+
+	updated, err := a.store.RequestStartMachineByIDForOwner(req.Context(), userID, machineID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to start machine")
+		return
+	}
+	if !updated {
+		writeError(w, http.StatusNotFound, "machine not found")
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"id": machineID, "status": "pending", "desiredStatus": "running"})
+}
+
+func (a *machineAPI) stop(w http.ResponseWriter, req *http.Request) {
+	userID, ok := a.authenticate(w, req)
+	if !ok {
+		return
+	}
+
+	machineID := strings.TrimSpace(chi.URLParam(req, "machineID"))
+	if machineID == "" {
+		writeError(w, http.StatusBadRequest, "machine id is required")
+		return
+	}
+
+	updated, err := a.store.RequestStopMachineByIDForOwner(req.Context(), userID, machineID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to stop machine")
+		return
+	}
+	if !updated {
+		writeError(w, http.StatusNotFound, "machine not found")
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"id": machineID, "status": "stopping", "desiredStatus": "stopped"})
 }
 
 func (a *machineAPI) delete(w http.ResponseWriter, req *http.Request) {
@@ -179,6 +226,16 @@ func decodeMachinePayload(req *http.Request) (machinePayload, error) {
 		return machinePayload{}, errors.New("unexpected trailing data")
 	}
 	return payload, nil
+}
+
+func toMachineResponse(machine db.Machine) machineResponse {
+	return machineResponse{
+		ID:            machine.ID,
+		Name:          machine.Name,
+		Status:        machine.Status,
+		DesiredStatus: machine.DesiredStatus,
+		LastError:     machine.LastError,
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

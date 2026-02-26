@@ -23,6 +23,9 @@ type User = {
 type Machine = {
   id: string
   name: string
+  status: string
+  desiredStatus: string
+  lastError?: string
 }
 
 const authClient = createClient(
@@ -81,10 +84,7 @@ async function createMachine(name: string): Promise<Machine> {
   if (!response.ok) {
     throw new Error(payload.error ?? 'request failed')
   }
-  return {
-    id: payload.id,
-    name: payload.name,
-  }
+  return payload
 }
 
 async function updateMachine(id: string, name: string): Promise<Machine> {
@@ -96,14 +96,40 @@ async function updateMachine(id: string, name: string): Promise<Machine> {
     },
     body: JSON.stringify({ name }),
   })
-  const payload = (await response.json()) as Machine & { error?: string }
+  const payload = (await response.json()) as { id: string; name: string; error?: string }
   if (!response.ok) {
     throw new Error(payload.error ?? 'request failed')
   }
   return {
     id: payload.id,
     name: payload.name,
+    status: 'unknown',
+    desiredStatus: 'unknown',
   }
+}
+
+async function startMachine(id: string): Promise<void> {
+  const response = await fetch(`/api/machines/${id}/start`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  if (response.ok) {
+    return
+  }
+  const payload = (await response.json()) as { error?: string }
+  throw new Error(payload.error ?? 'request failed')
+}
+
+async function stopMachine(id: string): Promise<void> {
+  const response = await fetch(`/api/machines/${id}/stop`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  if (response.ok) {
+    return
+  }
+  const payload = (await response.json()) as { error?: string }
+  throw new Error(payload.error ?? 'request failed')
 }
 
 async function deleteMachine(id: string): Promise<void> {
@@ -234,6 +260,10 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
     }
 
     void run()
+    const timer = window.setInterval(() => {
+      void run()
+    }, 3000)
+    return () => window.clearInterval(timer)
   }, [user])
 
   if (user == null) {
@@ -268,9 +298,47 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
     setError('')
     try {
       const updated = await updateMachine(machineID, trimmed)
-      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
+      setMachines((prev) =>
+        prev.map((machine) =>
+          machine.id === machineID
+            ? { ...machine, name: updated.name }
+            : machine,
+        ),
+      )
       setEditingID(null)
       setEditingName('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'request failed')
+    }
+  }
+
+  const submitStart = async (machineID: string) => {
+    setError('')
+    try {
+      await startMachine(machineID)
+      setMachines((prev) =>
+        prev.map((machine) =>
+          machine.id === machineID
+            ? { ...machine, status: 'pending', desiredStatus: 'running', lastError: '' }
+            : machine,
+        ),
+      )
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'request failed')
+    }
+  }
+
+  const submitStop = async (machineID: string) => {
+    setError('')
+    try {
+      await stopMachine(machineID)
+      setMachines((prev) =>
+        prev.map((machine) =>
+          machine.id === machineID
+            ? { ...machine, status: 'stopping', desiredStatus: 'stopped', lastError: '' }
+            : machine,
+        ),
+      )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'request failed')
     }
@@ -342,7 +410,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl text-white">Machine list</CardTitle>
-            <CardDescription className="text-slate-300">一覧からそのまま更新・削除できます。</CardDescription>
+            <CardDescription className="text-slate-300">一覧から名前変更・起動・停止・削除ができます。</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
@@ -367,7 +435,13 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
                             aria-label="Edit machine name"
                           />
                         ) : (
-                          <p className="font-medium text-white">{machine.name}</p>
+                          <div>
+                            <p className="font-medium text-white">{machine.name}</p>
+                            <p className="text-xs text-slate-300">status: {machine.status}</p>
+                            {machine.lastError != null && machine.lastError !== '' && (
+                              <p className="text-xs text-red-300">error: {machine.lastError}</p>
+                            )}
+                          </div>
                         )}
 
                         <div className="flex items-center gap-2">
@@ -405,6 +479,24 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
                               Edit
                             </Button>
                           )}
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="h-9 px-3"
+                            onClick={() => void submitStart(machine.id)}
+                            disabled={machine.desiredStatus === 'running' && machine.status !== 'failed'}
+                          >
+                            Start
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="h-9 px-3"
+                            onClick={() => void submitStop(machine.id)}
+                            disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
+                          >
+                            Stop
+                          </Button>
                           <Button
                             type="button"
                             variant="secondary"

@@ -53,13 +53,6 @@ VALUES (sqlc.arg(id), sqlc.arg(name));
 INSERT INTO user_machines (user_id, machine_id, role)
 VALUES (sqlc.arg(user_id), sqlc.arg(machine_id), sqlc.arg(role));
 
--- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.created_at
-FROM machines m
-JOIN user_machines um ON um.machine_id = m.id
-WHERE um.user_id = sqlc.arg(user_id)
-ORDER BY m.created_at DESC;
-
 -- name: UpdateMachineNameByIDForOwner :execrows
 UPDATE machines
 SET name = sqlc.arg(name)
@@ -86,3 +79,108 @@ WHERE id = sqlc.arg(machine_id)
     FROM user_machines um
     WHERE um.machine_id = machines.id
   );
+
+-- name: CreateMachineState :exec
+INSERT INTO machine_states (machine_id, status, desired_status, updated_at)
+VALUES (sqlc.arg(machine_id), sqlc.arg(status), sqlc.arg(desired_status), sqlc.arg(updated_at));
+
+-- name: ListMachinesByUser :many
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+FROM machines m
+JOIN user_machines um ON um.machine_id = m.id
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE um.user_id = sqlc.arg(user_id)
+ORDER BY m.created_at DESC;
+
+-- name: GetMachineByID :one
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE m.id = sqlc.arg(machine_id)
+LIMIT 1;
+
+-- name: UpdateMachineStateForOwner :execrows
+UPDATE machine_states
+SET status = sqlc.arg(status),
+    desired_status = sqlc.arg(desired_status),
+    updated_at = sqlc.arg(updated_at),
+    last_error = ''
+WHERE machine_states.machine_id = sqlc.arg(machine_id)
+  AND EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machine_states.machine_id
+      AND um.user_id = sqlc.arg(user_id)
+      AND um.role = 'owner'
+  );
+
+-- name: UpdateMachineRuntimeStateByMachineID :exec
+UPDATE machine_states
+SET status = sqlc.arg(status),
+    desired_status = sqlc.arg(desired_status),
+    container_id = sqlc.arg(container_id),
+    last_error = sqlc.arg(last_error),
+    updated_at = sqlc.arg(updated_at)
+WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: EnqueueMachineJob :exec
+INSERT INTO machine_jobs (
+  id, machine_id, kind, status, attempt, next_run_at, created_at, updated_at
+)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(machine_id),
+  sqlc.arg(kind),
+  'queued',
+  0,
+  sqlc.arg(next_run_at),
+  sqlc.arg(now_unix),
+  sqlc.arg(now_unix)
+);
+
+-- name: ListRunnableMachineJobs :many
+SELECT id, machine_id, kind, attempt
+FROM machine_jobs
+WHERE status = 'queued'
+  AND next_run_at <= sqlc.arg(now_unix)
+ORDER BY created_at ASC
+LIMIT sqlc.arg(limit_n);
+
+-- name: ClaimMachineJob :execrows
+UPDATE machine_jobs
+SET status = 'running',
+    lease_owner = sqlc.arg(lease_owner),
+    lease_until = sqlc.arg(lease_until),
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id)
+  AND status = 'queued';
+
+-- name: MarkMachineJobSucceeded :exec
+UPDATE machine_jobs
+SET status = 'succeeded',
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = NULL,
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id);
+
+-- name: RequeueMachineJob :exec
+UPDATE machine_jobs
+SET status = 'queued',
+    attempt = attempt + 1,
+    next_run_at = sqlc.arg(next_run_at),
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = sqlc.arg(last_error),
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id);
+
+-- name: RecoverExpiredMachineJobs :execrows
+UPDATE machine_jobs
+SET status = 'queued',
+    lease_owner = NULL,
+    lease_until = NULL,
+    updated_at = sqlc.arg(updated_at)
+WHERE status = 'running'
+  AND lease_until IS NOT NULL
+  AND lease_until < sqlc.arg(now_unix);

@@ -7,7 +7,38 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
 )
+
+const claimMachineJob = `-- name: ClaimMachineJob :execrows
+UPDATE machine_jobs
+SET status = 'running',
+    lease_owner = ?1,
+    lease_until = ?2,
+    updated_at = ?3
+WHERE id = ?4
+  AND status = 'queued'
+`
+
+type ClaimMachineJobParams struct {
+	LeaseOwner sql.NullString
+	LeaseUntil sql.NullInt64
+	UpdatedAt  int64
+	ID         string
+}
+
+func (q *Queries) ClaimMachineJob(ctx context.Context, arg ClaimMachineJobParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, claimMachineJob,
+		arg.LeaseOwner,
+		arg.LeaseUntil,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
 
 const createMachine = `-- name: CreateMachine :exec
 INSERT INTO machines (id, name)
@@ -21,6 +52,28 @@ type CreateMachineParams struct {
 
 func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) error {
 	_, err := q.db.ExecContext(ctx, createMachine, arg.ID, arg.Name)
+	return err
+}
+
+const createMachineState = `-- name: CreateMachineState :exec
+INSERT INTO machine_states (machine_id, status, desired_status, updated_at)
+VALUES (?1, ?2, ?3, ?4)
+`
+
+type CreateMachineStateParams struct {
+	MachineID     string
+	Status        string
+	DesiredStatus string
+	UpdatedAt     int64
+}
+
+func (q *Queries) CreateMachineState(ctx context.Context, arg CreateMachineStateParams) error {
+	_, err := q.db.ExecContext(ctx, createMachineState,
+		arg.MachineID,
+		arg.Status,
+		arg.DesiredStatus,
+		arg.UpdatedAt,
+	)
 	return err
 }
 
@@ -113,6 +166,72 @@ func (q *Queries) DeleteUserMachineByMachineIDForOwner(ctx context.Context, arg 
 	return result.RowsAffected()
 }
 
+const enqueueMachineJob = `-- name: EnqueueMachineJob :exec
+INSERT INTO machine_jobs (
+  id, machine_id, kind, status, attempt, next_run_at, created_at, updated_at
+)
+VALUES (
+  ?1,
+  ?2,
+  ?3,
+  'queued',
+  0,
+  ?4,
+  ?5,
+  ?5
+)
+`
+
+type EnqueueMachineJobParams struct {
+	ID        string
+	MachineID string
+	Kind      string
+	NextRunAt int64
+	NowUnix   int64
+}
+
+func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobParams) error {
+	_, err := q.db.ExecContext(ctx, enqueueMachineJob,
+		arg.ID,
+		arg.MachineID,
+		arg.Kind,
+		arg.NextRunAt,
+		arg.NowUnix,
+	)
+	return err
+}
+
+const getMachineByID = `-- name: GetMachineByID :one
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE m.id = ?1
+LIMIT 1
+`
+
+type GetMachineByIDRow struct {
+	ID            string
+	Name          string
+	Status        string
+	DesiredStatus string
+	ContainerID   string
+	LastError     string
+}
+
+func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMachineByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getMachineByID, machineID)
+	var i GetMachineByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Status,
+		&i.DesiredStatus,
+		&i.ContainerID,
+		&i.LastError,
+	)
+	return i, err
+}
+
 const getMeta = `-- name: GetMeta :one
 SELECT value
 FROM app_meta
@@ -193,23 +312,40 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 }
 
 const listMachinesByUser = `-- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.created_at
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
+JOIN machine_states ms ON ms.machine_id = m.id
 WHERE um.user_id = ?1
 ORDER BY m.created_at DESC
 `
 
-func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]Machine, error) {
+type ListMachinesByUserRow struct {
+	ID            string
+	Name          string
+	Status        string
+	DesiredStatus string
+	ContainerID   string
+	LastError     string
+}
+
+func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]ListMachinesByUserRow, error) {
 	rows, err := q.db.QueryContext(ctx, listMachinesByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Machine
+	var items []ListMachinesByUserRow
 	for rows.Next() {
-		var i Machine
-		if err := rows.Scan(&i.ID, &i.Name, &i.CreatedAt); err != nil {
+		var i ListMachinesByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Status,
+			&i.DesiredStatus,
+			&i.ContainerID,
+			&i.LastError,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -221,6 +357,128 @@ func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]Mach
 		return nil, err
 	}
 	return items, nil
+}
+
+const listRunnableMachineJobs = `-- name: ListRunnableMachineJobs :many
+SELECT id, machine_id, kind, attempt
+FROM machine_jobs
+WHERE status = 'queued'
+  AND next_run_at <= ?1
+ORDER BY created_at ASC
+LIMIT ?2
+`
+
+type ListRunnableMachineJobsParams struct {
+	NowUnix int64
+	LimitN  int64
+}
+
+type ListRunnableMachineJobsRow struct {
+	ID        string
+	MachineID string
+	Kind      string
+	Attempt   int64
+}
+
+func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableMachineJobsParams) ([]ListRunnableMachineJobsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRunnableMachineJobs, arg.NowUnix, arg.LimitN)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRunnableMachineJobsRow
+	for rows.Next() {
+		var i ListRunnableMachineJobsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.MachineID,
+			&i.Kind,
+			&i.Attempt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markMachineJobSucceeded = `-- name: MarkMachineJobSucceeded :exec
+UPDATE machine_jobs
+SET status = 'succeeded',
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = NULL,
+    updated_at = ?1
+WHERE id = ?2
+`
+
+type MarkMachineJobSucceededParams struct {
+	UpdatedAt int64
+	ID        string
+}
+
+func (q *Queries) MarkMachineJobSucceeded(ctx context.Context, arg MarkMachineJobSucceededParams) error {
+	_, err := q.db.ExecContext(ctx, markMachineJobSucceeded, arg.UpdatedAt, arg.ID)
+	return err
+}
+
+const recoverExpiredMachineJobs = `-- name: RecoverExpiredMachineJobs :execrows
+UPDATE machine_jobs
+SET status = 'queued',
+    lease_owner = NULL,
+    lease_until = NULL,
+    updated_at = ?1
+WHERE status = 'running'
+  AND lease_until IS NOT NULL
+  AND lease_until < ?2
+`
+
+type RecoverExpiredMachineJobsParams struct {
+	UpdatedAt int64
+	NowUnix   sql.NullInt64
+}
+
+func (q *Queries) RecoverExpiredMachineJobs(ctx context.Context, arg RecoverExpiredMachineJobsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, recoverExpiredMachineJobs, arg.UpdatedAt, arg.NowUnix)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const requeueMachineJob = `-- name: RequeueMachineJob :exec
+UPDATE machine_jobs
+SET status = 'queued',
+    attempt = attempt + 1,
+    next_run_at = ?1,
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = ?2,
+    updated_at = ?3
+WHERE id = ?4
+`
+
+type RequeueMachineJobParams struct {
+	NextRunAt int64
+	LastError sql.NullString
+	UpdatedAt int64
+	ID        string
+}
+
+func (q *Queries) RequeueMachineJob(ctx context.Context, arg RequeueMachineJobParams) error {
+	_, err := q.db.ExecContext(ctx, requeueMachineJob,
+		arg.NextRunAt,
+		arg.LastError,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	return err
 }
 
 const revokeSessionByTokenHash = `-- name: RevokeSessionByTokenHash :exec
@@ -256,6 +514,75 @@ type UpdateMachineNameByIDForOwnerParams struct {
 
 func (q *Queries) UpdateMachineNameByIDForOwner(ctx context.Context, arg UpdateMachineNameByIDForOwnerParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateMachineNameByIDForOwner, arg.Name, arg.MachineID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateMachineRuntimeStateByMachineID = `-- name: UpdateMachineRuntimeStateByMachineID :exec
+UPDATE machine_states
+SET status = ?1,
+    desired_status = ?2,
+    container_id = ?3,
+    last_error = ?4,
+    updated_at = ?5
+WHERE machine_id = ?6
+`
+
+type UpdateMachineRuntimeStateByMachineIDParams struct {
+	Status        string
+	DesiredStatus string
+	ContainerID   string
+	LastError     string
+	UpdatedAt     int64
+	MachineID     string
+}
+
+func (q *Queries) UpdateMachineRuntimeStateByMachineID(ctx context.Context, arg UpdateMachineRuntimeStateByMachineIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineRuntimeStateByMachineID,
+		arg.Status,
+		arg.DesiredStatus,
+		arg.ContainerID,
+		arg.LastError,
+		arg.UpdatedAt,
+		arg.MachineID,
+	)
+	return err
+}
+
+const updateMachineStateForOwner = `-- name: UpdateMachineStateForOwner :execrows
+UPDATE machine_states
+SET status = ?1,
+    desired_status = ?2,
+    updated_at = ?3,
+    last_error = ''
+WHERE machine_states.machine_id = ?4
+  AND EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machine_states.machine_id
+      AND um.user_id = ?5
+      AND um.role = 'owner'
+  )
+`
+
+type UpdateMachineStateForOwnerParams struct {
+	Status        string
+	DesiredStatus string
+	UpdatedAt     int64
+	MachineID     string
+	UserID        string
+}
+
+func (q *Queries) UpdateMachineStateForOwner(ctx context.Context, arg UpdateMachineStateForOwnerParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateMachineStateForOwner,
+		arg.Status,
+		arg.DesiredStatus,
+		arg.UpdatedAt,
+		arg.MachineID,
+		arg.UserID,
+	)
 	if err != nil {
 		return 0, err
 	}

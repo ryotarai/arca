@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/ryotarai/hayai/internal/auth"
 	"github.com/ryotarai/hayai/internal/db"
+	"github.com/ryotarai/hayai/internal/machine"
 	"github.com/ryotarai/hayai/internal/server"
 )
 
@@ -39,6 +41,12 @@ func main() {
 		log.Fatalf("db migration failed: %v", err)
 	}
 	authService := auth.NewService(store)
+	dockerRuntime, err := machine.NewDockerRuntime(os.Getenv("MACHINE_DOCKER_IMAGE"))
+	if err != nil {
+		log.Fatalf("docker runtime initialization failed: %v", err)
+	}
+	machineWorker := machine.NewWorker(store, dockerRuntime, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))
+	go machineWorker.Run(ctx)
 
 	httpServer := &http.Server{
 		Addr:              addr,
