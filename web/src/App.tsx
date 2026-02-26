@@ -1,41 +1,51 @@
+import { create } from '@bufbuild/protobuf'
+import { Code, ConnectError, createClient } from '@connectrpc/connect'
+import { createConnectTransport } from '@connectrpc/connect-web'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import {
+  AuthService,
+  LoginRequestSchema,
+  LogoutRequestSchema,
+  MeRequestSchema,
+  RegisterRequestSchema,
+} from '@/gen/hayai/v1/auth_pb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 type User = {
+  id: string
   email: string
 }
 
-type AuthMeResponse = {
-  user: User
-}
-
-type AuthResponse = {
-  user?: User
-  error?: string
-}
-
-async function api<T>(path: string, options: RequestInit = {}) {
-  const response = await fetch(path, {
+const authClient = createClient(
+  AuthService,
+  createConnectTransport({
+    baseUrl: window.location.origin,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  })
+  }),
+)
 
-  let body: T | null = null
-  try {
-    body = (await response.json()) as T
-  } catch {
-    body = null
+function toUser(user: { id: string; email: string } | undefined): User | null {
+  if (user == null) {
+    return null
   }
+  return {
+    id: user.id,
+    email: user.email,
+  }
+}
 
-  return { response, body }
+function messageFromError(error: unknown): string {
+  if (error instanceof ConnectError) {
+    if (error.code === Code.Unavailable) {
+      return 'service unavailable'
+    }
+    return error.rawMessage !== '' ? error.rawMessage : 'request failed'
+  }
+  return 'request failed'
 }
 
 export function App() {
@@ -44,18 +54,26 @@ export function App() {
 
   useEffect(() => {
     const run = async () => {
-      const { response, body } = await api<AuthMeResponse>('/api/auth/me')
-      if (response.ok && body?.user != null) {
-        setUser(body.user)
+      try {
+        const response = await authClient.me(create(MeRequestSchema))
+        const me = toUser(response.user)
+        if (me != null) {
+          setUser(me)
+        }
+      } catch {
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     void run()
   }, [])
 
   const logout = async () => {
-    await api('/api/auth/logout', { method: 'POST' })
-    setUser(null)
+    try {
+      await authClient.logout(create(LogoutRequestSchema))
+    } finally {
+      setUser(null)
+    }
   }
 
   if (loading) {
@@ -132,32 +150,38 @@ function LoginPage({ user, onLogin }: LoginPageProps) {
     setError('')
     setNotice('')
 
-    const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login'
-    const { response, body } = await api<AuthResponse>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    })
+    try {
+      if (mode === 'register') {
+        await authClient.register(
+          create(RegisterRequestSchema, {
+            email,
+            password,
+          }),
+        )
+        setNotice('registered. please log in.')
+        setMode('login')
+        setPassword('')
+        return
+      }
 
-    if (!response.ok) {
-      setError(body?.error ?? 'request failed')
-      return
-    }
+      const response = await authClient.login(
+        create(LoginRequestSchema, {
+          email,
+          password,
+        }),
+      )
+      const loggedIn = toUser(response.user)
+      if (loggedIn == null) {
+        setError('request failed')
+        return
+      }
 
-    if (mode === 'register') {
-      setNotice('registered. please log in.')
-      setMode('login')
+      onLogin(loggedIn)
       setPassword('')
-      return
+      void navigate('/', { replace: true })
+    } catch (e) {
+      setError(messageFromError(e))
     }
-
-    if (body?.user == null) {
-      setError('request failed')
-      return
-    }
-
-    onLogin(body.user)
-    setPassword('')
-    void navigate('/', { replace: true })
   }
 
   return (

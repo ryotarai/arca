@@ -1,16 +1,17 @@
 GO ?= go
 NPM ?= npm
 SQLC ?= sqlc
+BUF ?= buf
 WEB_DIR ?= web
 BIN_DIR ?= bin
 SERVER_BIN ?= $(BIN_DIR)/server
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
-.PHONY: build build-frontend build-server sqlc run watch
+.PHONY: build build-frontend build-server proto sqlc run watch
 build: build-frontend build-server
 
-build-frontend:
+build-frontend: proto
 	@if [ ! -f $(WEB_DIR)/package.json ]; then \
 		echo "$(WEB_DIR)/package.json not found"; \
 		exit 1; \
@@ -22,9 +23,16 @@ build-frontend:
 	fi
 	$(NPM) --prefix $(WEB_DIR) run build
 
-build-server: sqlc
+build-server: sqlc proto
 	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
 	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -o $(SERVER_BIN) ./cmd/server
+
+proto:
+	@if command -v $(BUF) >/dev/null 2>&1; then \
+		$(BUF) generate; \
+	else \
+		$(GO) run github.com/bufbuild/buf/cmd/buf@v1.56.0 generate; \
+	fi
 
 sqlc:
 	@if command -v $(SQLC) >/dev/null 2>&1; then \
