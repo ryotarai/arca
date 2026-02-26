@@ -17,6 +17,14 @@ test('login route is directly accessible', async ({ page }) => {
   await expect(page.getByLabel('Password')).toBeVisible()
 })
 
+test('unauthenticated user cannot access authenticated dashboard view', async ({ page }) => {
+  await page.goto('/')
+
+  await expect(page.getByRole('link', { name: 'Login' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Logout' })).toHaveCount(0)
+})
+
 test('register, login, and logout via Connect RPC', async ({ page }) => {
   const email = `e2e-${Date.now()}@example.com`
   const password = 'password123'
