@@ -662,9 +662,10 @@ function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupCom
                 </ul>
                 <p className="mt-3 font-medium text-slate-100">How to create the token</p>
                 <ol className="mt-2 list-decimal space-y-1 pl-5">
-                  <li>Cloudflare Dashboard - `My Profile` - `API Tokens` - `Create Token`</li>
-                  <li>Create a custom token and add the permissions above</li>
-                  <li>Set account and zone resources for this environment, then create and copy token</li>
+                  <li>Open Cloudflare Dashboard and select your account</li>
+                  <li>`Manage Account` - `API Tokens` - `Create Token`</li>
+                  <li>Create an account token and add the permissions above</li>
+                  <li>Set account and zone resources for this environment, then create and copy the token value</li>
                 </ol>
               </div>
               <form className="space-y-4" onSubmit={submitCloudflare}>
