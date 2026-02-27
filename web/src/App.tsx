@@ -258,10 +258,10 @@ async function setupCreateAdmin(email: string, password: string): Promise<User |
   return null
 }
 
-async function setupValidateCloudflare(apiToken: string, baseDomain: string): Promise<void> {
+async function setupValidateCloudflare(apiToken: string, accountID: string, baseDomain: string): Promise<void> {
   const response = await callConnectJSONCandidates<{ valid?: boolean; message?: string }>(
     ['/arca.v1.SetupService/ValidateCloudflareToken'],
-    { apiToken, token: apiToken, baseDomain, domain: baseDomain },
+    { apiToken, token: apiToken, accountId: accountID, accountID, baseDomain, domain: baseDomain },
   )
   if (response.valid !== true) {
     throw new Error(response.message ?? 'cloudflare token validation failed')
@@ -494,6 +494,7 @@ function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupCom
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [baseDomain, setBaseDomain] = useState('')
+  const [cloudflareAccountID, setCloudflareAccountID] = useState('')
   const [cloudflareToken, setCloudflareToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(initialCloudflareZoneID)
   const [exposureMode, setExposureMode] = useState<'private' | 'public'>('private')
@@ -540,7 +541,10 @@ function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupCom
       if (cloudflareZoneID.trim() === '') {
         throw new Error('cloudflare zone id is required')
       }
-      await setupValidateCloudflare(cloudflareToken, baseDomain)
+      if (cloudflareAccountID.trim() === '') {
+        throw new Error('cloudflare account id is required')
+      }
+      await setupValidateCloudflare(cloudflareToken, cloudflareAccountID, baseDomain)
       setStep(3)
     } catch (e) {
       setError(messageFromError(e))
@@ -680,6 +684,19 @@ function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupCom
                     required
                     className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                     placeholder="arca.dev"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-account-id" className="text-slate-200">
+                    Cloudflare account ID
+                  </Label>
+                  <Input
+                    id="setup-account-id"
+                    value={cloudflareAccountID}
+                    onChange={(event) => setCloudflareAccountID(event.target.value)}
+                    required
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="account id for your Cloudflare account"
                   />
                 </div>
                 <div className="space-y-2">

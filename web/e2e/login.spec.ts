@@ -12,6 +12,7 @@ async function ensureSetupCompleted(page: Page) {
   await page.getByRole('button', { name: 'Continue' }).click()
 
   await page.getByLabel('Base domain').fill('example.test')
+  await page.getByLabel('Cloudflare account ID').fill('test-account-id')
   await page.getByLabel('Cloudflare API token').fill('test-token')
   await page.getByRole('button', { name: 'Validate and continue' }).click()
 

@@ -55,8 +55,12 @@ func (s *setupConnectService) ValidateCloudflareToken(ctx context.Context, req *
 	}
 
 	token := strings.TrimSpace(req.Msg.GetApiToken())
+	accountID := strings.TrimSpace(req.Msg.GetAccountId())
 	if token == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("api token is required"))
+	}
+	if accountID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("account id is required"))
 	}
 
 	if shouldSkipCloudflareValidation() {
@@ -72,6 +76,9 @@ func (s *setupConnectService) ValidateCloudflareToken(ctx context.Context, req *
 	message := "token verified"
 	if !valid {
 		message = "token is not active"
+	} else if err := s.cf.VerifyAccountToken(ctx, token, accountID); err != nil {
+		valid = false
+		message = "token is not a valid account token for the provided account id"
 	}
 	return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{Valid: valid, Message: message}), nil
 }
