@@ -127,13 +127,13 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
 
   await page.getByLabel('Name').fill('alpha-machine')
   await page.getByRole('button', { name: 'Create' }).click()
-  await expect(page.getByText('alpha-machine')).toBeVisible()
+  await expect(page.locator('p.font-medium', { hasText: /^alpha-machine$/ })).toBeVisible()
   await expect(page.getByText(/pending|starting|running/).first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Edit' }).first().click()
   await page.getByLabel('Edit machine name').fill('beta-machine')
   await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.getByText('beta-machine')).toBeVisible()
+  await expect(page.locator('p.font-medium', { hasText: /^beta-machine$/ })).toBeVisible()
 
   await page.getByRole('button', { name: 'Stop' }).first().click()
   await expect(page.getByText('stopping').first()).toBeVisible()
