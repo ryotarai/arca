@@ -7,3 +7,5 @@ web/test-results/
 web/.playwright/
 bin/
 hayai.db
+arca.db
+internal/server/ui/dist/

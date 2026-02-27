@@ -53,11 +53,11 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 Do not manually edit generated outputs:
 - `internal/db/sqlc/postgresql/*.go`
 - `internal/db/sqlc/sqlite/*.go`
-- `internal/server/ui/dist/*`
 
 Regenerate from sources instead:
 - SQL: edit `internal/db/sqlc/schema.sql` and `internal/db/sqlc/query.sql`, then run `make sqlc`.
 - UI: edit `web/src/*`, then run `make build-frontend`.
+- `internal/server/ui/dist/*` is build output and should not be committed.
 
 ## Commit & Pull Request Guidelines
 Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: ...`).
