@@ -9,7 +9,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/ryotarai/hayai/internal/db"
+	"github.com/ryotarai/arca/internal/db"
 )
 
 type Runtime interface {

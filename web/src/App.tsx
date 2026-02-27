@@ -9,7 +9,18 @@ import {
   LogoutRequestSchema,
   MeRequestSchema,
   RegisterRequestSchema,
-} from '@/gen/hayai/v1/auth_pb'
+} from '@/gen/arca/v1/auth_pb'
+import {
+  CreateMachineRequestSchema,
+  DeleteMachineRequestSchema,
+  GetMachineRequestSchema,
+  ListMachinesRequestSchema,
+  Machine as MachineMessage,
+  MachineService,
+  StartMachineRequestSchema,
+  StopMachineRequestSchema,
+  UpdateMachineRequestSchema,
+} from '@/gen/arca/v1/machine_pb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -20,21 +31,15 @@ type User = {
   email: string
 }
 
-type Machine = {
-  id: string
-  name: string
-  status: string
-  desiredStatus: string
-  lastError?: string
-}
+type Machine = MachineMessage
 
-const authClient = createClient(
-  AuthService,
-  createConnectTransport({
-    baseUrl: window.location.origin,
-    credentials: 'include',
-  }),
-)
+const connectTransport = createConnectTransport({
+  baseUrl: window.location.origin,
+  fetch: (input, init) => fetch(input, { ...init, credentials: 'include' }),
+})
+
+const authClient = createClient(AuthService, connectTransport)
+const machineClient = createClient(MachineService, connectTransport)
 
 function toUser(user: { id: string; email: string } | undefined): User | null {
   if (user == null) {
@@ -56,103 +61,55 @@ function messageFromError(error: unknown): string {
   return 'request failed'
 }
 
-async function parseMachineResponse(response: Response): Promise<Machine[]> {
-  const payload = (await response.json()) as { machines?: Machine[]; error?: string }
-  if (!response.ok) {
-    throw new Error(payload.error ?? 'request failed')
-  }
-  return payload.machines ?? []
-}
-
 async function listMachines(): Promise<Machine[]> {
-  const response = await fetch('/api/machines', {
-    credentials: 'include',
-  })
-  return parseMachineResponse(response)
+  const response = await machineClient.listMachines(create(ListMachinesRequestSchema))
+  return response.machines
 }
 
 async function createMachine(name: string): Promise<Machine> {
-  const response = await fetch('/api/machines', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name }),
-  })
-  const payload = (await response.json()) as Machine & { error?: string }
-  if (!response.ok) {
-    throw new Error(payload.error ?? 'request failed')
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name }))
+  if (response.machine == null) {
+    throw new Error('request failed')
   }
-  return payload
+  return response.machine
 }
 
 async function getMachine(id: string): Promise<Machine> {
-  const response = await fetch(`/api/machines/${id}`, {
-    credentials: 'include',
-  })
-  const payload = (await response.json()) as Machine & { error?: string }
-  if (!response.ok) {
-    throw new Error(payload.error ?? 'request failed')
+  const response = await machineClient.getMachine(create(GetMachineRequestSchema, { machineId: id }))
+  if (response.machine == null) {
+    throw new Error('request failed')
   }
-  return payload
+  return response.machine
 }
 
 async function updateMachine(id: string, name: string): Promise<Machine> {
-  const response = await fetch(`/api/machines/${id}`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name }),
-  })
-  const payload = (await response.json()) as { id: string; name: string; error?: string }
-  if (!response.ok) {
-    throw new Error(payload.error ?? 'request failed')
+  const response = await machineClient.updateMachine(
+    create(UpdateMachineRequestSchema, { machineId: id, name }),
+  )
+  if (response.machine == null) {
+    throw new Error('request failed')
   }
-  return {
-    id: payload.id,
-    name: payload.name,
-    status: 'unknown',
-    desiredStatus: 'unknown',
-  }
+  return response.machine
 }
 
-async function startMachine(id: string): Promise<void> {
-  const response = await fetch(`/api/machines/${id}/start`, {
-    method: 'POST',
-    credentials: 'include',
-  })
-  if (response.ok) {
-    return
+async function startMachine(id: string): Promise<Machine> {
+  const response = await machineClient.startMachine(create(StartMachineRequestSchema, { machineId: id }))
+  if (response.machine == null) {
+    throw new Error('request failed')
   }
-  const payload = (await response.json()) as { error?: string }
-  throw new Error(payload.error ?? 'request failed')
+  return response.machine
 }
 
-async function stopMachine(id: string): Promise<void> {
-  const response = await fetch(`/api/machines/${id}/stop`, {
-    method: 'POST',
-    credentials: 'include',
-  })
-  if (response.ok) {
-    return
+async function stopMachine(id: string): Promise<Machine> {
+  const response = await machineClient.stopMachine(create(StopMachineRequestSchema, { machineId: id }))
+  if (response.machine == null) {
+    throw new Error('request failed')
   }
-  const payload = (await response.json()) as { error?: string }
-  throw new Error(payload.error ?? 'request failed')
+  return response.machine
 }
 
 async function deleteMachine(id: string): Promise<void> {
-  const response = await fetch(`/api/machines/${id}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  })
-  if (response.status === 204) {
-    return
-  }
-  const payload = (await response.json()) as { error?: string }
-  throw new Error(payload.error ?? 'request failed')
+  await machineClient.deleteMachine(create(DeleteMachineRequestSchema, { machineId: id }))
 }
 
 export function App() {
@@ -212,7 +169,7 @@ function HomePage({ user, onLogout }: HomePageProps) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(circle_at_top_left,_#f8fafc_10%,_#e2e8f0_55%,_#cbd5e1_100%)] px-6">
         <div className="w-full max-w-md rounded-2xl border border-slate-300/70 bg-white/90 p-10 shadow-xl shadow-slate-900/10 backdrop-blur">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">Hayai</p>
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">Arca</p>
           <h1 className="mt-2 text-3xl font-semibold text-slate-900">Welcome back</h1>
           <p className="mt-3 text-sm text-slate-600">Sign in to access your workspace.</p>
           <Button asChild className="mt-8 w-full">
@@ -226,7 +183,7 @@ function HomePage({ user, onLogout }: HomePageProps) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-950 px-6 py-16">
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-slate-100 shadow-2xl shadow-black/40 backdrop-blur">
-        <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Hayai</p>
+        <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
         <h1 className="mt-2 text-2xl font-semibold">Dashboard</h1>
         <p className="mt-3 text-sm text-slate-300">Signed in as {user.email}</p>
         <div className="mt-6 flex items-center gap-3">
@@ -291,7 +248,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
         const items = await listMachines()
         setMachines(items)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'request failed')
+        setError(messageFromError(e))
       } finally {
         setLoading(false)
       }
@@ -322,7 +279,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
       setMachines((prev) => [created, ...prev])
       setName('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'request failed')
+      setError(messageFromError(e))
     }
   }
 
@@ -336,49 +293,31 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
     setError('')
     try {
       const updated = await updateMachine(machineID, trimmed)
-      setMachines((prev) =>
-        prev.map((machine) =>
-          machine.id === machineID
-            ? { ...machine, name: updated.name }
-            : machine,
-        ),
-      )
+      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
       setEditingID(null)
       setEditingName('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'request failed')
+      setError(messageFromError(e))
     }
   }
 
   const submitStart = async (machineID: string) => {
     setError('')
     try {
-      await startMachine(machineID)
-      setMachines((prev) =>
-        prev.map((machine) =>
-          machine.id === machineID
-            ? { ...machine, status: 'pending', desiredStatus: 'running', lastError: '' }
-            : machine,
-        ),
-      )
+      const updated = await startMachine(machineID)
+      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'request failed')
+      setError(messageFromError(e))
     }
   }
 
   const submitStop = async (machineID: string) => {
     setError('')
     try {
-      await stopMachine(machineID)
-      setMachines((prev) =>
-        prev.map((machine) =>
-          machine.id === machineID
-            ? { ...machine, status: 'stopping', desiredStatus: 'stopped', lastError: '' }
-            : machine,
-        ),
-      )
+      const updated = await stopMachine(machineID)
+      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'request failed')
+      setError(messageFromError(e))
     }
   }
 
@@ -392,7 +331,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
         setEditingName('')
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'request failed')
+      setError(messageFromError(e))
     }
   }
 
@@ -404,7 +343,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
       <section className="relative z-10 mx-auto w-full max-w-4xl space-y-6">
         <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Hayai</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
             <h1 className="mt-2 text-2xl font-semibold text-white">Machines</h1>
             <p className="mt-1 text-sm text-slate-300">Signed in as {user.email}</p>
           </div>
@@ -591,7 +530,7 @@ function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
         setMachine(item)
         setError('')
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'request failed')
+        setError(messageFromError(e))
       } finally {
         setLoading(false)
       }
@@ -614,20 +553,20 @@ function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const handleStart = async () => {
     setError('')
     try {
-      await startMachine(machineID)
-      setMachine((prev) => (prev == null ? prev : { ...prev, status: 'pending', desiredStatus: 'running', lastError: '' }))
+      const updated = await startMachine(machineID)
+      setMachine(updated)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'request failed')
+      setError(messageFromError(e))
     }
   }
 
   const handleStop = async () => {
     setError('')
     try {
-      await stopMachine(machineID)
-      setMachine((prev) => (prev == null ? prev : { ...prev, status: 'stopping', desiredStatus: 'stopped', lastError: '' }))
+      const updated = await stopMachine(machineID)
+      setMachine(updated)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'request failed')
+      setError(messageFromError(e))
     }
   }
 
@@ -639,7 +578,7 @@ function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       <section className="relative z-10 mx-auto w-full max-w-3xl space-y-6">
         <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Hayai</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
             <h1 className="mt-2 text-2xl font-semibold text-white">Machine detail</h1>
             <p className="mt-1 text-xs text-slate-400">{machineID}</p>
           </div>
@@ -780,7 +719,7 @@ function LoginPage({ user, onLogin }: LoginPageProps) {
 
       <section className="relative z-10 flex w-full max-w-4xl flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
         <div className="max-w-lg space-y-5 animate-in fade-in slide-in-from-left-3 duration-700">
-          <h2 className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">Hayai</h2>
+          <h2 className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">Arca</h2>
           <h1 className="text-balance text-4xl font-semibold leading-tight text-white sm:text-5xl">
             {mode === 'register' ? 'Build fast with secure auth' : 'Ship faster with confidence'}
           </h1>

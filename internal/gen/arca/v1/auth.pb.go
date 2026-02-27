@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: hayai/v1/auth.proto
+// source: arca/v1/auth.proto
 
-package hayaiv1
+package arcav1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -31,7 +31,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[0]
+	mi := &file_arca_v1_auth_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[0]
+	mi := &file_arca_v1_auth_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{0}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *User) GetId() string {
@@ -83,7 +83,7 @@ type RegisterRequest struct {
 
 func (x *RegisterRequest) Reset() {
 	*x = RegisterRequest{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[1]
+	mi := &file_arca_v1_auth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -95,7 +95,7 @@ func (x *RegisterRequest) String() string {
 func (*RegisterRequest) ProtoMessage() {}
 
 func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[1]
+	mi := &file_arca_v1_auth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +108,7 @@ func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
 func (*RegisterRequest) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{1}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RegisterRequest) GetEmail() string {
@@ -134,7 +134,7 @@ type RegisterResponse struct {
 
 func (x *RegisterResponse) Reset() {
 	*x = RegisterResponse{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[2]
+	mi := &file_arca_v1_auth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -146,7 +146,7 @@ func (x *RegisterResponse) String() string {
 func (*RegisterResponse) ProtoMessage() {}
 
 func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[2]
+	mi := &file_arca_v1_auth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -159,7 +159,7 @@ func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
 func (*RegisterResponse) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{2}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RegisterResponse) GetUser() *User {
@@ -179,7 +179,7 @@ type LoginRequest struct {
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[3]
+	mi := &file_arca_v1_auth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +191,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[3]
+	mi := &file_arca_v1_auth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +204,7 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{3}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *LoginRequest) GetEmail() string {
@@ -230,7 +230,7 @@ type LoginResponse struct {
 
 func (x *LoginResponse) Reset() {
 	*x = LoginResponse{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[4]
+	mi := &file_arca_v1_auth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -242,7 +242,7 @@ func (x *LoginResponse) String() string {
 func (*LoginResponse) ProtoMessage() {}
 
 func (x *LoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[4]
+	mi := &file_arca_v1_auth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -255,7 +255,7 @@ func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
 func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{4}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *LoginResponse) GetUser() *User {
@@ -273,7 +273,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[5]
+	mi := &file_arca_v1_auth_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -285,7 +285,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[5]
+	mi := &file_arca_v1_auth_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -298,7 +298,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{5}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{5}
 }
 
 type LogoutResponse struct {
@@ -310,7 +310,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[6]
+	mi := &file_arca_v1_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -322,7 +322,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[6]
+	mi := &file_arca_v1_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +335,7 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{6}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *LogoutResponse) GetStatus() string {
@@ -353,7 +353,7 @@ type MeRequest struct {
 
 func (x *MeRequest) Reset() {
 	*x = MeRequest{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[7]
+	mi := &file_arca_v1_auth_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -365,7 +365,7 @@ func (x *MeRequest) String() string {
 func (*MeRequest) ProtoMessage() {}
 
 func (x *MeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[7]
+	mi := &file_arca_v1_auth_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -378,7 +378,7 @@ func (x *MeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeRequest.ProtoReflect.Descriptor instead.
 func (*MeRequest) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{7}
 }
 
 type MeResponse struct {
@@ -390,7 +390,7 @@ type MeResponse struct {
 
 func (x *MeResponse) Reset() {
 	*x = MeResponse{}
-	mi := &file_hayai_v1_auth_proto_msgTypes[8]
+	mi := &file_arca_v1_auth_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +402,7 @@ func (x *MeResponse) String() string {
 func (*MeResponse) ProtoMessage() {}
 
 func (x *MeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hayai_v1_auth_proto_msgTypes[8]
+	mi := &file_arca_v1_auth_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +415,7 @@ func (x *MeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeResponse.ProtoReflect.Descriptor instead.
 func (*MeResponse) Descriptor() ([]byte, []int) {
-	return file_hayai_v1_auth_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *MeResponse) GetUser() *User {
@@ -425,74 +425,74 @@ func (x *MeResponse) GetUser() *User {
 	return nil
 }
 
-var File_hayai_v1_auth_proto protoreflect.FileDescriptor
+var File_arca_v1_auth_proto protoreflect.FileDescriptor
 
-const file_hayai_v1_auth_proto_rawDesc = "" +
+const file_arca_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x13hayai/v1/auth.proto\x12\bhayai.v1\",\n" +
+	"\x12arca/v1/auth.proto\x12\aarca.v1\",\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\"C\n" +
 	"\x0fRegisterRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"6\n" +
-	"\x10RegisterResponse\x12\"\n" +
-	"\x04user\x18\x01 \x01(\v2\x0e.hayai.v1.UserR\x04user\"@\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"5\n" +
+	"\x10RegisterResponse\x12!\n" +
+	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"3\n" +
-	"\rLoginResponse\x12\"\n" +
-	"\x04user\x18\x01 \x01(\v2\x0e.hayai.v1.UserR\x04user\"\x0f\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"2\n" +
+	"\rLoginResponse\x12!\n" +
+	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user\"\x0f\n" +
 	"\rLogoutRequest\"(\n" +
 	"\x0eLogoutResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\"\v\n" +
-	"\tMeRequest\"0\n" +
+	"\tMeRequest\"/\n" +
 	"\n" +
-	"MeResponse\x12\"\n" +
-	"\x04user\x18\x01 \x01(\v2\x0e.hayai.v1.UserR\x04user2\xf8\x01\n" +
-	"\vAuthService\x12A\n" +
-	"\bRegister\x12\x19.hayai.v1.RegisterRequest\x1a\x1a.hayai.v1.RegisterResponse\x128\n" +
-	"\x05Login\x12\x16.hayai.v1.LoginRequest\x1a\x17.hayai.v1.LoginResponse\x12;\n" +
-	"\x06Logout\x12\x17.hayai.v1.LogoutRequest\x1a\x18.hayai.v1.LogoutResponse\x12/\n" +
-	"\x02Me\x12\x13.hayai.v1.MeRequest\x1a\x14.hayai.v1.MeResponseB\x93\x01\n" +
-	"\fcom.hayai.v1B\tAuthProtoP\x01Z7github.com/ryotarai/hayai/internal/gen/hayai/v1;hayaiv1\xa2\x02\x03HXX\xaa\x02\bHayai.V1\xca\x02\bHayai\\V1\xe2\x02\x14Hayai\\V1\\GPBMetadata\xea\x02\tHayai::V1b\x06proto3"
+	"MeResponse\x12!\n" +
+	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user2\xf0\x01\n" +
+	"\vAuthService\x12?\n" +
+	"\bRegister\x12\x18.arca.v1.RegisterRequest\x1a\x19.arca.v1.RegisterResponse\x126\n" +
+	"\x05Login\x12\x15.arca.v1.LoginRequest\x1a\x16.arca.v1.LoginResponse\x129\n" +
+	"\x06Logout\x12\x16.arca.v1.LogoutRequest\x1a\x17.arca.v1.LogoutResponse\x12-\n" +
+	"\x02Me\x12\x12.arca.v1.MeRequest\x1a\x13.arca.v1.MeResponseB\x8b\x01\n" +
+	"\vcom.arca.v1B\tAuthProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
-	file_hayai_v1_auth_proto_rawDescOnce sync.Once
-	file_hayai_v1_auth_proto_rawDescData []byte
+	file_arca_v1_auth_proto_rawDescOnce sync.Once
+	file_arca_v1_auth_proto_rawDescData []byte
 )
 
-func file_hayai_v1_auth_proto_rawDescGZIP() []byte {
-	file_hayai_v1_auth_proto_rawDescOnce.Do(func() {
-		file_hayai_v1_auth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_hayai_v1_auth_proto_rawDesc), len(file_hayai_v1_auth_proto_rawDesc)))
+func file_arca_v1_auth_proto_rawDescGZIP() []byte {
+	file_arca_v1_auth_proto_rawDescOnce.Do(func() {
+		file_arca_v1_auth_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_arca_v1_auth_proto_rawDesc), len(file_arca_v1_auth_proto_rawDesc)))
 	})
-	return file_hayai_v1_auth_proto_rawDescData
+	return file_arca_v1_auth_proto_rawDescData
 }
 
-var file_hayai_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_hayai_v1_auth_proto_goTypes = []any{
-	(*User)(nil),             // 0: hayai.v1.User
-	(*RegisterRequest)(nil),  // 1: hayai.v1.RegisterRequest
-	(*RegisterResponse)(nil), // 2: hayai.v1.RegisterResponse
-	(*LoginRequest)(nil),     // 3: hayai.v1.LoginRequest
-	(*LoginResponse)(nil),    // 4: hayai.v1.LoginResponse
-	(*LogoutRequest)(nil),    // 5: hayai.v1.LogoutRequest
-	(*LogoutResponse)(nil),   // 6: hayai.v1.LogoutResponse
-	(*MeRequest)(nil),        // 7: hayai.v1.MeRequest
-	(*MeResponse)(nil),       // 8: hayai.v1.MeResponse
+var file_arca_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_arca_v1_auth_proto_goTypes = []any{
+	(*User)(nil),             // 0: arca.v1.User
+	(*RegisterRequest)(nil),  // 1: arca.v1.RegisterRequest
+	(*RegisterResponse)(nil), // 2: arca.v1.RegisterResponse
+	(*LoginRequest)(nil),     // 3: arca.v1.LoginRequest
+	(*LoginResponse)(nil),    // 4: arca.v1.LoginResponse
+	(*LogoutRequest)(nil),    // 5: arca.v1.LogoutRequest
+	(*LogoutResponse)(nil),   // 6: arca.v1.LogoutResponse
+	(*MeRequest)(nil),        // 7: arca.v1.MeRequest
+	(*MeResponse)(nil),       // 8: arca.v1.MeResponse
 }
-var file_hayai_v1_auth_proto_depIdxs = []int32{
-	0, // 0: hayai.v1.RegisterResponse.user:type_name -> hayai.v1.User
-	0, // 1: hayai.v1.LoginResponse.user:type_name -> hayai.v1.User
-	0, // 2: hayai.v1.MeResponse.user:type_name -> hayai.v1.User
-	1, // 3: hayai.v1.AuthService.Register:input_type -> hayai.v1.RegisterRequest
-	3, // 4: hayai.v1.AuthService.Login:input_type -> hayai.v1.LoginRequest
-	5, // 5: hayai.v1.AuthService.Logout:input_type -> hayai.v1.LogoutRequest
-	7, // 6: hayai.v1.AuthService.Me:input_type -> hayai.v1.MeRequest
-	2, // 7: hayai.v1.AuthService.Register:output_type -> hayai.v1.RegisterResponse
-	4, // 8: hayai.v1.AuthService.Login:output_type -> hayai.v1.LoginResponse
-	6, // 9: hayai.v1.AuthService.Logout:output_type -> hayai.v1.LogoutResponse
-	8, // 10: hayai.v1.AuthService.Me:output_type -> hayai.v1.MeResponse
+var file_arca_v1_auth_proto_depIdxs = []int32{
+	0, // 0: arca.v1.RegisterResponse.user:type_name -> arca.v1.User
+	0, // 1: arca.v1.LoginResponse.user:type_name -> arca.v1.User
+	0, // 2: arca.v1.MeResponse.user:type_name -> arca.v1.User
+	1, // 3: arca.v1.AuthService.Register:input_type -> arca.v1.RegisterRequest
+	3, // 4: arca.v1.AuthService.Login:input_type -> arca.v1.LoginRequest
+	5, // 5: arca.v1.AuthService.Logout:input_type -> arca.v1.LogoutRequest
+	7, // 6: arca.v1.AuthService.Me:input_type -> arca.v1.MeRequest
+	2, // 7: arca.v1.AuthService.Register:output_type -> arca.v1.RegisterResponse
+	4, // 8: arca.v1.AuthService.Login:output_type -> arca.v1.LoginResponse
+	6, // 9: arca.v1.AuthService.Logout:output_type -> arca.v1.LogoutResponse
+	8, // 10: arca.v1.AuthService.Me:output_type -> arca.v1.MeResponse
 	7, // [7:11] is the sub-list for method output_type
 	3, // [3:7] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -500,26 +500,26 @@ var file_hayai_v1_auth_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_hayai_v1_auth_proto_init() }
-func file_hayai_v1_auth_proto_init() {
-	if File_hayai_v1_auth_proto != nil {
+func init() { file_arca_v1_auth_proto_init() }
+func file_arca_v1_auth_proto_init() {
+	if File_arca_v1_auth_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hayai_v1_auth_proto_rawDesc), len(file_hayai_v1_auth_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_auth_proto_rawDesc), len(file_arca_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_hayai_v1_auth_proto_goTypes,
-		DependencyIndexes: file_hayai_v1_auth_proto_depIdxs,
-		MessageInfos:      file_hayai_v1_auth_proto_msgTypes,
+		GoTypes:           file_arca_v1_auth_proto_goTypes,
+		DependencyIndexes: file_arca_v1_auth_proto_depIdxs,
+		MessageInfos:      file_arca_v1_auth_proto_msgTypes,
 	}.Build()
-	File_hayai_v1_auth_proto = out.File
-	file_hayai_v1_auth_proto_goTypes = nil
-	file_hayai_v1_auth_proto_depIdxs = nil
+	File_arca_v1_auth_proto = out.File
+	file_arca_v1_auth_proto_goTypes = nil
+	file_arca_v1_auth_proto_depIdxs = nil
 }

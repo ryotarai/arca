@@ -3,7 +3,7 @@ package db
 import "os"
 
 const (
-	defaultSQLiteDSN = "file:hayai.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)"
+	defaultSQLiteDSN = "file:arca.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)"
 )
 
 type Config struct {
@@ -18,7 +18,7 @@ func ConfigFromEnv() Config {
 	if dsn == "" {
 		switch driver {
 		case DriverPostgres:
-			dsn = "postgres://localhost:5432/hayai?sslmode=disable"
+			dsn = "postgres://localhost:5432/arca?sslmode=disable"
 		default:
 			dsn = defaultSQLiteDSN
 		}

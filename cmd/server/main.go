@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ryotarai/hayai/internal/auth"
-	"github.com/ryotarai/hayai/internal/db"
-	"github.com/ryotarai/hayai/internal/machine"
-	"github.com/ryotarai/hayai/internal/server"
+	"github.com/ryotarai/arca/internal/auth"
+	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/machine"
+	"github.com/ryotarai/arca/internal/server"
 )
 
 func main() {

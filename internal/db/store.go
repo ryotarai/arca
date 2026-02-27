@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	postgresqlsqlc "github.com/ryotarai/hayai/internal/db/sqlc/postgresql"
-	sqlitesqlc "github.com/ryotarai/hayai/internal/db/sqlc/sqlite"
+	postgresqlsqlc "github.com/ryotarai/arca/internal/db/sqlc/postgresql"
+	sqlitesqlc "github.com/ryotarai/arca/internal/db/sqlc/sqlite"
 )
 
 type Store struct {
