@@ -39,14 +39,6 @@ type SetupStatus = {
   cloudflareZoneID: string
 }
 
-type Exposure = {
-  id: string
-  subdomain: string
-  hostname: string
-  localPort: number
-  isPublic: boolean
-}
-
 type ApiErrorPayload = {
   code?: string
   message?: string
@@ -304,79 +296,6 @@ async function setupComplete(
   }
 }
 
-async function listExposures(machineID: string): Promise<Exposure[]> {
-  try {
-    const response = await callConnectJSONCandidates<{
-      exposures?: Array<{
-        id?: string
-        exposureId?: string
-        subdomain?: string
-        name?: string
-        hostname?: string
-        domain?: string
-        service?: string
-        localPort?: number
-        port?: number
-        isPublic?: boolean
-        public?: boolean
-      }>
-    }>(
-      ['/arca.v1.TunnelService/ListMachineExposures', '/arca.v1.ExposureService/ListExposures'],
-      { machineId: machineID },
-    )
-
-    return (response.exposures ?? []).map((item) => ({
-      id: item.id ?? item.exposureId ?? '',
-      subdomain: item.subdomain ?? item.name ?? '',
-      hostname: item.hostname ?? item.domain ?? '',
-      localPort: item.localPort ?? item.port ?? parseLocalPort(item.service) ?? 8080,
-      isPublic: item.isPublic ?? item.public ?? false,
-    }))
-  } catch (error) {
-    if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
-      return []
-    }
-    throw error
-  }
-}
-
-async function createExposure(
-  machineID: string,
-  subdomain: string,
-  localPort: number,
-  zoneID: string,
-): Promise<void> {
-  await callConnectJSONCandidates(
-    ['/arca.v1.TunnelService/UpsertMachineExposure', '/arca.v1.ExposureService/CreateExposure'],
-    {
-      machineId: machineID,
-      name: subdomain,
-      zoneId: zoneID,
-      subdomain,
-      service: `http://localhost:${localPort}`,
-      localPort,
-      port: localPort,
-      isPublic: false,
-      public: false,
-    },
-  )
-}
-
-function parseLocalPort(service: string | undefined): number | null {
-  if (service == null || service === '') {
-    return null
-  }
-  const matched = service.match(/localhost:(\d{1,5})/)
-  if (matched == null) {
-    return null
-  }
-  const port = Number(matched[1])
-  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-    return null
-  }
-  return port
-}
-
 export function App() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
@@ -451,8 +370,8 @@ export function App() {
       <Route path="/" element={<HomePage user={user} onLogout={logout} />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
-      <Route path="/machines" element={<MachinesPage user={user} onLogout={logout} zoneID={setupStatus.cloudflareZoneID} />} />
-      <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={logout} zoneID={setupStatus.cloudflareZoneID} />} />
+      <Route path="/machines" element={<MachinesPage user={user} onLogout={logout} />} />
+      <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={logout} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -793,7 +712,6 @@ function HomePage({ user, onLogout }: HomePageProps) {
 type MachinesPageProps = {
   user: User | null
   onLogout: () => Promise<void>
-  zoneID: string
 }
 
 function statusTone(status: string): string {
@@ -814,12 +732,6 @@ function statusTone(status: string): string {
   }
 }
 
-function exposureTone(isPublic: boolean): string {
-  return isPublic
-    ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-100'
-    : 'border-slate-400/40 bg-slate-500/15 text-slate-200'
-}
-
 function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-[0.08em] ${statusTone(status)}`}>
@@ -828,22 +740,13 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function ExposureBadge({ isPublic }: { isPublic: boolean }) {
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-[0.08em] ${exposureTone(isPublic)}`}>
-      {isPublic ? 'public' : 'private'}
-    </span>
-  )
-}
-
-function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
+function MachinesPage({ user, onLogout }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
   const [editingID, setEditingID] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [error, setError] = useState('')
-  const [exposuresByMachine, setExposuresByMachine] = useState<Record<string, Exposure[]>>({})
 
   useEffect(() => {
     if (user == null) {
@@ -854,20 +757,6 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
       try {
         const items = await listMachines()
         setMachines(items)
-
-        const exposureResults = await Promise.all(
-          items.map(async (machine) => ({
-            machineID: machine.id,
-            exposures: await listExposures(machine.id),
-          })),
-        )
-
-        setExposuresByMachine(
-          exposureResults.reduce<Record<string, Exposure[]>>((acc, result) => {
-            acc[result.machineID] = result.exposures
-            return acc
-          }, {}),
-        )
       } catch (e) {
         setError(messageFromError(e))
       } finally {
@@ -947,37 +836,10 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
     try {
       await deleteMachine(machineID)
       setMachines((prev) => prev.filter((machine) => machine.id !== machineID))
-      setExposuresByMachine((prev) => {
-        const next = { ...prev }
-        delete next[machineID]
-        return next
-      })
       if (editingID === machineID) {
         setEditingID(null)
         setEditingName('')
       }
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
-  const submitCreateExposure = async (
-    machineID: string,
-    machineName: string,
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault()
-    const subdomain = machineName.trim()
-    if (subdomain === '') {
-      setError('machine name is required')
-      return
-    }
-
-    setError('')
-    try {
-      await createExposure(machineID, subdomain, 8080, zoneID)
-      const exposures = await listExposures(machineID)
-      setExposuresByMachine((prev) => ({ ...prev, [machineID]: exposures }))
     } catch (e) {
       setError(messageFromError(e))
     }
@@ -1046,7 +908,6 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
               <ul className="space-y-3">
                 {machines.map((machine) => {
                   const editing = editingID === machine.id
-                  const exposures = exposuresByMachine[machine.id] ?? []
 
                   return (
                     <li key={machine.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
@@ -1064,30 +925,6 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
                             <div className="mt-1 flex items-center gap-2">
                               <StatusBadge status={machine.status} />
                               <span className="text-xs text-slate-300">desired: {machine.desiredStatus}</span>
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-xs uppercase tracking-[0.08em] text-slate-400">Exposures</p>
-                              {exposures.length === 0 ? (
-                                <p className="text-xs text-slate-400">No exposures.</p>
-                              ) : (
-                                <ul className="space-y-1">
-                                  {exposures.map((exposure) => (
-                                    <li key={exposure.id} className="flex items-center gap-2 text-xs text-slate-200">
-                                      <ExposureBadge isPublic={exposure.isPublic} />
-                                      <span>{exposure.hostname || `${exposure.subdomain} (...)`}</span>
-                                      <span className="text-slate-400">-&gt; localhost:{exposure.localPort}</span>
-                                      <Button
-                                        type="button"
-                                        variant="secondary"
-                                        className="h-7 px-2 text-xs"
-                                        disabled
-                                      >
-                                        Private only
-                                      </Button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
                             </div>
                             {machine.lastError != null && machine.lastError !== '' && (
                               <p className="text-xs text-red-300 break-all">error: {machine.lastError}</p>
@@ -1161,19 +998,6 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
                           </Button>
                         </div>
                       </div>
-
-                      <form
-                        className="mt-3 flex flex-col gap-2 rounded-lg border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-end"
-                        onSubmit={(event) => void submitCreateExposure(machine.id, machine.name, event)}
-                      >
-                        <p className="text-xs text-slate-400">
-                          Subdomain: <span className="text-slate-200">{machine.name}</span> / Port: 8080 / Private
-                          only
-                        </p>
-                        <Button type="submit" className="h-9 px-3 bg-white text-slate-900 hover:bg-slate-100">
-                          Add exposure
-                        </Button>
-                      </form>
                     </li>
                   )
                 })}
@@ -1195,15 +1019,13 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
 type MachineDetailPageProps = {
   user: User | null
   onLogout: () => Promise<void>
-  zoneID: string
 }
 
-function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
+function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [exposures, setExposures] = useState<Exposure[]>([])
 
   useEffect(() => {
     if (user == null || machineID == null || machineID === '') {
@@ -1212,9 +1034,8 @@ function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
 
     const run = async () => {
       try {
-        const [item, exposureItems] = await Promise.all([getMachine(machineID), listExposures(machineID)])
+        const item = await getMachine(machineID)
         setMachine(item)
-        setExposures(exposureItems)
         setError('')
       } catch (e) {
         setError(messageFromError(e))
@@ -1252,24 +1073,6 @@ function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
     try {
       const updated = await stopMachine(machineID)
       setMachine(updated)
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
-  const handleCreateExposure = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const trimmed = (machine?.name ?? '').trim()
-    if (trimmed === '') {
-      setError('machine name is required')
-      return
-    }
-
-    setError('')
-    try {
-      await createExposure(machineID, trimmed, 8080, zoneID)
-      const items = await listExposures(machineID)
-      setExposures(items)
     } catch (e) {
       setError(messageFromError(e))
     }
@@ -1319,51 +1122,6 @@ function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
                     <StatusBadge status={machine.status} />
                     <span className="text-sm text-slate-300">desired: {machine.desiredStatus}</span>
                   </div>
-                </div>
-                <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-200">Exposure controls</p>
-                    <p className="text-xs text-slate-400">Default is private</p>
-                  </div>
-                  {exposures.length === 0 ? (
-                    <p className="text-sm text-slate-400">No exposures configured.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {exposures.map((exposure) => (
-                        <li
-                          key={exposure.id}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-black/20 p-3"
-                        >
-                          <div className="flex items-center gap-2">
-                            <ExposureBadge isPublic={exposure.isPublic} />
-                            <span className="text-sm text-slate-100">{exposure.hostname || exposure.subdomain}</span>
-                            <span className="text-xs text-slate-400">-&gt; localhost:{exposure.localPort}</span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="h-8 px-3"
-                            disabled
-                          >
-                            Private only
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <form
-                    className="flex flex-col gap-2 rounded-md border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-end"
-                    onSubmit={handleCreateExposure}
-                  >
-                    <p className="text-xs text-slate-400">
-                      Subdomain: <span className="text-slate-200">{machine?.name ?? '-'}</span> / Port: 8080 /
-                      Private only
-                    </p>
-                    <Button type="submit" className="h-9 px-3 bg-white text-slate-900 hover:bg-slate-100">
-                      Add exposure
-                    </Button>
-                  </form>
                 </div>
                 {machine.lastError != null && machine.lastError !== '' && (
                   <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
