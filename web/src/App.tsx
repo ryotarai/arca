@@ -36,6 +36,7 @@ type Machine = MachineMessage
 type SetupStatus = {
   isConfigured: boolean
   hasAdmin: boolean
+  cloudflareZoneID: string
 }
 
 type Exposure = {
@@ -223,12 +224,14 @@ async function getSetupStatus(): Promise<SetupStatus> {
       status?: {
         completed?: boolean
         adminConfigured?: boolean
+        cloudflareZoneId?: string
       }
       isConfigured?: boolean
       configured?: boolean
       setupCompleted?: boolean
       hasAdmin?: boolean
       adminConfigured?: boolean
+      cloudflareZoneId?: string
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -237,11 +240,12 @@ async function getSetupStatus(): Promise<SetupStatus> {
     const isConfigured =
       response.status?.completed ?? response.isConfigured ?? response.configured ?? response.setupCompleted ?? false
     const hasAdmin = response.status?.adminConfigured ?? response.hasAdmin ?? response.adminConfigured ?? false
+    const cloudflareZoneID = response.status?.cloudflareZoneId ?? response.cloudflareZoneId ?? ''
 
-    return { isConfigured, hasAdmin }
+    return { isConfigured, hasAdmin, cloudflareZoneID }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
-      return { isConfigured: true, hasAdmin: true }
+      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '' }
     }
     throw error
   }
@@ -273,6 +277,7 @@ async function setupComplete(
   adminPassword: string,
   baseDomain: string,
   cloudflareApiToken: string,
+  cloudflareZoneID: string,
 ): Promise<void> {
   try {
     const response = await callConnectJSONCandidates<{
@@ -285,6 +290,7 @@ async function setupComplete(
       adminPassword,
       baseDomain,
       cloudflareApiToken,
+      cloudflareZoneId: cloudflareZoneID,
       dockerProviderEnabled: true,
     })
     if (response.status?.completed !== true) {
@@ -334,13 +340,19 @@ async function listExposures(machineID: string): Promise<Exposure[]> {
   }
 }
 
-async function createExposure(machineID: string, subdomain: string, localPort: number, isPublic: boolean): Promise<void> {
+async function createExposure(
+  machineID: string,
+  subdomain: string,
+  localPort: number,
+  isPublic: boolean,
+  zoneID: string,
+): Promise<void> {
   await callConnectJSONCandidates(
     ['/arca.v1.TunnelService/UpsertMachineExposure', '/arca.v1.ExposureService/CreateExposure'],
     {
       machineId: machineID,
       name: subdomain,
-      zoneId: '',
+      zoneId: zoneID,
       subdomain,
       service: `http://localhost:${localPort}`,
       localPort,
@@ -351,13 +363,18 @@ async function createExposure(machineID: string, subdomain: string, localPort: n
   )
 }
 
-async function updateExposureVisibility(machineID: string, exposure: Exposure, isPublic: boolean): Promise<void> {
+async function updateExposureVisibility(
+  machineID: string,
+  exposure: Exposure,
+  isPublic: boolean,
+  zoneID: string,
+): Promise<void> {
   await callConnectJSONCandidates(
     ['/arca.v1.TunnelService/UpsertMachineExposure', '/arca.v1.ExposureService/UpdateExposureVisibility', '/arca.v1.ExposureService/UpdateExposure'],
     {
       machineId: machineID,
       name: exposure.subdomain,
-      zoneId: '',
+      zoneId: zoneID,
       service: `http://localhost:${exposure.localPort}`,
       exposureId: exposure.id,
       id: exposure.id,
@@ -385,7 +402,11 @@ function parseLocalPort(service: string | undefined): number | null {
 export function App() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
-  const [setupStatus, setSetupStatus] = useState<SetupStatus>({ isConfigured: true, hasAdmin: true })
+  const [setupStatus, setSetupStatus] = useState<SetupStatus>({
+    isConfigured: true,
+    hasAdmin: true,
+    cloudflareZoneID: '',
+  })
 
   useEffect(() => {
     const run = async () => {
@@ -434,8 +455,11 @@ export function App() {
           element={
             <SetupPage
               hasAdmin={setupStatus.hasAdmin}
+              initialCloudflareZoneID={setupStatus.cloudflareZoneID}
               onAdminReady={setUser}
-              onSetupComplete={() => setSetupStatus({ isConfigured: true, hasAdmin: true })}
+              onSetupComplete={(zoneID) =>
+                setSetupStatus({ isConfigured: true, hasAdmin: true, cloudflareZoneID: zoneID })
+              }
             />
           }
         />
@@ -449,8 +473,8 @@ export function App() {
       <Route path="/" element={<HomePage user={user} onLogout={logout} />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
-      <Route path="/machines" element={<MachinesPage user={user} onLogout={logout} />} />
-      <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={logout} />} />
+      <Route path="/machines" element={<MachinesPage user={user} onLogout={logout} zoneID={setupStatus.cloudflareZoneID} />} />
+      <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={logout} zoneID={setupStatus.cloudflareZoneID} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -458,11 +482,12 @@ export function App() {
 
 type SetupPageProps = {
   hasAdmin: boolean
+  initialCloudflareZoneID: string
   onAdminReady: (user: User) => void
-  onSetupComplete: () => void
+  onSetupComplete: (zoneID: string) => void
 }
 
-function SetupPage({ hasAdmin, onAdminReady, onSetupComplete }: SetupPageProps) {
+function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupComplete }: SetupPageProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(hasAdmin ? 2 : 1)
   const [email, setEmail] = useState('')
@@ -470,6 +495,7 @@ function SetupPage({ hasAdmin, onAdminReady, onSetupComplete }: SetupPageProps) 
   const [confirmPassword, setConfirmPassword] = useState('')
   const [baseDomain, setBaseDomain] = useState('')
   const [cloudflareToken, setCloudflareToken] = useState('')
+  const [cloudflareZoneID, setCloudflareZoneID] = useState(initialCloudflareZoneID)
   const [exposureMode, setExposureMode] = useState<'private' | 'public'>('private')
   const [loadingStep, setLoadingStep] = useState(false)
   const [error, setError] = useState('')
@@ -511,6 +537,9 @@ function SetupPage({ hasAdmin, onAdminReady, onSetupComplete }: SetupPageProps) 
     setError('')
     setLoadingStep(true)
     try {
+      if (cloudflareZoneID.trim() === '') {
+        throw new Error('cloudflare zone id is required')
+      }
       await setupValidateCloudflare(cloudflareToken, baseDomain)
       setStep(3)
     } catch (e) {
@@ -526,8 +555,8 @@ function SetupPage({ hasAdmin, onAdminReady, onSetupComplete }: SetupPageProps) 
     setLoadingStep(true)
     try {
       await setupConfigureProviderDocker()
-      await setupComplete(email, password, baseDomain, cloudflareToken)
-      onSetupComplete()
+      await setupComplete(email, password, baseDomain, cloudflareToken, cloudflareZoneID)
+      onSetupComplete(cloudflareZoneID)
       window.setTimeout(() => {
         void navigate('/', { replace: true })
       }, 350)
@@ -637,6 +666,19 @@ function SetupPage({ hasAdmin, onAdminReady, onSetupComplete }: SetupPageProps) 
                     required
                     className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                     placeholder="arca.dev"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-zone-id" className="text-slate-200">
+                    Cloudflare zone ID
+                  </Label>
+                  <Input
+                    id="setup-zone-id"
+                    value={cloudflareZoneID}
+                    onChange={(event) => setCloudflareZoneID(event.target.value)}
+                    required
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="zone id for your base domain"
                   />
                 </div>
                 <div className="space-y-2">
@@ -761,6 +803,7 @@ function HomePage({ user, onLogout }: HomePageProps) {
 type MachinesPageProps = {
   user: User | null
   onLogout: () => Promise<void>
+  zoneID: string
 }
 
 function statusTone(status: string): string {
@@ -803,7 +846,7 @@ function ExposureBadge({ isPublic }: { isPublic: boolean }) {
   )
 }
 
-function MachinesPage({ user, onLogout }: MachinesPageProps) {
+function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -948,7 +991,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
 
     setError('')
     try {
-      await createExposure(machineID, subdomain, port, newExposurePublic[machineID] ?? false)
+      await createExposure(machineID, subdomain, port, newExposurePublic[machineID] ?? false, zoneID)
       const exposures = await listExposures(machineID)
       setExposuresByMachine((prev) => ({ ...prev, [machineID]: exposures }))
       setNewExposureSubdomain((prev) => ({ ...prev, [machineID]: '' }))
@@ -962,7 +1005,7 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
   const submitToggleExposure = async (machineID: string, exposure: Exposure) => {
     setError('')
     try {
-      await updateExposureVisibility(machineID, exposure, !exposure.isPublic)
+      await updateExposureVisibility(machineID, exposure, !exposure.isPublic, zoneID)
       setExposuresByMachine((prev) => ({
         ...prev,
         [machineID]: (prev[machineID] ?? []).map((item) =>
@@ -1220,9 +1263,10 @@ function MachinesPage({ user, onLogout }: MachinesPageProps) {
 type MachineDetailPageProps = {
   user: User | null
   onLogout: () => Promise<void>
+  zoneID: string
 }
 
-function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
+function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [loading, setLoading] = useState(true)
@@ -1300,7 +1344,7 @@ function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
 
     setError('')
     try {
-      await createExposure(machineID, trimmed, parsedPort, isPublic)
+      await createExposure(machineID, trimmed, parsedPort, isPublic, zoneID)
       const items = await listExposures(machineID)
       setExposures(items)
       setSubdomain('')
@@ -1314,7 +1358,7 @@ function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const handleToggleExposure = async (exposure: Exposure) => {
     setError('')
     try {
-      await updateExposureVisibility(machineID, exposure, !exposure.isPublic)
+      await updateExposureVisibility(machineID, exposure, !exposure.isPublic, zoneID)
       setExposures((prev) =>
         prev.map((item) =>
           item.id === exposure.id

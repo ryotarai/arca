@@ -28,6 +28,7 @@ type SetupStatus struct {
 	CloudflareConfigured  bool                   `protobuf:"varint,3,opt,name=cloudflare_configured,json=cloudflareConfigured,proto3" json:"cloudflare_configured,omitempty"`
 	BaseDomain            string                 `protobuf:"bytes,4,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
 	DockerProviderEnabled bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
+	CloudflareZoneId      string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -95,6 +96,13 @@ func (x *SetupStatus) GetDockerProviderEnabled() bool {
 		return x.DockerProviderEnabled
 	}
 	return false
+}
+
+func (x *SetupStatus) GetCloudflareZoneId() string {
+	if x != nil {
+		return x.CloudflareZoneId
+	}
+	return ""
 }
 
 type GetSetupStatusRequest struct {
@@ -280,6 +288,7 @@ type CompleteSetupRequest struct {
 	BaseDomain            string                 `protobuf:"bytes,3,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
 	CloudflareApiToken    string                 `protobuf:"bytes,4,opt,name=cloudflare_api_token,json=cloudflareApiToken,proto3" json:"cloudflare_api_token,omitempty"`
 	DockerProviderEnabled bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
+	CloudflareZoneId      string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -349,6 +358,13 @@ func (x *CompleteSetupRequest) GetDockerProviderEnabled() bool {
 	return false
 }
 
+func (x *CompleteSetupRequest) GetCloudflareZoneId() string {
+	if x != nil {
+		return x.CloudflareZoneId
+	}
+	return ""
+}
+
 type CompleteSetupResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -397,14 +413,15 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xe4\x01\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\x92\x02\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x123\n" +
 	"\x15cloudflare_configured\x18\x03 \x01(\bR\x14cloudflareConfigured\x12\x1f\n" +
 	"\vbase_domain\x18\x04 \x01(\tR\n" +
 	"baseDomain\x126\n" +
-	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\"\x17\n" +
+	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\x12,\n" +
+	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"=\n" +
@@ -412,7 +429,7 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\tapi_token\x18\x01 \x01(\tR\bapiToken\"Q\n" +
 	"\x1fValidateCloudflareTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xe9\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x97\x02\n" +
 	"\x14CompleteSetupRequest\x12\x1f\n" +
 	"\vadmin_email\x18\x01 \x01(\tR\n" +
 	"adminEmail\x12%\n" +
@@ -420,15 +437,14 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\vbase_domain\x18\x03 \x01(\tR\n" +
 	"baseDomain\x120\n" +
 	"\x14cloudflare_api_token\x18\x04 \x01(\tR\x12cloudflareApiToken\x126\n" +
-	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\"E\n" +
+	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\x12,\n" +
+	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\x9f\x02\n" +
 	"\fSetupService\x12Q\n" +
 	"\x0eGetSetupStatus\x12\x1e.arca.v1.GetSetupStatusRequest\x1a\x1f.arca.v1.GetSetupStatusResponse\x12l\n" +
 	"\x17ValidateCloudflareToken\x12'.arca.v1.ValidateCloudflareTokenRequest\x1a(.arca.v1.ValidateCloudflareTokenResponse\x12N\n" +
-	"\rCompleteSetup\x12\x1d.arca.v1.CompleteSetupRequest\x1a\x1e.arca.v1.CompleteSetupResponseB\x8c\x01\n" +
-	"\vcom.arca.v1B\n" +
-	"SetupProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
+	"\rCompleteSetup\x12\x1d.arca.v1.CompleteSetupRequest\x1a\x1e.arca.v1.CompleteSetupResponseB6Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1b\x06proto3"
 
 var (
 	file_arca_v1_setup_proto_rawDescOnce sync.Once
