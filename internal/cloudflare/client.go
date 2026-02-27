@@ -86,6 +86,11 @@ func (c *Client) VerifyToken(ctx context.Context, apiToken string) (TokenVerific
 	return out.Result, nil
 }
 
+func (c *Client) VerifyAccountToken(ctx context.Context, apiToken, accountID string) error {
+	path := fmt.Sprintf("/accounts/%s/cfd_tunnel?page=1&per_page=1", url.PathEscape(accountID))
+	return c.doJSON(ctx, http.MethodGet, path, apiToken, nil, nil)
+}
+
 func (c *Client) CreateTunnel(ctx context.Context, apiToken, accountID, tunnelName string) (Tunnel, error) {
 	payload := map[string]string{"name": tunnelName, "config_src": "cloudflare"}
 	var out responseEnvelope[Tunnel]

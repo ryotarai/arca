@@ -188,6 +188,7 @@ func (x *GetSetupStatusResponse) GetStatus() *SetupStatus {
 type ValidateCloudflareTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ApiToken      string                 `protobuf:"bytes,1,opt,name=api_token,json=apiToken,proto3" json:"api_token,omitempty"`
+	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,6 +226,13 @@ func (*ValidateCloudflareTokenRequest) Descriptor() ([]byte, []int) {
 func (x *ValidateCloudflareTokenRequest) GetApiToken() string {
 	if x != nil {
 		return x.ApiToken
+	}
+	return ""
+}
+
+func (x *ValidateCloudflareTokenRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
 	}
 	return ""
 }
@@ -424,9 +432,11 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"=\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\\\n" +
 	"\x1eValidateCloudflareTokenRequest\x12\x1b\n" +
-	"\tapi_token\x18\x01 \x01(\tR\bapiToken\"Q\n" +
+	"\tapi_token\x18\x01 \x01(\tR\bapiToken\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\tR\taccountId\"Q\n" +
 	"\x1fValidateCloudflareTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x97\x02\n" +

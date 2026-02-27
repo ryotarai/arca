@@ -83,3 +83,30 @@ func TestUpdateTunnelIngressReturnsAPIError(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestVerifyAccountToken(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/accounts/acc-1/cfd_tunnel"; got != want {
+			t.Fatalf("path = %s, want %s", got, want)
+		}
+		if got := r.URL.Query().Get("page"); got != "1" {
+			t.Fatalf("query page = %s, want 1", got)
+		}
+		if got := r.URL.Query().Get("per_page"); got != "1" {
+			t.Fatalf("query per_page = %s, want 1", got)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer token" {
+			t.Fatalf("authorization header = %s", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":[]}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	if err := client.VerifyAccountToken(context.Background(), "token", "acc-1"); err != nil {
+		t.Fatalf("VerifyAccountToken() error = %v", err)
+	}
+}
