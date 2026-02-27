@@ -253,7 +253,7 @@ async function setupCreateAdmin(email: string, password: string): Promise<User |
 
 async function setupValidateCloudflare(apiToken: string, baseDomain: string): Promise<void> {
   const response = await callConnectJSONCandidates<{ valid?: boolean; message?: string }>(
-    ['/arca.v1.SetupService/ValidateCloudflare', '/arca.v1.SetupService/ValidateCloudflareToken'],
+    ['/arca.v1.SetupService/ValidateCloudflareToken'],
     { apiToken, token: apiToken, baseDomain, domain: baseDomain },
   )
   if (response.valid !== true) {
