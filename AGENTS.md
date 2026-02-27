@@ -20,10 +20,13 @@ Setup prerequisites: Go `1.22`, Node.js/npm, and `sqlc`.
 - `go mod download`: install Go dependencies.
 - `npm --prefix web ci`: install frontend dependencies.
 - `make build`: build frontend and server.
-- `make build-frontend`: build only web assets.
-- `make build-server`: build server (runs `make sqlc` internally).
+- `make build-frontend`: generate proto code and build web assets.
+- `make build-server`: run frontend build + sqlc, then build `./cmd/server` to `bin/server`.
+- `make proto`: regenerate protobuf/Connect generated code via `buf generate`.
 - `make sqlc`: regenerate SQL access code.
-- `./bin/server`: run the built server.
+- `make run`: build server and run `./bin/server`.
+- `make watch`: start hot-reload development server using `air`.
+- `./bin/server`: run the already built server binary.
 
 ## Coding Style & Naming Conventions
 Use Go 1.22 idioms and keep code `gofmt`-clean.
