@@ -193,3 +193,128 @@ SET status = 'queued',
 WHERE status = 'running'
   AND lease_until IS NOT NULL
   AND lease_until < sqlc.arg(now_unix);
+
+-- name: GetSetupState :one
+SELECT completed, admin_user_id, base_domain, cloudflare_api_token, docker_provider_enabled, updated_at
+FROM setup_state
+WHERE id = 1
+LIMIT 1;
+
+-- name: UpsertSetupState :exec
+INSERT INTO setup_state (id, completed, admin_user_id, base_domain, cloudflare_api_token, docker_provider_enabled, updated_at)
+VALUES (
+  1,
+  sqlc.arg(completed),
+  sqlc.narg(admin_user_id),
+  sqlc.arg(base_domain),
+  sqlc.arg(cloudflare_api_token),
+  sqlc.arg(docker_provider_enabled),
+  sqlc.arg(updated_at)
+)
+ON CONFLICT (id) DO UPDATE
+SET completed = excluded.completed,
+    admin_user_id = excluded.admin_user_id,
+    base_domain = excluded.base_domain,
+    cloudflare_api_token = excluded.cloudflare_api_token,
+    docker_provider_enabled = excluded.docker_provider_enabled,
+    updated_at = excluded.updated_at;
+
+-- name: CreateMachineToken :exec
+INSERT INTO machine_tokens (id, machine_id, token_hash, created_at)
+VALUES (sqlc.arg(id), sqlc.arg(machine_id), sqlc.arg(token_hash), sqlc.arg(created_at));
+
+-- name: GetMachineIDByActiveTokenHash :one
+SELECT machine_id
+FROM machine_tokens
+WHERE token_hash = sqlc.arg(token_hash)
+  AND revoked_at IS NULL
+LIMIT 1;
+
+-- name: CreateAuthTicket :exec
+INSERT INTO auth_tickets (id, ticket_hash, user_id, machine_id, exposure_id, expires_at, created_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(ticket_hash),
+  sqlc.arg(user_id),
+  sqlc.arg(machine_id),
+  sqlc.arg(exposure_id),
+  sqlc.arg(expires_at),
+  sqlc.arg(created_at)
+);
+
+-- name: GetValidAuthTicketByHashAndMachine :one
+SELECT t.id, t.user_id, u.email, t.machine_id, t.exposure_id
+FROM auth_tickets t
+JOIN users u ON u.id = t.user_id
+WHERE t.ticket_hash = sqlc.arg(ticket_hash)
+  AND t.machine_id = sqlc.arg(machine_id)
+  AND t.used_at IS NULL
+  AND t.expires_at > sqlc.arg(now_unix)
+LIMIT 1;
+
+-- name: MarkAuthTicketUsed :execrows
+UPDATE auth_tickets
+SET used_at = sqlc.arg(used_at)
+WHERE id = sqlc.arg(id)
+  AND used_at IS NULL;
+
+-- name: UpsertMachineTunnel :exec
+INSERT INTO machine_tunnels (machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at)
+VALUES (
+  sqlc.arg(machine_id),
+  sqlc.arg(account_id),
+  sqlc.arg(tunnel_id),
+  sqlc.arg(tunnel_name),
+  sqlc.arg(tunnel_token),
+  sqlc.arg(created_at),
+  sqlc.arg(updated_at)
+)
+ON CONFLICT (machine_id) DO UPDATE
+SET account_id = excluded.account_id,
+    tunnel_id = excluded.tunnel_id,
+    tunnel_name = excluded.tunnel_name,
+    tunnel_token = excluded.tunnel_token,
+    updated_at = excluded.updated_at;
+
+-- name: GetMachineTunnelByMachineID :one
+SELECT machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at
+FROM machine_tunnels
+WHERE machine_id = sqlc.arg(machine_id)
+LIMIT 1;
+
+-- name: UpsertMachineExposure :exec
+INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, created_at, updated_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(machine_id),
+  sqlc.arg(name),
+  sqlc.arg(hostname),
+  sqlc.arg(service),
+  sqlc.arg(is_public),
+  sqlc.arg(created_at),
+  sqlc.arg(updated_at)
+)
+ON CONFLICT (machine_id, name) DO UPDATE
+SET hostname = excluded.hostname,
+    service = excluded.service,
+    is_public = excluded.is_public,
+    updated_at = excluded.updated_at;
+
+-- name: ListMachineExposuresByMachineID :many
+SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+FROM machine_exposures
+WHERE machine_id = sqlc.arg(machine_id)
+ORDER BY created_at ASC;
+
+-- name: GetMachineExposureByHostname :one
+SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+FROM machine_exposures
+WHERE hostname = sqlc.arg(hostname)
+LIMIT 1;
+
+-- name: GetMachineExposureByMachineIDAndName :one
+SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+FROM machine_exposures
+WHERE machine_id = sqlc.arg(machine_id)
+  AND name = sqlc.arg(name)
+LIMIT 1;

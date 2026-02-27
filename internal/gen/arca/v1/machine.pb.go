@@ -312,6 +312,7 @@ func (x *CreateMachineRequest) GetName() string {
 type CreateMachineResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Machine       *Machine               `protobuf:"bytes,1,opt,name=machine,proto3" json:"machine,omitempty"`
+	MachineToken  string                 `protobuf:"bytes,2,opt,name=machine_token,json=machineToken,proto3" json:"machine_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -351,6 +352,13 @@ func (x *CreateMachineResponse) GetMachine() *Machine {
 		return x.Machine
 	}
 	return nil
+}
+
+func (x *CreateMachineResponse) GetMachineToken() string {
+	if x != nil {
+		return x.MachineToken
+	}
+	return ""
 }
 
 type UpdateMachineRequest struct {
@@ -726,9 +734,10 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x12GetMachineResponse\x12*\n" +
 	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"*\n" +
 	"\x14CreateMachineRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"C\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"h\n" +
 	"\x15CreateMachineResponse\x12*\n" +
-	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"I\n" +
+	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\x12#\n" +
+	"\rmachine_token\x18\x02 \x01(\tR\fmachineToken\"I\n" +
 	"\x14UpdateMachineRequest\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x12\n" +

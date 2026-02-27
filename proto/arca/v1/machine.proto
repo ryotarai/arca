@@ -42,6 +42,7 @@ message CreateMachineRequest {
 
 message CreateMachineResponse {
   Machine machine = 1;
+  string machine_token = 2;
 }
 
 message UpdateMachineRequest {

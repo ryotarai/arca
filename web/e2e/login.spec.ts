@@ -1,6 +1,26 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+async function ensureSetupCompleted(page: Page) {
+  await page.goto('/')
+  if (!page.url().endsWith('/setup')) {
+    return
+  }
+
+  await page.getByLabel('Email').fill(`setup-${Date.now()}@example.com`)
+  await page.getByLabel('Password').fill('password123')
+  await page.getByLabel('Confirm password').fill('password123')
+  await page.getByRole('button', { name: 'Continue' }).click()
+
+  await page.getByLabel('Base domain').fill('example.test')
+  await page.getByLabel('Cloudflare API token').fill('test-token')
+  await page.getByRole('button', { name: 'Validate and continue' }).click()
+
+  await page.getByRole('button', { name: 'Finish setup' }).click()
+  await expect(page).toHaveURL('/')
+}
 
 test('redirect path exposes login screen', async ({ page }) => {
+  await ensureSetupCompleted(page)
   await page.goto('/')
   await page.getByRole('link', { name: 'Login' }).click()
 
@@ -10,6 +30,7 @@ test('redirect path exposes login screen', async ({ page }) => {
 })
 
 test('login route is directly accessible', async ({ page }) => {
+  await ensureSetupCompleted(page)
   await page.goto('/login')
 
   await expect(page).toHaveURL('/login')
@@ -18,6 +39,7 @@ test('login route is directly accessible', async ({ page }) => {
 })
 
 test('unauthenticated user cannot access authenticated dashboard view', async ({ page }) => {
+  await ensureSetupCompleted(page)
   await page.goto('/')
 
   await expect(page.getByRole('link', { name: 'Login' })).toBeVisible()
@@ -26,6 +48,7 @@ test('unauthenticated user cannot access authenticated dashboard view', async ({
 })
 
 test('register, login, and logout via Connect RPC', async ({ page }) => {
+  await ensureSetupCompleted(page)
   const email = `e2e-${Date.now()}@example.com`
   const password = 'password123'
 
@@ -69,6 +92,7 @@ test('register, login, and logout via Connect RPC', async ({ page }) => {
 })
 
 test('machine CRUD screen works for authenticated user', async ({ page }) => {
+  await ensureSetupCompleted(page)
   const email = `machine-${Date.now()}@example.com`
   const password = 'password123'
 
