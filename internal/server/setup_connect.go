@@ -67,18 +67,27 @@ func (s *setupConnectService) ValidateCloudflareToken(ctx context.Context, req *
 		return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{Valid: true, Message: "token verification skipped"}), nil
 	}
 
-	verification, err := s.cf.VerifyToken(ctx, token)
-	if err != nil {
-		return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{Valid: false, Message: err.Error()}), nil
-	}
-
-	valid := strings.EqualFold(verification.Status, "active")
-	message := "token verified"
-	if !valid {
-		message = "token is not active"
-	} else if err := s.cf.VerifyAccountToken(ctx, token, accountID); err != nil {
-		valid = false
-		message = "token is not a valid account token for the provided account id"
+	verification, verifyErr := s.cf.VerifyToken(ctx, token)
+	valid := false
+	message := ""
+	if verifyErr == nil {
+		if !strings.EqualFold(verification.Status, "active") {
+			return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{
+				Valid:   false,
+				Message: "token is not active",
+			}), nil
+		}
+		if err := s.cf.VerifyAccountToken(ctx, token, accountID); err == nil {
+			valid = true
+			message = "token verified"
+		} else {
+			message = "token is not a valid account token for the provided account id"
+		}
+	} else if err := s.cf.VerifyAccountToken(ctx, token, accountID); err == nil {
+		valid = true
+		message = "account token verified"
+	} else {
+		message = verifyErr.Error()
 	}
 	return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{Valid: valid, Message: message}), nil
 }
@@ -107,12 +116,13 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	}
 
 	if !shouldSkipCloudflareValidation() {
-		verification, err := s.cf.VerifyToken(ctx, cfToken)
-		if err != nil {
+		verification, verifyErr := s.cf.VerifyToken(ctx, cfToken)
+		if verifyErr == nil {
+			if !strings.EqualFold(verification.Status, "active") {
+				return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token is not active"))
+			}
+		} else if err := s.cf.VerifyZoneToken(ctx, cfToken, zoneID); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token verification failed"))
-		}
-		if !strings.EqualFold(verification.Status, "active") {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token is not active"))
 		}
 	}
 
