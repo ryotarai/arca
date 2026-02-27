@@ -654,6 +654,19 @@ function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupCom
               <CardDescription className="text-slate-300">Validate token and set the base domain for exposure endpoints.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-3">
+              <div className="mb-4 rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
+                <p className="font-medium text-slate-100">Required API token permissions</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li>`Account` - `Cloudflare Tunnel: Edit`</li>
+                  <li>`Zone` - `DNS: Edit` (for the selected zone)</li>
+                </ul>
+                <p className="mt-3 font-medium text-slate-100">How to create the token</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Cloudflare Dashboard - `My Profile` - `API Tokens` - `Create Token`</li>
+                  <li>Create a custom token and add the permissions above</li>
+                  <li>Set account and zone resources for this environment, then create and copy token</li>
+                </ol>
+              </div>
               <form className="space-y-4" onSubmit={submitCloudflare}>
                 <div className="space-y-2">
                   <Label htmlFor="setup-base-domain" className="text-slate-200">
