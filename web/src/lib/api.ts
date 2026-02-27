@@ -29,6 +29,27 @@ const connectTransport = createConnectTransport({
 const authClient = createClient(AuthService, connectTransport)
 const machineClient = createClient(MachineService, connectTransport)
 
+type PollingOptions = {
+  timeoutMs?: number
+}
+
+async function withRequestTimeout<T>(
+  timeoutMs: number | undefined,
+  call: (signal?: AbortSignal) => Promise<T>,
+): Promise<T> {
+  if (timeoutMs == null) {
+    return call()
+  }
+
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort('request timeout'), timeoutMs)
+  try {
+    return await call(controller.signal)
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
 export function toUser(user: { id: string; email: string } | undefined): User | null {
   if (user == null) {
     return null
@@ -137,8 +158,10 @@ export async function logout(): Promise<void> {
   await authClient.logout(create(LogoutRequestSchema))
 }
 
-export async function listMachines(): Promise<Machine[]> {
-  const response = await machineClient.listMachines(create(ListMachinesRequestSchema))
+export async function listMachines(options: PollingOptions = {}): Promise<Machine[]> {
+  const response = await withRequestTimeout(options.timeoutMs, (signal) =>
+    machineClient.listMachines(create(ListMachinesRequestSchema), signal == null ? undefined : { signal }),
+  )
   return response.machines
 }
 
@@ -150,8 +173,13 @@ export async function createMachine(name: string): Promise<Machine> {
   return response.machine
 }
 
-export async function getMachine(id: string): Promise<Machine> {
-  const response = await machineClient.getMachine(create(GetMachineRequestSchema, { machineId: id }))
+export async function getMachine(id: string, options: PollingOptions = {}): Promise<Machine> {
+  const response = await withRequestTimeout(options.timeoutMs, (signal) =>
+    machineClient.getMachine(
+      create(GetMachineRequestSchema, { machineId: id }),
+      signal == null ? undefined : { signal },
+    ),
+  )
   if (response.machine == null) {
     throw new Error('request failed')
   }
