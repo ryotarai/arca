@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/ryotarai/hayai/internal/db"
-	"github.com/ryotarai/hayai/internal/gen/hayai/v1/hayaiv1connect"
+	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/gen/arca/v1/arcav1connect"
 )
 
 type Dependencies struct {
@@ -42,7 +42,7 @@ type MachineStore interface {
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 }
 
-const sessionCookieName = "hayai_session"
+const sessionCookieName = "arca_session"
 
 func NewRouter(deps Dependencies) http.Handler {
 	r := chi.NewRouter()
@@ -54,11 +54,12 @@ func NewRouter(deps Dependencies) http.Handler {
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	if deps.Authenticator != nil {
-		path, handler := hayaiv1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator))
+		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {
-		r.Route("/api/machines", newMachineRouter(deps.Authenticator, deps.MachineStore))
+		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore))
+		r.Mount(path, handler)
 	}
 
 	r.NotFound(spaHandler())

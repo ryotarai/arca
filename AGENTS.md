@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This repository is a Go + React application (`github.com/ryotarai/hayai`).
+This repository is a Go + React application (`github.com/ryotarai/arca`).
 - `cmd/server/`: server entrypoint and startup.
 - `internal/server/`: HTTP routing and UI asset serving.
 - `internal/db/`: DB config, migrations, and store wiring.

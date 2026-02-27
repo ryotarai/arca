@@ -10,10 +10,10 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
-	"github.com/ryotarai/hayai/internal/db"
+	"github.com/ryotarai/arca/internal/db"
 )
 
-const machineIDLabel = "hayai.machine_id"
+const machineIDLabel = "arca.machine_id"
 
 type DockerRuntime struct {
 	client *client.Client
@@ -58,7 +58,7 @@ func (r *DockerRuntime) EnsureRunning(ctx context.Context, machine db.Machine) (
 			return "", err
 		}
 
-		name := "hayai-machine-" + machine.ID[:12]
+		name := "arca-machine-" + machine.ID[:12]
 		created, err := r.client.ContainerCreate(
 			ctx,
 			&container.Config{

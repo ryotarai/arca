@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service MachineService {
+  rpc ListMachines(ListMachinesRequest) returns (ListMachinesResponse);
+  rpc GetMachine(GetMachineRequest) returns (GetMachineResponse);
+  rpc CreateMachine(CreateMachineRequest) returns (CreateMachineResponse);
+  rpc UpdateMachine(UpdateMachineRequest) returns (UpdateMachineResponse);
+  rpc StartMachine(StartMachineRequest) returns (StartMachineResponse);
+  rpc StopMachine(StopMachineRequest) returns (StopMachineResponse);
+  rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
+}
+
+message Machine {
+  string id = 1;
+  string name = 2;
+  string status = 3;
+  string desired_status = 4;
+  string last_error = 5;
+}
+
+message ListMachinesRequest {}
+
+message ListMachinesResponse {
+  repeated Machine machines = 1;
+}
+
+message GetMachineRequest {
+  string machine_id = 1;
+}
+
+message GetMachineResponse {
+  Machine machine = 1;
+}
+
+message CreateMachineRequest {
+  string name = 1;
+}
+
+message CreateMachineResponse {
+  Machine machine = 1;
+}
+
+message UpdateMachineRequest {
+  string machine_id = 1;
+  string name = 2;
+}
+
+message UpdateMachineResponse {
+  Machine machine = 1;
+}
+
+message StartMachineRequest {
+  string machine_id = 1;
+}
+
+message StartMachineResponse {
+  Machine machine = 1;
+}
+
+message StopMachineRequest {
+  string machine_id = 1;
+}
+
+message StopMachineResponse {
+  Machine machine = 1;
+}
+
+message DeleteMachineRequest {
+  string machine_id = 1;
+}
+
+message DeleteMachineResponse {}

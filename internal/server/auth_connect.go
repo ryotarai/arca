@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/ryotarai/hayai/internal/auth"
-	hayaiv1 "github.com/ryotarai/hayai/internal/gen/hayai/v1"
+	"github.com/ryotarai/arca/internal/auth"
+	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
 
 type authConnectService struct {
@@ -21,7 +21,7 @@ func newAuthConnectService(authenticator Authenticator) *authConnectService {
 	return &authConnectService{authenticator: authenticator}
 }
 
-func (s *authConnectService) Register(ctx context.Context, req *connect.Request[hayaiv1.RegisterRequest]) (*connect.Response[hayaiv1.RegisterResponse], error) {
+func (s *authConnectService) Register(ctx context.Context, req *connect.Request[arcav1.RegisterRequest]) (*connect.Response[arcav1.RegisterResponse], error) {
 	if s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
@@ -39,10 +39,10 @@ func (s *authConnectService) Register(ctx context.Context, req *connect.Request[
 		}
 	}
 
-	return connect.NewResponse(&hayaiv1.RegisterResponse{User: &hayaiv1.User{Id: userID, Email: email}}), nil
+	return connect.NewResponse(&arcav1.RegisterResponse{User: &arcav1.User{Id: userID, Email: email}}), nil
 }
 
-func (s *authConnectService) Login(ctx context.Context, req *connect.Request[hayaiv1.LoginRequest]) (*connect.Response[hayaiv1.LoginResponse], error) {
+func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arcav1.LoginRequest]) (*connect.Response[arcav1.LoginResponse], error) {
 	if s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
@@ -58,12 +58,12 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[hay
 		}
 	}
 
-	resp := connect.NewResponse(&hayaiv1.LoginResponse{User: &hayaiv1.User{Id: userID, Email: email}})
+	resp := connect.NewResponse(&arcav1.LoginResponse{User: &arcav1.User{Id: userID, Email: email}})
 	setSessionCookie(resp.Header(), token, expiresAt, isSecureRequest(req.Header()))
 	return resp, nil
 }
 
-func (s *authConnectService) Logout(ctx context.Context, req *connect.Request[hayaiv1.LogoutRequest]) (*connect.Response[hayaiv1.LogoutResponse], error) {
+func (s *authConnectService) Logout(ctx context.Context, req *connect.Request[arcav1.LogoutRequest]) (*connect.Response[arcav1.LogoutResponse], error) {
 	if s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
@@ -73,12 +73,12 @@ func (s *authConnectService) Logout(ctx context.Context, req *connect.Request[ha
 		_ = s.authenticator.Logout(ctx, sessionToken)
 	}
 
-	resp := connect.NewResponse(&hayaiv1.LogoutResponse{Status: "ok"})
+	resp := connect.NewResponse(&arcav1.LogoutResponse{Status: "ok"})
 	clearSessionCookie(resp.Header(), isSecureRequest(req.Header()))
 	return resp, nil
 }
 
-func (s *authConnectService) Me(ctx context.Context, req *connect.Request[hayaiv1.MeRequest]) (*connect.Response[hayaiv1.MeResponse], error) {
+func (s *authConnectService) Me(ctx context.Context, req *connect.Request[arcav1.MeRequest]) (*connect.Response[arcav1.MeResponse], error) {
 	if s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
@@ -99,7 +99,7 @@ func (s *authConnectService) Me(ctx context.Context, req *connect.Request[hayaiv
 		}
 	}
 
-	return connect.NewResponse(&hayaiv1.MeResponse{User: &hayaiv1.User{Id: userID, Email: email}}), nil
+	return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email}}), nil
 }
 
 func sessionTokenFromHeader(header http.Header) (string, error) {

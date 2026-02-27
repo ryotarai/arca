@@ -5,7 +5,7 @@ test('redirect path exposes login screen', async ({ page }) => {
   await page.getByRole('link', { name: 'Login' }).click()
 
   await expect(page).toHaveURL('/login')
-  await expect(page.getByRole('heading', { name: 'Hayai' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Arca' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Login' })).toBeVisible()
 })
 
@@ -36,7 +36,7 @@ test('register, login, and logout via Connect RPC', async ({ page }) => {
 
   const registerRequest = page.waitForRequest(
     (request) =>
-      request.url().endsWith('/hayai.v1.AuthService/Register') &&
+      request.url().endsWith('/arca.v1.AuthService/Register') &&
       request.method() === 'POST',
   )
   await page.getByRole('button', { name: 'Register' }).click()
@@ -47,7 +47,7 @@ test('register, login, and logout via Connect RPC', async ({ page }) => {
 
   const loginRequest = page.waitForRequest(
     (request) =>
-      request.url().endsWith('/hayai.v1.AuthService/Login') &&
+      request.url().endsWith('/arca.v1.AuthService/Login') &&
       request.method() === 'POST',
   )
   await page.getByLabel('Password').fill(password)
@@ -59,7 +59,7 @@ test('register, login, and logout via Connect RPC', async ({ page }) => {
 
   const logoutRequest = page.waitForRequest(
     (request) =>
-      request.url().endsWith('/hayai.v1.AuthService/Logout') &&
+      request.url().endsWith('/arca.v1.AuthService/Logout') &&
       request.method() === 'POST',
   )
   await page.getByRole('button', { name: 'Logout' }).click()
@@ -78,7 +78,7 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   await page.getByLabel('Password').fill(password)
   const registerRequest = page.waitForRequest(
     (request) =>
-      request.url().endsWith('/hayai.v1.AuthService/Register') &&
+      request.url().endsWith('/arca.v1.AuthService/Register') &&
       request.method() === 'POST',
   )
   await page.getByRole('button', { name: 'Register' }).click()
@@ -88,7 +88,7 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
 
   const loginRequest = page.waitForRequest(
     (request) =>
-      request.url().endsWith('/hayai.v1.AuthService/Login') &&
+      request.url().endsWith('/arca.v1.AuthService/Login') &&
       request.method() === 'POST',
   )
   await page.getByLabel('Password').fill(password)

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ryotarai/hayai/internal/db"
+	"github.com/ryotarai/arca/internal/db"
 	"golang.org/x/crypto/argon2"
 )
 
