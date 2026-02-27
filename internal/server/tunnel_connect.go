@@ -118,6 +118,9 @@ func (s *tunnelConnectService) UpsertMachineExposure(ctx context.Context, req *c
 	if strings.TrimSpace(setupState.CloudflareAPIToken) == "" || strings.TrimSpace(setupState.BaseDomain) == "" {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("setup is not complete"))
 	}
+	if zoneID == "" {
+		zoneID = strings.TrimSpace(setupState.CloudflareZoneID)
+	}
 
 	hostname := buildExposureHostname(exposureName, setupState.BaseDomain)
 	service := "http://localhost:80"

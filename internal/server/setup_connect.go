@@ -94,8 +94,9 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	password := req.Msg.GetAdminPassword()
 	baseDomain := normalizeBaseDomain(req.Msg.GetBaseDomain())
 	cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken())
-	if email == "" || password == "" || baseDomain == "" || cfToken == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("admin email, password, base domain, and cloudflare token are required"))
+	zoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId())
+	if email == "" || password == "" || baseDomain == "" || cfToken == "" || zoneID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("admin email, password, base domain, cloudflare token, and cloudflare zone id are required"))
 	}
 
 	if !shouldSkipCloudflareValidation() {
@@ -126,6 +127,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		AdminUserID:           adminUserID,
 		BaseDomain:            baseDomain,
 		CloudflareAPIToken:    cfToken,
+		CloudflareZoneID:      zoneID,
 		DockerProviderEnabled: req.Msg.GetDockerProviderEnabled(),
 	}
 	if err := s.store.UpsertSetupState(ctx, state); err != nil {
@@ -143,6 +145,7 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		CloudflareConfigured:  strings.TrimSpace(state.CloudflareAPIToken) != "",
 		BaseDomain:            state.BaseDomain,
 		DockerProviderEnabled: state.DockerProviderEnabled,
+		CloudflareZoneId:      state.CloudflareZoneID,
 	}
 }
 

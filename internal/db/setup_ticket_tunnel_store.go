@@ -16,6 +16,7 @@ type SetupState struct {
 	AdminUserID           string
 	BaseDomain            string
 	CloudflareAPIToken    string
+	CloudflareZoneID      string
 	DockerProviderEnabled bool
 	UpdatedAtUnix         int64
 }
@@ -49,6 +50,11 @@ type MachineExposure struct {
 }
 
 func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
+	zoneID, err := s.getMetaValue(ctx, setupMetaCloudflareZoneID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+
 	switch s.driver {
 	case DriverSQLite:
 		state, err := s.sqliteQueries.GetSetupState(ctx)
@@ -63,6 +69,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			AdminUserID:           state.AdminUserID.String,
 			BaseDomain:            state.BaseDomain,
 			CloudflareAPIToken:    state.CloudflareApiToken,
+			CloudflareZoneID:      zoneID,
 			DockerProviderEnabled: state.DockerProviderEnabled,
 			UpdatedAtUnix:         state.UpdatedAt,
 		}, nil
@@ -79,6 +86,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			AdminUserID:           state.AdminUserID.String,
 			BaseDomain:            state.BaseDomain,
 			CloudflareAPIToken:    state.CloudflareApiToken,
+			CloudflareZoneID:      zoneID,
 			DockerProviderEnabled: state.DockerProviderEnabled,
 			UpdatedAtUnix:         state.UpdatedAt,
 		}, nil
@@ -91,9 +99,10 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	nowUnix := time.Now().Unix()
 	adminUserID := sql.NullString{String: strings.TrimSpace(state.AdminUserID), Valid: strings.TrimSpace(state.AdminUserID) != ""}
 
+	var err error
 	switch s.driver {
 	case DriverSQLite:
-		return s.sqliteQueries.UpsertSetupState(ctx, sqlitesqlc.UpsertSetupStateParams{
+		err = s.sqliteQueries.UpsertSetupState(ctx, sqlitesqlc.UpsertSetupStateParams{
 			Completed:             state.Completed,
 			AdminUserID:           adminUserID,
 			BaseDomain:            strings.TrimSpace(state.BaseDomain),
@@ -102,7 +111,7 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 			UpdatedAt:             nowUnix,
 		})
 	case DriverPostgres:
-		return s.pgQueries.UpsertSetupState(ctx, postgresqlsqlc.UpsertSetupStateParams{
+		err = s.pgQueries.UpsertSetupState(ctx, postgresqlsqlc.UpsertSetupStateParams{
 			Completed:             state.Completed,
 			AdminUserID:           adminUserID,
 			BaseDomain:            strings.TrimSpace(state.BaseDomain),
@@ -110,6 +119,36 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 			DockerProviderEnabled: state.DockerProviderEnabled,
 			UpdatedAt:             nowUnix,
 		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return s.upsertMetaValue(ctx, setupMetaCloudflareZoneID, strings.TrimSpace(state.CloudflareZoneID))
+}
+
+const setupMetaCloudflareZoneID = "setup.cloudflare_zone_id"
+
+func (s *Store) getMetaValue(ctx context.Context, key string) (string, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.GetMeta(ctx, key)
+	case DriverPostgres:
+		return s.pgQueries.GetMeta(ctx, key)
+	default:
+		return "", unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) upsertMetaValue(ctx context.Context, key, value string) error {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpsertMeta(ctx, sqlitesqlc.UpsertMetaParams{Key: key, Value: value})
+	case DriverPostgres:
+		return s.pgQueries.UpsertMeta(ctx, postgresqlsqlc.UpsertMetaParams{Key: key, Value: value})
 	default:
 		return unsupportedDriverError(s.driver)
 	}
