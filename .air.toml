@@ -2,7 +2,7 @@ root = "."
 tmp_dir = ".cache/air"
 
 [build]
-cmd = "make build"
+cmd = "make build-server-dev"
 bin = "./bin/server"
 full_bin = "./bin/server"
 delay = 300
@@ -15,6 +15,7 @@ exclude_dir = [
   ".cache",
   "bin",
   "web/node_modules",
+  "web/src/gen",
   "web/dist",
   "internal/server/ui/dist",
   "internal/gen",
