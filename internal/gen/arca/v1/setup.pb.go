@@ -444,7 +444,9 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\fSetupService\x12Q\n" +
 	"\x0eGetSetupStatus\x12\x1e.arca.v1.GetSetupStatusRequest\x1a\x1f.arca.v1.GetSetupStatusResponse\x12l\n" +
 	"\x17ValidateCloudflareToken\x12'.arca.v1.ValidateCloudflareTokenRequest\x1a(.arca.v1.ValidateCloudflareTokenResponse\x12N\n" +
-	"\rCompleteSetup\x12\x1d.arca.v1.CompleteSetupRequest\x1a\x1e.arca.v1.CompleteSetupResponseB6Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1b\x06proto3"
+	"\rCompleteSetup\x12\x1d.arca.v1.CompleteSetupRequest\x1a\x1e.arca.v1.CompleteSetupResponseB\x8c\x01\n" +
+	"\vcom.arca.v1B\n" +
+	"SetupProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
 	file_arca_v1_setup_proto_rawDescOnce sync.Once
