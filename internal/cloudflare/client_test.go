@@ -110,3 +110,24 @@ func TestVerifyAccountToken(t *testing.T) {
 		t.Fatalf("VerifyAccountToken() error = %v", err)
 	}
 }
+
+func TestVerifyZoneToken(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/zones/zone-1"; got != want {
+			t.Fatalf("path = %s, want %s", got, want)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer token" {
+			t.Fatalf("authorization header = %s", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":{"id":"zone-1"}}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	if err := client.VerifyZoneToken(context.Background(), "token", "zone-1"); err != nil {
+		t.Fatalf("VerifyZoneToken() error = %v", err)
+	}
+}

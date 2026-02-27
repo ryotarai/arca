@@ -91,6 +91,11 @@ func (c *Client) VerifyAccountToken(ctx context.Context, apiToken, accountID str
 	return c.doJSON(ctx, http.MethodGet, path, apiToken, nil, nil)
 }
 
+func (c *Client) VerifyZoneToken(ctx context.Context, apiToken, zoneID string) error {
+	path := fmt.Sprintf("/zones/%s", url.PathEscape(zoneID))
+	return c.doJSON(ctx, http.MethodGet, path, apiToken, nil, nil)
+}
+
 func (c *Client) CreateTunnel(ctx context.Context, apiToken, accountID, tunnelName string) (Tunnel, error) {
 	payload := map[string]string{"name": tunnelName, "config_src": "cloudflare"}
 	var out responseEnvelope[Tunnel]
