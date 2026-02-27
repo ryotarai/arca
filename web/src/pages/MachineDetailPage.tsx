@@ -11,6 +11,8 @@ type MachineDetailPageProps = {
   onLogout: () => Promise<void>
 }
 
+const pollingRequestTimeoutMs = 2500
+
 function statusTone(status: string): string {
   switch (status) {
     case 'running':
@@ -60,7 +62,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const item = await getMachine(machineID)
+        const item = await getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs })
         if (!cancelled) {
           setMachine(item)
           setError('')

@@ -20,6 +20,8 @@ type MachinesPageProps = {
   onLogout: () => Promise<void>
 }
 
+const pollingRequestTimeoutMs = 2500
+
 function statusTone(status: string): string {
   switch (status) {
     case 'running':
@@ -71,7 +73,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
       }
       running = true
       try {
-        const items = await listMachines()
+        const items = await listMachines({ timeoutMs: pollingRequestTimeoutMs })
         if (!cancelled) {
           setMachines(items)
           setError('')
