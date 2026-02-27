@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service TunnelService {
+  rpc CreateMachineTunnel(CreateMachineTunnelRequest) returns (CreateMachineTunnelResponse);
+  rpc UpsertMachineExposure(UpsertMachineExposureRequest) returns (UpsertMachineExposureResponse);
+  rpc ListMachineExposures(ListMachineExposuresRequest) returns (ListMachineExposuresResponse);
+  rpc GetMachineExposureByHostname(GetMachineExposureByHostnameRequest) returns (GetMachineExposureByHostnameResponse);
+}
+
+message MachineTunnel {
+  string machine_id = 1;
+  string account_id = 2;
+  string tunnel_id = 3;
+  string tunnel_name = 4;
+  string tunnel_token = 5;
+}
+
+message MachineExposure {
+  string id = 1;
+  string machine_id = 2;
+  string name = 3;
+  string hostname = 4;
+  string service = 5;
+  bool public = 6;
+}
+
+message CreateMachineTunnelRequest {
+  string machine_id = 1;
+  string account_id = 2;
+  string tunnel_name = 3;
+}
+
+message CreateMachineTunnelResponse {
+  MachineTunnel tunnel = 1;
+}
+
+message UpsertMachineExposureRequest {
+  string machine_id = 1;
+  string zone_id = 2;
+  string name = 3;
+  bool public = 4;
+}
+
+message UpsertMachineExposureResponse {
+  MachineExposure exposure = 1;
+}
+
+message ListMachineExposuresRequest {
+  string machine_id = 1;
+}
+
+message ListMachineExposuresResponse {
+  repeated MachineExposure exposures = 1;
+}
+
+message GetMachineExposureByHostnameRequest {
+  string hostname = 1;
+}
+
+message GetMachineExposureByHostnameResponse {
+  MachineExposure exposure = 1;
+}

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service SetupService {
+  rpc GetSetupStatus(GetSetupStatusRequest) returns (GetSetupStatusResponse);
+  rpc ValidateCloudflareToken(ValidateCloudflareTokenRequest) returns (ValidateCloudflareTokenResponse);
+  rpc CompleteSetup(CompleteSetupRequest) returns (CompleteSetupResponse);
+}
+
+message SetupStatus {
+  bool completed = 1;
+  bool admin_configured = 2;
+  bool cloudflare_configured = 3;
+  string base_domain = 4;
+  bool docker_provider_enabled = 5;
+}
+
+message GetSetupStatusRequest {}
+
+message GetSetupStatusResponse {
+  SetupStatus status = 1;
+}
+
+message ValidateCloudflareTokenRequest {
+  string api_token = 1;
+}
+
+message ValidateCloudflareTokenResponse {
+  bool valid = 1;
+  string message = 2;
+}
+
+message CompleteSetupRequest {
+  string admin_email = 1;
+  string admin_password = 2;
+  string base_domain = 3;
+  string cloudflare_api_token = 4;
+  bool docker_provider_enabled = 5;
+}
+
+message CompleteSetupResponse {
+  SetupStatus status = 1;
+}

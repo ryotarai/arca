@@ -14,10 +14,32 @@ type AppMetum struct {
 	Value string
 }
 
+type AuthTicket struct {
+	ID         string
+	TicketHash string
+	UserID     string
+	MachineID  string
+	ExposureID string
+	ExpiresAt  int64
+	UsedAt     sql.NullInt64
+	CreatedAt  int64
+}
+
 type Machine struct {
 	ID        string
 	Name      string
 	CreatedAt time.Time
+}
+
+type MachineExposure struct {
+	ID        string
+	MachineID string
+	Name      string
+	Hostname  string
+	Service   string
+	IsPublic  bool
+	CreatedAt int64
+	UpdatedAt int64
 }
 
 type MachineJob struct {
@@ -43,6 +65,24 @@ type MachineState struct {
 	UpdatedAt     int64
 }
 
+type MachineToken struct {
+	ID        string
+	MachineID string
+	TokenHash string
+	CreatedAt int64
+	RevokedAt sql.NullInt64
+}
+
+type MachineTunnel struct {
+	MachineID   string
+	AccountID   string
+	TunnelID    string
+	TunnelName  string
+	TunnelToken string
+	CreatedAt   int64
+	UpdatedAt   int64
+}
+
 type Session struct {
 	ID        string
 	UserID    string
@@ -50,6 +90,16 @@ type Session struct {
 	ExpiresAt int64
 	RevokedAt sql.NullTime
 	CreatedAt time.Time
+}
+
+type SetupState struct {
+	ID                    int64
+	Completed             bool
+	AdminUserID           sql.NullString
+	BaseDomain            string
+	CloudflareApiToken    string
+	DockerProviderEnabled bool
+	UpdatedAt             int64
 }
 
 type User struct {

@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service TicketService {
+  rpc IssueTicket(IssueTicketRequest) returns (IssueTicketResponse);
+  rpc VerifyTicket(VerifyTicketRequest) returns (VerifyTicketResponse);
+}
+
+message TicketUser {
+  string id = 1;
+  string email = 2;
+}
+
+message IssueTicketRequest {
+  string machine_id = 1;
+  string exposure_id = 2;
+}
+
+message IssueTicketResponse {
+  string ticket = 1;
+  int64 expires_at_unix = 2;
+}
+
+message VerifyTicketRequest {
+  string ticket = 1;
+}
+
+message VerifyTicketResponse {
+  TicketUser user = 1;
+  string machine_id = 2;
+  string exposure_id = 3;
+}

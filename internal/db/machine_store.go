@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"time"
 
@@ -34,6 +36,7 @@ type Machine struct {
 	DesiredStatus string
 	ContainerID   string
 	LastError     string
+	MachineToken  string
 }
 
 type MachineJob struct {
@@ -45,6 +48,15 @@ type MachineJob struct {
 
 func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string) (Machine, error) {
 	machineID, err := randomID()
+	if err != nil {
+		return Machine{}, err
+	}
+	machineToken, err := randomToken()
+	if err != nil {
+		return Machine{}, err
+	}
+	machineTokenHash := hashToken(machineToken)
+	machineTokenID, err := randomID()
 	if err != nil {
 		return Machine{}, err
 	}
@@ -86,6 +98,14 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 		}); err != nil {
 			return Machine{}, err
 		}
+		if err = q.CreateMachineToken(ctx, sqlitesqlc.CreateMachineTokenParams{
+			ID:        machineTokenID,
+			MachineID: machineID,
+			TokenHash: machineTokenHash,
+			CreatedAt: nowUnix,
+		}); err != nil {
+			return Machine{}, err
+		}
 		if err = q.EnqueueMachineJob(ctx, sqlitesqlc.EnqueueMachineJobParams{
 			ID:        jobID,
 			MachineID: machineID,
@@ -115,6 +135,14 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 		}); err != nil {
 			return Machine{}, err
 		}
+		if err = q.CreateMachineToken(ctx, postgresqlsqlc.CreateMachineTokenParams{
+			ID:        machineTokenID,
+			MachineID: machineID,
+			TokenHash: machineTokenHash,
+			CreatedAt: nowUnix,
+		}); err != nil {
+			return Machine{}, err
+		}
 		if err = q.EnqueueMachineJob(ctx, postgresqlsqlc.EnqueueMachineJobParams{
 			ID:        jobID,
 			MachineID: machineID,
@@ -137,6 +165,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 		Name:          name,
 		Status:        MachineStatusPending,
 		DesiredStatus: MachineDesiredRunning,
+		MachineToken:  machineToken,
 	}, nil
 }
 
@@ -560,4 +589,17 @@ func randomID() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(buf), nil
+}
+
+func randomToken() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }

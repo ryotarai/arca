@@ -72,6 +72,8 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - Use concise, imperative commit subjects that describe the delivered outcome.
 - If the user explicitly asks not to commit, skip this workflow.
 - If environment setup is required to complete requested work and the setup is non-destructive (for example installing missing runtime or browser dependencies), proceed without asking for additional confirmation.
+- When asked to execute multiple defined tasks, continue autonomously until all tasks are completed.
+- If a blocker cannot be resolved in a reasonable time, stop and ask the user a focused question before proceeding.
 
 ## Product-to-Tasks Flow
 - Read `tmp/product.md`.

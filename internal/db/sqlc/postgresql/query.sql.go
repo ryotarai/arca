@@ -40,6 +40,42 @@ func (q *Queries) ClaimMachineJob(ctx context.Context, arg ClaimMachineJobParams
 	return result.RowsAffected()
 }
 
+const createAuthTicket = `-- name: CreateAuthTicket :exec
+INSERT INTO auth_tickets (id, ticket_hash, user_id, machine_id, exposure_id, expires_at, created_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7
+)
+`
+
+type CreateAuthTicketParams struct {
+	ID         string
+	TicketHash string
+	UserID     string
+	MachineID  string
+	ExposureID string
+	ExpiresAt  int64
+	CreatedAt  int64
+}
+
+func (q *Queries) CreateAuthTicket(ctx context.Context, arg CreateAuthTicketParams) error {
+	_, err := q.db.ExecContext(ctx, createAuthTicket,
+		arg.ID,
+		arg.TicketHash,
+		arg.UserID,
+		arg.MachineID,
+		arg.ExposureID,
+		arg.ExpiresAt,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const createMachine = `-- name: CreateMachine :exec
 INSERT INTO machines (id, name)
 VALUES ($1, $2)
@@ -73,6 +109,28 @@ func (q *Queries) CreateMachineState(ctx context.Context, arg CreateMachineState
 		arg.Status,
 		arg.DesiredStatus,
 		arg.UpdatedAt,
+	)
+	return err
+}
+
+const createMachineToken = `-- name: CreateMachineToken :exec
+INSERT INTO machine_tokens (id, machine_id, token_hash, created_at)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateMachineTokenParams struct {
+	ID        string
+	MachineID string
+	TokenHash string
+	CreatedAt int64
+}
+
+func (q *Queries) CreateMachineToken(ctx context.Context, arg CreateMachineTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createMachineToken,
+		arg.ID,
+		arg.MachineID,
+		arg.TokenHash,
+		arg.CreatedAt,
 	)
 	return err
 }
@@ -270,6 +328,95 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 	return i, err
 }
 
+const getMachineExposureByHostname = `-- name: GetMachineExposureByHostname :one
+SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+FROM machine_exposures
+WHERE hostname = $1
+LIMIT 1
+`
+
+func (q *Queries) GetMachineExposureByHostname(ctx context.Context, hostname string) (MachineExposure, error) {
+	row := q.db.QueryRowContext(ctx, getMachineExposureByHostname, hostname)
+	var i MachineExposure
+	err := row.Scan(
+		&i.ID,
+		&i.MachineID,
+		&i.Name,
+		&i.Hostname,
+		&i.Service,
+		&i.IsPublic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMachineExposureByMachineIDAndName = `-- name: GetMachineExposureByMachineIDAndName :one
+SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+FROM machine_exposures
+WHERE machine_id = $1
+  AND name = $2
+LIMIT 1
+`
+
+type GetMachineExposureByMachineIDAndNameParams struct {
+	MachineID string
+	Name      string
+}
+
+func (q *Queries) GetMachineExposureByMachineIDAndName(ctx context.Context, arg GetMachineExposureByMachineIDAndNameParams) (MachineExposure, error) {
+	row := q.db.QueryRowContext(ctx, getMachineExposureByMachineIDAndName, arg.MachineID, arg.Name)
+	var i MachineExposure
+	err := row.Scan(
+		&i.ID,
+		&i.MachineID,
+		&i.Name,
+		&i.Hostname,
+		&i.Service,
+		&i.IsPublic,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMachineIDByActiveTokenHash = `-- name: GetMachineIDByActiveTokenHash :one
+SELECT machine_id
+FROM machine_tokens
+WHERE token_hash = $1
+  AND revoked_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) GetMachineIDByActiveTokenHash(ctx context.Context, tokenHash string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getMachineIDByActiveTokenHash, tokenHash)
+	var machine_id string
+	err := row.Scan(&machine_id)
+	return machine_id, err
+}
+
+const getMachineTunnelByMachineID = `-- name: GetMachineTunnelByMachineID :one
+SELECT machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at
+FROM machine_tunnels
+WHERE machine_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetMachineTunnelByMachineID(ctx context.Context, machineID string) (MachineTunnel, error) {
+	row := q.db.QueryRowContext(ctx, getMachineTunnelByMachineID, machineID)
+	var i MachineTunnel
+	err := row.Scan(
+		&i.MachineID,
+		&i.AccountID,
+		&i.TunnelID,
+		&i.TunnelName,
+		&i.TunnelToken,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getMeta = `-- name: GetMeta :one
 SELECT value
 FROM app_meta
@@ -282,6 +429,36 @@ func (q *Queries) GetMeta(ctx context.Context, key string) (string, error) {
 	var value string
 	err := row.Scan(&value)
 	return value, err
+}
+
+const getSetupState = `-- name: GetSetupState :one
+SELECT completed, admin_user_id, base_domain, cloudflare_api_token, docker_provider_enabled, updated_at
+FROM setup_state
+WHERE id = 1
+LIMIT 1
+`
+
+type GetSetupStateRow struct {
+	Completed             bool
+	AdminUserID           sql.NullString
+	BaseDomain            string
+	CloudflareApiToken    string
+	DockerProviderEnabled bool
+	UpdatedAt             int64
+}
+
+func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
+	row := q.db.QueryRowContext(ctx, getSetupState)
+	var i GetSetupStateRow
+	err := row.Scan(
+		&i.Completed,
+		&i.AdminUserID,
+		&i.BaseDomain,
+		&i.CloudflareApiToken,
+		&i.DockerProviderEnabled,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getUserByActiveSessionTokenHash = `-- name: GetUserByActiveSessionTokenHash :one
@@ -347,6 +524,83 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getValidAuthTicketByHashAndMachine = `-- name: GetValidAuthTicketByHashAndMachine :one
+SELECT t.id, t.user_id, u.email, t.machine_id, t.exposure_id
+FROM auth_tickets t
+JOIN users u ON u.id = t.user_id
+WHERE t.ticket_hash = $1
+  AND t.machine_id = $2
+  AND t.used_at IS NULL
+  AND t.expires_at > $3
+LIMIT 1
+`
+
+type GetValidAuthTicketByHashAndMachineParams struct {
+	TicketHash string
+	MachineID  string
+	NowUnix    int64
+}
+
+type GetValidAuthTicketByHashAndMachineRow struct {
+	ID         string
+	UserID     string
+	Email      string
+	MachineID  string
+	ExposureID string
+}
+
+func (q *Queries) GetValidAuthTicketByHashAndMachine(ctx context.Context, arg GetValidAuthTicketByHashAndMachineParams) (GetValidAuthTicketByHashAndMachineRow, error) {
+	row := q.db.QueryRowContext(ctx, getValidAuthTicketByHashAndMachine, arg.TicketHash, arg.MachineID, arg.NowUnix)
+	var i GetValidAuthTicketByHashAndMachineRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Email,
+		&i.MachineID,
+		&i.ExposureID,
+	)
+	return i, err
+}
+
+const listMachineExposuresByMachineID = `-- name: ListMachineExposuresByMachineID :many
+SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+FROM machine_exposures
+WHERE machine_id = $1
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID string) ([]MachineExposure, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineExposuresByMachineID, machineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MachineExposure
+	for rows.Next() {
+		var i MachineExposure
+		if err := rows.Scan(
+			&i.ID,
+			&i.MachineID,
+			&i.Name,
+			&i.Hostname,
+			&i.Service,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMachinesByUser = `-- name: ListMachinesByUser :many
@@ -444,6 +698,26 @@ func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableM
 		return nil, err
 	}
 	return items, nil
+}
+
+const markAuthTicketUsed = `-- name: MarkAuthTicketUsed :execrows
+UPDATE auth_tickets
+SET used_at = $1
+WHERE id = $2
+  AND used_at IS NULL
+`
+
+type MarkAuthTicketUsedParams struct {
+	UsedAt sql.NullInt64
+	ID     string
+}
+
+func (q *Queries) MarkAuthTicketUsed(ctx context.Context, arg MarkAuthTicketUsedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markAuthTicketUsed, arg.UsedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const markMachineJobSucceeded = `-- name: MarkMachineJobSucceeded :exec
@@ -627,6 +901,92 @@ func (q *Queries) UpdateMachineStateForOwner(ctx context.Context, arg UpdateMach
 	return result.RowsAffected()
 }
 
+const upsertMachineExposure = `-- name: UpsertMachineExposure :exec
+INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, created_at, updated_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7,
+  $8
+)
+ON CONFLICT (machine_id, name) DO UPDATE
+SET hostname = excluded.hostname,
+    service = excluded.service,
+    is_public = excluded.is_public,
+    updated_at = excluded.updated_at
+`
+
+type UpsertMachineExposureParams struct {
+	ID        string
+	MachineID string
+	Name      string
+	Hostname  string
+	Service   string
+	IsPublic  bool
+	CreatedAt int64
+	UpdatedAt int64
+}
+
+func (q *Queries) UpsertMachineExposure(ctx context.Context, arg UpsertMachineExposureParams) error {
+	_, err := q.db.ExecContext(ctx, upsertMachineExposure,
+		arg.ID,
+		arg.MachineID,
+		arg.Name,
+		arg.Hostname,
+		arg.Service,
+		arg.IsPublic,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const upsertMachineTunnel = `-- name: UpsertMachineTunnel :exec
+INSERT INTO machine_tunnels (machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7
+)
+ON CONFLICT (machine_id) DO UPDATE
+SET account_id = excluded.account_id,
+    tunnel_id = excluded.tunnel_id,
+    tunnel_name = excluded.tunnel_name,
+    tunnel_token = excluded.tunnel_token,
+    updated_at = excluded.updated_at
+`
+
+type UpsertMachineTunnelParams struct {
+	MachineID   string
+	AccountID   string
+	TunnelID    string
+	TunnelName  string
+	TunnelToken string
+	CreatedAt   int64
+	UpdatedAt   int64
+}
+
+func (q *Queries) UpsertMachineTunnel(ctx context.Context, arg UpsertMachineTunnelParams) error {
+	_, err := q.db.ExecContext(ctx, upsertMachineTunnel,
+		arg.MachineID,
+		arg.AccountID,
+		arg.TunnelID,
+		arg.TunnelName,
+		arg.TunnelToken,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const upsertMeta = `-- name: UpsertMeta :exec
 INSERT INTO app_meta (key, value)
 VALUES ($1, $2)
@@ -641,5 +1001,46 @@ type UpsertMetaParams struct {
 
 func (q *Queries) UpsertMeta(ctx context.Context, arg UpsertMetaParams) error {
 	_, err := q.db.ExecContext(ctx, upsertMeta, arg.Key, arg.Value)
+	return err
+}
+
+const upsertSetupState = `-- name: UpsertSetupState :exec
+INSERT INTO setup_state (id, completed, admin_user_id, base_domain, cloudflare_api_token, docker_provider_enabled, updated_at)
+VALUES (
+  1,
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6
+)
+ON CONFLICT (id) DO UPDATE
+SET completed = excluded.completed,
+    admin_user_id = excluded.admin_user_id,
+    base_domain = excluded.base_domain,
+    cloudflare_api_token = excluded.cloudflare_api_token,
+    docker_provider_enabled = excluded.docker_provider_enabled,
+    updated_at = excluded.updated_at
+`
+
+type UpsertSetupStateParams struct {
+	Completed             bool
+	AdminUserID           sql.NullString
+	BaseDomain            string
+	CloudflareApiToken    string
+	DockerProviderEnabled bool
+	UpdatedAt             int64
+}
+
+func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStateParams) error {
+	_, err := q.db.ExecContext(ctx, upsertSetupState,
+		arg.Completed,
+		arg.AdminUserID,
+		arg.BaseDomain,
+		arg.CloudflareApiToken,
+		arg.DockerProviderEnabled,
+		arg.UpdatedAt,
+	)
 	return err
 }

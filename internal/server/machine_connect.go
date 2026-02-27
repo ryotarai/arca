@@ -82,7 +82,7 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create machine"))
 	}
 
-	return connect.NewResponse(&arcav1.CreateMachineResponse{Machine: toMachineMessage(machine)}), nil
+	return connect.NewResponse(&arcav1.CreateMachineResponse{Machine: toMachineMessage(machine), MachineToken: machine.MachineToken}), nil
 }
 
 func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.Request[arcav1.UpdateMachineRequest]) (*connect.Response[arcav1.UpdateMachineResponse], error) {

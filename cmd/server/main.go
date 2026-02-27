@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ryotarai/arca/internal/auth"
+	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/machine"
 	"github.com/ryotarai/arca/internal/server"
@@ -41,6 +42,7 @@ func main() {
 		log.Fatalf("db migration failed: %v", err)
 	}
 	authService := auth.NewService(store)
+	cfClient := cloudflare.NewClient(http.DefaultClient)
 	dockerRuntime, err := machine.NewDockerRuntime(os.Getenv("MACHINE_DOCKER_IMAGE"))
 	if err != nil {
 		log.Fatalf("docker runtime initialization failed: %v", err)
@@ -50,7 +52,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
