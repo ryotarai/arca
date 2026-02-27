@@ -77,6 +77,7 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - Read `tmp/product.md`.
 - Convert requirements into actionable tasks in `tmp/tasks/NNN-*.md`.
 - Split tasks into small, implementable units; avoid oversized, multi-epic tasks.
+- Capture cross-task ordering in `tmp/tasks/000-dependencies.md` (DAG + parallelizable units).
 - Include goal, scope, task list, and open questions.
 - Ask the user to resolve open questions before starting implementation.
 - Do not commit files under `tmp/`.
