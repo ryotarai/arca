@@ -8,7 +8,7 @@ SERVER_BIN ?= $(BIN_DIR)/server
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
-.PHONY: build build-frontend build-server proto sqlc test run watch
+.PHONY: build build-frontend build-server build-server-dev proto sqlc test run watch
 build: build-frontend build-server
 
 build-frontend: proto
@@ -16,14 +16,13 @@ build-frontend: proto
 		echo "$(WEB_DIR)/package.json not found"; \
 		exit 1; \
 	fi
-	@if [ -f $(WEB_DIR)/package-lock.json ]; then \
-		$(NPM) --prefix $(WEB_DIR) ci; \
-	else \
-		$(NPM) --prefix $(WEB_DIR) install; \
-	fi
 	$(NPM) --prefix $(WEB_DIR) run build
 
 build-server: build-frontend sqlc
+	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -o $(SERVER_BIN) ./cmd/server
+
+build-server-dev:
 	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
 	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -o $(SERVER_BIN) ./cmd/server
 
