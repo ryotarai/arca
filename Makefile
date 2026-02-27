@@ -23,7 +23,7 @@ build-frontend: proto
 	fi
 	$(NPM) --prefix $(WEB_DIR) run build
 
-build-server: sqlc proto
+build-server: build-frontend sqlc
 	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
 	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -o $(SERVER_BIN) ./cmd/server
 
