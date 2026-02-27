@@ -121,7 +121,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 			if !strings.EqualFold(verification.Status, "active") {
 				return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token is not active"))
 			}
-		} else if err := s.cf.VerifyZoneToken(ctx, cfToken, zoneID); err != nil {
+		} else if err := s.cf.VerifyZoneAccess(ctx, cfToken, zoneID); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token verification failed"))
 		}
 	}

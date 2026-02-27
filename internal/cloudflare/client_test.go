@@ -111,7 +111,7 @@ func TestVerifyAccountToken(t *testing.T) {
 	}
 }
 
-func TestVerifyZoneToken(t *testing.T) {
+func TestVerifyZoneAccess(t *testing.T) {
 	t.Parallel()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +127,7 @@ func TestVerifyZoneToken(t *testing.T) {
 	defer ts.Close()
 
 	client := NewClientWithBaseURL(ts.Client(), ts.URL)
-	if err := client.VerifyZoneToken(context.Background(), "token", "zone-1"); err != nil {
-		t.Fatalf("VerifyZoneToken() error = %v", err)
+	if err := client.VerifyZoneAccess(context.Background(), "token", "zone-1"); err != nil {
+		t.Fatalf("VerifyZoneAccess() error = %v", err)
 	}
 }
