@@ -329,7 +329,7 @@ async function listExposures(machineID: string): Promise<Exposure[]> {
       id: item.id ?? item.exposureId ?? '',
       subdomain: item.subdomain ?? item.name ?? '',
       hostname: item.hostname ?? item.domain ?? '',
-      localPort: item.localPort ?? item.port ?? parseLocalPort(item.service) ?? 80,
+      localPort: item.localPort ?? item.port ?? parseLocalPort(item.service) ?? 8080,
       isPublic: item.isPublic ?? item.public ?? false,
     }))
   } catch (error) {
@@ -344,7 +344,6 @@ async function createExposure(
   machineID: string,
   subdomain: string,
   localPort: number,
-  isPublic: boolean,
   zoneID: string,
 ): Promise<void> {
   await callConnectJSONCandidates(
@@ -357,29 +356,8 @@ async function createExposure(
       service: `http://localhost:${localPort}`,
       localPort,
       port: localPort,
-      isPublic,
-      public: isPublic,
-    },
-  )
-}
-
-async function updateExposureVisibility(
-  machineID: string,
-  exposure: Exposure,
-  isPublic: boolean,
-  zoneID: string,
-): Promise<void> {
-  await callConnectJSONCandidates(
-    ['/arca.v1.TunnelService/UpsertMachineExposure', '/arca.v1.ExposureService/UpdateExposureVisibility', '/arca.v1.ExposureService/UpdateExposure'],
-    {
-      machineId: machineID,
-      name: exposure.subdomain,
-      zoneId: zoneID,
-      service: `http://localhost:${exposure.localPort}`,
-      exposureId: exposure.id,
-      id: exposure.id,
-      isPublic,
-      public: isPublic,
+      isPublic: false,
+      public: false,
     },
   )
 }
@@ -866,9 +844,6 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
   const [editingName, setEditingName] = useState('')
   const [error, setError] = useState('')
   const [exposuresByMachine, setExposuresByMachine] = useState<Record<string, Exposure[]>>({})
-  const [newExposureSubdomain, setNewExposureSubdomain] = useState<Record<string, string>>({})
-  const [newExposurePort, setNewExposurePort] = useState<Record<string, string>>({})
-  const [newExposurePublic, setNewExposurePublic] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     if (user == null) {
@@ -986,44 +961,23 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
     }
   }
 
-  const submitCreateExposure = async (machineID: string, event: React.FormEvent<HTMLFormElement>) => {
+  const submitCreateExposure = async (
+    machineID: string,
+    machineName: string,
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault()
-    const subdomain = (newExposureSubdomain[machineID] ?? '').trim()
-    const portText = (newExposurePort[machineID] ?? '').trim()
+    const subdomain = machineName.trim()
     if (subdomain === '') {
-      setError('subdomain is required')
-      return
-    }
-
-    const port = Number(portText)
-    if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-      setError('valid local port is required')
+      setError('machine name is required')
       return
     }
 
     setError('')
     try {
-      await createExposure(machineID, subdomain, port, newExposurePublic[machineID] ?? false, zoneID)
+      await createExposure(machineID, subdomain, 8080, zoneID)
       const exposures = await listExposures(machineID)
       setExposuresByMachine((prev) => ({ ...prev, [machineID]: exposures }))
-      setNewExposureSubdomain((prev) => ({ ...prev, [machineID]: '' }))
-      setNewExposurePort((prev) => ({ ...prev, [machineID]: '' }))
-      setNewExposurePublic((prev) => ({ ...prev, [machineID]: false }))
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
-  const submitToggleExposure = async (machineID: string, exposure: Exposure) => {
-    setError('')
-    try {
-      await updateExposureVisibility(machineID, exposure, !exposure.isPublic, zoneID)
-      setExposuresByMachine((prev) => ({
-        ...prev,
-        [machineID]: (prev[machineID] ?? []).map((item) =>
-          item.id === exposure.id ? { ...item, isPublic: !exposure.isPublic } : item,
-        ),
-      }))
     } catch (e) {
       setError(messageFromError(e))
     }
@@ -1126,9 +1080,9 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
                                         type="button"
                                         variant="secondary"
                                         className="h-7 px-2 text-xs"
-                                        onClick={() => void submitToggleExposure(machine.id, exposure)}
+                                        disabled
                                       >
-                                        Make {exposure.isPublic ? 'private' : 'public'}
+                                        Private only
                                       </Button>
                                     </li>
                                   ))}
@@ -1208,48 +1162,14 @@ function MachinesPage({ user, onLogout, zoneID }: MachinesPageProps) {
                         </div>
                       </div>
 
-                      <form className="mt-3 flex flex-col gap-2 rounded-lg border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-end" onSubmit={(event) => void submitCreateExposure(machine.id, event)}>
-                        <div className="w-full space-y-1 sm:max-w-44">
-                          <Label htmlFor={`subdomain-${machine.id}`} className="text-xs text-slate-300">
-                            Subdomain
-                          </Label>
-                          <Input
-                            id={`subdomain-${machine.id}`}
-                            value={newExposureSubdomain[machine.id] ?? ''}
-                            onChange={(event) =>
-                              setNewExposureSubdomain((prev) => ({ ...prev, [machine.id]: event.target.value }))
-                            }
-                            className="h-9 border-white/20 bg-white/10 text-sm text-slate-100"
-                            placeholder="app"
-                          />
-                        </div>
-                        <div className="w-full space-y-1 sm:max-w-32">
-                          <Label htmlFor={`port-${machine.id}`} className="text-xs text-slate-300">
-                            Local port
-                          </Label>
-                          <Input
-                            id={`port-${machine.id}`}
-                            type="number"
-                            min={1}
-                            max={65535}
-                            value={newExposurePort[machine.id] ?? ''}
-                            onChange={(event) =>
-                              setNewExposurePort((prev) => ({ ...prev, [machine.id]: event.target.value }))
-                            }
-                            className="h-9 border-white/20 bg-white/10 text-sm text-slate-100"
-                            placeholder="3000"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant={(newExposurePublic[machine.id] ?? false) ? 'default' : 'secondary'}
-                          className="h-9 px-3"
-                          onClick={() =>
-                            setNewExposurePublic((prev) => ({ ...prev, [machine.id]: !(prev[machine.id] ?? false) }))
-                          }
-                        >
-                          {(newExposurePublic[machine.id] ?? false) ? 'Public' : 'Private'}
-                        </Button>
+                      <form
+                        className="mt-3 flex flex-col gap-2 rounded-lg border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-end"
+                        onSubmit={(event) => void submitCreateExposure(machine.id, machine.name, event)}
+                      >
+                        <p className="text-xs text-slate-400">
+                          Subdomain: <span className="text-slate-200">{machine.name}</span> / Port: 8080 / Private
+                          only
+                        </p>
                         <Button type="submit" className="h-9 px-3 bg-white text-slate-900 hover:bg-slate-100">
                           Add exposure
                         </Button>
@@ -1284,9 +1204,6 @@ function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [exposures, setExposures] = useState<Exposure[]>([])
-  const [subdomain, setSubdomain] = useState('')
-  const [port, setPort] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
 
   useEffect(() => {
     if (user == null || machineID == null || machineID === '') {
@@ -1342,45 +1259,17 @@ function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
 
   const handleCreateExposure = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const trimmed = subdomain.trim()
+    const trimmed = (machine?.name ?? '').trim()
     if (trimmed === '') {
-      setError('subdomain is required')
-      return
-    }
-
-    const parsedPort = Number(port)
-    if (!Number.isInteger(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
-      setError('valid local port is required')
+      setError('machine name is required')
       return
     }
 
     setError('')
     try {
-      await createExposure(machineID, trimmed, parsedPort, isPublic, zoneID)
+      await createExposure(machineID, trimmed, 8080, zoneID)
       const items = await listExposures(machineID)
       setExposures(items)
-      setSubdomain('')
-      setPort('')
-      setIsPublic(false)
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
-  const handleToggleExposure = async (exposure: Exposure) => {
-    setError('')
-    try {
-      await updateExposureVisibility(machineID, exposure, !exposure.isPublic, zoneID)
-      setExposures((prev) =>
-        prev.map((item) =>
-          item.id === exposure.id
-            ? {
-                ...item,
-                isPublic: !exposure.isPublic,
-              }
-            : item,
-        ),
-      )
     } catch (e) {
       setError(messageFromError(e))
     }
@@ -1454,51 +1343,23 @@ function MachineDetailPage({ user, onLogout, zoneID }: MachineDetailPageProps) {
                             type="button"
                             variant="secondary"
                             className="h-8 px-3"
-                            onClick={() => void handleToggleExposure(exposure)}
+                            disabled
                           >
-                            Make {exposure.isPublic ? 'private' : 'public'}
+                            Private only
                           </Button>
                         </li>
                       ))}
                     </ul>
                   )}
 
-                  <form className="flex flex-col gap-2 rounded-md border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-end" onSubmit={handleCreateExposure}>
-                    <div className="w-full space-y-1 sm:max-w-44">
-                      <Label htmlFor="exposure-subdomain" className="text-xs text-slate-300">
-                        Subdomain
-                      </Label>
-                      <Input
-                        id="exposure-subdomain"
-                        value={subdomain}
-                        onChange={(event) => setSubdomain(event.target.value)}
-                        className="h-9 border-white/20 bg-white/10 text-sm text-slate-100"
-                        placeholder="app"
-                      />
-                    </div>
-                    <div className="w-full space-y-1 sm:max-w-32">
-                      <Label htmlFor="exposure-port" className="text-xs text-slate-300">
-                        Local port
-                      </Label>
-                      <Input
-                        id="exposure-port"
-                        type="number"
-                        min={1}
-                        max={65535}
-                        value={port}
-                        onChange={(event) => setPort(event.target.value)}
-                        className="h-9 border-white/20 bg-white/10 text-sm text-slate-100"
-                        placeholder="3000"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant={isPublic ? 'default' : 'secondary'}
-                      className="h-9 px-3"
-                      onClick={() => setIsPublic((prev) => !prev)}
-                    >
-                      {isPublic ? 'Public' : 'Private'}
-                    </Button>
+                  <form
+                    className="flex flex-col gap-2 rounded-md border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-end"
+                    onSubmit={handleCreateExposure}
+                  >
+                    <p className="text-xs text-slate-400">
+                      Subdomain: <span className="text-slate-200">{machine?.name ?? '-'}</span> / Port: 8080 /
+                      Private only
+                    </p>
                     <Button type="submit" className="h-9 px-3 bg-white text-slate-900 hover:bg-slate-100">
                       Add exposure
                     </Button>
