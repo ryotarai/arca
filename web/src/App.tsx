@@ -497,7 +497,6 @@ function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupCom
   const [cloudflareAccountID, setCloudflareAccountID] = useState('')
   const [cloudflareToken, setCloudflareToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(initialCloudflareZoneID)
-  const [exposureMode, setExposureMode] = useState<'private' | 'public'>('private')
   const [loadingStep, setLoadingStep] = useState(false)
   const [error, setError] = useState('')
 
@@ -750,24 +749,6 @@ function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupCom
                   <p className="text-sm text-slate-300">Provider</p>
                   <p className="mt-1 text-base font-semibold text-white">Local Docker</p>
                   <p className="mt-2 text-xs text-slate-400">Expose endpoints in private mode by default.</p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant={exposureMode === 'private' ? 'default' : 'secondary'}
-                      className="h-8 px-3"
-                      onClick={() => setExposureMode('private')}
-                    >
-                      Private default
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={exposureMode === 'public' ? 'default' : 'secondary'}
-                      className="h-8 px-3"
-                      onClick={() => setExposureMode('public')}
-                    >
-                      Public default
-                    </Button>
-                  </div>
                 </div>
                 <Button
                   type="submit"

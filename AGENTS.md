@@ -46,7 +46,7 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Prefer composition with existing `shadcn/ui` primitives and shared utility classes; avoid introducing a competing visual language per page.
 
 ## Testing Guidelines
-- Run tests with `go test ./...` before pushing.
+- Run tests with `make test` before pushing.
 - Keep tests near code as `*_test.go`; prefer table-driven tests for handlers and DB logic.
 - Add/update E2E or browser checks for UI/routing behavior; prefer `chrome-headless-shell` for browser verification.
 - If tests fail, automatically attempt a fix and re-run tests without waiting for an extra user prompt.
@@ -66,7 +66,7 @@ Regenerate from sources instead:
 Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: ...`).
 - Keep subjects specific and action-oriented.
 - Split unrelated changes into separate commits.
-- In PRs, include purpose, key changes, test results (`go test ./...`), linked issues, and screenshots for UI changes.
+- In PRs, include purpose, key changes, test results (`make test`), linked issues, and screenshots for UI changes.
 - Confirm regenerated artifacts and docs updates when behavior or operations change.
 
 ## Agent Workflow
