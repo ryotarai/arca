@@ -11,6 +11,10 @@ This repository is a Go + React application (`github.com/ryotarai/hayai`).
 
 Keep backend changes within `internal/` boundaries and prefer focused packages.
 
+## API Conventions
+- All API endpoints should be defined in `proto/` and served via ConnectRPC handlers.
+- Avoid adding new REST-style `/api/*` routes; migrate existing APIs to Connect when touching them.
+
 ## Setup, Build, and Development Commands
 Setup prerequisites: Go `1.22`, Node.js/npm, and `sqlc`.
 - `go mod download`: install Go dependencies.
@@ -68,3 +72,10 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - Use concise, imperative commit subjects that describe the delivered outcome.
 - If the user explicitly asks not to commit, skip this workflow.
 - If environment setup is required to complete requested work and the setup is non-destructive (for example installing missing runtime or browser dependencies), proceed without asking for additional confirmation.
+
+## Product-to-Tasks Flow
+- Read `tmp/product.md`.
+- Convert requirements into actionable tasks in `tmp/tasks/NNN-*.md` (for example `tmp/tasks/001-rename-project.md`).
+- Include goal, scope, task list, and open questions.
+- Ask the user to resolve open questions before starting implementation.
+- Do not commit files under `tmp/`.
