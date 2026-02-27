@@ -70,9 +70,6 @@ func NewRouter(deps Dependencies) http.Handler {
 
 		path, handler = arcav1connect.NewTicketServiceHandler(newTicketConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
-
-		path, handler = arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store, deps.Authenticator, deps.Cloudflare))
-		r.Mount(path, handler)
 	}
 
 	r.NotFound(spaHandler())
