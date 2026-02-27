@@ -256,8 +256,8 @@ async function setupValidateCloudflare(apiToken: string, baseDomain: string): Pr
     ['/arca.v1.SetupService/ValidateCloudflare', '/arca.v1.SetupService/ValidateCloudflareToken'],
     { apiToken, token: apiToken, baseDomain, domain: baseDomain },
   )
-  if (response.valid === false) {
-    throw new Error(response.message ?? 'cloudflare token is invalid')
+  if (response.valid !== true) {
+    throw new Error(response.message ?? 'cloudflare token validation failed')
   }
 }
 
@@ -272,13 +272,21 @@ async function setupComplete(
   cloudflareApiToken: string,
 ): Promise<void> {
   try {
-    await callConnectJSONCandidates(['/arca.v1.SetupService/CompleteSetup'], {
+    const response = await callConnectJSONCandidates<{
+      status?: {
+        completed?: boolean
+      }
+      message?: string
+    }>(['/arca.v1.SetupService/CompleteSetup'], {
       adminEmail,
       adminPassword,
       baseDomain,
       cloudflareApiToken,
       dockerProviderEnabled: true,
     })
+    if (response.status?.completed !== true) {
+      throw new Error(response.message ?? 'setup completion failed')
+    }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
       return
