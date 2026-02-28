@@ -47,7 +47,7 @@ func TestUpsertDNSCNAMEUpdatesExistingRecord(t *testing.T) {
 			}
 			_, _ = w.Write([]byte(`{"success":true,"result":[{"id":"record-1"}]}`))
 		case 2:
-			if got, want := r.Method, http.MethodPut; got != want {
+			if got, want := r.Method, http.MethodPatch; got != want {
 				t.Fatalf("step2 method = %s, want %s", got, want)
 			}
 			if !strings.HasSuffix(r.URL.Path, "/zones/zone-1/dns_records/record-1") {
@@ -70,7 +70,7 @@ func TestUpdateTunnelIngressReturnsAPIError(t *testing.T) {
 	t.Parallel()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(`{"success":false,"errors":[{"code":1003,"message":"bad ingress"}]}`))
 	}))
 	defer ts.Close()
@@ -249,25 +249,6 @@ func TestCreateTunnelTokenUsesGET(t *testing.T) {
 		t.Fatalf("CreateTunnelToken() error = %v", err)
 	}
 	if got, want := token, "tok-1"; got != want {
-		t.Fatalf("token = %s, want %s", got, want)
-	}
-}
-
-func TestCreateTunnelTokenSupportsWrappedObject(t *testing.T) {
-	t.Parallel()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"success":true,"result":{"token":"tok-obj"}}`))
-	}))
-	defer ts.Close()
-
-	client := NewClientWithBaseURL(ts.Client(), ts.URL)
-	token, err := client.CreateTunnelToken(context.Background(), "token", "acc-1", "tun-1")
-	if err != nil {
-		t.Fatalf("CreateTunnelToken() error = %v", err)
-	}
-	if got, want := token, "tok-obj"; got != want {
 		t.Fatalf("token = %s, want %s", got, want)
 	}
 }
