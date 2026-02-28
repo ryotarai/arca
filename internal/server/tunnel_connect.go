@@ -38,16 +38,24 @@ func (s *tunnelConnectService) GetMachineExposureByHostname(ctx context.Context,
 	}
 
 	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))
-	if machineToken == "" {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine token is required"))
+	machineID := strings.TrimSpace(req.Header().Get("X-Arca-Machine-ID"))
+	if machineToken == "" && machineID == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine token or machine id is required"))
 	}
-	machineID, err := s.store.GetMachineIDByMachineToken(ctx, machineToken)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
+
+	if machineToken != "" {
+		resolvedMachineID, err := s.store.GetMachineIDByMachineToken(ctx, machineToken)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
+			}
+			log.Printf("get machine id by token failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
 		}
-		log.Printf("get machine id by token failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
+		if machineID != "" && machineID != resolvedMachineID {
+			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine id does not match token"))
+		}
+		machineID = resolvedMachineID
 	}
 
 	hostname := strings.TrimSpace(req.Msg.GetHostname())
