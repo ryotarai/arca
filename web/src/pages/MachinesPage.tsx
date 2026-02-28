@@ -202,7 +202,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl text-white">Create machine</CardTitle>
-            <CardDescription className="text-slate-300">名前だけ付けられる最小構成です。</CardDescription>
+            <CardDescription className="text-slate-300">Minimal setup with only a machine name.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submitCreate}>
@@ -229,7 +229,9 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl text-white">Machine list</CardTitle>
-            <CardDescription className="text-slate-300">一覧から名前変更・起動・停止・削除・詳細確認ができます。</CardDescription>
+            <CardDescription className="text-slate-300">
+              Rename, start, stop, delete, and open details from this list.
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
