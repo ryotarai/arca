@@ -20,6 +20,7 @@ import (
 type Runtime interface {
 	EnsureRunning(context.Context, db.Machine, RuntimeStartOptions) (string, error)
 	EnsureStopped(context.Context, db.Machine) error
+	IsRunning(context.Context, db.Machine) (bool, string, error)
 }
 
 type RuntimeStartOptions struct {
@@ -33,6 +34,8 @@ type Worker struct {
 	workerID     string
 	pollInterval time.Duration
 	leaseTTL     time.Duration
+	reconcileTTL time.Duration
+	lastSweep    time.Time
 }
 
 func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string) *Worker {
@@ -43,6 +46,7 @@ func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, wo
 		workerID:     workerID,
 		pollInterval: 2 * time.Second,
 		leaseTTL:     30 * time.Second,
+		reconcileTTL: 15 * time.Second,
 	}
 }
 
@@ -58,6 +62,7 @@ func (w *Worker) Run(ctx context.Context) {
 		}
 
 		nowUnix := time.Now().Unix()
+		w.maybeReconcile(ctx, nowUnix)
 		if err := w.store.RecoverExpiredMachineJobs(ctx, nowUnix); err != nil {
 			log.Printf("machine worker recover failed: %v", err)
 		}
@@ -82,6 +87,60 @@ func (w *Worker) Run(ctx context.Context) {
 		}
 
 		w.processJob(ctx, job)
+	}
+}
+
+func (w *Worker) maybeReconcile(ctx context.Context, nowUnix int64) {
+	if w.store == nil || w.runtime == nil {
+		return
+	}
+	now := time.Now()
+	if !w.lastSweep.IsZero() && now.Sub(w.lastSweep) < w.reconcileTTL {
+		return
+	}
+	w.lastSweep = now
+
+	machines, err := w.store.ListMachinesByDesiredStatus(ctx, db.MachineDesiredRunning, 200)
+	if err != nil {
+		slog.Error("machine reconcile list failed", "error", err)
+		return
+	}
+
+	for _, machine := range machines {
+		running, containerID, runErr := w.runtime.IsRunning(ctx, machine)
+		if runErr != nil {
+			slog.Warn("machine reconcile probe failed", "machine_id", machine.ID, "error", runErr)
+			continue
+		}
+
+		if running {
+			if machine.Status != db.MachineStatusRunning || machine.ContainerID != containerID {
+				if err := w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusRunning, db.MachineDesiredRunning, containerID, ""); err != nil {
+					slog.Warn("machine reconcile runtime state update failed", "machine_id", machine.ID, "error", err)
+				}
+			}
+			continue
+		}
+
+		active, err := w.store.HasActiveStartOrReconcileJob(ctx, machine.ID)
+		if err != nil {
+			slog.Warn("machine reconcile active-job check failed", "machine_id", machine.ID, "error", err)
+			continue
+		}
+		if active {
+			continue
+		}
+
+		if machine.Status == db.MachineStatusRunning {
+			if err := w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusPending, db.MachineDesiredRunning, containerID, "container is not running; reconcile scheduled"); err != nil {
+				slog.Warn("machine reconcile pending-state update failed", "machine_id", machine.ID, "error", err)
+			}
+		}
+		if err := w.store.EnqueueReconcileMachineJob(ctx, machine.ID, nowUnix); err != nil {
+			slog.Warn("machine reconcile enqueue failed", "machine_id", machine.ID, "error", err)
+			continue
+		}
+		slog.Info("machine reconcile job enqueued", "machine_id", machine.ID)
 	}
 }
 

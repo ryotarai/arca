@@ -125,6 +125,43 @@ func (r *DockerRuntime) EnsureStopped(ctx context.Context, machine db.Machine) e
 	return nil
 }
 
+func (r *DockerRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, string, error) {
+	containerID := machine.ContainerID
+	if containerID != "" {
+		inspected, err := r.client.ContainerInspect(ctx, containerID)
+		if err == nil {
+			if inspected.State != nil && inspected.State.Running {
+				return true, containerID, nil
+			}
+			return false, containerID, nil
+		}
+		if !errdefs.IsNotFound(err) {
+			return false, "", err
+		}
+		containerID = ""
+	}
+
+	foundID, err := r.findContainerByMachineID(ctx, machine.ID)
+	if err != nil {
+		return false, "", err
+	}
+	if foundID == "" {
+		return false, "", nil
+	}
+
+	inspected, err := r.client.ContainerInspect(ctx, foundID)
+	if err != nil {
+		if errdefs.IsNotFound(err) {
+			return false, "", nil
+		}
+		return false, "", err
+	}
+	if inspected.State != nil && inspected.State.Running {
+		return true, foundID, nil
+	}
+	return false, foundID, nil
+}
+
 func (r *DockerRuntime) pullImageIfNeeded(ctx context.Context) error {
 	_, _, err := r.client.ImageInspectWithRaw(ctx, r.image)
 	if err == nil {
