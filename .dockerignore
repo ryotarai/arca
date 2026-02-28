@@ -1,0 +1,25 @@
+# VCS
+.git
+.gitignore
+
+# Local caches and task artifacts
+.cache/
+.emdash/
+tmp/
+
+# Build outputs
+bin/
+internal/server/ui/dist/
+
+# Frontend dependencies and test outputs
+web/node_modules/
+web/playwright-report/
+web/test-results/
+web/.playwright/
+
+# Local databases and backups
+*.db
+*.db.*
+
+# OS/editor noise
+.DS_Store
