@@ -218,7 +218,7 @@ func normalizeDomainPrefix(prefix string) string {
 			b.WriteRune(r)
 		}
 	}
-	return strings.Trim(b.String(), "-")
+	return b.String()
 }
 
 func (s *setupConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
