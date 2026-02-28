@@ -19,10 +19,11 @@ type setupConnectService struct {
 	store         *db.Store
 	authenticator Authenticator
 	cf            *cloudflare.Client
+	consoleTunnel *ConsoleTunnelManager
 }
 
-func newSetupConnectService(store *db.Store, authenticator Authenticator, cf *cloudflare.Client) *setupConnectService {
-	return &setupConnectService{store: store, authenticator: authenticator, cf: cf}
+func newSetupConnectService(store *db.Store, authenticator Authenticator, cf *cloudflare.Client, consoleTunnel *ConsoleTunnelManager) *setupConnectService {
+	return &setupConnectService{store: store, authenticator: authenticator, cf: cf, consoleTunnel: consoleTunnel}
 }
 
 func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Request[arcav1.GetSetupStatusRequest]) (*connect.Response[arcav1.GetSetupStatusResponse], error) {
@@ -154,6 +155,12 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
+	if s.consoleTunnel != nil {
+		if _, err := s.consoleTunnel.EnsureExposed(ctx, state); err != nil {
+			log.Printf("ensure console tunnel failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
+		}
+	}
 
 	return connect.NewResponse(&arcav1.CompleteSetupResponse{Status: setupStatusMessage(state)}), nil
 }
@@ -185,6 +192,12 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
+	}
+	if s.consoleTunnel != nil {
+		if _, err := s.consoleTunnel.EnsureExposed(ctx, current); err != nil {
+			log.Printf("ensure console tunnel failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
+		}
 	}
 
 	return connect.NewResponse(&arcav1.UpdateDomainSettingsResponse{Status: setupStatusMessage(current)}), nil

@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -43,6 +46,16 @@ func main() {
 	}
 	authService := auth.NewService(store)
 	cfClient := cloudflare.NewClient(http.DefaultClient)
+	consoleTunnel := server.NewConsoleTunnelManager(ctx, cfClient, consoleOriginURL(addr))
+	if setupState, setupErr := store.GetSetupState(ctx); setupErr != nil {
+		log.Printf("load setup state for console tunnel failed: %v", setupErr)
+	} else if setupState.Completed {
+		if hostname, ensureErr := consoleTunnel.EnsureExposed(ctx, setupState); ensureErr != nil {
+			log.Printf("ensure console tunnel failed: %v", ensureErr)
+		} else {
+			log.Printf("console endpoint exposed at https://%s", hostname)
+		}
+	}
 	dockerRuntime, err := machine.NewDockerRuntime(os.Getenv("MACHINE_DOCKER_IMAGE"))
 	if err != nil {
 		log.Fatalf("docker runtime initialization failed: %v", err)
@@ -52,7 +65,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -75,4 +88,30 @@ func main() {
 	case err := <-errCh:
 		log.Fatalf("server failed: %v", err)
 	}
+}
+
+func consoleOriginURL(listenAddr string) string {
+	addr := strings.TrimSpace(listenAddr)
+	if addr == "" {
+		return "http://127.0.0.1:8080"
+	}
+	hostPort := addr
+	if !strings.Contains(hostPort, ":") {
+		hostPort = hostPort + ":8080"
+	}
+	host, port, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return "http://127.0.0.1:8080"
+	}
+	host = strings.TrimSpace(host)
+	port = strings.TrimSpace(port)
+	if port == "" {
+		port = "8080"
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		host = "127.0.0.1"
+	} else if ip, parseErr := netip.ParseAddr(host); parseErr == nil && ip.IsUnspecified() {
+		host = "127.0.0.1"
+	}
+	return "http://" + net.JoinHostPort(host, port)
 }
