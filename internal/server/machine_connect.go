@@ -84,6 +84,9 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 
 	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name)
 	if err != nil {
+		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
+		}
 		log.Printf("create machine failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create machine"))
 	}
@@ -109,6 +112,9 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 
 	updated, err := s.store.UpdateMachineNameByIDForOwner(ctx, userID, machineID, name)
 	if err != nil {
+		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
+		}
 		log.Printf("update machine failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update machine"))
 	}
