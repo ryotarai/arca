@@ -44,6 +44,19 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
     return 100
   }, [step])
 
+  const consoleEndpoint = useMemo(() => {
+    const normalizedDomain = baseDomain.trim().toLowerCase()
+    if (normalizedDomain === '') {
+      return ''
+    }
+    const normalizedPrefix = domainPrefix
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '')
+    const label = `${normalizedPrefix}console`.replace(/^-+|-+$/g, '') || 'console'
+    return `https://${label}.${normalizedDomain}`
+  }, [baseDomain, domainPrefix])
+
   const submitAdmin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (password !== confirmPassword) {
@@ -287,7 +300,9 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
           <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
             <CardHeader className="space-y-2 p-6 pb-3">
               <CardTitle className="text-xl text-white">3. Setup provider (Docker)</CardTitle>
-              <CardDescription className="text-slate-300">Docker is currently the supported machine provider.</CardDescription>
+              <CardDescription className="text-slate-300">
+                Docker is currently the supported machine provider. The control plane will be exposed through Cloudflare Tunnel.
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-3">
               <form className="space-y-4" onSubmit={submitProvider}>
@@ -296,6 +311,12 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
                   <p className="mt-1 text-base font-semibold text-white">Local Docker</p>
                   <p className="mt-2 text-xs text-slate-400">Expose endpoints in private mode by default.</p>
                 </div>
+                {consoleEndpoint !== '' && (
+                  <div className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-4">
+                    <p className="text-sm text-slate-200">Console endpoint after setup</p>
+                    <p className="mt-1 break-all text-sm font-medium text-sky-200">{consoleEndpoint}</p>
+                  </div>
+                )}
                 <Button
                   type="submit"
                   disabled={loadingStep}

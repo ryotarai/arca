@@ -22,6 +22,7 @@ type Dependencies struct {
 	MachineStore  MachineStore
 	Store         *db.Store
 	Cloudflare    *cloudflare.Client
+	ConsoleTunnel *ConsoleTunnelManager
 }
 
 type HealthChecker interface {
@@ -67,7 +68,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Cloudflare != nil && deps.Authenticator != nil {
-		path, handler := arcav1connect.NewSetupServiceHandler(newSetupConnectService(deps.Store, deps.Authenticator, deps.Cloudflare))
+		path, handler := arcav1connect.NewSetupServiceHandler(newSetupConnectService(deps.Store, deps.Authenticator, deps.Cloudflare, deps.ConsoleTunnel))
 		r.Mount(path, handler)
 
 		path, handler = arcav1connect.NewTicketServiceHandler(newTicketConnectService(deps.Store, deps.Authenticator))
