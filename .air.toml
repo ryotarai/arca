@@ -2,7 +2,7 @@ root = "."
 tmp_dir = ".cache/air"
 
 [build]
-cmd = "make build-server-dev"
+cmd = "make build-server"
 bin = "./bin/server"
 full_bin = "./bin/server"
 delay = 300
