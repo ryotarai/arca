@@ -44,6 +44,14 @@ type Tunnel struct {
 	Name string `json:"name"`
 }
 
+type Zone struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Account struct {
+		ID string `json:"id"`
+	} `json:"account"`
+}
+
 type IngressRule struct {
 	Hostname string `json:"hostname,omitempty"`
 	Service  string `json:"service"`
@@ -94,6 +102,15 @@ func (c *Client) VerifyAccountToken(ctx context.Context, apiToken, accountID str
 func (c *Client) VerifyZoneAccess(ctx context.Context, apiToken, zoneID string) error {
 	path := fmt.Sprintf("/zones/%s", url.PathEscape(zoneID))
 	return c.doJSON(ctx, http.MethodGet, path, apiToken, nil, nil)
+}
+
+func (c *Client) GetZone(ctx context.Context, apiToken, zoneID string) (Zone, error) {
+	var out responseEnvelope[Zone]
+	path := fmt.Sprintf("/zones/%s", url.PathEscape(zoneID))
+	if err := c.doJSON(ctx, http.MethodGet, path, apiToken, nil, &out); err != nil {
+		return Zone{}, err
+	}
+	return out.Result, nil
 }
 
 func (c *Client) CreateTunnel(ctx context.Context, apiToken, accountID, tunnelName string) (Tunnel, error) {

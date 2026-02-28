@@ -14,6 +14,7 @@ import (
 )
 
 const machineIDLabel = "arca.machine_id"
+const defaultMachineImage = "busybox:1.36"
 
 type DockerRuntime struct {
 	client *client.Client
@@ -26,12 +27,12 @@ func NewDockerRuntime(imageName string) (*DockerRuntime, error) {
 		return nil, err
 	}
 	if imageName == "" {
-		imageName = "busybox:1.36"
+		imageName = defaultMachineImage
 	}
 	return &DockerRuntime{client: cli, image: imageName}, nil
 }
 
-func (r *DockerRuntime) EnsureRunning(ctx context.Context, machine db.Machine) (string, error) {
+func (r *DockerRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts RuntimeStartOptions) (string, error) {
 	containerID := machine.ContainerID
 	if containerID == "" {
 		foundID, err := r.findContainerByMachineID(ctx, machine.ID)
@@ -59,15 +60,21 @@ func (r *DockerRuntime) EnsureRunning(ctx context.Context, machine db.Machine) (
 		}
 
 		name := "arca-machine-" + machine.ID[:12]
+		config := &container.Config{
+			Image: r.image,
+			Env: []string{
+				"ARCA_TUNNEL_TOKEN=" + opts.TunnelToken,
+			},
+			Labels: map[string]string{
+				machineIDLabel: machine.ID,
+			},
+		}
+		if r.image == defaultMachineImage {
+			config.Cmd = []string{"sh", "-c", "while true; do sleep 3600; done"}
+		}
 		created, err := r.client.ContainerCreate(
 			ctx,
-			&container.Config{
-				Image: r.image,
-				Cmd:   []string{"sh", "-c", "while true; do sleep 3600; done"},
-				Labels: map[string]string{
-					machineIDLabel: machine.ID,
-				},
-			},
+			config,
 			nil,
 			nil,
 			nil,

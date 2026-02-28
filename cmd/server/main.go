@@ -47,7 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("docker runtime initialization failed: %v", err)
 	}
-	machineWorker := machine.NewWorker(store, dockerRuntime, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))
+	machineWorker := machine.NewWorker(store, dockerRuntime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))
 	go machineWorker.Run(ctx)
 
 	httpServer := &http.Server{
