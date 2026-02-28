@@ -239,7 +239,7 @@ func TestCreateTunnelTokenUsesGET(t *testing.T) {
 			t.Fatalf("authorization header = %s", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"success":true,"result":{"token":"tok-1"}}`))
+		_, _ = w.Write([]byte(`{"success":true,"result":"tok-1"}`))
 	}))
 	defer ts.Close()
 
@@ -249,6 +249,25 @@ func TestCreateTunnelTokenUsesGET(t *testing.T) {
 		t.Fatalf("CreateTunnelToken() error = %v", err)
 	}
 	if got, want := token, "tok-1"; got != want {
+		t.Fatalf("token = %s, want %s", got, want)
+	}
+}
+
+func TestCreateTunnelTokenSupportsWrappedObject(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":{"token":"tok-obj"}}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	token, err := client.CreateTunnelToken(context.Background(), "token", "acc-1", "tun-1")
+	if err != nil {
+		t.Fatalf("CreateTunnelToken() error = %v", err)
+	}
+	if got, want := token, "tok-obj"; got != want {
 		t.Fatalf("token = %s, want %s", got, want)
 	}
 }

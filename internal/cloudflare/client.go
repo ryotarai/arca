@@ -144,14 +144,31 @@ func (c *Client) GetTunnelByName(ctx context.Context, apiToken, accountID, tunne
 }
 
 func (c *Client) CreateTunnelToken(ctx context.Context, apiToken, accountID, tunnelID string) (string, error) {
-	var out responseEnvelope[struct {
-		Token string `json:"token"`
-	}]
+	var out rawEnvelope
 	path := fmt.Sprintf("/accounts/%s/cfd_tunnel/%s/token", url.PathEscape(accountID), url.PathEscape(tunnelID))
 	if err := c.doJSON(ctx, http.MethodGet, path, apiToken, nil, &out); err != nil {
 		return "", err
 	}
-	return out.Result.Token, nil
+
+	var token string
+	if err := json.Unmarshal(out.Result, &token); err == nil {
+		token = strings.TrimSpace(token)
+		if token != "" {
+			return token, nil
+		}
+	}
+
+	var wrapped struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(out.Result, &wrapped); err == nil {
+		wrapped.Token = strings.TrimSpace(wrapped.Token)
+		if wrapped.Token != "" {
+			return wrapped.Token, nil
+		}
+	}
+
+	return "", fmt.Errorf("decode tunnel token: unexpected result payload")
 }
 
 func (c *Client) UpsertDNSCNAME(ctx context.Context, apiToken, zoneID, hostname, target string, proxied bool) error {
