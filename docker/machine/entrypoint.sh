@@ -6,6 +6,11 @@ if [ -z "${ARCA_TUNNEL_TOKEN:-}" ]; then
   exit 1
 fi
 
+umask 077
+token_file="$(mktemp /tmp/arca-tunnel-token.XXXXXX)"
+printf '%s' "${ARCA_TUNNEL_TOKEN}" > "${token_file}"
+unset ARCA_TUNNEL_TOKEN
+
 mkdir -p /home/arca/www
 cat > /home/arca/www/index.html <<'HTML'
 <!doctype html>
@@ -23,10 +28,11 @@ HTML
 python3 -m http.server 8080 --directory /home/arca/www --bind 127.0.0.1 &
 app_pid=$!
 
-cloudflared tunnel run --token "${ARCA_TUNNEL_TOKEN}" &
+cloudflared tunnel run --token-file "${token_file}" &
 cf_pid=$!
 
 cleanup() {
+  rm -f "${token_file}"
   kill "$cf_pid" "$app_pid" 2>/dev/null || true
 }
 
