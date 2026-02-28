@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"regexp"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -17,6 +19,10 @@ type machineConnectService struct {
 	authenticator Authenticator
 	store         MachineStore
 }
+
+var machineNamePattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
+
+var reservedMachineNames = []string{"admin", "console", "dash", "api", "system"}
 
 func newMachineConnectService(authenticator Authenticator, store MachineStore) *machineConnectService {
 	return &machineConnectService{authenticator: authenticator, store: store}
@@ -72,8 +78,8 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 	}
 
 	name := strings.TrimSpace(req.Msg.GetName())
-	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name is required"))
+	if err := validateMachineName(name); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name)
@@ -97,8 +103,8 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 	}
 
 	name := strings.TrimSpace(req.Msg.GetName())
-	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name is required"))
+	if err := validateMachineName(name); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	updated, err := s.store.UpdateMachineNameByIDForOwner(ctx, userID, machineID, name)
@@ -237,4 +243,23 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 		DesiredStatus: machine.DesiredStatus,
 		LastError:     machine.LastError,
 	}
+}
+
+func validateMachineName(name string) error {
+	if name == "" {
+		return errors.New("name is required")
+	}
+	if len(name) < 3 {
+		return errors.New("name must be at least 3 characters")
+	}
+	if len(name) > 63 {
+		return errors.New("name must be at most 63 characters")
+	}
+	if slices.Contains(reservedMachineNames, name) {
+		return errors.New("name is reserved")
+	}
+	if !machineNamePattern.MatchString(name) {
+		return errors.New("name must use lowercase letters, digits, and hyphens only, and cannot start or end with a hyphen")
+	}
+	return nil
 }
