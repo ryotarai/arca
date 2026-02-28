@@ -131,3 +131,31 @@ func TestVerifyZoneAccess(t *testing.T) {
 		t.Fatalf("VerifyZoneAccess() error = %v", err)
 	}
 }
+
+func TestGetZone(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/zones/zone-1"; got != want {
+			t.Fatalf("path = %s, want %s", got, want)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer token" {
+			t.Fatalf("authorization header = %s", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":{"id":"zone-1","name":"example.com","account":{"id":"acc-1"}}}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	zone, err := client.GetZone(context.Background(), "token", "zone-1")
+	if err != nil {
+		t.Fatalf("GetZone() error = %v", err)
+	}
+	if got, want := zone.ID, "zone-1"; got != want {
+		t.Fatalf("zone.id = %s, want %s", got, want)
+	}
+	if got, want := zone.Account.ID, "acc-1"; got != want {
+		t.Fatalf("zone.account.id = %s, want %s", got, want)
+	}
+}
