@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 if [ -z "${ARCA_TUNNEL_TOKEN:-}" ]; then
   echo "ARCA_TUNNEL_TOKEN is required" >&2
@@ -20,7 +20,7 @@ cat > /home/arca/www/index.html <<'HTML'
 </html>
 HTML
 
-busybox httpd -f -p 8080 -h /home/arca/www &
+python3 -m http.server 8080 --directory /home/arca/www --bind 127.0.0.1 &
 app_pid=$!
 
 cloudflared tunnel run --token "${ARCA_TUNNEL_TOKEN}" &
