@@ -12,5 +12,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 USER arca
 WORKDIR /home/arca
 
-EXPOSE 8080
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/entrypoint.sh"]
