@@ -1,9 +1,13 @@
 FROM cloudflare/cloudflared:latest AS cloudflared
 
-FROM alpine:3.21
+FROM ubuntu:24.04
 
-RUN apk add --no-cache ca-certificates dumb-init \
-  && adduser -D -h /home/arca arca
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends bash ca-certificates dumb-init python3 \
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 
 COPY --from=cloudflared /usr/local/bin/cloudflared /usr/local/bin/cloudflared
 COPY docker/machine/entrypoint.sh /usr/local/bin/entrypoint.sh
