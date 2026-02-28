@@ -64,10 +64,16 @@ func (r *DockerRuntime) EnsureRunning(ctx context.Context, machine db.Machine, o
 			Image: r.image,
 			Env: []string{
 				"ARCA_TUNNEL_TOKEN=" + opts.TunnelToken,
+				"ARCAD_TUNNEL_TOKEN=" + opts.TunnelToken,
+				"ARCAD_CONTROL_PLANE_URL=" + opts.ControlPlaneURL,
+				"ARCAD_MACHINE_ID=" + opts.MachineID,
 			},
 			Labels: map[string]string{
 				machineIDLabel: machine.ID,
 			},
+		}
+		if strings.TrimSpace(opts.MachineToken) != "" {
+			config.Env = append(config.Env, "ARCAD_MACHINE_TOKEN="+opts.MachineToken)
 		}
 		if r.image == defaultMachineImage {
 			config.Cmd = []string{"sh", "-c", "while true; do sleep 3600; done"}

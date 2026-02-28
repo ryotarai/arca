@@ -43,9 +43,6 @@ func ConfigFromEnv() (Config, error) {
 	if cfg.MachineID == "" {
 		return Config{}, fmt.Errorf("ARCAD_MACHINE_ID is required")
 	}
-	if cfg.MachineToken == "" {
-		return Config{}, fmt.Errorf("ARCAD_MACHINE_TOKEN is required")
-	}
 	if cfg.TunnelToken == "" {
 		return Config{}, fmt.Errorf("ARCAD_TUNNEL_TOKEN is required")
 	}

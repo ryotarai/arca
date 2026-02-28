@@ -207,7 +207,18 @@ func (s *Store) VerifyAndConsumeAuthTicket(ctx context.Context, machineToken, ti
 	if err != nil {
 		return VerifiedTicket{}, err
 	}
+	return s.verifyAndConsumeAuthTicketByMachineID(ctx, machineID, ticket, nowUnix)
+}
 
+func (s *Store) VerifyAndConsumeAuthTicketByMachineID(ctx context.Context, machineID, ticket string, nowUnix int64) (VerifiedTicket, error) {
+	return s.verifyAndConsumeAuthTicketByMachineID(ctx, machineID, ticket, nowUnix)
+}
+
+func (s *Store) verifyAndConsumeAuthTicketByMachineID(ctx context.Context, machineID, ticket string, nowUnix int64) (VerifiedTicket, error) {
+	machineID = strings.TrimSpace(machineID)
+	if machineID == "" {
+		return VerifiedTicket{}, sql.ErrNoRows
+	}
 	ticketHash := hashToken(ticket)
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {

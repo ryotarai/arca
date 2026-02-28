@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ -z "${ARCA_TUNNEL_TOKEN:-}" ]; then
-  echo "ARCA_TUNNEL_TOKEN is required" >&2
+if [ -z "${ARCA_TUNNEL_TOKEN:-}" ] && [ -z "${ARCAD_TUNNEL_TOKEN:-}" ]; then
+  echo "ARCA_TUNNEL_TOKEN or ARCAD_TUNNEL_TOKEN is required" >&2
+  exit 1
+fi
+if [ -z "${ARCAD_CONTROL_PLANE_URL:-}" ]; then
+  echo "ARCAD_CONTROL_PLANE_URL is required" >&2
+  exit 1
+fi
+if [ -z "${ARCAD_MACHINE_ID:-}" ]; then
+  echo "ARCAD_MACHINE_ID is required" >&2
   exit 1
 fi
 
-umask 077
-token_file="$(mktemp /tmp/arca-tunnel-token.XXXXXX)"
-printf '%s' "${ARCA_TUNNEL_TOKEN}" > "${token_file}"
-unset ARCA_TUNNEL_TOKEN
+if [ -z "${ARCAD_TUNNEL_TOKEN:-}" ]; then
+  export ARCAD_TUNNEL_TOKEN="${ARCA_TUNNEL_TOKEN}"
+fi
 
 mkdir -p /home/arca/www
 cat > /home/arca/www/index.html <<'HTML'
@@ -28,17 +35,16 @@ HTML
 python3 -m http.server 8080 --directory /home/arca/www --bind 127.0.0.1 &
 app_pid=$!
 
-cloudflared tunnel run --token-file "${token_file}" &
-cf_pid=$!
+/usr/local/bin/arcad &
+arcad_pid=$!
 
 cleanup() {
-  rm -f "${token_file}"
-  kill "$cf_pid" "$app_pid" 2>/dev/null || true
+  kill "$arcad_pid" "$app_pid" 2>/dev/null || true
 }
 
 trap cleanup TERM INT
 
-wait "$cf_pid"
+wait "$arcad_pid"
 status=$?
 cleanup
 exit "$status"

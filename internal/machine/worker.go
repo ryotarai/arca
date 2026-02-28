@@ -24,7 +24,10 @@ type Runtime interface {
 }
 
 type RuntimeStartOptions struct {
-	TunnelToken string
+	TunnelToken     string
+	ControlPlaneURL string
+	MachineID       string
+	MachineToken    string
 }
 
 type Worker struct {
@@ -215,7 +218,21 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine) error {
 		return err
 	}
 
-	containerID, err := w.runtime.EnsureRunning(ctx, machine, RuntimeStartOptions{TunnelToken: tunnelToken})
+	setup, err := w.store.GetSetupState(ctx)
+	if err != nil {
+		return fmt.Errorf("load setup state: %w", err)
+	}
+	controlPlaneURL, err := controlPlaneURLForMachine(setup)
+	if err != nil {
+		return err
+	}
+
+	containerID, err := w.runtime.EnsureRunning(ctx, machine, RuntimeStartOptions{
+		TunnelToken:     tunnelToken,
+		ControlPlaneURL: controlPlaneURL,
+		MachineID:       machine.ID,
+		MachineToken:    machine.MachineToken,
+	})
 	if err != nil {
 		return err
 	}
@@ -409,6 +426,19 @@ func sanitizeSubdomainPart(value string) string {
 		}
 	}
 	return b.String()
+}
+
+func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
+	baseDomain := strings.TrimSpace(setup.BaseDomain)
+	if baseDomain == "" {
+		return "", fmt.Errorf("base domain is not configured")
+	}
+	prefix := sanitizeSubdomainPart(setup.DomainPrefix)
+	label := strings.Trim(prefix+"console", "-")
+	if label == "" {
+		label = "console"
+	}
+	return "https://" + label + "." + baseDomain, nil
 }
 
 func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {

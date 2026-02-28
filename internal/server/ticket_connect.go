@@ -67,11 +67,21 @@ func (s *ticketConnectService) VerifyTicket(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("ticket is required"))
 	}
 	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))
-	if machineToken == "" {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine token is required"))
-	}
+	machineID := strings.TrimSpace(req.Header().Get("X-Arca-Machine-ID"))
 
-	verified, err := s.store.VerifyAndConsumeAuthTicket(ctx, machineToken, ticket, time.Now().Unix())
+	nowUnix := time.Now().Unix()
+	var (
+		verified db.VerifiedTicket
+		err      error
+	)
+	switch {
+	case machineToken != "":
+		verified, err = s.store.VerifyAndConsumeAuthTicket(ctx, machineToken, ticket, nowUnix)
+	case machineID != "":
+		verified, err = s.store.VerifyAndConsumeAuthTicketByMachineID(ctx, machineID, ticket, nowUnix)
+	default:
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine token or machine id is required"))
+	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid ticket"))

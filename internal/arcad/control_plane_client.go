@@ -89,8 +89,10 @@ func (c *HTTPControlPlaneClient) GetExposureByHost(ctx context.Context, host str
 		return Exposure{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.machineToken)
 	req.Header.Set("X-Arca-Machine-ID", c.machineID)
+	if strings.TrimSpace(c.machineToken) != "" {
+		req.Header.Set("Authorization", "Bearer "+c.machineToken)
+	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return Exposure{}, err
@@ -139,8 +141,11 @@ func (c *HTTPControlPlaneClient) VerifyTicket(ctx context.Context, host, ticket 
 	if err != nil {
 		return TicketClaims{}, err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.machineToken)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Arca-Machine-ID", c.machineID)
+	if strings.TrimSpace(c.machineToken) != "" {
+		req.Header.Set("Authorization", "Bearer "+c.machineToken)
+	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return TicketClaims{}, err
