@@ -72,6 +72,7 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - Confirm regenerated artifacts and docs updates when behavior or operations change.
 
 ## Agent Workflow
+- Prefer root-cause fixes over workaround patches. Do not introduce server-side or temporary fallback behavior as a quick fix when the issue is in another layer unless the user explicitly asks for that tradeoff.
 - After completing a clear, self-contained requested change, create a commit proactively without requiring an extra user prompt.
 - Keep each proactive commit focused to the completed task only; do not include unrelated or generated local artifacts (for example `*.db`).
 - Use concise, imperative commit subjects that describe the delivered outcome.
