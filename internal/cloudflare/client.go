@@ -148,7 +148,7 @@ func (c *Client) CreateTunnelToken(ctx context.Context, apiToken, accountID, tun
 		Token string `json:"token"`
 	}]
 	path := fmt.Sprintf("/accounts/%s/cfd_tunnel/%s/token", url.PathEscape(accountID), url.PathEscape(tunnelID))
-	if err := c.doJSON(ctx, http.MethodPost, path, apiToken, map[string]any{}, &out); err != nil {
+	if err := c.doJSON(ctx, http.MethodGet, path, apiToken, nil, &out); err != nil {
 		return "", err
 	}
 	return out.Result.Token, nil
