@@ -322,7 +322,10 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 	}
 
 	hostname := machineSubdomain(machine.Name)
-	hostname = hostname + "." + strings.TrimSpace(setup.BaseDomain)
+	hostname, err = w.resolveMachineHostname(ctx, machine, strings.TrimSpace(setup.BaseDomain))
+	if err != nil {
+		return "", err
+	}
 	target := tunnel.TunnelID + ".cfargotunnel.com"
 	if err := w.cfClient.UpsertDNSCNAME(ctx, setup.CloudflareAPIToken, setup.CloudflareZoneID, hostname, target, true); err != nil {
 		return "", fmt.Errorf("upsert machine cname: %w", err)
@@ -346,6 +349,38 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		"tunnel_id", tunnel.TunnelID,
 	)
 	return tunnel.TunnelToken, nil
+}
+
+func (w *Worker) resolveMachineHostname(ctx context.Context, machine db.Machine, baseDomain string) (string, error) {
+	baseLabel := machineSubdomain(machine.Name)
+	hostname := baseLabel + "." + baseDomain
+
+	existing, err := w.store.GetMachineExposureByHostname(ctx, hostname)
+	if err == nil {
+		if existing.MachineID == machine.ID {
+			return hostname, nil
+		}
+		hostname = baseLabel + "-" + machine.ID[:8] + "." + baseDomain
+		slog.Warn(
+			"machine hostname conflict detected; using fallback hostname",
+			"machine_id", machine.ID,
+			"machine_name", machine.Name,
+			"conflicting_machine_id", existing.MachineID,
+			"hostname", hostname,
+		)
+	} else if err != sql.ErrNoRows {
+		return "", fmt.Errorf("check hostname conflict: %w", err)
+	}
+
+	fallbackExisting, err := w.store.GetMachineExposureByHostname(ctx, hostname)
+	if err == nil && fallbackExisting.MachineID != machine.ID {
+		return "", fmt.Errorf("fallback hostname already in use: %s", hostname)
+	}
+	if err != nil && err != sql.ErrNoRows {
+		return "", fmt.Errorf("check fallback hostname conflict: %w", err)
+	}
+
+	return hostname, nil
 }
 
 func machineSubdomain(name string) string {
