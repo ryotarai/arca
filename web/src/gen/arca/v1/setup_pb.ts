@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/setup.proto.
  */
 export const file_arca_v1_setup: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxIqsBCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSHwoXZG9ja2VyX3Byb3ZpZGVyX2VuYWJsZWQYBSABKAgSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJIhcKFUdldFNldHVwU3RhdHVzUmVxdWVzdCI+ChZHZXRTZXR1cFN0YXR1c1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMiRwoeVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXF1ZXN0EhEKCWFwaV90b2tlbhgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJIkEKH1ZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDwoHbWVzc2FnZRgCIAEoCSKzAQoUQ29tcGxldGVTZXR1cFJlcXVlc3QSEwoLYWRtaW5fZW1haWwYASABKAkSFgoOYWRtaW5fcGFzc3dvcmQYAiABKAkSEwoLYmFzZV9kb21haW4YAyABKAkSHAoUY2xvdWRmbGFyZV9hcGlfdG9rZW4YBCABKAkSHwoXZG9ja2VyX3Byb3ZpZGVyX2VuYWJsZWQYBSABKAgSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJIj0KFUNvbXBsZXRlU2V0dXBSZXNwb25zZRIkCgZzdGF0dXMYASABKAsyFC5hcmNhLnYxLlNldHVwU3RhdHVzMp8CCgxTZXR1cFNlcnZpY2USUQoOR2V0U2V0dXBTdGF0dXMSHi5hcmNhLnYxLkdldFNldHVwU3RhdHVzUmVxdWVzdBofLmFyY2EudjEuR2V0U2V0dXBTdGF0dXNSZXNwb25zZRJsChdWYWxpZGF0ZUNsb3VkZmxhcmVUb2tlbhInLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXF1ZXN0GiguYXJjYS52MS5WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlc3BvbnNlEk4KDUNvbXBsZXRlU2V0dXASHS5hcmNhLnYxLkNvbXBsZXRlU2V0dXBSZXF1ZXN0Gh4uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpTZXR1cFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
+  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxIsIBCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSHwoXZG9ja2VyX3Byb3ZpZGVyX2VuYWJsZWQYBSABKAgSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkiFwoVR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Ij4KFkdldFNldHVwU3RhdHVzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyJHCh5WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlcXVlc3QSEQoJYXBpX3Rva2VuGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiQQofVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRINCgV2YWxpZBgBIAEoCBIPCgdtZXNzYWdlGAIgASgJIsoBChRDb21wbGV0ZVNldHVwUmVxdWVzdBITCgthZG1pbl9lbWFpbBgBIAEoCRIWCg5hZG1pbl9wYXNzd29yZBgCIAEoCRITCgtiYXNlX2RvbWFpbhgDIAEoCRIcChRjbG91ZGZsYXJlX2FwaV90b2tlbhgEIAEoCRIfChdkb2NrZXJfcHJvdmlkZXJfZW5hYmxlZBgFIAEoCBIaChJjbG91ZGZsYXJlX3pvbmVfaWQYBiABKAkSFQoNZG9tYWluX3ByZWZpeBgHIAEoCSI9ChVDb21wbGV0ZVNldHVwUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyJJChtVcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QSEwoLYmFzZV9kb21haW4YASABKAkSFQoNZG9tYWluX3ByZWZpeBgCIAEoCSJEChxVcGRhdGVEb21haW5TZXR0aW5nc1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMyhAMKDFNldHVwU2VydmljZRJRCg5HZXRTZXR1cFN0YXR1cxIeLmFyY2EudjEuR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Gh8uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1Jlc3BvbnNlEmwKF1ZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuEicuYXJjYS52MS5WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlcXVlc3QaKC5hcmNhLnYxLlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVzcG9uc2USTgoNQ29tcGxldGVTZXR1cBIdLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlcXVlc3QaHi5hcmNhLnYxLkNvbXBsZXRlU2V0dXBSZXNwb25zZRJjChRVcGRhdGVEb21haW5TZXR0aW5ncxIkLmFyY2EudjEuVXBkYXRlRG9tYWluU2V0dGluZ3NSZXF1ZXN0GiUuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1Jlc3BvbnNlQowBCgtjb20uYXJjYS52MUIKU2V0dXBQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message arca.v1.SetupStatus
@@ -45,6 +45,11 @@ export type SetupStatus = Message<"arca.v1.SetupStatus"> & {
    * @generated from field: string cloudflare_zone_id = 6;
    */
   cloudflareZoneId: string;
+
+  /**
+   * @generated from field: string domain_prefix = 7;
+   */
+  domainPrefix: string;
 };
 
 /**
@@ -161,6 +166,11 @@ export type CompleteSetupRequest = Message<"arca.v1.CompleteSetupRequest"> & {
    * @generated from field: string cloudflare_zone_id = 6;
    */
   cloudflareZoneId: string;
+
+  /**
+   * @generated from field: string domain_prefix = 7;
+   */
+  domainPrefix: string;
 };
 
 /**
@@ -186,6 +196,45 @@ export type CompleteSetupResponse = Message<"arca.v1.CompleteSetupResponse"> & {
  */
 export const CompleteSetupResponseSchema: GenMessage<CompleteSetupResponse> = /*@__PURE__*/
   messageDesc(file_arca_v1_setup, 6);
+
+/**
+ * @generated from message arca.v1.UpdateDomainSettingsRequest
+ */
+export type UpdateDomainSettingsRequest = Message<"arca.v1.UpdateDomainSettingsRequest"> & {
+  /**
+   * @generated from field: string base_domain = 1;
+   */
+  baseDomain: string;
+
+  /**
+   * @generated from field: string domain_prefix = 2;
+   */
+  domainPrefix: string;
+};
+
+/**
+ * Describes the message arca.v1.UpdateDomainSettingsRequest.
+ * Use `create(UpdateDomainSettingsRequestSchema)` to create a new message.
+ */
+export const UpdateDomainSettingsRequestSchema: GenMessage<UpdateDomainSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_setup, 7);
+
+/**
+ * @generated from message arca.v1.UpdateDomainSettingsResponse
+ */
+export type UpdateDomainSettingsResponse = Message<"arca.v1.UpdateDomainSettingsResponse"> & {
+  /**
+   * @generated from field: arca.v1.SetupStatus status = 1;
+   */
+  status?: SetupStatus;
+};
+
+/**
+ * Describes the message arca.v1.UpdateDomainSettingsResponse.
+ * Use `create(UpdateDomainSettingsResponseSchema)` to create a new message.
+ */
+export const UpdateDomainSettingsResponseSchema: GenMessage<UpdateDomainSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_setup, 8);
 
 /**
  * @generated from service arca.v1.SetupService
@@ -214,6 +263,14 @@ export const SetupService: GenService<{
     methodKind: "unary";
     input: typeof CompleteSetupRequestSchema;
     output: typeof CompleteSetupResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.SetupService.UpdateDomainSettings
+   */
+  updateDomainSettings: {
+    methodKind: "unary";
+    input: typeof UpdateDomainSettingsRequestSchema;
+    output: typeof UpdateDomainSettingsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_arca_v1_setup, 0);

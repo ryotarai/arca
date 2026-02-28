@@ -42,6 +42,9 @@ const (
 	// SetupServiceCompleteSetupProcedure is the fully-qualified name of the SetupService's
 	// CompleteSetup RPC.
 	SetupServiceCompleteSetupProcedure = "/arca.v1.SetupService/CompleteSetup"
+	// SetupServiceUpdateDomainSettingsProcedure is the fully-qualified name of the SetupService's
+	// UpdateDomainSettings RPC.
+	SetupServiceUpdateDomainSettingsProcedure = "/arca.v1.SetupService/UpdateDomainSettings"
 )
 
 // SetupServiceClient is a client for the arca.v1.SetupService service.
@@ -49,6 +52,7 @@ type SetupServiceClient interface {
 	GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error)
 	ValidateCloudflareToken(context.Context, *connect.Request[v1.ValidateCloudflareTokenRequest]) (*connect.Response[v1.ValidateCloudflareTokenResponse], error)
 	CompleteSetup(context.Context, *connect.Request[v1.CompleteSetupRequest]) (*connect.Response[v1.CompleteSetupResponse], error)
+	UpdateDomainSettings(context.Context, *connect.Request[v1.UpdateDomainSettingsRequest]) (*connect.Response[v1.UpdateDomainSettingsResponse], error)
 }
 
 // NewSetupServiceClient constructs a client for the arca.v1.SetupService service. By default, it
@@ -80,6 +84,12 @@ func NewSetupServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(setupServiceMethods.ByName("CompleteSetup")),
 			connect.WithClientOptions(opts...),
 		),
+		updateDomainSettings: connect.NewClient[v1.UpdateDomainSettingsRequest, v1.UpdateDomainSettingsResponse](
+			httpClient,
+			baseURL+SetupServiceUpdateDomainSettingsProcedure,
+			connect.WithSchema(setupServiceMethods.ByName("UpdateDomainSettings")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -88,6 +98,7 @@ type setupServiceClient struct {
 	getSetupStatus          *connect.Client[v1.GetSetupStatusRequest, v1.GetSetupStatusResponse]
 	validateCloudflareToken *connect.Client[v1.ValidateCloudflareTokenRequest, v1.ValidateCloudflareTokenResponse]
 	completeSetup           *connect.Client[v1.CompleteSetupRequest, v1.CompleteSetupResponse]
+	updateDomainSettings    *connect.Client[v1.UpdateDomainSettingsRequest, v1.UpdateDomainSettingsResponse]
 }
 
 // GetSetupStatus calls arca.v1.SetupService.GetSetupStatus.
@@ -105,11 +116,17 @@ func (c *setupServiceClient) CompleteSetup(ctx context.Context, req *connect.Req
 	return c.completeSetup.CallUnary(ctx, req)
 }
 
+// UpdateDomainSettings calls arca.v1.SetupService.UpdateDomainSettings.
+func (c *setupServiceClient) UpdateDomainSettings(ctx context.Context, req *connect.Request[v1.UpdateDomainSettingsRequest]) (*connect.Response[v1.UpdateDomainSettingsResponse], error) {
+	return c.updateDomainSettings.CallUnary(ctx, req)
+}
+
 // SetupServiceHandler is an implementation of the arca.v1.SetupService service.
 type SetupServiceHandler interface {
 	GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error)
 	ValidateCloudflareToken(context.Context, *connect.Request[v1.ValidateCloudflareTokenRequest]) (*connect.Response[v1.ValidateCloudflareTokenResponse], error)
 	CompleteSetup(context.Context, *connect.Request[v1.CompleteSetupRequest]) (*connect.Response[v1.CompleteSetupResponse], error)
+	UpdateDomainSettings(context.Context, *connect.Request[v1.UpdateDomainSettingsRequest]) (*connect.Response[v1.UpdateDomainSettingsResponse], error)
 }
 
 // NewSetupServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -137,6 +154,12 @@ func NewSetupServiceHandler(svc SetupServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(setupServiceMethods.ByName("CompleteSetup")),
 		connect.WithHandlerOptions(opts...),
 	)
+	setupServiceUpdateDomainSettingsHandler := connect.NewUnaryHandler(
+		SetupServiceUpdateDomainSettingsProcedure,
+		svc.UpdateDomainSettings,
+		connect.WithSchema(setupServiceMethods.ByName("UpdateDomainSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.SetupService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SetupServiceGetSetupStatusProcedure:
@@ -145,6 +168,8 @@ func NewSetupServiceHandler(svc SetupServiceHandler, opts ...connect.HandlerOpti
 			setupServiceValidateCloudflareTokenHandler.ServeHTTP(w, r)
 		case SetupServiceCompleteSetupProcedure:
 			setupServiceCompleteSetupHandler.ServeHTTP(w, r)
+		case SetupServiceUpdateDomainSettingsProcedure:
+			setupServiceUpdateDomainSettingsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -164,4 +189,8 @@ func (UnimplementedSetupServiceHandler) ValidateCloudflareToken(context.Context,
 
 func (UnimplementedSetupServiceHandler) CompleteSetup(context.Context, *connect.Request[v1.CompleteSetupRequest]) (*connect.Response[v1.CompleteSetupResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SetupService.CompleteSetup is not implemented"))
+}
+
+func (UnimplementedSetupServiceHandler) UpdateDomainSettings(context.Context, *connect.Request[v1.UpdateDomainSettingsRequest]) (*connect.Response[v1.UpdateDomainSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SetupService.UpdateDomainSettings is not implemented"))
 }

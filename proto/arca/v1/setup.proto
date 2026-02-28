@@ -8,6 +8,7 @@ service SetupService {
   rpc GetSetupStatus(GetSetupStatusRequest) returns (GetSetupStatusResponse);
   rpc ValidateCloudflareToken(ValidateCloudflareTokenRequest) returns (ValidateCloudflareTokenResponse);
   rpc CompleteSetup(CompleteSetupRequest) returns (CompleteSetupResponse);
+  rpc UpdateDomainSettings(UpdateDomainSettingsRequest) returns (UpdateDomainSettingsResponse);
 }
 
 message SetupStatus {
@@ -17,6 +18,7 @@ message SetupStatus {
   string base_domain = 4;
   bool docker_provider_enabled = 5;
   string cloudflare_zone_id = 6;
+  string domain_prefix = 7;
 }
 
 message GetSetupStatusRequest {}
@@ -42,8 +44,18 @@ message CompleteSetupRequest {
   string cloudflare_api_token = 4;
   bool docker_provider_enabled = 5;
   string cloudflare_zone_id = 6;
+  string domain_prefix = 7;
 }
 
 message CompleteSetupResponse {
+  SetupStatus status = 1;
+}
+
+message UpdateDomainSettingsRequest {
+  string base_domain = 1;
+  string domain_prefix = 2;
+}
+
+message UpdateDomainSettingsResponse {
   SetupStatus status = 1;
 }

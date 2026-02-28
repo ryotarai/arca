@@ -11,4 +11,6 @@ export type SetupStatus = {
   isConfigured: boolean
   hasAdmin: boolean
   cloudflareZoneID: string
+  baseDomain: string
+  domainPrefix: string
 }

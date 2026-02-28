@@ -17,7 +17,7 @@ type SetupPageProps = {
   hasAdmin: boolean
   initialCloudflareZoneID: string
   onAdminReady: (user: User) => void
-  onSetupComplete: (zoneID: string) => void
+  onSetupComplete: (zoneID: string, baseDomain: string, domainPrefix: string) => void
 }
 
 export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupComplete }: SetupPageProps) {
@@ -27,6 +27,7 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [baseDomain, setBaseDomain] = useState('')
+  const [domainPrefix, setDomainPrefix] = useState('')
   const [cloudflareAccountID, setCloudflareAccountID] = useState('')
   const [cloudflareToken, setCloudflareToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(initialCloudflareZoneID)
@@ -91,8 +92,8 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
     setLoadingStep(true)
     try {
       await setupConfigureProviderDocker()
-      await setupComplete(email, password, baseDomain, cloudflareToken, cloudflareZoneID)
-      onSetupComplete(cloudflareZoneID)
+      await setupComplete(email, password, baseDomain, domainPrefix, cloudflareToken, cloudflareZoneID)
+      onSetupComplete(cloudflareZoneID, baseDomain, domainPrefix)
       window.setTimeout(() => {
         void navigate('/', { replace: true })
       }, 350)
@@ -216,6 +217,18 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
                     required
                     className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                     placeholder="arca.dev"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-domain-prefix" className="text-slate-200">
+                    Domain prefix
+                  </Label>
+                  <Input
+                    id="setup-domain-prefix"
+                    value={domainPrefix}
+                    onChange={(event) => setDomainPrefix(event.target.value)}
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="arca- (optional)"
                   />
                 </div>
                 <div className="space-y-2">

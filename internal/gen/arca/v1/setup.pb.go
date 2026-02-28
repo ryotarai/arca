@@ -29,6 +29,7 @@ type SetupStatus struct {
 	BaseDomain            string                 `protobuf:"bytes,4,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
 	DockerProviderEnabled bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
 	CloudflareZoneId      string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
+	DomainPrefix          string                 `protobuf:"bytes,7,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -101,6 +102,13 @@ func (x *SetupStatus) GetDockerProviderEnabled() bool {
 func (x *SetupStatus) GetCloudflareZoneId() string {
 	if x != nil {
 		return x.CloudflareZoneId
+	}
+	return ""
+}
+
+func (x *SetupStatus) GetDomainPrefix() string {
+	if x != nil {
+		return x.DomainPrefix
 	}
 	return ""
 }
@@ -297,6 +305,7 @@ type CompleteSetupRequest struct {
 	CloudflareApiToken    string                 `protobuf:"bytes,4,opt,name=cloudflare_api_token,json=cloudflareApiToken,proto3" json:"cloudflare_api_token,omitempty"`
 	DockerProviderEnabled bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
 	CloudflareZoneId      string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
+	DomainPrefix          string                 `protobuf:"bytes,7,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -373,6 +382,13 @@ func (x *CompleteSetupRequest) GetCloudflareZoneId() string {
 	return ""
 }
 
+func (x *CompleteSetupRequest) GetDomainPrefix() string {
+	if x != nil {
+		return x.DomainPrefix
+	}
+	return ""
+}
+
 type CompleteSetupResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -417,11 +433,107 @@ func (x *CompleteSetupResponse) GetStatus() *SetupStatus {
 	return nil
 }
 
+type UpdateDomainSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BaseDomain    string                 `protobuf:"bytes,1,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
+	DomainPrefix  string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDomainSettingsRequest) Reset() {
+	*x = UpdateDomainSettingsRequest{}
+	mi := &file_arca_v1_setup_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDomainSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDomainSettingsRequest) ProtoMessage() {}
+
+func (x *UpdateDomainSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_setup_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDomainSettingsRequest.ProtoReflect.Descriptor instead.
+func (*UpdateDomainSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_setup_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateDomainSettingsRequest) GetBaseDomain() string {
+	if x != nil {
+		return x.BaseDomain
+	}
+	return ""
+}
+
+func (x *UpdateDomainSettingsRequest) GetDomainPrefix() string {
+	if x != nil {
+		return x.DomainPrefix
+	}
+	return ""
+}
+
+type UpdateDomainSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDomainSettingsResponse) Reset() {
+	*x = UpdateDomainSettingsResponse{}
+	mi := &file_arca_v1_setup_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDomainSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDomainSettingsResponse) ProtoMessage() {}
+
+func (x *UpdateDomainSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_setup_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDomainSettingsResponse.ProtoReflect.Descriptor instead.
+func (*UpdateDomainSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_setup_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateDomainSettingsResponse) GetStatus() *SetupStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\x92\x02\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xb7\x02\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x123\n" +
@@ -429,7 +541,8 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\vbase_domain\x18\x04 \x01(\tR\n" +
 	"baseDomain\x126\n" +
 	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\x12,\n" +
-	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\"\x17\n" +
+	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12#\n" +
+	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\\\n" +
@@ -439,7 +552,7 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"account_id\x18\x02 \x01(\tR\taccountId\"Q\n" +
 	"\x1fValidateCloudflareTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x97\x02\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xbc\x02\n" +
 	"\x14CompleteSetupRequest\x12\x1f\n" +
 	"\vadmin_email\x18\x01 \x01(\tR\n" +
 	"adminEmail\x12%\n" +
@@ -448,13 +561,21 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"baseDomain\x120\n" +
 	"\x14cloudflare_api_token\x18\x04 \x01(\tR\x12cloudflareApiToken\x126\n" +
 	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\x12,\n" +
-	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\"E\n" +
+	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12#\n" +
+	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\x9f\x02\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"c\n" +
+	"\x1bUpdateDomainSettingsRequest\x12\x1f\n" +
+	"\vbase_domain\x18\x01 \x01(\tR\n" +
+	"baseDomain\x12#\n" +
+	"\rdomain_prefix\x18\x02 \x01(\tR\fdomainPrefix\"L\n" +
+	"\x1cUpdateDomainSettingsResponse\x12,\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\x84\x03\n" +
 	"\fSetupService\x12Q\n" +
 	"\x0eGetSetupStatus\x12\x1e.arca.v1.GetSetupStatusRequest\x1a\x1f.arca.v1.GetSetupStatusResponse\x12l\n" +
 	"\x17ValidateCloudflareToken\x12'.arca.v1.ValidateCloudflareTokenRequest\x1a(.arca.v1.ValidateCloudflareTokenResponse\x12N\n" +
-	"\rCompleteSetup\x12\x1d.arca.v1.CompleteSetupRequest\x1a\x1e.arca.v1.CompleteSetupResponseB\x8c\x01\n" +
+	"\rCompleteSetup\x12\x1d.arca.v1.CompleteSetupRequest\x1a\x1e.arca.v1.CompleteSetupResponse\x12c\n" +
+	"\x14UpdateDomainSettings\x12$.arca.v1.UpdateDomainSettingsRequest\x1a%.arca.v1.UpdateDomainSettingsResponseB\x8c\x01\n" +
 	"\vcom.arca.v1B\n" +
 	"SetupProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
@@ -470,7 +591,7 @@ func file_arca_v1_setup_proto_rawDescGZIP() []byte {
 	return file_arca_v1_setup_proto_rawDescData
 }
 
-var file_arca_v1_setup_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_arca_v1_setup_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_arca_v1_setup_proto_goTypes = []any{
 	(*SetupStatus)(nil),                     // 0: arca.v1.SetupStatus
 	(*GetSetupStatusRequest)(nil),           // 1: arca.v1.GetSetupStatusRequest
@@ -479,21 +600,26 @@ var file_arca_v1_setup_proto_goTypes = []any{
 	(*ValidateCloudflareTokenResponse)(nil), // 4: arca.v1.ValidateCloudflareTokenResponse
 	(*CompleteSetupRequest)(nil),            // 5: arca.v1.CompleteSetupRequest
 	(*CompleteSetupResponse)(nil),           // 6: arca.v1.CompleteSetupResponse
+	(*UpdateDomainSettingsRequest)(nil),     // 7: arca.v1.UpdateDomainSettingsRequest
+	(*UpdateDomainSettingsResponse)(nil),    // 8: arca.v1.UpdateDomainSettingsResponse
 }
 var file_arca_v1_setup_proto_depIdxs = []int32{
 	0, // 0: arca.v1.GetSetupStatusResponse.status:type_name -> arca.v1.SetupStatus
 	0, // 1: arca.v1.CompleteSetupResponse.status:type_name -> arca.v1.SetupStatus
-	1, // 2: arca.v1.SetupService.GetSetupStatus:input_type -> arca.v1.GetSetupStatusRequest
-	3, // 3: arca.v1.SetupService.ValidateCloudflareToken:input_type -> arca.v1.ValidateCloudflareTokenRequest
-	5, // 4: arca.v1.SetupService.CompleteSetup:input_type -> arca.v1.CompleteSetupRequest
-	2, // 5: arca.v1.SetupService.GetSetupStatus:output_type -> arca.v1.GetSetupStatusResponse
-	4, // 6: arca.v1.SetupService.ValidateCloudflareToken:output_type -> arca.v1.ValidateCloudflareTokenResponse
-	6, // 7: arca.v1.SetupService.CompleteSetup:output_type -> arca.v1.CompleteSetupResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 2: arca.v1.UpdateDomainSettingsResponse.status:type_name -> arca.v1.SetupStatus
+	1, // 3: arca.v1.SetupService.GetSetupStatus:input_type -> arca.v1.GetSetupStatusRequest
+	3, // 4: arca.v1.SetupService.ValidateCloudflareToken:input_type -> arca.v1.ValidateCloudflareTokenRequest
+	5, // 5: arca.v1.SetupService.CompleteSetup:input_type -> arca.v1.CompleteSetupRequest
+	7, // 6: arca.v1.SetupService.UpdateDomainSettings:input_type -> arca.v1.UpdateDomainSettingsRequest
+	2, // 7: arca.v1.SetupService.GetSetupStatus:output_type -> arca.v1.GetSetupStatusResponse
+	4, // 8: arca.v1.SetupService.ValidateCloudflareToken:output_type -> arca.v1.ValidateCloudflareTokenResponse
+	6, // 9: arca.v1.SetupService.CompleteSetup:output_type -> arca.v1.CompleteSetupResponse
+	8, // 10: arca.v1.SetupService.UpdateDomainSettings:output_type -> arca.v1.UpdateDomainSettingsResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_setup_proto_init() }
@@ -507,7 +633,7 @@ func file_arca_v1_setup_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_setup_proto_rawDesc), len(file_arca_v1_setup_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

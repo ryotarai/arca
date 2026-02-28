@@ -447,7 +447,7 @@ func (q *Queries) GetMeta(ctx context.Context, key string) (string, error) {
 }
 
 const getSetupState = `-- name: GetSetupState :one
-SELECT completed, admin_user_id, base_domain, cloudflare_api_token, docker_provider_enabled, updated_at
+SELECT completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, docker_provider_enabled, updated_at
 FROM setup_state
 WHERE id = 1
 LIMIT 1
@@ -457,6 +457,7 @@ type GetSetupStateRow struct {
 	Completed             bool
 	AdminUserID           sql.NullString
 	BaseDomain            string
+	DomainPrefix          string
 	CloudflareApiToken    string
 	DockerProviderEnabled bool
 	UpdatedAt             int64
@@ -469,6 +470,7 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 		&i.Completed,
 		&i.AdminUserID,
 		&i.BaseDomain,
+		&i.DomainPrefix,
 		&i.CloudflareApiToken,
 		&i.DockerProviderEnabled,
 		&i.UpdatedAt,
@@ -1073,7 +1075,7 @@ func (q *Queries) UpsertMeta(ctx context.Context, arg UpsertMetaParams) error {
 }
 
 const upsertSetupState = `-- name: UpsertSetupState :exec
-INSERT INTO setup_state (id, completed, admin_user_id, base_domain, cloudflare_api_token, docker_provider_enabled, updated_at)
+INSERT INTO setup_state (id, completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, docker_provider_enabled, updated_at)
 VALUES (
   1,
   ?1,
@@ -1081,12 +1083,14 @@ VALUES (
   ?3,
   ?4,
   ?5,
-  ?6
+  ?6,
+  ?7
 )
 ON CONFLICT (id) DO UPDATE
 SET completed = excluded.completed,
     admin_user_id = excluded.admin_user_id,
     base_domain = excluded.base_domain,
+    domain_prefix = excluded.domain_prefix,
     cloudflare_api_token = excluded.cloudflare_api_token,
     docker_provider_enabled = excluded.docker_provider_enabled,
     updated_at = excluded.updated_at
@@ -1096,6 +1100,7 @@ type UpsertSetupStateParams struct {
 	Completed             bool
 	AdminUserID           sql.NullString
 	BaseDomain            string
+	DomainPrefix          string
 	CloudflareApiToken    string
 	DockerProviderEnabled bool
 	UpdatedAt             int64
@@ -1106,6 +1111,7 @@ func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStatePara
 		arg.Completed,
 		arg.AdminUserID,
 		arg.BaseDomain,
+		arg.DomainPrefix,
 		arg.CloudflareApiToken,
 		arg.DockerProviderEnabled,
 		arg.UpdatedAt,

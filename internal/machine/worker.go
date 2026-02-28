@@ -321,8 +321,10 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		)
 	}
 
-	hostname := machineSubdomain(machine.Name)
-	hostname = hostname + "." + strings.TrimSpace(setup.BaseDomain)
+	hostname, err := w.resolveMachineHostname(ctx, machine, setup)
+	if err != nil {
+		return "", err
+	}
 	target := tunnel.TunnelID + ".cfargotunnel.com"
 	if err := w.cfClient.UpsertDNSCNAME(ctx, setup.CloudflareAPIToken, setup.CloudflareZoneID, hostname, target, true); err != nil {
 		return "", fmt.Errorf("upsert machine cname: %w", err)
@@ -348,7 +350,24 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 	return tunnel.TunnelToken, nil
 }
 
-func machineSubdomain(name string) string {
+func (w *Worker) resolveMachineHostname(ctx context.Context, machine db.Machine, setup db.SetupState) (string, error) {
+	exposures, err := w.store.ListMachineExposuresByMachineID(ctx, machine.ID)
+	if err != nil {
+		return "", fmt.Errorf("list machine exposures: %w", err)
+	}
+	for _, exposure := range exposures {
+		if exposure.Name == "default" && strings.TrimSpace(exposure.Hostname) != "" {
+			return strings.TrimSpace(exposure.Hostname), nil
+		}
+	}
+
+	hostname := machineSubdomain(setup.DomainPrefix, machine.Name)
+	hostname = hostname + "." + strings.TrimSpace(setup.BaseDomain)
+	return hostname, nil
+}
+
+func machineSubdomain(prefix, name string) string {
+	prefix = sanitizeSubdomainPart(prefix)
 	name = strings.ToLower(strings.TrimSpace(name))
 	var b strings.Builder
 	prevDash := false
@@ -368,6 +387,10 @@ func machineSubdomain(name string) string {
 	if out == "" {
 		return "machine"
 	}
+	out = strings.Trim(prefix+out, "-")
+	if out == "" {
+		return "machine"
+	}
 	if len(out) > 63 {
 		out = strings.Trim(out[:63], "-")
 		if out == "" {
@@ -375,6 +398,17 @@ func machineSubdomain(name string) string {
 		}
 	}
 	return out
+}
+
+func sanitizeSubdomainPart(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	var b strings.Builder
+	for _, r := range value {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {
