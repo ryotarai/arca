@@ -148,3 +148,48 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   await page.getByRole('button', { name: 'Delete' }).first().click()
   await expect(page.getByText('No machines yet.')).toBeVisible()
 })
+
+test('authenticated login route honors next parameter', async ({ page }) => {
+  await ensureSetupCompleted(page)
+  const email = `next-${Date.now()}@example.com`
+  const password = 'password123'
+
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'Create new account' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Register' }).click()
+  await expect(page.getByText('registered. please log in.')).toBeVisible()
+
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Login' }).click()
+  await expect(page).toHaveURL('/')
+
+  await page.goto('/login?next=%2Fmachines')
+  await expect(page).toHaveURL('/machines')
+  await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
+})
+
+test('authenticated login route honors nested authorize next parameter', async ({ page }) => {
+  await ensureSetupCompleted(page)
+  const email = `nested-next-${Date.now()}@example.com`
+  const password = 'password123'
+
+  await page.goto('/login')
+  await page.getByRole('button', { name: 'Create new account' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Register' }).click()
+  await expect(page.getByText('registered. please log in.')).toBeVisible()
+
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Login' }).click()
+  await expect(page).toHaveURL('/')
+
+  await page.goto(
+    '/login?next=%2Fconsole%2Fauthorize%3Ftarget%3Dhttps%253A%252F%252Farca-test3.ryotarai.info%252Fcallback%253Fnext%253D%25252F',
+  )
+  await expect(page).toHaveURL(
+    '/console/authorize?target=https%3A%2F%2Farca-test3.ryotarai.info%2Fcallback%3Fnext%3D%252F',
+  )
+})

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,14 +16,24 @@ type LoginPageProps = {
 export function LoginPage({ user, onLogin }: LoginPageProps) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const nextPath = sanitizeNextPath(searchParams.get('next'))
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
+  useEffect(() => {
+    if (user != null && nextPath !== '/') {
+      window.location.replace(nextPath)
+    }
+  }, [nextPath, user])
+
   if (user != null) {
-    return <Navigate to={sanitizeNextPath(searchParams.get('next'))} replace />
+    if (nextPath !== '/') {
+      return null
+    }
+    return <Navigate to="/" replace />
   }
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -48,8 +58,11 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
 
       onLogin(loggedIn)
       setPassword('')
-      const next = sanitizeNextPath(searchParams.get('next'))
-      void navigate(next, { replace: true })
+      if (nextPath !== '/') {
+        window.location.assign(nextPath)
+        return
+      }
+      void navigate('/', { replace: true })
     } catch (e) {
       setError(messageFromError(e))
     }
