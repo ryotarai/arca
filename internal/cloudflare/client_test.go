@@ -224,3 +224,31 @@ func TestCreateTunnelReturnsAPIErrorOnNon2xx(t *testing.T) {
 		t.Fatalf("api error code = %d, want %d", got, want)
 	}
 }
+
+func TestCreateTunnelTokenUsesGET(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.Method, http.MethodGet; got != want {
+			t.Fatalf("method = %s, want %s", got, want)
+		}
+		if got, want := r.URL.Path, "/accounts/acc-1/cfd_tunnel/tun-1/token"; got != want {
+			t.Fatalf("path = %s, want %s", got, want)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer token" {
+			t.Fatalf("authorization header = %s", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":{"token":"tok-1"}}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	token, err := client.CreateTunnelToken(context.Background(), "token", "acc-1", "tun-1")
+	if err != nil {
+		t.Fatalf("CreateTunnelToken() error = %v", err)
+	}
+	if got, want := token, "tok-1"; got != want {
+		t.Fatalf("token = %s, want %s", got, want)
+	}
+}
