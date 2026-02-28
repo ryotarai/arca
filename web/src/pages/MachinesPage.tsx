@@ -10,7 +10,6 @@ import {
   listMachines,
   startMachine,
   stopMachine,
-  updateMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { Machine, User } from '@/lib/types'
@@ -54,8 +53,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
-  const [editingID, setEditingID] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -125,24 +122,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
     }
   }
 
-  const submitUpdate = async (machineID: string) => {
-    const trimmed = editingName.trim()
-    if (trimmed === '') {
-      setError('name is required')
-      return
-    }
-
-    setError('')
-    try {
-      const updated = await updateMachine(machineID, trimmed)
-      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
-      setEditingID(null)
-      setEditingName('')
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
   const submitStart = async (machineID: string) => {
     setError('')
     try {
@@ -168,10 +147,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
     try {
       await deleteMachine(machineID)
       setMachines((prev) => prev.filter((machine) => machine.id !== machineID))
-      if (editingID === machineID) {
-        setEditingID(null)
-        setEditingName('')
-      }
     } catch (e) {
       setError(messageFromError(e))
     }
@@ -230,7 +205,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl text-white">Machine list</CardTitle>
             <CardDescription className="text-slate-300">
-              Rename, start, stop, delete, and open details from this list.
+              Start, stop, delete, and open details from this list.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
@@ -241,66 +216,21 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
             ) : (
               <ul className="space-y-3">
                 {machines.map((machine) => {
-                  const editing = editingID === machine.id
-
                   return (
                     <li key={machine.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        {editing ? (
-                          <Input
-                            value={editingName}
-                            onChange={(event) => setEditingName(event.target.value)}
-                            className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45 sm:max-w-sm"
-                            aria-label="Edit machine name"
-                          />
-                        ) : (
-                          <div className="space-y-2">
-                            <p className="font-medium text-white">{machine.name}</p>
-                            <div className="mt-1 flex items-center gap-2">
-                              <StatusBadge status={machine.status} />
-                              <span className="text-xs text-slate-300">desired: {machine.desiredStatus}</span>
-                            </div>
-                            {machine.lastError != null && machine.lastError !== '' && (
-                              <p className="text-xs text-red-300 break-all">error: {machine.lastError}</p>
-                            )}
+                        <div className="space-y-2">
+                          <p className="font-medium text-white">{machine.name}</p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <StatusBadge status={machine.status} />
+                            <span className="text-xs text-slate-300">desired: {machine.desiredStatus}</span>
                           </div>
-                        )}
+                          {machine.lastError != null && machine.lastError !== '' && (
+                            <p className="text-xs text-red-300 break-all">error: {machine.lastError}</p>
+                          )}
+                        </div>
 
                         <div className="flex flex-wrap items-center justify-end gap-2 sm:max-w-md">
-                          {editing ? (
-                            <>
-                              <Button
-                                type="button"
-                                className="h-9 bg-white px-3 text-slate-900 hover:bg-slate-100"
-                                onClick={() => void submitUpdate(machine.id)}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                className="h-9 px-3"
-                                onClick={() => {
-                                  setEditingID(null)
-                                  setEditingName('')
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            </>
-                          ) : (
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              className="h-9 px-3"
-                              onClick={() => {
-                                setEditingID(machine.id)
-                                setEditingName(machine.name)
-                              }}
-                            >
-                              Edit
-                            </Button>
-                          )}
                           <Button
                             type="button"
                             variant="secondary"
