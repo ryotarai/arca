@@ -223,6 +223,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         completed?: boolean
         adminConfigured?: boolean
         cloudflareZoneId?: string
+        baseDomain?: string
+        domainPrefix?: string
       }
       isConfigured?: boolean
       configured?: boolean
@@ -230,6 +232,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       hasAdmin?: boolean
       adminConfigured?: boolean
       cloudflareZoneId?: string
+      baseDomain?: string
+      domainPrefix?: string
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -239,11 +243,13 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       response.status?.completed ?? response.isConfigured ?? response.configured ?? response.setupCompleted ?? false
     const hasAdmin = response.status?.adminConfigured ?? response.hasAdmin ?? response.adminConfigured ?? false
     const cloudflareZoneID = response.status?.cloudflareZoneId ?? response.cloudflareZoneId ?? ''
+    const baseDomain = response.status?.baseDomain ?? response.baseDomain ?? ''
+    const domainPrefix = response.status?.domainPrefix ?? response.domainPrefix ?? ''
 
-    return { isConfigured, hasAdmin, cloudflareZoneID }
+    return { isConfigured, hasAdmin, cloudflareZoneID, baseDomain, domainPrefix }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
-      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '' }
+      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '', baseDomain: '', domainPrefix: '' }
     }
     throw error
   }
@@ -278,6 +284,7 @@ export async function setupComplete(
   adminEmail: string,
   adminPassword: string,
   baseDomain: string,
+  domainPrefix: string,
   cloudflareApiToken: string,
   cloudflareZoneID: string,
 ): Promise<void> {
@@ -291,6 +298,7 @@ export async function setupComplete(
       adminEmail,
       adminPassword,
       baseDomain,
+      domainPrefix,
       cloudflareApiToken,
       cloudflareZoneId: cloudflareZoneID,
       dockerProviderEnabled: true,
@@ -303,5 +311,20 @@ export async function setupComplete(
       return
     }
     throw error
+  }
+}
+
+export async function updateDomainSettings(baseDomain: string, domainPrefix: string): Promise<void> {
+  const response = await callConnectJSONCandidates<{
+    status?: {
+      baseDomain?: string
+    }
+    message?: string
+  }>(['/arca.v1.SetupService/UpdateDomainSettings'], {
+    baseDomain,
+    domainPrefix,
+  })
+  if ((response.status?.baseDomain ?? '').trim() === '') {
+    throw new Error(response.message ?? 'failed to update domain settings')
   }
 }

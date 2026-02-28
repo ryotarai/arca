@@ -15,6 +15,7 @@ type SetupState struct {
 	Completed             bool
 	AdminUserID           string
 	BaseDomain            string
+	DomainPrefix          string
 	CloudflareAPIToken    string
 	CloudflareZoneID      string
 	DockerProviderEnabled bool
@@ -68,6 +69,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			Completed:             state.Completed,
 			AdminUserID:           state.AdminUserID.String,
 			BaseDomain:            state.BaseDomain,
+			DomainPrefix:          state.DomainPrefix,
 			CloudflareAPIToken:    state.CloudflareApiToken,
 			CloudflareZoneID:      zoneID,
 			DockerProviderEnabled: state.DockerProviderEnabled,
@@ -85,6 +87,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			Completed:             state.Completed,
 			AdminUserID:           state.AdminUserID.String,
 			BaseDomain:            state.BaseDomain,
+			DomainPrefix:          state.DomainPrefix,
 			CloudflareAPIToken:    state.CloudflareApiToken,
 			CloudflareZoneID:      zoneID,
 			DockerProviderEnabled: state.DockerProviderEnabled,
@@ -106,6 +109,7 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 			Completed:             state.Completed,
 			AdminUserID:           adminUserID,
 			BaseDomain:            strings.TrimSpace(state.BaseDomain),
+			DomainPrefix:          strings.TrimSpace(state.DomainPrefix),
 			CloudflareApiToken:    state.CloudflareAPIToken,
 			DockerProviderEnabled: state.DockerProviderEnabled,
 			UpdatedAt:             nowUnix,
@@ -115,6 +119,7 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 			Completed:             state.Completed,
 			AdminUserID:           adminUserID,
 			BaseDomain:            strings.TrimSpace(state.BaseDomain),
+			DomainPrefix:          strings.TrimSpace(state.DomainPrefix),
 			CloudflareApiToken:    state.CloudflareAPIToken,
 			DockerProviderEnabled: state.DockerProviderEnabled,
 			UpdatedAt:             nowUnix,

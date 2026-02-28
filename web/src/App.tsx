@@ -6,6 +6,7 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
 import { MachinesPage } from '@/pages/MachinesPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
 
 export function App() {
@@ -15,6 +16,8 @@ export function App() {
     isConfigured: true,
     hasAdmin: true,
     cloudflareZoneID: '',
+    baseDomain: '',
+    domainPrefix: '',
   })
 
   useEffect(() => {
@@ -65,8 +68,14 @@ export function App() {
               hasAdmin={setupStatus.hasAdmin}
               initialCloudflareZoneID={setupStatus.cloudflareZoneID}
               onAdminReady={setUser}
-              onSetupComplete={(zoneID) =>
-                setSetupStatus({ isConfigured: true, hasAdmin: true, cloudflareZoneID: zoneID })
+              onSetupComplete={(zoneID, baseDomain, domainPrefix) =>
+                setSetupStatus({
+                  isConfigured: true,
+                  hasAdmin: true,
+                  cloudflareZoneID: zoneID,
+                  baseDomain,
+                  domainPrefix,
+                })
               }
             />
           }
@@ -83,6 +92,17 @@ export function App() {
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
       <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
       <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
+      <Route
+        path="/settings"
+        element={
+          <SettingsPage
+            user={user}
+            setupStatus={setupStatus}
+            onSetupStatusChange={(next) => setSetupStatus(next)}
+            onLogout={handleLogout}
+          />
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

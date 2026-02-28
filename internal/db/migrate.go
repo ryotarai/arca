@@ -5,37 +5,46 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"io/fs"
-	"sort"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
-//go:embed migrations/*.sql
+//go:embed migrations_v2/*.sql
 var migrationFiles embed.FS
 
-func ApplyMigrations(ctx context.Context, db *sql.DB) error {
-	entries, err := fs.ReadDir(migrationFiles, "migrations")
+func ApplyMigrations(_ context.Context, db *sql.DB, driver string) error {
+	driver = normalizeDriver(driver)
+
+	sourceDriver, err := iofs.New(migrationFiles, "migrations_v2")
+	if err != nil {
+		return err
+	}
+	defer sourceDriver.Close()
+
+	var dbDriver database.Driver
+	switch driver {
+	case DriverSQLite:
+		dbDriver, err = sqlite3.WithInstance(db, &sqlite3.Config{MigrationsTable: "schema_migrations"})
+	case DriverPostgres:
+		dbDriver, err = postgres.WithInstance(db, &postgres.Config{MigrationsTable: "schema_migrations"})
+	default:
+		return fmt.Errorf("unsupported DB_DRIVER %q", driver)
+	}
 	if err != nil {
 		return err
 	}
 
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name() < entries[j].Name()
-	})
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		path := "migrations/" + entry.Name()
-		query, err := migrationFiles.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		if _, err := db.ExecContext(ctx, string(query)); err != nil {
-			return fmt.Errorf("apply %s: %w", path, err)
-		}
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, driver, dbDriver)
+	if err != nil {
+		return err
 	}
 
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
 	return nil
 }

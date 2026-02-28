@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -109,6 +110,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	email := strings.TrimSpace(req.Msg.GetAdminEmail())
 	password := req.Msg.GetAdminPassword()
 	baseDomain := normalizeBaseDomain(req.Msg.GetBaseDomain())
+	domainPrefix := normalizeDomainPrefix(req.Msg.GetDomainPrefix())
 	cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken())
 	zoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId())
 	if email == "" || password == "" || baseDomain == "" || cfToken == "" || zoneID == "" {
@@ -143,6 +145,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		Completed:             true,
 		AdminUserID:           adminUserID,
 		BaseDomain:            baseDomain,
+		DomainPrefix:          domainPrefix,
 		CloudflareAPIToken:    cfToken,
 		CloudflareZoneID:      zoneID,
 		DockerProviderEnabled: req.Msg.GetDockerProviderEnabled(),
@@ -155,12 +158,45 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	return connect.NewResponse(&arcav1.CompleteSetupResponse{Status: setupStatusMessage(state)}), nil
 }
 
+func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *connect.Request[arcav1.UpdateDomainSettingsRequest]) (*connect.Response[arcav1.UpdateDomainSettingsResponse], error) {
+	if s.store == nil || s.authenticator == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("setup dependencies unavailable"))
+	}
+	if _, err := s.authenticate(ctx, req.Header()); err != nil {
+		return nil, err
+	}
+
+	current, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		log.Printf("load setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
+	}
+	if !current.Completed {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("setup is not completed yet"))
+	}
+
+	baseDomain := normalizeBaseDomain(req.Msg.GetBaseDomain())
+	if baseDomain == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base domain is required"))
+	}
+
+	current.BaseDomain = baseDomain
+	current.DomainPrefix = normalizeDomainPrefix(req.Msg.GetDomainPrefix())
+	if err := s.store.UpsertSetupState(ctx, current); err != nil {
+		log.Printf("persist setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
+	}
+
+	return connect.NewResponse(&arcav1.UpdateDomainSettingsResponse{Status: setupStatusMessage(current)}), nil
+}
+
 func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 	return &arcav1.SetupStatus{
 		Completed:             state.Completed,
 		AdminConfigured:       strings.TrimSpace(state.AdminUserID) != "",
 		CloudflareConfigured:  strings.TrimSpace(state.CloudflareAPIToken) != "",
 		BaseDomain:            state.BaseDomain,
+		DomainPrefix:          state.DomainPrefix,
 		DockerProviderEnabled: state.DockerProviderEnabled,
 		CloudflareZoneId:      state.CloudflareZoneID,
 	}
@@ -172,6 +208,30 @@ func normalizeBaseDomain(domain string) string {
 	domain = strings.TrimPrefix(domain, "https://")
 	domain = strings.TrimSuffix(domain, "/")
 	return domain
+}
+
+func normalizeDomainPrefix(prefix string) string {
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	var b strings.Builder
+	for _, r := range prefix {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			b.WriteRune(r)
+		}
+	}
+	return strings.Trim(b.String(), "-")
+}
+
+func (s *setupConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
+	sessionToken, err := sessionTokenFromHeader(header)
+	if err != nil || sessionToken == "" {
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	}
+
+	userID, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+	if err != nil {
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	}
+	return userID, nil
 }
 
 func shouldSkipCloudflareValidation() bool {

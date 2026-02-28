@@ -97,6 +97,7 @@ type SetupState struct {
 	Completed             bool
 	AdminUserID           sql.NullString
 	BaseDomain            string
+	DomainPrefix          string
 	CloudflareApiToken    string
 	DockerProviderEnabled bool
 	UpdatedAt             int64

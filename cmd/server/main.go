@@ -38,7 +38,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := db.ApplyMigrations(ctx, sqlDB); err != nil {
+	if err := db.ApplyMigrations(ctx, sqlDB, dbConfig.Driver); err != nil {
 		log.Fatalf("db migration failed: %v", err)
 	}
 	authService := auth.NewService(store)
