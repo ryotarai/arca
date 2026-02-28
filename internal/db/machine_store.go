@@ -7,8 +7,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
+	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	postgresqlsqlc "github.com/ryotarai/arca/internal/db/sqlc/postgresql"
 	sqlitesqlc "github.com/ryotarai/arca/internal/db/sqlc/sqlite"
 )
@@ -46,6 +49,8 @@ type MachineJob struct {
 	Attempt   int64
 }
 
+var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
+
 func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string) (Machine, error) {
 	machineID, err := randomID()
 	if err != nil {
@@ -81,6 +86,9 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 	case DriverSQLite:
 		q := s.sqliteQueries.WithTx(tx)
 		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name}); err != nil {
+			if isMachineNameUniqueConstraintError(err) {
+				return Machine{}, ErrMachineNameAlreadyExists
+			}
 			return Machine{}, err
 		}
 		if err = q.CreateUserMachine(ctx, sqlitesqlc.CreateUserMachineParams{
@@ -118,6 +126,9 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
 		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name}); err != nil {
+			if isMachineNameUniqueConstraintError(err) {
+				return Machine{}, ErrMachineNameAlreadyExists
+			}
 			return Machine{}, err
 		}
 		if err = q.CreateUserMachine(ctx, postgresqlsqlc.CreateUserMachineParams{
@@ -218,6 +229,9 @@ func (s *Store) UpdateMachineNameByIDForOwner(ctx context.Context, userID, machi
 			MachineID: machineID,
 			UserID:    userID,
 		})
+		if err != nil && isMachineNameUniqueConstraintError(err) {
+			return false, ErrMachineNameAlreadyExists
+		}
 		return updated > 0, err
 	case DriverPostgres:
 		updated, err := s.pgQueries.UpdateMachineNameByIDForOwner(ctx, postgresqlsqlc.UpdateMachineNameByIDForOwnerParams{
@@ -225,6 +239,9 @@ func (s *Store) UpdateMachineNameByIDForOwner(ctx context.Context, userID, machi
 			MachineID: machineID,
 			UserID:    userID,
 		})
+		if err != nil && isMachineNameUniqueConstraintError(err) {
+			return false, ErrMachineNameAlreadyExists
+		}
 		return updated > 0, err
 	default:
 		return false, unsupportedDriverError(s.driver)
@@ -689,4 +706,21 @@ func randomToken() (string, error) {
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+func isMachineNameUniqueConstraintError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505" && strings.Contains(strings.ToLower(pgErr.Message), "name")
+	}
+
+	msg := strings.ToLower(err.Error())
+	if strings.Contains(msg, "unique constraint failed") && strings.Contains(msg, "machines.name") {
+		return true
+	}
+	return strings.Contains(msg, "duplicate key value") && strings.Contains(msg, "name")
 }
