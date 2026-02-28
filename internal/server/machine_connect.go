@@ -97,43 +97,7 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 }
 
 func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.Request[arcav1.UpdateMachineRequest]) (*connect.Response[arcav1.UpdateMachineResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
-	if err != nil {
-		return nil, err
-	}
-
-	machineID := strings.TrimSpace(req.Msg.GetMachineId())
-	if machineID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
-	}
-
-	name := strings.TrimSpace(req.Msg.GetName())
-	if err := validateMachineName(name); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	updated, err := s.store.UpdateMachineNameByIDForOwner(ctx, userID, machineID, name)
-	if err != nil {
-		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
-			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
-		}
-		log.Printf("update machine failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update machine"))
-	}
-	if !updated {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
-	}
-
-	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
-		}
-		log.Printf("fetch updated machine failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
-	}
-
-	return connect.NewResponse(&arcav1.UpdateMachineResponse{Machine: toMachineMessage(machine)}), nil
+	return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("machine name cannot be changed"))
 }
 
 func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.Request[arcav1.StartMachineRequest]) (*connect.Response[arcav1.StartMachineResponse], error) {
@@ -313,6 +277,9 @@ func validateMachineName(name string) error {
 	}
 	if slices.Contains(reservedMachineNames, name) {
 		return errors.New("name is reserved")
+	}
+	if strings.HasPrefix(name, "arca-") {
+		return errors.New("name cannot start with arca-")
 	}
 	if !machineNamePattern.MatchString(name) {
 		return errors.New("name must use lowercase letters, digits, and hyphens only, and cannot start or end with a hyphen")

@@ -23,6 +23,7 @@ func TestValidateMachineName(t *testing.T) {
 		{name: "reserved dash", input: "dash", wantError: "name is reserved"},
 		{name: "reserved api", input: "api", wantError: "name is reserved"},
 		{name: "reserved system", input: "system", wantError: "name is reserved"},
+		{name: "reserved arca prefix", input: "arca-demo", wantError: "name cannot start with arca-"},
 	}
 
 	for _, tt := range tests {
