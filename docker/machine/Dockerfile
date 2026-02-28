@@ -1,27 +1,31 @@
-FROM cloudflare/cloudflared:latest AS cloudflared
-FROM golang:1.24 AS arcad-builder
+FROM node:22-bookworm-slim AS builder
 
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 go build -o /out/arcad ./cmd/arcad
+ARG APP_ZIP_URL="https://github.com/ryotarai/claudecodeui/archive/refs/tags/ryotarai-v1.21.0-2.zip"
+ENV VITE_BASE_PATH="/__arca/claudecodeui"
 
-FROM ubuntu:24.04
-
-ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /work
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates dumb-init python3 \
-  && rm -rf /var/lib/apt/lists/* \
-  && useradd --create-home --home-dir /home/arca --shell /bin/bash arca
+  && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+  && rm -rf /var/lib/apt/lists/*
 
-COPY --from=cloudflared /usr/local/bin/cloudflared /usr/local/bin/cloudflared
-COPY --from=arcad-builder /out/arcad /usr/local/bin/arcad
-COPY docker/machine/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/arcad
+RUN curl -fsSL "$APP_ZIP_URL" -o app.zip \
+  && unzip app.zip \
+  && rm app.zip \
+  && mv claudecodeui-* app
 
-USER arca
-WORKDIR /home/arca
+WORKDIR /work/app
+RUN npm ci
+RUN npm run build
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/entrypoint.sh"]
+FROM node:22-bookworm-slim AS runtime
+
+ENV NODE_ENV=production
+ENV BASE_PATH="/__arca/claudecodeui"
+ENV PORT=21031
+
+WORKDIR /app
+COPY --from=builder /work/app /app
+
+EXPOSE 21031
+CMD ["node", "server/index.js"]
