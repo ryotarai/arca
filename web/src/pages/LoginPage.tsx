@@ -23,7 +23,7 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
   const [notice, setNotice] = useState('')
 
   if (user != null) {
-    return <Navigate to="/" replace />
+    return <Navigate to={sanitizeNextPath(searchParams.get('next'))} replace />
   }
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
