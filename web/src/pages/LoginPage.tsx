@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ type LoginPageProps = {
 
 export function LoginPage({ user, onLogin }: LoginPageProps) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,7 +48,8 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
 
       onLogin(loggedIn)
       setPassword('')
-      void navigate('/', { replace: true })
+      const next = sanitizeNextPath(searchParams.get('next'))
+      void navigate(next, { replace: true })
     } catch (e) {
       setError(messageFromError(e))
     }
@@ -146,4 +148,22 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
       </section>
     </main>
   )
+}
+
+function sanitizeNextPath(next: string | null): string {
+  if (next == null || next === '') {
+    return '/'
+  }
+  try {
+    const parsed = new URL(next, window.location.origin)
+    if (parsed.origin !== window.location.origin) {
+      return '/'
+    }
+    if (!parsed.pathname.startsWith('/')) {
+      return '/'
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return '/'
+  }
 }

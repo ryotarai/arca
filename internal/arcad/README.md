@@ -10,10 +10,10 @@ Assumptions in this MVP:
   - `ARCAD_MACHINE_ID`
   - `ARCAD_MACHINE_TOKEN`
   - `ARCAD_TUNNEL_TOKEN`
-  - optional: `ARCAD_LISTEN_ADDR` and `ARCAD_SESSION_COOKIE_NAME`
+  - optional: `ARCAD_AUTHORIZE_URL`, `ARCAD_LISTEN_ADDR`, `ARCAD_UPSTREAM_URL`, and `ARCAD_SESSION_COOKIE_NAME`
 - `arcad` manages `cloudflared` as a child process with a restart-on-exit loop.
 - Other workspace services (`ttyd`, agent process, user app processes) are managed separately by supervisor and exposed through localhost targets registered in control-plane exposure metadata.
-- `arcad` trusts the control plane for exposure metadata and ticket verification; local session cookies are scoped per machine host.
+- `arcad` trusts the control plane for exposure metadata and temporary-token verification; local session cookies are scoped per machine host.
 - Graceful shutdown is signal-driven (`SIGTERM`/`SIGINT`) and lets the HTTP server drain connections before exit.
 
 Non-goals in this MVP:

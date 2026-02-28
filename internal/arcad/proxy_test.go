@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -32,7 +33,7 @@ func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
 
 func TestProxyRedirectsUnauthenticatedPrivateExposure(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session")
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"))
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/path?x=1", nil)
 	rr := httptest.NewRecorder()
@@ -52,9 +53,9 @@ func TestProxyCallbackSetsSessionCookie(t *testing.T) {
 		exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false},
 		claims:   TicketClaims{UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)},
 	}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session")
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"))
 
-	req := httptest.NewRequest(http.MethodGet, "http://app.example/callback?ticket=tk_1&next=%2Fworkspace", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/callback?token=tk_1&next=%2Fworkspace", nil)
 	rr := httptest.NewRecorder()
 	proxy.ServeHTTP(rr, req)
 
@@ -71,4 +72,13 @@ func TestProxyCallbackSetsSessionCookie(t *testing.T) {
 	if cookies[0].Name != "arcad_session" || cookies[0].Value == "" {
 		t.Fatalf("unexpected cookie: %+v", cookies[0])
 	}
+}
+
+func mustURL(t *testing.T, raw string) *url.URL {
+	t.Helper()
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	return u
 }

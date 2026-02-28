@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,10 +22,15 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	controlPlaneClient := arcad.NewHTTPControlPlaneClient(cfg.ControlPlaneURL, cfg.MachineID, cfg.MachineToken, &http.Client{Timeout: 10 * time.Second})
+	upstreamURL, err := url.Parse(cfg.UpstreamURL)
+	if err != nil {
+		log.Fatalf("invalid ARCAD_UPSTREAM_URL: %v", err)
+	}
+
+	controlPlaneClient := arcad.NewHTTPControlPlaneClient(cfg.ControlPlaneURL, cfg.AuthorizeURL, cfg.MachineID, cfg.MachineToken, &http.Client{Timeout: 10 * time.Second})
 	exposureCache := arcad.NewExposureCache(controlPlaneClient)
 	sessions := arcad.NewSessionManager(cfg.MachineToken)
-	proxy := arcad.NewProxy(exposureCache, controlPlaneClient, sessions, cfg.SessionCookie)
+	proxy := arcad.NewProxy(exposureCache, controlPlaneClient, sessions, cfg.SessionCookie, upstreamURL)
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenAddr,
