@@ -6,6 +6,7 @@ require github.com/go-chi/chi/v5 v5.2.1
 
 require (
 	connectrpc.com/connect v1.18.1
+	github.com/cloudflare/cloudflare-go v0.116.0
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/jackc/pgx/v5 v5.7.4
 	golang.org/x/crypto v0.47.0
@@ -24,7 +25,9 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

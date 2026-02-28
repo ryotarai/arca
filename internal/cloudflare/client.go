@@ -1,15 +1,15 @@
 package cloudflare
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"strings"
+
+	cf "github.com/cloudflare/cloudflare-go"
 )
 
 const defaultBaseURL = "https://api.cloudflare.com/client/v4"
@@ -58,22 +58,6 @@ type IngressRule struct {
 	Service  string `json:"service"`
 }
 
-type responseEnvelope[T any] struct {
-	Success bool       `json:"success"`
-	Errors  []APIError `json:"errors"`
-	Result  T          `json:"result"`
-}
-
-type rawEnvelope struct {
-	Success bool            `json:"success"`
-	Errors  []APIError      `json:"errors"`
-	Result  json.RawMessage `json:"result"`
-}
-
-type dnsRecord struct {
-	ID string `json:"id"`
-}
-
 var ErrTunnelNotFound = errors.New("cloudflare tunnel not found")
 
 func NewClient(httpClient HTTPClient) *Client {
@@ -90,185 +74,162 @@ func NewClientWithBaseURL(httpClient HTTPClient, baseURL string) *Client {
 }
 
 func (c *Client) VerifyToken(ctx context.Context, apiToken string) (TokenVerification, error) {
-	var out responseEnvelope[TokenVerification]
-	if err := c.doJSON(ctx, http.MethodGet, "/user/tokens/verify", apiToken, nil, &out); err != nil {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
 		return TokenVerification{}, err
 	}
-	return out.Result, nil
+	out, err := api.VerifyAPIToken(ctx)
+	if err != nil {
+		return TokenVerification{}, toAPIError(err)
+	}
+	return TokenVerification{ID: out.ID, Status: out.Status}, nil
 }
 
 func (c *Client) VerifyAccountToken(ctx context.Context, apiToken, accountID string) error {
-	path := fmt.Sprintf("/accounts/%s/cfd_tunnel?page=1&per_page=1", url.PathEscape(accountID))
-	return c.doJSON(ctx, http.MethodGet, path, apiToken, nil, nil)
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
+		return err
+	}
+	_, _, err = api.ListTunnels(ctx, cf.AccountIdentifier(accountID), cf.TunnelListParams{
+		ResultInfo: cf.ResultInfo{Page: 1, PerPage: 1},
+	})
+	return toAPIError(err)
 }
 
 func (c *Client) VerifyZoneAccess(ctx context.Context, apiToken, zoneID string) error {
-	path := fmt.Sprintf("/zones/%s", url.PathEscape(zoneID))
-	return c.doJSON(ctx, http.MethodGet, path, apiToken, nil, nil)
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
+		return err
+	}
+	_, err = api.ZoneDetails(ctx, zoneID)
+	return toAPIError(err)
 }
 
 func (c *Client) GetZone(ctx context.Context, apiToken, zoneID string) (Zone, error) {
-	var out responseEnvelope[Zone]
-	path := fmt.Sprintf("/zones/%s", url.PathEscape(zoneID))
-	if err := c.doJSON(ctx, http.MethodGet, path, apiToken, nil, &out); err != nil {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
 		return Zone{}, err
 	}
-	return out.Result, nil
+	zone, err := api.ZoneDetails(ctx, zoneID)
+	if err != nil {
+		return Zone{}, toAPIError(err)
+	}
+	return Zone{ID: zone.ID, Name: zone.Name, Account: struct {
+		ID string `json:"id"`
+	}{ID: zone.Account.ID}}, nil
 }
 
 func (c *Client) CreateTunnel(ctx context.Context, apiToken, accountID, tunnelName string) (Tunnel, error) {
-	payload := map[string]string{"name": tunnelName, "config_src": "cloudflare"}
-	var out responseEnvelope[Tunnel]
-	if err := c.doJSON(ctx, http.MethodPost, fmt.Sprintf("/accounts/%s/cfd_tunnel", url.PathEscape(accountID)), apiToken, payload, &out); err != nil {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
 		return Tunnel{}, err
 	}
-	return out.Result, nil
+	out, err := api.CreateTunnel(ctx, cf.AccountIdentifier(accountID), cf.TunnelCreateParams{
+		Name:      tunnelName,
+		Secret:    tunnelSecret(),
+		ConfigSrc: "cloudflare",
+	})
+	if err != nil {
+		return Tunnel{}, toAPIError(err)
+	}
+	return Tunnel{ID: out.ID, Name: out.Name}, nil
 }
 
 func (c *Client) GetTunnelByName(ctx context.Context, apiToken, accountID, tunnelName string) (Tunnel, error) {
-	var out responseEnvelope[[]Tunnel]
-	path := fmt.Sprintf(
-		"/accounts/%s/cfd_tunnel?name=%s&is_deleted=false&page=1&per_page=100",
-		url.PathEscape(accountID),
-		url.QueryEscape(tunnelName),
-	)
-	if err := c.doJSON(ctx, http.MethodGet, path, apiToken, nil, &out); err != nil {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
 		return Tunnel{}, err
 	}
-	for _, tunnel := range out.Result {
+	isDeleted := false
+	out, _, err := api.ListTunnels(ctx, cf.AccountIdentifier(accountID), cf.TunnelListParams{
+		Name:      tunnelName,
+		IsDeleted: &isDeleted,
+		ResultInfo: cf.ResultInfo{
+			Page:    1,
+			PerPage: 100,
+		},
+	})
+	if err != nil {
+		return Tunnel{}, toAPIError(err)
+	}
+	for _, tunnel := range out {
 		if strings.EqualFold(strings.TrimSpace(tunnel.Name), strings.TrimSpace(tunnelName)) {
-			return tunnel, nil
+			return Tunnel{ID: tunnel.ID, Name: tunnel.Name}, nil
 		}
 	}
 	return Tunnel{}, ErrTunnelNotFound
 }
 
 func (c *Client) CreateTunnelToken(ctx context.Context, apiToken, accountID, tunnelID string) (string, error) {
-	var out rawEnvelope
-	path := fmt.Sprintf("/accounts/%s/cfd_tunnel/%s/token", url.PathEscape(accountID), url.PathEscape(tunnelID))
-	if err := c.doJSON(ctx, http.MethodGet, path, apiToken, nil, &out); err != nil {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
 		return "", err
 	}
-
-	var token string
-	if err := json.Unmarshal(out.Result, &token); err == nil {
-		token = strings.TrimSpace(token)
-		if token != "" {
-			return token, nil
-		}
+	token, err := api.GetTunnelToken(ctx, cf.AccountIdentifier(accountID), tunnelID)
+	if err != nil {
+		return "", toAPIError(err)
 	}
-
-	var wrapped struct {
-		Token string `json:"token"`
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return "", fmt.Errorf("empty tunnel token")
 	}
-	if err := json.Unmarshal(out.Result, &wrapped); err == nil {
-		wrapped.Token = strings.TrimSpace(wrapped.Token)
-		if wrapped.Token != "" {
-			return wrapped.Token, nil
-		}
-	}
-
-	return "", fmt.Errorf("decode tunnel token: unexpected result payload")
+	return token, nil
 }
 
 func (c *Client) UpsertDNSCNAME(ctx context.Context, apiToken, zoneID, hostname, target string, proxied bool) error {
-	queryPath := fmt.Sprintf("/zones/%s/dns_records?type=CNAME&name=%s", url.PathEscape(zoneID), url.QueryEscape(hostname))
-	var listOut responseEnvelope[[]dnsRecord]
-	if err := c.doJSON(ctx, http.MethodGet, queryPath, apiToken, nil, &listOut); err != nil {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
 		return err
 	}
-
-	payload := map[string]any{
-		"type":    "CNAME",
-		"name":    hostname,
-		"content": target,
-		"proxied": proxied,
+	listOut, _, err := api.ListDNSRecords(ctx, cf.ZoneIdentifier(zoneID), cf.ListDNSRecordsParams{
+		Type: "CNAME",
+		Name: hostname,
+		ResultInfo: cf.ResultInfo{
+			Page:    1,
+			PerPage: 1,
+		},
+	})
+	if err != nil {
+		return toAPIError(err)
 	}
-	if len(listOut.Result) > 0 {
-		updatePath := fmt.Sprintf("/zones/%s/dns_records/%s", url.PathEscape(zoneID), url.PathEscape(listOut.Result[0].ID))
-		return c.doJSON(ctx, http.MethodPut, updatePath, apiToken, payload, nil)
+	if len(listOut) > 0 {
+		_, err = api.UpdateDNSRecord(ctx, cf.ZoneIdentifier(zoneID), cf.UpdateDNSRecordParams{
+			ID:      listOut[0].ID,
+			Type:    "CNAME",
+			Name:    hostname,
+			Content: target,
+			Proxied: &proxied,
+		})
+		return toAPIError(err)
 	}
-	createPath := fmt.Sprintf("/zones/%s/dns_records", url.PathEscape(zoneID))
-	return c.doJSON(ctx, http.MethodPost, createPath, apiToken, payload, nil)
+	_, err = api.CreateDNSRecord(ctx, cf.ZoneIdentifier(zoneID), cf.CreateDNSRecordParams{
+		Type:    "CNAME",
+		Name:    hostname,
+		Content: target,
+		Proxied: &proxied,
+	})
+	return toAPIError(err)
 }
 
 func (c *Client) UpdateTunnelIngress(ctx context.Context, apiToken, accountID, tunnelID string, rules []IngressRule) error {
-	ingress := make([]map[string]string, 0, len(rules)+1)
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
+		return err
+	}
+
+	ingress := make([]cf.UnvalidatedIngressRule, 0, len(rules)+1)
 	for _, rule := range rules {
-		ingress = append(ingress, map[string]string{"hostname": rule.Hostname, "service": rule.Service})
+		ingress = append(ingress, cf.UnvalidatedIngressRule{Hostname: rule.Hostname, Service: rule.Service})
 	}
-	ingress = append(ingress, map[string]string{"service": "http_status:404"})
+	ingress = append(ingress, cf.UnvalidatedIngressRule{Service: "http_status:404"})
 
-	payload := map[string]any{
-		"config": map[string]any{
-			"ingress": ingress,
+	_, err = api.UpdateTunnelConfiguration(ctx, cf.AccountIdentifier(accountID), cf.TunnelConfigurationParams{
+		TunnelID: tunnelID,
+		Config: cf.TunnelConfiguration{
+			Ingress: ingress,
 		},
-	}
-	path := fmt.Sprintf("/accounts/%s/cfd_tunnel/%s/configurations", url.PathEscape(accountID), url.PathEscape(tunnelID))
-	return c.doJSON(ctx, http.MethodPut, path, apiToken, payload, nil)
-}
-
-func (c *Client) doJSON(ctx context.Context, method, path, apiToken string, payload any, out any) error {
-	var body io.Reader
-	if payload != nil {
-		data, err := json.Marshal(payload)
-		if err != nil {
-			return fmt.Errorf("marshal request: %w", err)
-		}
-		body = bytes.NewReader(data)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+apiToken)
-	if payload != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("cloudflare request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return fmt.Errorf("read response: %w", err)
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var envelope rawEnvelope
-		if err := json.Unmarshal(respBody, &envelope); err == nil && !envelope.Success {
-			return envelopeError(envelope.Errors)
-		}
-		return fmt.Errorf("cloudflare request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
-	}
-	if len(respBody) == 0 {
-		return nil
-	}
-
-	var envelope rawEnvelope
-	if err := json.Unmarshal(respBody, &envelope); err != nil {
-		return fmt.Errorf("decode response: %w", err)
-	}
-	if !envelope.Success {
-		return envelopeError(envelope.Errors)
-	}
-	if out == nil {
-		return nil
-	}
-	if err := json.Unmarshal(respBody, out); err == nil {
-		return nil
-	}
-	if len(envelope.Result) == 0 {
-		return nil
-	}
-	if err := json.Unmarshal(envelope.Result, out); err != nil {
-		return fmt.Errorf("decode result: %w", err)
-	}
-
-	return nil
+	})
+	return toAPIError(err)
 }
 
 func envelopeError(errors []APIError) error {
@@ -276,4 +237,56 @@ func envelopeError(errors []APIError) error {
 		return APIError{Message: "cloudflare request failed"}
 	}
 	return errors[0]
+}
+
+func (c *Client) apiForToken(apiToken string) (*cf.API, error) {
+	opts := []cf.Option{}
+	if c.httpClient != nil {
+		httpClient := &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			return c.httpClient.Do(req)
+		})}
+		opts = append(opts, cf.HTTPClient(httpClient))
+	}
+	if trimmed := strings.TrimSpace(c.baseURL); trimmed != "" && trimmed != defaultBaseURL {
+		opts = append(opts, cf.BaseURL(trimmed))
+	}
+	api, err := cf.NewWithAPIToken(apiToken, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return api, nil
+}
+
+func tunnelSecret() string {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(buf)
+}
+
+func toAPIError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var cfErr *cf.Error
+	if errors.As(err, &cfErr) {
+		if len(cfErr.Errors) > 0 {
+			return envelopeError([]APIError{{Code: cfErr.Errors[0].Code, Message: cfErr.Errors[0].Message}})
+		}
+		if len(cfErr.ErrorCodes) > 0 {
+			msg := "cloudflare request failed"
+			if len(cfErr.ErrorMessages) > 0 {
+				msg = cfErr.ErrorMessages[0]
+			}
+			return envelopeError([]APIError{{Code: cfErr.ErrorCodes[0], Message: msg}})
+		}
+	}
+	return err
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
