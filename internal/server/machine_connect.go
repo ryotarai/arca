@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
@@ -18,14 +19,15 @@ import (
 type machineConnectService struct {
 	authenticator Authenticator
 	store         MachineStore
+	cf            *cloudflare.Client
 }
 
 var machineNamePattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 
 var reservedMachineNames = []string{"admin", "console", "dash", "api", "system"}
 
-func newMachineConnectService(authenticator Authenticator, store MachineStore) *machineConnectService {
-	return &machineConnectService{authenticator: authenticator, store: store}
+func newMachineConnectService(authenticator Authenticator, store MachineStore, cf *cloudflare.Client) *machineConnectService {
+	return &machineConnectService{authenticator: authenticator, store: store, cf: cf}
 }
 
 func (s *machineConnectService) ListMachines(ctx context.Context, req *connect.Request[arcav1.ListMachinesRequest]) (*connect.Response[arcav1.ListMachinesResponse], error) {
@@ -209,6 +211,19 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
 
+	if _, err := s.store.GetMachineByIDForUser(ctx, userID, machineID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		log.Printf("lookup machine before delete failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
+	}
+
+	if err := s.deleteMachineTunnel(ctx, machineID); err != nil {
+		log.Printf("delete machine tunnel failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete cloudflare tunnel"))
+	}
+
 	deleted, err := s.store.DeleteMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
 		log.Printf("delete machine failed: %v", err)
@@ -219,6 +234,41 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 	}
 
 	return connect.NewResponse(&arcav1.DeleteMachineResponse{}), nil
+}
+
+func (s *machineConnectService) deleteMachineTunnel(ctx context.Context, machineID string) error {
+	tunnel, err := s.store.GetMachineTunnelByMachineID(ctx, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+
+	if s.cf == nil {
+		return errors.New("cloudflare client unavailable")
+	}
+
+	setup, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		return err
+	}
+	apiToken := strings.TrimSpace(setup.CloudflareAPIToken)
+	if apiToken == "" {
+		return errors.New("cloudflare api token is not configured")
+	}
+
+	if err := s.cf.DeleteTunnel(ctx, apiToken, tunnel.AccountID, tunnel.TunnelID); err != nil {
+		var apiErr cloudflare.APIError
+		if errors.As(err, &apiErr) {
+			msg := strings.ToLower(apiErr.Message)
+			if strings.Contains(msg, "not found") || apiErr.Code == 1003 || apiErr.Code == 1033 {
+				return nil
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *machineConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
