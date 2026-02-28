@@ -2,6 +2,7 @@ package cloudflare
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -157,5 +158,69 @@ func TestGetZone(t *testing.T) {
 	}
 	if got, want := zone.Account.ID, "acc-1"; got != want {
 		t.Fatalf("zone.account.id = %s, want %s", got, want)
+	}
+}
+
+func TestGetTunnelByName(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/accounts/acc-1/cfd_tunnel"; got != want {
+			t.Fatalf("path = %s, want %s", got, want)
+		}
+		if got, want := r.URL.Query().Get("name"), "arca-machine-123"; got != want {
+			t.Fatalf("name query = %s, want %s", got, want)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":[{"id":"tun-1","name":"arca-machine-123"}]}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	tunnel, err := client.GetTunnelByName(context.Background(), "token", "acc-1", "arca-machine-123")
+	if err != nil {
+		t.Fatalf("GetTunnelByName() error = %v", err)
+	}
+	if got, want := tunnel.ID, "tun-1"; got != want {
+		t.Fatalf("tunnel.id = %s, want %s", got, want)
+	}
+}
+
+func TestGetTunnelByNameNotFound(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":[]}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	_, err := client.GetTunnelByName(context.Background(), "token", "acc-1", "arca-machine-123")
+	if !errors.Is(err, ErrTunnelNotFound) {
+		t.Fatalf("expected ErrTunnelNotFound, got %v", err)
+	}
+}
+
+func TestCreateTunnelReturnsAPIErrorOnNon2xx(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"success":false,"errors":[{"code":1013,"message":"already exists"}]}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	_, err := client.CreateTunnel(context.Background(), "token", "acc-1", "name")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var apiErr APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got %T: %v", err, err)
+	}
+	if got, want := apiErr.Code, 1013; got != want {
+		t.Fatalf("api error code = %d, want %d", got, want)
 	}
 }
