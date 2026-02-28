@@ -18,15 +18,20 @@ type Proxy struct {
 	cache         *ExposureCache
 	controlPlane  ControlPlaneClient
 	sessions      *SessionManager
+	upstream      *url.URL
 	sessionCookie string
 	sessionMaxAge time.Duration
 }
 
-func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *SessionManager, sessionCookie string) *Proxy {
+func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *SessionManager, sessionCookie string, upstream *url.URL) *Proxy {
+	if upstream == nil {
+		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:8080"}
+	}
 	return &Proxy{
 		cache:         cache,
 		controlPlane:  controlPlane,
 		sessions:      sessions,
+		upstream:      upstream,
 		sessionCookie: sessionCookie,
 		sessionMaxAge: 8 * time.Hour,
 	}
@@ -57,22 +62,19 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	target, err := exposure.targetURL()
-	if err != nil {
-		log.Printf("invalid target for host %q: %v", host, err)
-		http.Error(w, "invalid upstream target", http.StatusBadGateway)
-		return
-	}
-	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy := httputil.NewSingleHostReverseProxy(p.upstream)
 	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
-		log.Printf("reverse proxy error for host %q target %q: %v", host, target, err)
+		log.Printf("reverse proxy error for host %q target %q: %v", host, p.upstream, err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 	}
 	proxy.ServeHTTP(w, r)
 }
 
 func (p *Proxy) handleTicketCallback(w http.ResponseWriter, r *http.Request, host string) {
-	ticket := strings.TrimSpace(r.URL.Query().Get("ticket"))
+	ticket := strings.TrimSpace(r.URL.Query().Get("token"))
+	if ticket == "" {
+		ticket = strings.TrimSpace(r.URL.Query().Get("ticket"))
+	}
 	if ticket == "" {
 		http.Error(w, "missing ticket", http.StatusBadRequest)
 		return

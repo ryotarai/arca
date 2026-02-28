@@ -74,6 +74,16 @@ func NewRouter(deps Dependencies) http.Handler {
 		path, handler = arcav1connect.NewTicketServiceHandler(newTicketConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
+	if deps.Store != nil {
+		path, handler := arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store))
+		r.Mount(path, handler)
+	}
+	if deps.Store != nil && deps.Authenticator != nil {
+		authorizeHandler := newConsoleAuthorizeHandler(deps.Store, deps.Authenticator)
+		r.Get("/console/authorize", authorizeHandler)
+		// Backward-compatible alias.
+		r.Get("/auth/authorize", authorizeHandler)
+	}
 
 	r.NotFound(spaHandler())
 	return r

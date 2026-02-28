@@ -331,13 +331,13 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 	}
 
 	ingressRules := []cloudflare.IngressRule{
-		{Hostname: hostname, Service: "http://localhost:8080"},
+		{Hostname: hostname, Service: "http://localhost:21030"},
 	}
 	if err := w.cfClient.UpdateTunnelIngress(ctx, setup.CloudflareAPIToken, tunnel.AccountID, tunnel.TunnelID, ingressRules); err != nil {
 		return "", fmt.Errorf("update tunnel ingress: %w", err)
 	}
 
-	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:8080", true); err != nil {
+	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:8080", false); err != nil {
 		return "", fmt.Errorf("upsert machine exposure: %w", err)
 	}
 	slog.Info(

@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	temporaryExposureEndpoint     = "/api/internal/machine/exposure"
-	temporaryVerifyTicketEndpoint = "/api/internal/machine/verify-ticket"
+	getExposureByHostnameEndpoint = "/arca.v1.TunnelService/GetMachineExposureByHostname"
+	verifyTicketEndpoint          = "/arca.v1.TicketService/VerifyTicket"
 )
 
 // Exposure describes host routing and visibility.
@@ -54,17 +54,24 @@ type ControlPlaneClient interface {
 
 type HTTPControlPlaneClient struct {
 	baseURL      string
+	authorizeURL string
 	machineID    string
 	machineToken string
 	httpClient   *http.Client
 }
 
-func NewHTTPControlPlaneClient(baseURL, machineID, machineToken string, httpClient *http.Client) *HTTPControlPlaneClient {
+func NewHTTPControlPlaneClient(baseURL, authorizeURL, machineID, machineToken string, httpClient *http.Client) *HTTPControlPlaneClient {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 10 * time.Second}
 	}
+	baseURL = strings.TrimRight(baseURL, "/")
+	authorizeURL = strings.TrimSpace(authorizeURL)
+	if authorizeURL == "" {
+		authorizeURL = baseURL + "/console/authorize"
+	}
 	return &HTTPControlPlaneClient{
-		baseURL:      strings.TrimRight(baseURL, "/"),
+		baseURL:      baseURL,
+		authorizeURL: authorizeURL,
 		machineID:    machineID,
 		machineToken: machineToken,
 		httpClient:   httpClient,
@@ -72,11 +79,16 @@ func NewHTTPControlPlaneClient(baseURL, machineID, machineToken string, httpClie
 }
 
 func (c *HTTPControlPlaneClient) GetExposureByHost(ctx context.Context, host string) (Exposure, error) {
-	reqURL := c.baseURL + temporaryExposureEndpoint + "?host=" + url.QueryEscape(host)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	payload := map[string]string{"hostname": host}
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return Exposure{}, err
 	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+getExposureByHostnameEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return Exposure{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.machineToken)
 	req.Header.Set("X-Arca-Machine-ID", c.machineID)
 	resp, err := c.httpClient.Do(req)
@@ -90,9 +102,23 @@ func (c *HTTPControlPlaneClient) GetExposureByHost(ctx context.Context, host str
 	if resp.StatusCode != http.StatusOK {
 		return Exposure{}, fmt.Errorf("exposure lookup failed: status %d", resp.StatusCode)
 	}
-	var exposure Exposure
-	if err := json.NewDecoder(resp.Body).Decode(&exposure); err != nil {
+	var decoded struct {
+		Exposure *struct {
+			Hostname string `json:"hostname"`
+			Service  string `json:"service"`
+			Public   bool   `json:"public"`
+		} `json:"exposure"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
 		return Exposure{}, fmt.Errorf("decode exposure: %w", err)
+	}
+	if decoded.Exposure == nil {
+		return Exposure{}, fmt.Errorf("missing exposure in response")
+	}
+	exposure := Exposure{
+		Host:   strings.TrimSpace(decoded.Exposure.Hostname),
+		Target: strings.TrimSpace(decoded.Exposure.Service),
+		Public: decoded.Exposure.Public,
 	}
 	if exposure.Host == "" {
 		exposure.Host = host
@@ -101,16 +127,15 @@ func (c *HTTPControlPlaneClient) GetExposureByHost(ctx context.Context, host str
 }
 
 func (c *HTTPControlPlaneClient) VerifyTicket(ctx context.Context, host, ticket string) (TicketClaims, error) {
+	_ = host
 	payload := map[string]string{
-		"machine_id": c.machineID,
-		"host":       host,
-		"ticket":     ticket,
+		"ticket": ticket,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return TicketClaims{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+temporaryVerifyTicketEndpoint, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+verifyTicketEndpoint, bytes.NewReader(body))
 	if err != nil {
 		return TicketClaims{}, err
 	}
@@ -127,9 +152,20 @@ func (c *HTTPControlPlaneClient) VerifyTicket(ctx context.Context, host, ticket 
 	if resp.StatusCode != http.StatusOK {
 		return TicketClaims{}, fmt.Errorf("ticket verification failed: status %d", resp.StatusCode)
 	}
-	var claims TicketClaims
-	if err := json.NewDecoder(resp.Body).Decode(&claims); err != nil {
+	var decoded struct {
+		User *struct {
+			ID string `json:"id"`
+		} `json:"user"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
 		return TicketClaims{}, fmt.Errorf("decode ticket claims: %w", err)
+	}
+	if decoded.User == nil || strings.TrimSpace(decoded.User.ID) == "" {
+		return TicketClaims{}, fmt.Errorf("invalid ticket response")
+	}
+	claims := TicketClaims{
+		UserID:    strings.TrimSpace(decoded.User.ID),
+		ExpiresAt: time.Now().Add(8 * time.Hour),
 	}
 	if claims.ExpiresAt.IsZero() {
 		claims.ExpiresAt = time.Now().Add(8 * time.Hour)
@@ -138,5 +174,5 @@ func (c *HTTPControlPlaneClient) VerifyTicket(ctx context.Context, host, ticket 
 }
 
 func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {
-	return c.baseURL + "/auth/authorize?target=" + url.QueryEscape(target)
+	return c.authorizeURL + "?target=" + url.QueryEscape(target)
 }
