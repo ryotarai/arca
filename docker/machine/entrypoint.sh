@@ -38,13 +38,18 @@ app_pid=$!
 /usr/local/bin/arcad &
 arcad_pid=$!
 
+BASE_PATH="${BASE_PATH:-/__arca/claudecodeui}"
+PORT="${PORT:-21031}"
+BASE_PATH="$BASE_PATH" PORT="$PORT" node /home/arca/claudecodeui/server/index.js &
+claudecodeui_pid=$!
+
 cleanup() {
-  kill "$arcad_pid" "$app_pid" 2>/dev/null || true
+  kill "$arcad_pid" "$claudecodeui_pid" "$app_pid" 2>/dev/null || true
 }
 
 trap cleanup TERM INT
 
-wait "$arcad_pid"
+wait -n "$arcad_pid" "$claudecodeui_pid" "$app_pid"
 status=$?
 cleanup
 exit "$status"
