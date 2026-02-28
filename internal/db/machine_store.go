@@ -439,6 +439,93 @@ func (s *Store) RecoverExpiredMachineJobs(ctx context.Context, nowUnix int64) er
 	}
 }
 
+func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus string, limit int64) ([]Machine, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListMachinesByDesiredStatus(ctx, sqlitesqlc.ListMachinesByDesiredStatusParams{
+			DesiredStatus: desiredStatus,
+			LimitN:        limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+		machines := make([]Machine, 0, len(rows))
+		for _, row := range rows {
+			machines = append(machines, Machine{
+				ID:            row.ID,
+				Name:          row.Name,
+				Status:        row.Status,
+				DesiredStatus: row.DesiredStatus,
+				ContainerID:   row.ContainerID,
+				LastError:     row.LastError,
+			})
+		}
+		return machines, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListMachinesByDesiredStatus(ctx, postgresqlsqlc.ListMachinesByDesiredStatusParams{
+			DesiredStatus: desiredStatus,
+			LimitN:        int32(limit),
+		})
+		if err != nil {
+			return nil, err
+		}
+		machines := make([]Machine, 0, len(rows))
+		for _, row := range rows {
+			machines = append(machines, Machine{
+				ID:            row.ID,
+				Name:          row.Name,
+				Status:        row.Status,
+				DesiredStatus: row.DesiredStatus,
+				ContainerID:   row.ContainerID,
+				LastError:     row.LastError,
+			})
+		}
+		return machines, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) HasActiveStartOrReconcileJob(ctx context.Context, machineID string) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		count, err := s.sqliteQueries.CountActiveStartOrReconcileJobsByMachineID(ctx, machineID)
+		return count > 0, err
+	case DriverPostgres:
+		count, err := s.pgQueries.CountActiveStartOrReconcileJobsByMachineID(ctx, machineID)
+		return count > 0, err
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) EnqueueReconcileMachineJob(ctx context.Context, machineID string, nowUnix int64) error {
+	jobID, err := randomID()
+	if err != nil {
+		return err
+	}
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.EnqueueMachineJob(ctx, sqlitesqlc.EnqueueMachineJobParams{
+			ID:        jobID,
+			MachineID: machineID,
+			Kind:      MachineJobReconcile,
+			NextRunAt: nowUnix,
+			NowUnix:   nowUnix,
+		})
+	case DriverPostgres:
+		return s.pgQueries.EnqueueMachineJob(ctx, postgresqlsqlc.EnqueueMachineJobParams{
+			ID:        jobID,
+			MachineID: machineID,
+			Kind:      MachineJobReconcile,
+			NextRunAt: nowUnix,
+			NowUnix:   nowUnix,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) ClaimNextMachineJob(ctx context.Context, leaseOwner string, leaseUntil int64, nowUnix int64) (MachineJob, bool, error) {
 	switch s.driver {
 	case DriverSQLite:

@@ -194,6 +194,21 @@ WHERE status = 'running'
   AND lease_until IS NOT NULL
   AND lease_until < sqlc.arg(now_unix);
 
+-- name: ListMachinesByDesiredStatus :many
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE ms.desired_status = sqlc.arg(desired_status)
+ORDER BY ms.updated_at ASC
+LIMIT sqlc.arg(limit_n);
+
+-- name: CountActiveStartOrReconcileJobsByMachineID :one
+SELECT COUNT(1)
+FROM machine_jobs
+WHERE machine_id = sqlc.arg(machine_id)
+  AND status IN ('queued', 'running')
+  AND kind IN ('start', 'reconcile');
+
 -- name: GetSetupState :one
 SELECT completed, admin_user_id, base_domain, cloudflare_api_token, docker_provider_enabled, updated_at
 FROM setup_state

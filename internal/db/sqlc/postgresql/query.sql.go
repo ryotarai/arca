@@ -40,6 +40,21 @@ func (q *Queries) ClaimMachineJob(ctx context.Context, arg ClaimMachineJobParams
 	return result.RowsAffected()
 }
 
+const countActiveStartOrReconcileJobsByMachineID = `-- name: CountActiveStartOrReconcileJobsByMachineID :one
+SELECT COUNT(1)
+FROM machine_jobs
+WHERE machine_id = $1
+  AND status IN ('queued', 'running')
+  AND kind IN ('start', 'reconcile')
+`
+
+func (q *Queries) CountActiveStartOrReconcileJobsByMachineID(ctx context.Context, machineID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countActiveStartOrReconcileJobsByMachineID, machineID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createAuthTicket = `-- name: CreateAuthTicket :exec
 INSERT INTO auth_tickets (id, ticket_hash, user_id, machine_id, exposure_id, expires_at, created_at)
 VALUES (
@@ -589,6 +604,59 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 			&i.IsPublic,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
+SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE ms.desired_status = $1
+ORDER BY ms.updated_at ASC
+LIMIT $2
+`
+
+type ListMachinesByDesiredStatusParams struct {
+	DesiredStatus string
+	LimitN        int32
+}
+
+type ListMachinesByDesiredStatusRow struct {
+	ID            string
+	Name          string
+	Status        string
+	DesiredStatus string
+	ContainerID   string
+	LastError     string
+}
+
+func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachinesByDesiredStatusParams) ([]ListMachinesByDesiredStatusRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMachinesByDesiredStatus, arg.DesiredStatus, arg.LimitN)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMachinesByDesiredStatusRow
+	for rows.Next() {
+		var i ListMachinesByDesiredStatusRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Status,
+			&i.DesiredStatus,
+			&i.ContainerID,
+			&i.LastError,
 		); err != nil {
 			return nil, err
 		}
