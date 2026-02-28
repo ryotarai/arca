@@ -43,6 +43,8 @@ type MachineStore interface {
 	RequestStartMachineByIDForOwner(context.Context, string, string) (bool, error)
 	RequestStopMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
+	GetMachineTunnelByMachineID(context.Context, string) (db.MachineTunnel, error)
+	GetSetupState(context.Context) (db.SetupState, error)
 }
 
 const sessionCookieName = "arca_session"
@@ -61,7 +63,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {
-		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore))
+		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore, deps.Cloudflare))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Cloudflare != nil && deps.Authenticator != nil {

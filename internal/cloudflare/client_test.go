@@ -252,3 +252,24 @@ func TestCreateTunnelTokenUsesGET(t *testing.T) {
 		t.Fatalf("token = %s, want %s", got, want)
 	}
 }
+
+func TestDeleteTunnel(t *testing.T) {
+	t.Parallel()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.Method, http.MethodDelete; got != want {
+			t.Fatalf("method = %s, want %s", got, want)
+		}
+		if got, want := r.URL.Path, "/accounts/acc-1/cfd_tunnel/tun-1"; got != want {
+			t.Fatalf("path = %s, want %s", got, want)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"success":true,"result":{"id":"tun-1"}}`))
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	if err := client.DeleteTunnel(context.Background(), "token", "acc-1", "tun-1"); err != nil {
+		t.Fatalf("DeleteTunnel() error = %v", err)
+	}
+}

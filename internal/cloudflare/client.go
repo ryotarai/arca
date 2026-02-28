@@ -176,6 +176,14 @@ func (c *Client) CreateTunnelToken(ctx context.Context, apiToken, accountID, tun
 	return token, nil
 }
 
+func (c *Client) DeleteTunnel(ctx context.Context, apiToken, accountID, tunnelID string) error {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
+		return err
+	}
+	return toAPIError(api.DeleteTunnel(ctx, cf.AccountIdentifier(accountID), tunnelID))
+}
+
 func (c *Client) UpsertDNSCNAME(ctx context.Context, apiToken, zoneID, hostname, target string, proxied bool) error {
 	api, err := c.apiForToken(apiToken)
 	if err != nil {
