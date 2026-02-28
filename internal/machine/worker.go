@@ -3,8 +3,10 @@ package machine
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"math"
 	"runtime/debug"
 	"strings"
@@ -114,6 +116,15 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 	}
 
 	if err != nil {
+		slog.Error(
+			"machine job failed",
+			"worker_id", w.workerID,
+			"job_id", job.ID,
+			"machine_id", machine.ID,
+			"job_kind", job.Kind,
+			"attempt", job.Attempt,
+			"error", err,
+		)
 		_ = w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusFailed, machine.DesiredStatus, machine.ContainerID, err.Error())
 		_ = w.store.RequeueMachineJob(ctx, job.ID, nowUnix+retryDelaySeconds(job.Attempt), err.Error(), nowUnix)
 		return
@@ -168,6 +179,12 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		return "", fmt.Errorf("cloudflare client unavailable")
 	}
 
+	slog.Info(
+		"machine tunnel provisioning started",
+		"machine_id", machine.ID,
+		"machine_name", machine.Name,
+	)
+
 	setup, err := w.store.GetSetupState(ctx)
 	if err != nil {
 		return "", fmt.Errorf("load setup state: %w", err)
@@ -198,9 +215,30 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		}
 
 		tunnelName := "arca-machine-" + machine.ID[:12]
+		slog.Info(
+			"creating cloudflare tunnel",
+			"machine_id", machine.ID,
+			"account_id", accountID,
+			"tunnel_name", tunnelName,
+		)
 		created, createErr := w.cfClient.CreateTunnel(ctx, setup.CloudflareAPIToken, accountID, tunnelName)
 		if createErr != nil {
-			return "", fmt.Errorf("create cloudflare tunnel: %w", createErr)
+			var apiErr cloudflare.APIError
+			if errors.As(createErr, &apiErr) && apiErr.Code == 1013 {
+				slog.Warn(
+					"cloudflare tunnel already exists, reusing existing tunnel",
+					"machine_id", machine.ID,
+					"account_id", accountID,
+					"tunnel_name", tunnelName,
+				)
+				existing, findErr := w.cfClient.GetTunnelByName(ctx, setup.CloudflareAPIToken, accountID, tunnelName)
+				if findErr != nil {
+					return "", fmt.Errorf("find existing cloudflare tunnel: %w", findErr)
+				}
+				created = existing
+			} else {
+				return "", fmt.Errorf("create cloudflare tunnel: %w", createErr)
+			}
 		}
 		tunnelToken, tokenErr := w.cfClient.CreateTunnelToken(ctx, setup.CloudflareAPIToken, accountID, created.ID)
 		if tokenErr != nil {
@@ -216,6 +254,12 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		if upsertErr := w.store.UpsertMachineTunnel(ctx, tunnel); upsertErr != nil {
 			return "", fmt.Errorf("save machine tunnel: %w", upsertErr)
 		}
+		slog.Info(
+			"cloudflare tunnel prepared",
+			"machine_id", machine.ID,
+			"tunnel_id", tunnel.TunnelID,
+			"tunnel_name", tunnel.TunnelName,
+		)
 	}
 
 	hostname := machineSubdomain(machine.Name)
@@ -232,7 +276,16 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		return "", fmt.Errorf("update tunnel ingress: %w", err)
 	}
 
-	_, _ = w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:8080", true)
+	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:8080", true); err != nil {
+		return "", fmt.Errorf("upsert machine exposure: %w", err)
+	}
+	slog.Info(
+		"machine tunnel provisioning completed",
+		"machine_id", machine.ID,
+		"hostname", hostname,
+		"target", target,
+		"tunnel_id", tunnel.TunnelID,
+	)
 	return tunnel.TunnelToken, nil
 }
 

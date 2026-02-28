@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -73,6 +74,8 @@ type dnsRecord struct {
 	ID string `json:"id"`
 }
 
+var ErrTunnelNotFound = errors.New("cloudflare tunnel not found")
+
 func NewClient(httpClient HTTPClient) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
@@ -120,6 +123,24 @@ func (c *Client) CreateTunnel(ctx context.Context, apiToken, accountID, tunnelNa
 		return Tunnel{}, err
 	}
 	return out.Result, nil
+}
+
+func (c *Client) GetTunnelByName(ctx context.Context, apiToken, accountID, tunnelName string) (Tunnel, error) {
+	var out responseEnvelope[[]Tunnel]
+	path := fmt.Sprintf(
+		"/accounts/%s/cfd_tunnel?name=%s&is_deleted=false&page=1&per_page=100",
+		url.PathEscape(accountID),
+		url.QueryEscape(tunnelName),
+	)
+	if err := c.doJSON(ctx, http.MethodGet, path, apiToken, nil, &out); err != nil {
+		return Tunnel{}, err
+	}
+	for _, tunnel := range out.Result {
+		if strings.EqualFold(strings.TrimSpace(tunnel.Name), strings.TrimSpace(tunnelName)) {
+			return tunnel, nil
+		}
+	}
+	return Tunnel{}, ErrTunnelNotFound
 }
 
 func (c *Client) CreateTunnelToken(ctx context.Context, apiToken, accountID, tunnelID string) (string, error) {
@@ -200,6 +221,10 @@ func (c *Client) doJSON(ctx context.Context, method, path, apiToken string, payl
 		return fmt.Errorf("read response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var envelope rawEnvelope
+		if err := json.Unmarshal(respBody, &envelope); err == nil && !envelope.Success {
+			return envelopeError(envelope.Errors)
+		}
 		return fmt.Errorf("cloudflare request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 	if len(respBody) == 0 {
