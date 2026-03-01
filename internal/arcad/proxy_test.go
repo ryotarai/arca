@@ -2,6 +2,7 @@ package arcad
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -72,6 +73,58 @@ func TestProxyCallbackSetsSessionCookie(t *testing.T) {
 	if cookies[0].Name != "arcad_session" || cookies[0].Value == "" {
 		t.Fatalf("unexpected cookie: %+v", cookies[0])
 	}
+}
+
+func TestProxyRoutesClaudeCodeUIPathToDedicatedUpstream(t *testing.T) {
+	defaultUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("default"))
+	}))
+	t.Cleanup(defaultUpstream.Close)
+
+	claudecodeuiUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("claudecodeui"))
+	}))
+	t.Cleanup(claudecodeuiUpstream.Close)
+
+	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL))
+	proxy.claudecodeui = mustURL(t, claudecodeuiUpstream.URL)
+
+	t.Run("claudecodeui path", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/claudecodeui/", nil)
+		rr := httptest.NewRecorder()
+		proxy.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+		}
+		body, err := io.ReadAll(rr.Result().Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		if string(body) != "claudecodeui" {
+			t.Fatalf("unexpected body: %q", string(body))
+		}
+	})
+
+	t.Run("default path", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "http://app.example/", nil)
+		rr := httptest.NewRecorder()
+		proxy.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+		}
+		body, err := io.ReadAll(rr.Result().Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		if string(body) != "default" {
+			t.Fatalf("unexpected body: %q", string(body))
+		}
+	})
 }
 
 func mustURL(t *testing.T, raw string) *url.URL {
