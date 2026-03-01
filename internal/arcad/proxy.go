@@ -32,7 +32,7 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:8080"}
 	}
 	claudecodeui := &url.URL{Scheme: "http", Host: "127.0.0.1:21031"}
-	ttyd := &url.URL{Scheme: "http", Host: "127.0.0.1:7681"}
+	ttyd := &url.URL{Scheme: "http", Host: "127.0.0.1:21032"}
 	return &Proxy{
 		cache:         cache,
 		controlPlane:  controlPlane,

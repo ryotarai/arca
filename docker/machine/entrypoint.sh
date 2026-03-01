@@ -41,7 +41,7 @@ app_pid=$!
 /usr/local/bin/arcad &
 arcad_pid=$!
 
-TTYD_PORT="${TTYD_PORT:-7681}"
+TTYD_PORT="${TTYD_PORT:-21032}"
 TTYD_BASE_PATH="${TTYD_BASE_PATH:-/__arca/ttyd}"
 ttyd -p "$TTYD_PORT" -b "$TTYD_BASE_PATH" bash &
 ttyd_pid=$!
