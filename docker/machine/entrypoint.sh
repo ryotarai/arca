@@ -46,16 +46,22 @@ claudecodeui_pid=$!
 
 setup_claudecodeui() {
   local i
+  local base_path="${BASE_PATH%/}"
+  if [ -z "$base_path" ]; then
+    base_path=""
+  fi
+  local status_url="http://localhost:${PORT}${base_path}/api/auth/status"
+  local register_url="http://localhost:${PORT}${base_path}/api/auth/register"
   for i in $(seq 1 30); do
-    if curl -fsS "http://localhost:${PORT}/api/auth/status" >/dev/null 2>&1; then
+    if curl -fsS "$status_url" >/dev/null 2>&1; then
       break
     fi
     sleep 1
   done
 
-  if curl -s "http://localhost:${PORT}/api/auth/status" | jq -e '.needsSetup == true' >/dev/null; then
+  if curl -s "$status_url" | jq -e '.needsSetup == true' >/dev/null; then
     echo "claudecodeui setup: registering default admin user"
-    curl -s -X POST "http://localhost:${PORT}/api/auth/register" \
+    curl -s -X POST "$register_url" \
       -H "Content-Type: application/json" \
       -d '{"username":"admin","password":"password"}' >/dev/null
   else
