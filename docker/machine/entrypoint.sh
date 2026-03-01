@@ -41,6 +41,11 @@ app_pid=$!
 /usr/local/bin/arcad &
 arcad_pid=$!
 
+TTYD_PORT="${TTYD_PORT:-7681}"
+TTYD_BASE_PATH="${TTYD_BASE_PATH:-/__arca/ttyd}"
+ttyd -p "$TTYD_PORT" -b "$TTYD_BASE_PATH" bash &
+ttyd_pid=$!
+
 BASE_PATH="${BASE_PATH:-/__arca/claudecodeui}"
 PORT="${PORT:-21031}"
 VITE_IS_PLATFORM="${VITE_IS_PLATFORM:-true}"
@@ -75,12 +80,12 @@ setup_claudecodeui &
 setup_pid=$!
 
 cleanup() {
-  kill "$setup_pid" "$arcad_pid" "$claudecodeui_pid" "$app_pid" 2>/dev/null || true
+  kill "$setup_pid" "$arcad_pid" "$ttyd_pid" "$claudecodeui_pid" "$app_pid" 2>/dev/null || true
 }
 
 trap cleanup TERM INT
 
-wait -n "$arcad_pid" "$claudecodeui_pid" "$app_pid"
+wait -n "$arcad_pid" "$ttyd_pid" "$claudecodeui_pid" "$app_pid"
 status=$?
 cleanup
 exit "$status"
