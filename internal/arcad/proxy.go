@@ -13,12 +13,14 @@ import (
 )
 
 const callbackPath = "/callback"
+const claudecodeuiBasePath = "/__arca/claudecodeui"
 
 type Proxy struct {
 	cache         *ExposureCache
 	controlPlane  ControlPlaneClient
 	sessions      *SessionManager
 	upstream      *url.URL
+	claudecodeui  *url.URL
 	sessionCookie string
 	sessionMaxAge time.Duration
 }
@@ -27,11 +29,13 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 	if upstream == nil {
 		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:8080"}
 	}
+	claudecodeui := &url.URL{Scheme: "http", Host: "127.0.0.1:21031"}
 	return &Proxy{
 		cache:         cache,
 		controlPlane:  controlPlane,
 		sessions:      sessions,
 		upstream:      upstream,
+		claudecodeui:  claudecodeui,
 		sessionCookie: sessionCookie,
 		sessionMaxAge: 8 * time.Hour,
 	}
@@ -62,12 +66,20 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(p.upstream)
+	target := p.targetUpstream(r.URL.Path)
+	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
-		log.Printf("reverse proxy error for host %q target %q: %v", host, p.upstream, err)
+		log.Printf("reverse proxy error for host %q target %q: %v", host, target, err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+func (p *Proxy) targetUpstream(path string) *url.URL {
+	if path == claudecodeuiBasePath || strings.HasPrefix(path, claudecodeuiBasePath+"/") {
+		return p.claudecodeui
+	}
+	return p.upstream
 }
 
 func (p *Proxy) handleTicketCallback(w http.ResponseWriter, r *http.Request, host string) {
