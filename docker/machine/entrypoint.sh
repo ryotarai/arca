@@ -18,6 +18,9 @@ if [ -z "${ARCAD_TUNNEL_TOKEN:-}" ]; then
   export ARCAD_TUNNEL_TOKEN="${ARCA_TUNNEL_TOKEN}"
 fi
 
+git config --global user.name "Arca"
+git config --global user.email "arca@ryotarai.dev"
+
 mkdir -p /home/arca/www
 cat > /home/arca/www/index.html <<'HTML'
 <!doctype html>
