@@ -12,6 +12,7 @@ FROM node:22-bookworm-slim AS node-runtime
 FROM node:22-bookworm-slim AS claudecodeui-builder
 ARG CLAUDECODEUI_ZIP_URL="https://github.com/ryotarai/claudecodeui/archive/refs/tags/ryotarai-v1.21.0-2.zip"
 ENV VITE_BASE_PATH="/__arca/claudecodeui"
+ENV VITE_IS_PLATFORM=true
 
 WORKDIR /work
 RUN apt-get update \
@@ -32,9 +33,10 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BASE_PATH="/__arca/claudecodeui"
 ENV PORT=21031
+ENV VITE_IS_PLATFORM=true
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates dumb-init python3 \
+  && apt-get install -y --no-install-recommends bash ca-certificates curl dumb-init jq python3 \
   && rm -rf /var/lib/apt/lists/* \
   && useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 

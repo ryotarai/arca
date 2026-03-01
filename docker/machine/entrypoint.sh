@@ -40,11 +40,33 @@ arcad_pid=$!
 
 BASE_PATH="${BASE_PATH:-/__arca/claudecodeui}"
 PORT="${PORT:-21031}"
-BASE_PATH="$BASE_PATH" PORT="$PORT" node /home/arca/claudecodeui/server/index.js &
+VITE_IS_PLATFORM="${VITE_IS_PLATFORM:-true}"
+BASE_PATH="$BASE_PATH" PORT="$PORT" VITE_IS_PLATFORM="$VITE_IS_PLATFORM" node /home/arca/claudecodeui/server/index.js &
 claudecodeui_pid=$!
 
+setup_claudecodeui() {
+  local i
+  for i in $(seq 1 30); do
+    if curl -fsS "http://localhost:${PORT}/api/auth/status" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+
+  if curl -s "http://localhost:${PORT}/api/auth/status" | jq -e '.needsSetup == true' >/dev/null; then
+    echo "claudecodeui setup: registering default admin user"
+    curl -s -X POST "http://localhost:${PORT}/api/auth/register" \
+      -H "Content-Type: application/json" \
+      -d '{"username":"admin","password":"password"}' >/dev/null
+  else
+    echo "claudecodeui setup: skipped (already initialized)"
+  fi
+}
+setup_claudecodeui &
+setup_pid=$!
+
 cleanup() {
-  kill "$arcad_pid" "$claudecodeui_pid" "$app_pid" 2>/dev/null || true
+  kill "$setup_pid" "$arcad_pid" "$claudecodeui_pid" "$app_pid" 2>/dev/null || true
 }
 
 trap cleanup TERM INT
