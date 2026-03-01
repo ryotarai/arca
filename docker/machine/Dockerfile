@@ -48,6 +48,9 @@ COPY docker/machine/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN su - arca -c 'curl -fsSL https://claude.ai/install.sh | bash' || npm i -g @anthropic-ai/claude-code \
   && npm i -g @openai/codex \
   && if [ -x /home/arca/.local/bin/claude ]; then ln -sf /home/arca/.local/bin/claude /usr/local/bin/claude; fi \
+  && mkdir -p /workspace \
+  && chown arca:arca /workspace \
+  && chmod 700 /workspace \
   && chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/arcad \
   && chown -R arca:arca /home/arca/claudecodeui
 
