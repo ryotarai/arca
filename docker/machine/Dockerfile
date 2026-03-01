@@ -36,7 +36,7 @@ ENV PORT=21031
 ENV VITE_IS_PLATFORM=true
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates curl dumb-init jq python3 \
+  && apt-get install -y --no-install-recommends bash ca-certificates curl dumb-init git jq python3 \
   && rm -rf /var/lib/apt/lists/* \
   && useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 
