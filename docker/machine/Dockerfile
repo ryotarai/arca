@@ -36,16 +36,19 @@ ENV PORT=21031
 ENV VITE_IS_PLATFORM=true
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates curl dumb-init git jq python3 \
+  && apt-get install -y --no-install-recommends bash ca-certificates curl dumb-init git jq python3 ttyd \
   && rm -rf /var/lib/apt/lists/* \
   && useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 
-COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-runtime /usr/local /usr/local
 COPY --from=cloudflared /usr/local/bin/cloudflared /usr/local/bin/cloudflared
 COPY --from=arcad-builder /out/arcad /usr/local/bin/arcad
 COPY --from=claudecodeui-builder /work/app /home/arca/claudecodeui
 COPY docker/machine/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/arcad \
+RUN su - arca -c 'curl -fsSL https://claude.ai/install.sh | bash' || npm i -g @anthropic-ai/claude-code \
+  && npm i -g @openai/codex \
+  && if [ -x /home/arca/.local/bin/claude ]; then ln -sf /home/arca/.local/bin/claude /usr/local/bin/claude; fi \
+  && chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/arcad \
   && chown -R arca:arca /home/arca/claudecodeui
 
 USER arca
