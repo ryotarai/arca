@@ -16,11 +16,13 @@ import (
 const (
 	defaultLibvirtWorkspaceDir = "/var/lib/arca/libvirt"
 	defaultLibvirtBaseImage    = "/var/lib/libvirt/images/ubuntu-24.04-server-cloudimg-amd64.img"
+	defaultLibvirtDiskSize     = "40G"
 )
 
 type LibvirtRuntime struct {
 	workspaceDir string
 	baseImage    string
+	diskSize     string
 }
 
 func NewLibvirtRuntime() *LibvirtRuntime {
@@ -32,9 +34,14 @@ func NewLibvirtRuntime() *LibvirtRuntime {
 	if baseImage == "" {
 		baseImage = defaultLibvirtBaseImage
 	}
+	diskSize := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_DISK_SIZE"))
+	if diskSize == "" {
+		diskSize = defaultLibvirtDiskSize
+	}
 	return &LibvirtRuntime{
 		workspaceDir: workspaceDir,
 		baseImage:    baseImage,
+		diskSize:     diskSize,
 	}
 }
 
@@ -154,7 +161,7 @@ func (r *LibvirtRuntime) ensureDiskImage(ctx context.Context, workspace string) 
 	if _, err := os.Stat(diskPath); err == nil {
 		return nil
 	}
-	_, err := runCommand(ctx, "qemu-img", "create", "-f", "qcow2", "-F", "qcow2", "-b", r.baseImage, diskPath)
+	_, err := runCommand(ctx, "qemu-img", "create", "-f", "qcow2", "-F", "qcow2", "-b", r.baseImage, diskPath, r.diskSize)
 	return err
 }
 
