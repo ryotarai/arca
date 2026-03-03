@@ -37,7 +37,7 @@ type Authenticator interface {
 }
 
 type MachineStore interface {
-	CreateMachineWithOwner(context.Context, string, string) (db.Machine, error)
+	CreateMachineWithOwner(context.Context, string, string, string) (db.Machine, error)
 	ListMachinesByUser(context.Context, string) ([]db.Machine, error)
 	GetMachineByIDForUser(context.Context, string, string) (db.Machine, error)
 	UpdateMachineNameByIDForOwner(context.Context, string, string, string) (bool, error)

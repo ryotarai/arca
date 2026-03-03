@@ -46,8 +46,8 @@ WHERE token_hash = sqlc.arg(token_hash)
   AND revoked_at IS NULL;
 
 -- name: CreateMachine :exec
-INSERT INTO machines (id, name)
-VALUES (sqlc.arg(id), sqlc.arg(name));
+INSERT INTO machines (id, name, runtime)
+VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(runtime));
 
 -- name: CreateUserMachine :exec
 INSERT INTO user_machines (user_id, machine_id, role)
@@ -85,7 +85,7 @@ INSERT INTO machine_states (machine_id, status, desired_status, updated_at)
 VALUES (sqlc.arg(machine_id), sqlc.arg(status), sqlc.arg(desired_status), sqlc.arg(updated_at));
 
 -- name: ListMachinesByUser :many
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -93,14 +93,14 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.id = sqlc.arg(machine_id)
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -195,7 +195,7 @@ WHERE status = 'running'
   AND lease_until < sqlc.arg(now_unix);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)

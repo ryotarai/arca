@@ -34,6 +34,7 @@ func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Req
 				AdminConfigured:       true,
 				CloudflareConfigured:  true,
 				DockerProviderEnabled: true,
+				MachineRuntime:        db.MachineRuntimeDocker,
 			},
 		}), nil
 	}
@@ -148,8 +149,12 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		BaseDomain:            baseDomain,
 		DomainPrefix:          domainPrefix,
 		CloudflareAPIToken:    cfToken,
+		MachineRuntime:        normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
 		CloudflareZoneID:      zoneID,
 		DockerProviderEnabled: req.Msg.GetDockerProviderEnabled(),
+	}
+	if state.MachineRuntime == db.MachineRuntimeDocker {
+		state.DockerProviderEnabled = true
 	}
 	if err := s.store.UpsertSetupState(ctx, state); err != nil {
 		log.Printf("persist setup state failed: %v", err)
@@ -189,6 +194,10 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 
 	current.BaseDomain = baseDomain
 	current.DomainPrefix = normalizeDomainPrefix(req.Msg.GetDomainPrefix())
+	if strings.TrimSpace(req.Msg.GetMachineRuntime()) != "" {
+		current.MachineRuntime = normalizeMachineRuntime(req.Msg.GetMachineRuntime())
+	}
+	current.DockerProviderEnabled = current.MachineRuntime == db.MachineRuntimeDocker
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
@@ -212,6 +221,7 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		DomainPrefix:          state.DomainPrefix,
 		DockerProviderEnabled: state.DockerProviderEnabled,
 		CloudflareZoneId:      state.CloudflareZoneID,
+		MachineRuntime:        normalizeMachineRuntime(state.MachineRuntime),
 	}
 }
 
@@ -232,6 +242,10 @@ func normalizeDomainPrefix(prefix string) string {
 		}
 	}
 	return b.String()
+}
+
+func normalizeMachineRuntime(runtime string) string {
+	return db.NormalizeMachineRuntime(runtime)
 }
 
 func (s *setupConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {

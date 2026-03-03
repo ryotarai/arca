@@ -30,6 +30,7 @@ type SetupStatus struct {
 	DockerProviderEnabled bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
 	CloudflareZoneId      string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
 	DomainPrefix          string                 `protobuf:"bytes,7,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	MachineRuntime        string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -109,6 +110,13 @@ func (x *SetupStatus) GetCloudflareZoneId() string {
 func (x *SetupStatus) GetDomainPrefix() string {
 	if x != nil {
 		return x.DomainPrefix
+	}
+	return ""
+}
+
+func (x *SetupStatus) GetMachineRuntime() string {
+	if x != nil {
+		return x.MachineRuntime
 	}
 	return ""
 }
@@ -306,6 +314,7 @@ type CompleteSetupRequest struct {
 	DockerProviderEnabled bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
 	CloudflareZoneId      string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
 	DomainPrefix          string                 `protobuf:"bytes,7,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	MachineRuntime        string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -389,6 +398,13 @@ func (x *CompleteSetupRequest) GetDomainPrefix() string {
 	return ""
 }
 
+func (x *CompleteSetupRequest) GetMachineRuntime() string {
+	if x != nil {
+		return x.MachineRuntime
+	}
+	return ""
+}
+
 type CompleteSetupResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -434,11 +450,12 @@ func (x *CompleteSetupResponse) GetStatus() *SetupStatus {
 }
 
 type UpdateDomainSettingsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	BaseDomain    string                 `protobuf:"bytes,1,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
-	DomainPrefix  string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	BaseDomain     string                 `protobuf:"bytes,1,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
+	DomainPrefix   string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	MachineRuntime string                 `protobuf:"bytes,3,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *UpdateDomainSettingsRequest) Reset() {
@@ -481,6 +498,13 @@ func (x *UpdateDomainSettingsRequest) GetBaseDomain() string {
 func (x *UpdateDomainSettingsRequest) GetDomainPrefix() string {
 	if x != nil {
 		return x.DomainPrefix
+	}
+	return ""
+}
+
+func (x *UpdateDomainSettingsRequest) GetMachineRuntime() string {
+	if x != nil {
+		return x.MachineRuntime
 	}
 	return ""
 }
@@ -533,7 +557,7 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xb7\x02\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xe0\x02\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x123\n" +
@@ -542,7 +566,8 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"baseDomain\x126\n" +
 	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\x12,\n" +
 	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12#\n" +
-	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\"\x17\n" +
+	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\x12'\n" +
+	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\\\n" +
@@ -552,7 +577,7 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"account_id\x18\x02 \x01(\tR\taccountId\"Q\n" +
 	"\x1fValidateCloudflareTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xbc\x02\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xe5\x02\n" +
 	"\x14CompleteSetupRequest\x12\x1f\n" +
 	"\vadmin_email\x18\x01 \x01(\tR\n" +
 	"adminEmail\x12%\n" +
@@ -562,13 +587,15 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x14cloudflare_api_token\x18\x04 \x01(\tR\x12cloudflareApiToken\x126\n" +
 	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\x12,\n" +
 	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12#\n" +
-	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\"E\n" +
+	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\x12'\n" +
+	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"c\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\x8c\x01\n" +
 	"\x1bUpdateDomainSettingsRequest\x12\x1f\n" +
 	"\vbase_domain\x18\x01 \x01(\tR\n" +
 	"baseDomain\x12#\n" +
-	"\rdomain_prefix\x18\x02 \x01(\tR\fdomainPrefix\"L\n" +
+	"\rdomain_prefix\x18\x02 \x01(\tR\fdomainPrefix\x12'\n" +
+	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\"L\n" +
 	"\x1cUpdateDomainSettingsResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\x84\x03\n" +
 	"\fSetupService\x12Q\n" +

@@ -35,6 +35,7 @@ const (
 type Machine struct {
 	ID            string
 	Name          string
+	Runtime       string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -51,7 +52,7 @@ type MachineJob struct {
 
 var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
 
-func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string) (Machine, error) {
+func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtime string) (Machine, error) {
 	machineID, err := randomID()
 	if err != nil {
 		return Machine{}, err
@@ -66,6 +67,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 		return Machine{}, err
 	}
 	nowUnix := time.Now().Unix()
+	runtime = NormalizeMachineRuntime(runtime)
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -85,7 +87,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 	switch s.driver {
 	case DriverSQLite:
 		q := s.sqliteQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name}); err != nil {
+		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, Runtime: runtime}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -125,7 +127,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name}); err != nil {
+		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, Runtime: runtime}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -174,6 +176,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name string)
 	return Machine{
 		ID:            machineID,
 		Name:          name,
+		Runtime:       runtime,
 		Status:        MachineStatusPending,
 		DesiredStatus: MachineDesiredRunning,
 		MachineToken:  machineToken,
@@ -192,6 +195,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
+				Runtime:       NormalizeMachineRuntime(row.Runtime),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,
@@ -209,6 +213,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
+				Runtime:       NormalizeMachineRuntime(row.Runtime),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,
@@ -349,6 +354,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
+			Runtime:       NormalizeMachineRuntime(row.Runtime),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -362,6 +368,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
+			Runtime:       NormalizeMachineRuntime(row.Runtime),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -385,6 +392,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
+			Runtime:       NormalizeMachineRuntime(row.Runtime),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -401,6 +409,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
+			Runtime:       NormalizeMachineRuntime(row.Runtime),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -471,6 +480,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
+				Runtime:       NormalizeMachineRuntime(row.Runtime),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,
@@ -491,6 +501,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
+				Runtime:       NormalizeMachineRuntime(row.Runtime),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,
