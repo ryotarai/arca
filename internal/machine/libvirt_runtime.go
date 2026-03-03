@@ -18,6 +18,8 @@ const (
 	defaultLibvirtBaseImage    = "/var/lib/libvirt/images/ubuntu-24.04-server-cloudimg-amd64.img"
 	defaultLibvirtDiskSize     = "40G"
 	defaultLibvirtURI          = "qemu:///system"
+	defaultLibvirtArcadGOOS    = "linux"
+	defaultLibvirtArcadGOARCH  = "amd64"
 )
 
 type LibvirtRuntime struct {
@@ -25,6 +27,8 @@ type LibvirtRuntime struct {
 	baseImage    string
 	diskSize     string
 	uri          string
+	arcadGOOS    string
+	arcadGOARCH  string
 }
 
 func NewLibvirtRuntime() *LibvirtRuntime {
@@ -44,11 +48,21 @@ func NewLibvirtRuntime() *LibvirtRuntime {
 	if uri == "" {
 		uri = defaultLibvirtURI
 	}
+	arcadGOOS := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOOS"))
+	if arcadGOOS == "" {
+		arcadGOOS = defaultLibvirtArcadGOOS
+	}
+	arcadGOARCH := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOARCH"))
+	if arcadGOARCH == "" {
+		arcadGOARCH = defaultLibvirtArcadGOARCH
+	}
 	return &LibvirtRuntime{
 		workspaceDir: workspaceDir,
 		baseImage:    baseImage,
 		diskSize:     diskSize,
 		uri:          uri,
+		arcadGOOS:    arcadGOOS,
+		arcadGOARCH:  arcadGOARCH,
 	}
 }
 
@@ -66,7 +80,11 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 	if err := r.ensureDiskImage(ctx, workspace); err != nil {
 		return "", err
 	}
-	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts); err != nil {
+	arcadBinaryBase64, err := r.buildArcadBinaryBase64(ctx, workspace)
+	if err != nil {
+		return "", err
+	}
+	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts, arcadBinaryBase64); err != nil {
 		return "", err
 	}
 
@@ -172,12 +190,12 @@ func (r *LibvirtRuntime) ensureDiskImage(ctx context.Context, workspace string) 
 	return err
 }
 
-func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Machine, workspace string, opts RuntimeStartOptions) error {
+func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Machine, workspace string, opts RuntimeStartOptions, arcadBinaryBase64 string) error {
 	userDataPath := filepath.Join(workspace, "user-data")
 	metaDataPath := filepath.Join(workspace, "meta-data")
 	seedPath := filepath.Join(workspace, "seed.iso")
 
-	userData := cloudInitUserData(machine, opts)
+	userData := cloudInitUserData(machine, opts, arcadBinaryBase64)
 	metaData := fmt.Sprintf("instance-id: %s\nlocal-hostname: arca-%s\n", machine.ID, machine.ID[:12])
 
 	if err := os.WriteFile(userDataPath, []byte(userData), 0o644); err != nil {
@@ -188,6 +206,26 @@ func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Mac
 	}
 	_, err := runCommand(ctx, "cloud-localds", seedPath, userDataPath, metaDataPath)
 	return err
+}
+
+func (r *LibvirtRuntime) buildArcadBinaryBase64(ctx context.Context, workspace string) (string, error) {
+	arcadPath := filepath.Join(workspace, "arcad")
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", arcadPath, "./cmd/arcad")
+	cmd.Env = append(os.Environ(),
+		"GOOS="+r.arcadGOOS,
+		"GOARCH="+r.arcadGOARCH,
+		"CGO_ENABLED=0",
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("go build ./cmd/arcad failed: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+
+	data, err := os.ReadFile(arcadPath)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 func (r *LibvirtRuntime) isDomainDefined(ctx context.Context, domainName string) (bool, error) {
@@ -262,7 +300,7 @@ func (r *LibvirtRuntime) runVirsh(ctx context.Context, args ...string) (string, 
 	return runCommand(ctx, "virsh", base...)
 }
 
-func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions) string {
+func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinaryBase64 string) string {
 	envFile := fmt.Sprintf(`ARCAD_TUNNEL_TOKEN=%s
 ARCAD_CONTROL_PLANE_URL=%s
 ARCAD_MACHINE_ID=%s
@@ -306,12 +344,6 @@ if [ ! -x /usr/local/bin/cloudflared ]; then
   curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o /usr/local/bin/cloudflared
   chmod +x /usr/local/bin/cloudflared
 fi
-if [ ! -x /usr/local/bin/arcad ]; then
-  export HOME=/root
-  export GOPATH="${GOPATH:-/root/go}"
-  export GOMODCACHE="${GOMODCACHE:-${GOPATH}/pkg/mod}"
-  GOBIN=/usr/local/bin GOPATH="${GOPATH}" GOMODCACHE="${GOMODCACHE}" go install github.com/ryotarai/arca/cmd/arcad@latest
-fi
 if [ ! -d /home/arca/claudecodeui ]; then
   curl -fsSL https://github.com/ryotarai/claudecodeui/archive/refs/tags/ryotarai-v1.21.0-2.zip -o /tmp/claudecodeui.zip
   unzip -q /tmp/claudecodeui.zip -d /tmp
@@ -341,6 +373,11 @@ write_files:
     encoding: b64
     content: %s
   - path: /usr/local/bin/arca-machine-install.sh
+    permissions: "0755"
+    owner: root:root
+    encoding: b64
+    content: %s
+  - path: /usr/local/bin/arcad
     permissions: "0755"
     owner: root:root
     encoding: b64
@@ -415,7 +452,7 @@ write_files:
       WantedBy=multi-user.target
 runcmd:
   - ["/usr/local/bin/arca-machine-install.sh"]
-`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(entrypointScript)), base64.StdEncoding.EncodeToString([]byte(installScript)))
+`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(entrypointScript)), base64.StdEncoding.EncodeToString([]byte(installScript)), arcadBinaryBase64)
 }
 
 func shellEscape(value string) string {
