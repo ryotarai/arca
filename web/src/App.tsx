@@ -18,6 +18,7 @@ export function App() {
     cloudflareZoneID: '',
     baseDomain: '',
     domainPrefix: '',
+    machineRuntime: 'docker',
   })
 
   useEffect(() => {
@@ -67,14 +68,16 @@ export function App() {
             <SetupPage
               hasAdmin={setupStatus.hasAdmin}
               initialCloudflareZoneID={setupStatus.cloudflareZoneID}
+              initialMachineRuntime={setupStatus.machineRuntime}
               onAdminReady={setUser}
-              onSetupComplete={(zoneID, baseDomain, domainPrefix) =>
+              onSetupComplete={(zoneID, baseDomain, domainPrefix, machineRuntime) =>
                 setSetupStatus({
                   isConfigured: true,
                   hasAdmin: true,
                   cloudflareZoneID: zoneID,
                   baseDomain,
                   domainPrefix,
+                  machineRuntime,
                 })
               }
             />

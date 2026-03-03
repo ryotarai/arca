@@ -225,6 +225,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         cloudflareZoneId?: string
         baseDomain?: string
         domainPrefix?: string
+        machineRuntime?: string
       }
       isConfigured?: boolean
       configured?: boolean
@@ -234,6 +235,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       cloudflareZoneId?: string
       baseDomain?: string
       domainPrefix?: string
+      machineRuntime?: string
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -245,11 +247,13 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const cloudflareZoneID = response.status?.cloudflareZoneId ?? response.cloudflareZoneId ?? ''
     const baseDomain = response.status?.baseDomain ?? response.baseDomain ?? ''
     const domainPrefix = response.status?.domainPrefix ?? response.domainPrefix ?? ''
+    const machineRuntimeRaw = (response.status?.machineRuntime ?? response.machineRuntime ?? 'docker').toLowerCase()
+    const machineRuntime = machineRuntimeRaw === 'libvirt' ? 'libvirt' : 'docker'
 
-    return { isConfigured, hasAdmin, cloudflareZoneID, baseDomain, domainPrefix }
+    return { isConfigured, hasAdmin, cloudflareZoneID, baseDomain, domainPrefix, machineRuntime }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
-      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '', baseDomain: '', domainPrefix: '' }
+      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '', baseDomain: '', domainPrefix: '', machineRuntime: 'docker' }
     }
     throw error
   }
@@ -287,6 +291,7 @@ export async function setupComplete(
   domainPrefix: string,
   cloudflareApiToken: string,
   cloudflareZoneID: string,
+  machineRuntime: 'docker' | 'libvirt',
 ): Promise<void> {
   try {
     const response = await callConnectJSONCandidates<{
@@ -301,7 +306,8 @@ export async function setupComplete(
       domainPrefix,
       cloudflareApiToken,
       cloudflareZoneId: cloudflareZoneID,
-      dockerProviderEnabled: true,
+      dockerProviderEnabled: machineRuntime === 'docker',
+      machineRuntime,
     })
     if (response.status?.completed !== true) {
       throw new Error(response.message ?? 'setup completion failed')
@@ -314,7 +320,11 @@ export async function setupComplete(
   }
 }
 
-export async function updateDomainSettings(baseDomain: string, domainPrefix: string): Promise<void> {
+export async function updateDomainSettings(
+  baseDomain: string,
+  domainPrefix: string,
+  machineRuntime: 'docker' | 'libvirt',
+): Promise<void> {
   const response = await callConnectJSONCandidates<{
     status?: {
       baseDomain?: string
@@ -323,6 +333,7 @@ export async function updateDomainSettings(baseDomain: string, domainPrefix: str
   }>(['/arca.v1.SetupService/UpdateDomainSettings'], {
     baseDomain,
     domainPrefix,
+    machineRuntime,
   })
   if ((response.status?.baseDomain ?? '').trim() === '') {
     throw new Error(response.message ?? 'failed to update domain settings')
