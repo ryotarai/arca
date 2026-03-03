@@ -197,7 +197,7 @@ func (r *LibvirtRuntime) isDomainDefined(ctx context.Context, domainName string)
 func (r *LibvirtRuntime) domainXML(domainName, workspace string) string {
 	diskPath := filepath.Join(workspace, "disk.qcow2")
 	seedPath := filepath.Join(workspace, "seed.iso")
-	return fmt.Sprintf(`<domain type='qemu'>
+	return fmt.Sprintf(`<domain type='%s'>
   <name>%s</name>
   <memory unit='MiB'>4096</memory>
   <vcpu>2</vcpu>
@@ -230,7 +230,14 @@ func (r *LibvirtRuntime) domainXML(domainName, workspace string) string {
     <serial type='pty'/>
   </devices>
 </domain>
-`, domainName, diskPath, seedPath)
+`, r.domainType(), domainName, diskPath, seedPath)
+}
+
+func (r *LibvirtRuntime) domainType() string {
+	if _, err := os.Stat("/dev/kvm"); err == nil {
+		return "kvm"
+	}
+	return "qemu"
 }
 
 func runCommand(ctx context.Context, name string, args ...string) (string, error) {
