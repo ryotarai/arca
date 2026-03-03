@@ -17,12 +17,14 @@ const (
 	defaultLibvirtWorkspaceDir = "/var/lib/arca/libvirt"
 	defaultLibvirtBaseImage    = "/var/lib/libvirt/images/ubuntu-24.04-server-cloudimg-amd64.img"
 	defaultLibvirtDiskSize     = "40G"
+	defaultLibvirtURI          = "qemu:///system"
 )
 
 type LibvirtRuntime struct {
 	workspaceDir string
 	baseImage    string
 	diskSize     string
+	uri          string
 }
 
 func NewLibvirtRuntime() *LibvirtRuntime {
@@ -38,10 +40,15 @@ func NewLibvirtRuntime() *LibvirtRuntime {
 	if diskSize == "" {
 		diskSize = defaultLibvirtDiskSize
 	}
+	uri := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_URI"))
+	if uri == "" {
+		uri = defaultLibvirtURI
+	}
 	return &LibvirtRuntime{
 		workspaceDir: workspaceDir,
 		baseImage:    baseImage,
 		diskSize:     diskSize,
+		uri:          uri,
 	}
 }
 
@@ -71,7 +78,7 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 		if err := os.WriteFile(filepath.Join(workspace, "domain.xml"), []byte(r.domainXML(domainName, workspace)), 0o644); err != nil {
 			return "", err
 		}
-		if _, err := runCommand(ctx, "virsh", "define", filepath.Join(workspace, "domain.xml")); err != nil {
+		if _, err := r.runVirsh(ctx, "define", filepath.Join(workspace, "domain.xml")); err != nil {
 			return "", err
 		}
 	}
@@ -84,7 +91,7 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 		return domainName, nil
 	}
 
-	if _, err := runCommand(ctx, "virsh", "start", domainName); err != nil {
+	if _, err := r.runVirsh(ctx, "start", domainName); err != nil {
 		return "", err
 	}
 	return domainName, nil
@@ -105,7 +112,7 @@ func (r *LibvirtRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 		return err
 	}
 	if running {
-		_, _ = runCommand(ctx, "virsh", "shutdown", domainName)
+		_, _ = r.runVirsh(ctx, "shutdown", domainName)
 		deadline := time.Now().Add(30 * time.Second)
 		for time.Now().Before(deadline) {
 			time.Sleep(2 * time.Second)
@@ -118,13 +125,13 @@ func (r *LibvirtRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 			}
 		}
 		if running {
-			if _, err := runCommand(ctx, "virsh", "destroy", domainName); err != nil {
+			if _, err := r.runVirsh(ctx, "destroy", domainName); err != nil {
 				return err
 			}
 		}
 	}
 
-	if _, err := runCommand(ctx, "virsh", "undefine", domainName, "--nvram"); err != nil {
+	if _, err := r.runVirsh(ctx, "undefine", domainName, "--nvram"); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no domain with matching name") {
 			return err
 		}
@@ -135,7 +142,7 @@ func (r *LibvirtRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 
 func (r *LibvirtRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, string, error) {
 	domainName := r.domainName(machine)
-	output, err := runCommand(ctx, "virsh", "domstate", domainName)
+	output, err := r.runVirsh(ctx, "domstate", domainName)
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "failed to get domain") {
 			return false, "", nil
@@ -184,7 +191,7 @@ func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Mac
 }
 
 func (r *LibvirtRuntime) isDomainDefined(ctx context.Context, domainName string) (bool, error) {
-	_, err := runCommand(ctx, "virsh", "dominfo", domainName)
+	_, err := r.runVirsh(ctx, "dominfo", domainName)
 	if err == nil {
 		return true, nil
 	}
@@ -249,6 +256,12 @@ func runCommand(ctx context.Context, name string, args ...string) (string, error
 	return string(output), nil
 }
 
+func (r *LibvirtRuntime) runVirsh(ctx context.Context, args ...string) (string, error) {
+	base := []string{"-c", r.uri}
+	base = append(base, args...)
+	return runCommand(ctx, "virsh", base...)
+}
+
 func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions) string {
 	envFile := fmt.Sprintf(`ARCAD_TUNNEL_TOKEN=%s
 ARCAD_CONTROL_PLANE_URL=%s
@@ -294,7 +307,10 @@ if [ ! -x /usr/local/bin/cloudflared ]; then
   chmod +x /usr/local/bin/cloudflared
 fi
 if [ ! -x /usr/local/bin/arcad ]; then
-  GOBIN=/usr/local/bin go install github.com/ryotarai/arca/cmd/arcad@latest
+  export HOME=/root
+  export GOPATH="${GOPATH:-/root/go}"
+  export GOMODCACHE="${GOMODCACHE:-${GOPATH}/pkg/mod}"
+  GOBIN=/usr/local/bin GOPATH="${GOPATH}" GOMODCACHE="${GOMODCACHE}" go install github.com/ryotarai/arca/cmd/arcad@latest
 fi
 if [ ! -d /home/arca/claudecodeui ]; then
   curl -fsSL https://github.com/ryotarai/claudecodeui/archive/refs/tags/ryotarai-v1.21.0-2.zip -o /tmp/claudecodeui.zip
