@@ -19,6 +19,7 @@ message SetupStatus {
   bool docker_provider_enabled = 5;
   string cloudflare_zone_id = 6;
   string domain_prefix = 7;
+  string machine_runtime = 8;
 }
 
 message GetSetupStatusRequest {}
@@ -45,6 +46,7 @@ message CompleteSetupRequest {
   bool docker_provider_enabled = 5;
   string cloudflare_zone_id = 6;
   string domain_prefix = 7;
+  string machine_runtime = 8;
 }
 
 message CompleteSetupResponse {
@@ -54,6 +56,7 @@ message CompleteSetupResponse {
 message UpdateDomainSettingsRequest {
   string base_domain = 1;
   string domain_prefix = 2;
+  string machine_runtime = 3;
 }
 
 message UpdateDomainSettingsResponse {

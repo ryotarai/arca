@@ -92,17 +92,18 @@ func (q *Queries) CreateAuthTicket(ctx context.Context, arg CreateAuthTicketPara
 }
 
 const createMachine = `-- name: CreateMachine :exec
-INSERT INTO machines (id, name)
-VALUES ($1, $2)
+INSERT INTO machines (id, name, runtime)
+VALUES ($1, $2, $3)
 `
 
 type CreateMachineParams struct {
-	ID   string
-	Name string
+	ID      string
+	Name    string
+	Runtime string
 }
 
 func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) error {
-	_, err := q.db.ExecContext(ctx, createMachine, arg.ID, arg.Name)
+	_, err := q.db.ExecContext(ctx, createMachine, arg.ID, arg.Name, arg.Runtime)
 	return err
 }
 
@@ -275,7 +276,7 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.id = $1
@@ -285,6 +286,7 @@ LIMIT 1
 type GetMachineByIDRow struct {
 	ID            string
 	Name          string
+	Runtime       string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -297,6 +299,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.Runtime,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -306,7 +309,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -323,6 +326,7 @@ type GetMachineByIDForUserParams struct {
 type GetMachineByIDForUserRow struct {
 	ID            string
 	Name          string
+	Runtime       string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -335,6 +339,7 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.Runtime,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -621,7 +626,7 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = $1
@@ -637,6 +642,7 @@ type ListMachinesByDesiredStatusParams struct {
 type ListMachinesByDesiredStatusRow struct {
 	ID            string
 	Name          string
+	Runtime       string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -655,6 +661,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Runtime,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,
@@ -674,7 +681,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 }
 
 const listMachinesByUser = `-- name: ListMachinesByUser :many
-SELECT m.id, m.name, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -685,6 +692,7 @@ ORDER BY m.created_at DESC
 type ListMachinesByUserRow struct {
 	ID            string
 	Name          string
+	Runtime       string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -703,6 +711,7 @@ func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]List
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Runtime,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,

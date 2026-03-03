@@ -84,7 +84,12 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name)
+	setup, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		log.Printf("load setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime configuration"))
+	}
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, setup.MachineRuntime)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))

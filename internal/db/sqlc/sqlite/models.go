@@ -28,6 +28,7 @@ type AuthTicket struct {
 type Machine struct {
 	ID        string
 	Name      string
+	Runtime   string
 	CreatedAt time.Time
 }
 

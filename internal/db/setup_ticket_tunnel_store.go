@@ -18,6 +18,7 @@ type SetupState struct {
 	DomainPrefix          string
 	CloudflareAPIToken    string
 	CloudflareZoneID      string
+	MachineRuntime        string
 	DockerProviderEnabled bool
 	UpdatedAtUnix         int64
 }
@@ -55,6 +56,11 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
 	}
+	machineRuntime, err := s.getMetaValue(ctx, setupMetaMachineRuntime)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	machineRuntime = NormalizeMachineRuntime(machineRuntime)
 
 	switch s.driver {
 	case DriverSQLite:
@@ -72,6 +78,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			DomainPrefix:          state.DomainPrefix,
 			CloudflareAPIToken:    state.CloudflareApiToken,
 			CloudflareZoneID:      zoneID,
+			MachineRuntime:        machineRuntime,
 			DockerProviderEnabled: state.DockerProviderEnabled,
 			UpdatedAtUnix:         state.UpdatedAt,
 		}, nil
@@ -90,6 +97,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			DomainPrefix:          state.DomainPrefix,
 			CloudflareAPIToken:    state.CloudflareApiToken,
 			CloudflareZoneID:      zoneID,
+			MachineRuntime:        machineRuntime,
 			DockerProviderEnabled: state.DockerProviderEnabled,
 			UpdatedAtUnix:         state.UpdatedAt,
 		}, nil
@@ -101,6 +109,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	nowUnix := time.Now().Unix()
 	adminUserID := sql.NullString{String: strings.TrimSpace(state.AdminUserID), Valid: strings.TrimSpace(state.AdminUserID) != ""}
+	state.MachineRuntime = NormalizeMachineRuntime(state.MachineRuntime)
 
 	var err error
 	switch s.driver {
@@ -132,10 +141,14 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 		return err
 	}
 
-	return s.upsertMetaValue(ctx, setupMetaCloudflareZoneID, strings.TrimSpace(state.CloudflareZoneID))
+	if err := s.upsertMetaValue(ctx, setupMetaCloudflareZoneID, strings.TrimSpace(state.CloudflareZoneID)); err != nil {
+		return err
+	}
+	return s.upsertMetaValue(ctx, setupMetaMachineRuntime, state.MachineRuntime)
 }
 
 const setupMetaCloudflareZoneID = "setup.cloudflare_zone_id"
+const setupMetaMachineRuntime = "setup.machine_runtime"
 
 func (s *Store) getMetaValue(ctx context.Context, key string) (string, error) {
 	switch s.driver {
