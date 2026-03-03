@@ -18,6 +18,7 @@ type SettingsPageProps = {
 export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout }: SettingsPageProps) {
   const [baseDomain, setBaseDomain] = useState(setupStatus.baseDomain)
   const [domainPrefix, setDomainPrefix] = useState(setupStatus.domainPrefix)
+  const [machineRuntime, setMachineRuntime] = useState<'docker' | 'libvirt'>(setupStatus.machineRuntime)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -32,8 +33,13 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
     setSaved(false)
     setLoading(true)
     try {
-      await updateDomainSettings(baseDomain, domainPrefix)
-      onSetupStatusChange({ ...setupStatus, baseDomain: baseDomain.trim(), domainPrefix: domainPrefix.trim() })
+      await updateDomainSettings(baseDomain, domainPrefix, machineRuntime)
+      onSetupStatusChange({
+        ...setupStatus,
+        baseDomain: baseDomain.trim(),
+        domainPrefix: domainPrefix.trim(),
+        machineRuntime,
+      })
       setSaved(true)
     } catch (e) {
       setError(messageFromError(e))
@@ -97,6 +103,20 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                   placeholder="arca-"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="settings-machine-runtime" className="text-slate-200">
+                  Machine runtime
+                </Label>
+                <select
+                  id="settings-machine-runtime"
+                  value={machineRuntime}
+                  onChange={(event) => setMachineRuntime(event.target.value === 'libvirt' ? 'libvirt' : 'docker')}
+                  className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45"
+                >
+                  <option value="docker">Docker</option>
+                  <option value="libvirt">Libvirt (Ubuntu 24.04 VM)</option>
+                </select>
               </div>
               <Button type="submit" className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100" disabled={loading}>
                 {loading ? 'Saving...' : 'Save settings'}

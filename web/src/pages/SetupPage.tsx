@@ -16,11 +16,23 @@ import type { User } from '@/lib/types'
 type SetupPageProps = {
   hasAdmin: boolean
   initialCloudflareZoneID: string
+  initialMachineRuntime: 'docker' | 'libvirt'
   onAdminReady: (user: User) => void
-  onSetupComplete: (zoneID: string, baseDomain: string, domainPrefix: string) => void
+  onSetupComplete: (
+    zoneID: string,
+    baseDomain: string,
+    domainPrefix: string,
+    machineRuntime: 'docker' | 'libvirt',
+  ) => void
 }
 
-export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onSetupComplete }: SetupPageProps) {
+export function SetupPage({
+  hasAdmin,
+  initialCloudflareZoneID,
+  initialMachineRuntime,
+  onAdminReady,
+  onSetupComplete,
+}: SetupPageProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(hasAdmin ? 2 : 1)
   const [email, setEmail] = useState('')
@@ -31,6 +43,7 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
   const [cloudflareAccountID, setCloudflareAccountID] = useState('')
   const [cloudflareToken, setCloudflareToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(initialCloudflareZoneID)
+  const [machineRuntime, setMachineRuntime] = useState<'docker' | 'libvirt'>(initialMachineRuntime)
   const [loadingStep, setLoadingStep] = useState(false)
   const [error, setError] = useState('')
 
@@ -105,8 +118,8 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
     setLoadingStep(true)
     try {
       await setupConfigureProviderDocker()
-      await setupComplete(email, password, baseDomain, domainPrefix, cloudflareToken, cloudflareZoneID)
-      onSetupComplete(cloudflareZoneID, baseDomain, domainPrefix)
+      await setupComplete(email, password, baseDomain, domainPrefix, cloudflareToken, cloudflareZoneID, machineRuntime)
+      onSetupComplete(cloudflareZoneID, baseDomain, domainPrefix, machineRuntime)
       window.setTimeout(() => {
         void navigate('/', { replace: true })
       }, 350)
@@ -299,16 +312,37 @@ export function SetupPage({ hasAdmin, initialCloudflareZoneID, onAdminReady, onS
         {step >= 3 && (
           <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
             <CardHeader className="space-y-2 p-6 pb-3">
-              <CardTitle className="text-xl text-white">3. Setup provider (Docker)</CardTitle>
+              <CardTitle className="text-xl text-white">3. Setup provider</CardTitle>
               <CardDescription className="text-slate-300">
-                Docker is currently the supported machine provider. The control plane will be exposed through Cloudflare Tunnel.
+                Choose the runtime used for newly created machines. Existing machines keep their assigned runtime.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-3">
               <form className="space-y-4" onSubmit={submitProvider}>
                 <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm text-slate-300">Provider</p>
-                  <p className="mt-1 text-base font-semibold text-white">Local Docker</p>
+                  <div className="mt-2 space-y-2">
+                    <label className="flex items-center gap-2 text-sm text-slate-200">
+                      <input
+                        type="radio"
+                        name="setup-machine-runtime"
+                        value="docker"
+                        checked={machineRuntime === 'docker'}
+                        onChange={() => setMachineRuntime('docker')}
+                      />
+                      <span>Docker</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-200">
+                      <input
+                        type="radio"
+                        name="setup-machine-runtime"
+                        value="libvirt"
+                        checked={machineRuntime === 'libvirt'}
+                        onChange={() => setMachineRuntime('libvirt')}
+                      />
+                      <span>Libvirt (Ubuntu 24.04 VM)</span>
+                    </label>
+                  </div>
                   <p className="mt-2 text-xs text-slate-400">Expose endpoints in private mode by default.</p>
                 </div>
                 {consoleEndpoint !== '' && (
