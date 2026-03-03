@@ -221,7 +221,6 @@ func (r *LibvirtRuntime) domainXML(domainName, workspace string) string {
     </interface>
     <console type='pty'/>
     <serial type='pty'/>
-    <graphics type='none'/>
   </devices>
 </domain>
 `, domainName, diskPath, seedPath)
