@@ -357,6 +357,9 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:8080", false); err != nil {
 		return "", fmt.Errorf("upsert machine exposure: %w", err)
 	}
+	if err := w.store.UpdateMachineEndpointByID(ctx, machine.ID, hostname); err != nil {
+		return "", fmt.Errorf("update machine endpoint: %w", err)
+	}
 	slog.Info(
 		"machine tunnel provisioning completed",
 		"machine_id", machine.ID,

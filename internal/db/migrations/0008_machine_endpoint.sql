@@ -1,0 +1,2 @@
+ALTER TABLE machines
+ADD COLUMN endpoint TEXT NOT NULL DEFAULT '';

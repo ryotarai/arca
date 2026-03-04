@@ -29,6 +29,7 @@ type Machine struct {
 	ID        string
 	Name      string
 	Runtime   string
+	Endpoint  string
 	CreatedAt time.Time
 }
 

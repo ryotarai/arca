@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getMachine, startMachine, stopMachine } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, SetupStatus, User } from '@/lib/types'
+import type { Machine, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
-  setupStatus: SetupStatus
   onLogout: () => Promise<void>
 }
 
@@ -42,15 +41,12 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-export function MachineDetailPage({ user, setupStatus, onLogout }: MachineDetailPageProps) {
+export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const endpointURL =
-    machine == null || setupStatus.baseDomain === ''
-      ? null
-      : `https://${setupStatus.domainPrefix}${machine.name}.${setupStatus.baseDomain}`
+  const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
 
   useEffect(() => {
     if (user == null || machineID == null || machineID === '') {

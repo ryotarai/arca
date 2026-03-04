@@ -276,7 +276,7 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.id = $1
@@ -287,6 +287,7 @@ type GetMachineByIDRow struct {
 	ID            string
 	Name          string
 	Runtime       string
+	Endpoint      string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -300,6 +301,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.ID,
 		&i.Name,
 		&i.Runtime,
+		&i.Endpoint,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -309,7 +311,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -327,6 +329,7 @@ type GetMachineByIDForUserRow struct {
 	ID            string
 	Name          string
 	Runtime       string
+	Endpoint      string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -340,6 +343,7 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 		&i.ID,
 		&i.Name,
 		&i.Runtime,
+		&i.Endpoint,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -626,7 +630,7 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = $1
@@ -643,6 +647,7 @@ type ListMachinesByDesiredStatusRow struct {
 	ID            string
 	Name          string
 	Runtime       string
+	Endpoint      string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -662,6 +667,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.ID,
 			&i.Name,
 			&i.Runtime,
+			&i.Endpoint,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,
@@ -681,7 +687,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 }
 
 const listMachinesByUser = `-- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.runtime, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -693,6 +699,7 @@ type ListMachinesByUserRow struct {
 	ID            string
 	Name          string
 	Runtime       string
+	Endpoint      string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -712,6 +719,7 @@ func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]List
 			&i.ID,
 			&i.Name,
 			&i.Runtime,
+			&i.Endpoint,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,
@@ -881,6 +889,22 @@ WHERE token_hash = $1
 
 func (q *Queries) RevokeSessionByTokenHash(ctx context.Context, tokenHash string) error {
 	_, err := q.db.ExecContext(ctx, revokeSessionByTokenHash, tokenHash)
+	return err
+}
+
+const updateMachineEndpointByID = `-- name: UpdateMachineEndpointByID :exec
+UPDATE machines
+SET endpoint = $1
+WHERE id = $2
+`
+
+type UpdateMachineEndpointByIDParams struct {
+	Endpoint  string
+	MachineID string
+}
+
+func (q *Queries) UpdateMachineEndpointByID(ctx context.Context, arg UpdateMachineEndpointByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineEndpointByID, arg.Endpoint, arg.MachineID)
 	return err
 }
 
