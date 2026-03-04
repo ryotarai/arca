@@ -16,6 +16,7 @@ import (
 const callbackPath = "/callback"
 const claudecodeuiBasePath = "/__arca/claudecodeui"
 const ttydBasePath = "/__arca/ttyd"
+const shelleyBasePath = "/__arca/shelley"
 const readyPath = "/__arca/readyz"
 
 type Proxy struct {
@@ -25,6 +26,7 @@ type Proxy struct {
 	upstream      *url.URL
 	claudecodeui  *url.URL
 	ttyd          *url.URL
+	shelley       *url.URL
 	ttydSocket    string
 	sessionCookie string
 	sessionMaxAge time.Duration
@@ -37,6 +39,7 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 	}
 	claudecodeui := &url.URL{Scheme: "http", Host: "127.0.0.1:21031"}
 	ttyd := &url.URL{Scheme: "http", Host: "unix"}
+	shelley := &url.URL{Scheme: "http", Host: "127.0.0.1:21032"}
 	return &Proxy{
 		cache:         cache,
 		controlPlane:  controlPlane,
@@ -44,6 +47,7 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 		upstream:      upstream,
 		claudecodeui:  claudecodeui,
 		ttyd:          ttyd,
+		shelley:       shelley,
 		ttydSocket:    ttydSocket,
 		sessionCookie: sessionCookie,
 		sessionMaxAge: 8 * time.Hour,
@@ -125,6 +129,9 @@ func (p *Proxy) targetUpstream(path string) *url.URL {
 	}
 	if path == ttydBasePath || strings.HasPrefix(path, ttydBasePath+"/") {
 		return p.ttyd
+	}
+	if path == shelleyBasePath || strings.HasPrefix(path, shelleyBasePath+"/") {
+		return p.shelley
 	}
 	return p.upstream
 }

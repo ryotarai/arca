@@ -362,6 +362,10 @@ ARCAD_TTYD_SOCKET=/run/arca/ttyd.sock
 ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:8080
 TTYD_SOCKET=/run/arca/ttyd.sock
 TTYD_BASE_PATH=/__arca/ttyd
+SHELLEY_BINARY_URL=https://github.com/ryotarai/shelley/releases/download/v0.319.957620556-ryotarai/shelley_linux_amd64
+SHELLEY_BASE_PATH=/__arca/shelley
+SHELLEY_PORT=21032
+SHELLEY_DB_PATH=/var/lib/arca/shelley/shelley.db
 `, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken))
 
 	entrypointScript := `#!/usr/bin/env bash
@@ -441,14 +445,22 @@ if [ ! -x /usr/local/bin/cloudflared ]; then
   curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o /usr/local/bin/cloudflared
   chmod +x /usr/local/bin/cloudflared
 fi
+
+if [ ! -x /usr/local/bin/shelley ]; then
+  curl -fsSL "${SHELLEY_BINARY_URL}" -o /usr/local/bin/shelley
+  chmod +x /usr/local/bin/shelley
+fi
+
+mkdir -p /var/lib/arca/shelley
+chown -R arca:arca /var/lib/arca/shelley
 chown -R arca:arca /home/arca
 chmod +x /usr/local/bin/arca-entrypoint.sh /usr/local/bin/arcad
 
 systemctl daemon-reload
-systemctl enable arca-http.service arca-arcad.service arca-ttyd.service
-systemctl restart arca-http.service arca-arcad.service arca-ttyd.service
+systemctl enable arca-http.service arca-arcad.service arca-ttyd.service arca-shelley.service
+systemctl restart arca-http.service arca-arcad.service arca-ttyd.service arca-shelley.service
 
-for service in arca-http.service arca-arcad.service arca-ttyd.service; do
+for service in arca-http.service arca-arcad.service arca-ttyd.service arca-shelley.service; do
   for _ in $(seq 1 60); do
     if systemctl is-active --quiet "$service"; then
       break
@@ -554,6 +566,23 @@ write_files:
       EnvironmentFile=/etc/arca/arcad.env
       ExecStart=/usr/local/bin/arca-bootstrap.sh
       RemainAfterExit=true
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/systemd/system/arca-shelley.service
+    permissions: "0644"
+    owner: root:root
+    content: |
+      [Unit]
+      Description=Arca Shelley
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      Type=simple
+      EnvironmentFile=/etc/arca/arcad.env
+      ExecStart=/usr/local/bin/shelley serve -port ${SHELLEY_PORT} -base-path ${SHELLEY_BASE_PATH} -db ${SHELLEY_DB_PATH}
+      Restart=always
+      User=arca
+      Group=arca
       [Install]
       WantedBy=multi-user.target
 runcmd:
