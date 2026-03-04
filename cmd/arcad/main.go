@@ -31,7 +31,7 @@ func main() {
 	controlPlaneClient := arcad.NewHTTPControlPlaneClient(cfg.ControlPlaneURL, cfg.AuthorizeURL, cfg.MachineID, cfg.MachineToken, &http.Client{Timeout: 10 * time.Second})
 	exposureCache := arcad.NewExposureCache(controlPlaneClient)
 	sessions := arcad.NewSessionManager(cfg.MachineToken)
-	proxy := arcad.NewProxy(exposureCache, controlPlaneClient, sessions, cfg.SessionCookie, upstreamURL)
+	proxy := arcad.NewProxy(exposureCache, controlPlaneClient, sessions, cfg.SessionCookie, upstreamURL, cfg.TTydSocket)
 	proxy.SetReadinessChecker(arcad.NewReadinessChecker(cfg.StartupSentinel, splitCSV(cfg.ReadyEndpoints)))
 
 	httpServer := &http.Server{
