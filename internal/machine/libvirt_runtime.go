@@ -579,7 +579,7 @@ write_files:
       [Service]
       Type=simple
       EnvironmentFile=/etc/arca/arcad.env
-      ExecStart=/usr/local/bin/shelley serve -port ${SHELLEY_PORT} -base-path ${SHELLEY_BASE_PATH} -db ${SHELLEY_DB_PATH}
+      ExecStart=/usr/local/bin/shelley -db ${SHELLEY_DB_PATH} serve -port ${SHELLEY_PORT} -base-path ${SHELLEY_BASE_PATH}
       Restart=always
       User=arca
       Group=arca
