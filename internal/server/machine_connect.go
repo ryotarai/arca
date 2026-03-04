@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/ryotarai/arca/internal/cloudflare"
@@ -25,6 +26,11 @@ type machineConnectService struct {
 var machineNamePattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 
 var reservedMachineNames = []string{"admin", "console", "dash", "api", "system"}
+
+const (
+	deleteTunnelMaxAttempts  = 5
+	deleteTunnelRetryBackoff = 3 * time.Second
+)
 
 func newMachineConnectService(authenticator Authenticator, store MachineStore, cf *cloudflare.Client) *machineConnectService {
 	return &machineConnectService{authenticator: authenticator, store: store, cf: cf}
@@ -188,6 +194,15 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
 	}
 
+	stopped, err := s.store.RequestStopMachineByIDForOwner(ctx, userID, machineID)
+	if err != nil {
+		log.Printf("request stop before delete failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to stop machine"))
+	}
+	if !stopped {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+	}
+
 	if err := s.deleteMachineTunnel(ctx, machineID); err != nil {
 		log.Printf("delete machine tunnel failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete cloudflare tunnel"))
@@ -227,17 +242,50 @@ func (s *machineConnectService) deleteMachineTunnel(ctx context.Context, machine
 		return errors.New("cloudflare api token is not configured")
 	}
 
-	if err := s.cf.DeleteTunnel(ctx, apiToken, tunnel.AccountID, tunnel.TunnelID); err != nil {
-		var apiErr cloudflare.APIError
-		if errors.As(err, &apiErr) {
-			msg := strings.ToLower(apiErr.Message)
-			if strings.Contains(msg, "not found") || apiErr.Code == 1003 || apiErr.Code == 1033 {
-				return nil
-			}
+	for attempt := 1; attempt <= deleteTunnelMaxAttempts; attempt++ {
+		err = s.cf.DeleteTunnel(ctx, apiToken, tunnel.AccountID, tunnel.TunnelID)
+		if err == nil {
+			return nil
 		}
-		return err
+
+		var apiErr cloudflare.APIError
+		if !errors.As(err, &apiErr) {
+			return err
+		}
+
+		msg := strings.ToLower(apiErr.Message)
+		if strings.Contains(msg, "not found") || apiErr.Code == 1003 || apiErr.Code == 1033 {
+			return nil
+		}
+		if !isActiveTunnelConnectionError(apiErr) || attempt == deleteTunnelMaxAttempts {
+			return err
+		}
+
+		if err := sleepContext(ctx, deleteTunnelRetryBackoff); err != nil {
+			return err
+		}
 	}
+
 	return nil
+}
+
+func isActiveTunnelConnectionError(err cloudflare.APIError) bool {
+	if err.Code == 1022 {
+		return true
+	}
+	return strings.Contains(strings.ToLower(err.Message), "active connections")
+}
+
+func sleepContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func (s *machineConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
