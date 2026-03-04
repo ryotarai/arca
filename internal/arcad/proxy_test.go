@@ -175,6 +175,39 @@ func TestProxyRoutesTTydPathToDedicatedUnixSocket(t *testing.T) {
 	}
 }
 
+func TestProxyRoutesShelleyPathToDedicatedUpstream(t *testing.T) {
+	defaultUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("default"))
+	}))
+	t.Cleanup(defaultUpstream.Close)
+
+	shelleyUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("shelley"))
+	}))
+	t.Cleanup(shelleyUpstream.Close)
+
+	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), "")
+	proxy.shelley = mustURL(t, shelleyUpstream.URL)
+
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/shelley/", nil)
+	rr := httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	body, err := io.ReadAll(rr.Result().Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if string(body) != "shelley" {
+		t.Fatalf("unexpected body: %q", string(body))
+	}
+}
+
 func TestProxyReadyz(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
 	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
