@@ -358,8 +358,9 @@ ARCAD_CONTROL_PLANE_URL=%s
 ARCAD_MACHINE_ID=%s
 ARCAD_MACHINE_TOKEN=%s
 ARCAD_STARTUP_SENTINEL=/var/lib/arca/startup.done
-ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:8080,127.0.0.1:21032
-TTYD_PORT=21032
+ARCAD_TTYD_SOCKET=/run/arca/ttyd.sock
+ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:8080
+TTYD_SOCKET=/run/arca/ttyd.sock
 TTYD_BASE_PATH=/__arca/ttyd
 `, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken))
 
@@ -512,7 +513,9 @@ write_files:
       [Service]
       Type=simple
       EnvironmentFile=/etc/arca/arcad.env
-      ExecStart=/usr/bin/ttyd -W -p ${TTYD_PORT} -b ${TTYD_BASE_PATH} bash
+      RuntimeDirectory=arca
+      ExecStartPre=/usr/bin/rm -f ${TTYD_SOCKET}
+      ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arca:arca -b ${TTYD_BASE_PATH} bash
       Restart=always
       User=arca
       Group=arca

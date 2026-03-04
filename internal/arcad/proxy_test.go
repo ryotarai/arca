@@ -3,6 +3,7 @@ package arcad
 import (
 	"context"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -36,7 +37,7 @@ func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
 
 func TestProxyRedirectsUnauthenticatedPrivateExposure(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"))
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/path?x=1", nil)
 	rr := httptest.NewRecorder()
@@ -56,7 +57,7 @@ func TestProxyCallbackSetsSessionCookie(t *testing.T) {
 		exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false},
 		claims:   TicketClaims{UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)},
 	}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"))
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/callback?token=tk_1&next=%2Fworkspace", nil)
 	rr := httptest.NewRecorder()
@@ -91,7 +92,7 @@ func TestProxyRoutesClaudeCodeUIPathToDedicatedUpstream(t *testing.T) {
 	t.Cleanup(claudecodeuiUpstream.Close)
 
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL))
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), "")
 	proxy.claudecodeui = mustURL(t, claudecodeuiUpstream.URL)
 
 	t.Run("claudecodeui path", func(t *testing.T) {
@@ -129,22 +130,34 @@ func TestProxyRoutesClaudeCodeUIPathToDedicatedUpstream(t *testing.T) {
 	})
 }
 
-func TestProxyRoutesTTydPathToDedicatedUpstream(t *testing.T) {
+func TestProxyRoutesTTydPathToDedicatedUnixSocket(t *testing.T) {
 	defaultUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("default"))
 	}))
 	t.Cleanup(defaultUpstream.Close)
 
-	ttydUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	socketPath := filepath.Join(t.TempDir(), "ttyd.sock")
+	ln, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("listen unix socket: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = ln.Close()
+	})
+	ttydUpstream := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ttyd"))
-	}))
-	t.Cleanup(ttydUpstream.Close)
+	})}
+	go func() {
+		_ = ttydUpstream.Serve(ln)
+	}()
+	t.Cleanup(func() {
+		_ = ttydUpstream.Close()
+	})
 
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL))
-	proxy.ttyd = mustURL(t, ttydUpstream.URL)
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), socketPath)
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/ttyd/", nil)
 	rr := httptest.NewRecorder()
@@ -164,7 +177,7 @@ func TestProxyRoutesTTydPathToDedicatedUpstream(t *testing.T) {
 
 func TestProxyReadyz(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"))
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
 
 	sentinel := filepath.Join(t.TempDir(), "startup.done")
 	proxy.SetReadinessChecker(NewReadinessChecker(sentinel, nil))

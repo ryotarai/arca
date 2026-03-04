@@ -14,6 +14,7 @@ type Config struct {
 	TunnelToken     string
 	ListenAddr      string
 	UpstreamURL     string
+	TTydSocket      string
 	SessionCookie   string
 	StartupSentinel string
 	ReadyEndpoints  string
@@ -28,6 +29,7 @@ func ConfigFromEnv() (Config, error) {
 		TunnelToken:     os.Getenv("ARCAD_TUNNEL_TOKEN"),
 		ListenAddr:      os.Getenv("ARCAD_LISTEN_ADDR"),
 		UpstreamURL:     os.Getenv("ARCAD_UPSTREAM_URL"),
+		TTydSocket:      os.Getenv("ARCAD_TTYD_SOCKET"),
 		SessionCookie:   os.Getenv("ARCAD_SESSION_COOKIE_NAME"),
 		StartupSentinel: os.Getenv("ARCAD_STARTUP_SENTINEL"),
 		ReadyEndpoints:  os.Getenv("ARCAD_READY_TCP_ENDPOINTS"),
@@ -38,6 +40,9 @@ func ConfigFromEnv() (Config, error) {
 	if cfg.UpstreamURL == "" {
 		cfg.UpstreamURL = "http://127.0.0.1:8080"
 	}
+	if cfg.TTydSocket == "" {
+		cfg.TTydSocket = "/run/arca/ttyd.sock"
+	}
 	if cfg.SessionCookie == "" {
 		cfg.SessionCookie = "arcad_session"
 	}
@@ -45,7 +50,7 @@ func ConfigFromEnv() (Config, error) {
 		cfg.StartupSentinel = "/var/lib/arca/startup.done"
 	}
 	if cfg.ReadyEndpoints == "" {
-		cfg.ReadyEndpoints = "127.0.0.1:8080,127.0.0.1:21032"
+		cfg.ReadyEndpoints = "127.0.0.1:8080"
 	}
 	if cfg.ControlPlaneURL == "" {
 		return Config{}, fmt.Errorf("ARCAD_CONTROL_PLANE_URL is required")

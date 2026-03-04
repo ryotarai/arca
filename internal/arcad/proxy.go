@@ -1,6 +1,7 @@
 package arcad
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -24,17 +25,18 @@ type Proxy struct {
 	upstream      *url.URL
 	claudecodeui  *url.URL
 	ttyd          *url.URL
+	ttydSocket    string
 	sessionCookie string
 	sessionMaxAge time.Duration
 	readiness     *ReadinessChecker
 }
 
-func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *SessionManager, sessionCookie string, upstream *url.URL) *Proxy {
+func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *SessionManager, sessionCookie string, upstream *url.URL, ttydSocket string) *Proxy {
 	if upstream == nil {
 		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:8080"}
 	}
 	claudecodeui := &url.URL{Scheme: "http", Host: "127.0.0.1:21031"}
-	ttyd := &url.URL{Scheme: "http", Host: "127.0.0.1:21032"}
+	ttyd := &url.URL{Scheme: "http", Host: "unix"}
 	return &Proxy{
 		cache:         cache,
 		controlPlane:  controlPlane,
@@ -42,6 +44,7 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 		upstream:      upstream,
 		claudecodeui:  claudecodeui,
 		ttyd:          ttyd,
+		ttydSocket:    ttydSocket,
 		sessionCookie: sessionCookie,
 		sessionMaxAge: 8 * time.Hour,
 	}
@@ -79,11 +82,23 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	target := p.targetUpstream(r.URL.Path)
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	if target == p.ttyd && p.ttydSocket != "" {
+		proxy.Transport = ttydUnixSocketTransport(p.ttydSocket)
+	}
 	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
 		log.Printf("reverse proxy error for host %q target %q: %v", host, target, err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+func ttydUnixSocketTransport(socketPath string) *http.Transport {
+	return &http.Transport{
+		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, "unix", socketPath)
+		},
+	}
 }
 
 func (p *Proxy) SetReadinessChecker(checker *ReadinessChecker) {

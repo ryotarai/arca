@@ -18,7 +18,8 @@ if [ -z "${ARCAD_TUNNEL_TOKEN:-}" ]; then
   export ARCAD_TUNNEL_TOKEN="${ARCA_TUNNEL_TOKEN}"
 fi
 export ARCAD_STARTUP_SENTINEL="${ARCAD_STARTUP_SENTINEL:-/var/lib/arca/startup.done}"
-export ARCAD_READY_TCP_ENDPOINTS="${ARCAD_READY_TCP_ENDPOINTS:-127.0.0.1:8080,127.0.0.1:21031,127.0.0.1:21032}"
+export ARCAD_READY_TCP_ENDPOINTS="${ARCAD_READY_TCP_ENDPOINTS:-127.0.0.1:8080,127.0.0.1:21031}"
+export ARCAD_TTYD_SOCKET="${ARCAD_TTYD_SOCKET:-/run/arca/ttyd.sock}"
 mkdir -p "$(dirname "$ARCAD_STARTUP_SENTINEL")"
 rm -f "$ARCAD_STARTUP_SENTINEL"
 
@@ -45,9 +46,11 @@ app_pid=$!
 /usr/local/bin/arcad &
 arcad_pid=$!
 
-TTYD_PORT="${TTYD_PORT:-21032}"
+TTYD_SOCKET="${TTYD_SOCKET:-$ARCAD_TTYD_SOCKET}"
 TTYD_BASE_PATH="${TTYD_BASE_PATH:-/__arca/ttyd}"
-ttyd -W -p "$TTYD_PORT" -b "$TTYD_BASE_PATH" bash &
+mkdir -p "$(dirname "$TTYD_SOCKET")"
+rm -f "$TTYD_SOCKET"
+ttyd -W -i "$TTYD_SOCKET" -U arca:arca -b "$TTYD_BASE_PATH" bash &
 ttyd_pid=$!
 
 BASE_PATH="${BASE_PATH:-/__arca/claudecodeui}"
