@@ -22,14 +22,17 @@ const (
 	MachineStatusRunning  = "running"
 	MachineStatusStopping = "stopping"
 	MachineStatusStopped  = "stopped"
+	MachineStatusDeleting = "deleting"
 	MachineStatusFailed   = "failed"
 
 	MachineDesiredRunning = "running"
 	MachineDesiredStopped = "stopped"
+	MachineDesiredDeleted = "deleted"
 
 	MachineJobStart     = "start"
 	MachineJobStop      = "stop"
 	MachineJobReconcile = "reconcile"
+	MachineJobDelete    = "delete"
 )
 
 type Machine struct {
@@ -263,6 +266,10 @@ func (s *Store) RequestStartMachineByIDForOwner(ctx context.Context, userID, mac
 
 func (s *Store) RequestStopMachineByIDForOwner(ctx context.Context, userID, machineID string) (bool, error) {
 	return s.requestStateTransition(ctx, userID, machineID, MachineStatusStopping, MachineDesiredStopped, MachineJobStop)
+}
+
+func (s *Store) RequestDeleteMachineByIDForOwner(ctx context.Context, userID, machineID string) (bool, error) {
+	return s.requestStateTransition(ctx, userID, machineID, MachineStatusDeleting, MachineDesiredDeleted, MachineJobDelete)
 }
 
 func (s *Store) requestStateTransition(ctx context.Context, userID, machineID, status, desiredStatus, jobKind string) (bool, error) {
@@ -722,6 +729,19 @@ func (s *Store) DeleteMachineByIDForOwner(ctx context.Context, userID, machineID
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *Store) DeleteMachineByID(ctx context.Context, machineID string) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		deleted, err := s.sqliteQueries.DeleteMachineByID(ctx, machineID)
+		return deleted > 0, err
+	case DriverPostgres:
+		deleted, err := s.pgQueries.DeleteMachineByID(ctx, machineID)
+		return deleted > 0, err
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
 }
 
 func randomID() (string, error) {

@@ -41,6 +41,11 @@ type Worker struct {
 	lastSweep    time.Time
 }
 
+const (
+	deleteTunnelMaxAttempts  = 5
+	deleteTunnelRetryBackoff = 3 * time.Second
+)
+
 func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string) *Worker {
 	return &Worker{
 		store:        store,
@@ -173,6 +178,8 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 		err = w.handleStart(ctx, machine)
 	case db.MachineJobStop:
 		err = w.handleStop(ctx, machine)
+	case db.MachineJobDelete:
+		err = w.handleDelete(ctx, machine)
 	default:
 		err = fmt.Errorf("unknown machine job kind: %s", job.Kind)
 	}
@@ -198,6 +205,9 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 }
 
 func (w *Worker) handleStart(ctx context.Context, machine db.Machine) error {
+	if machine.DesiredStatus == db.MachineDesiredDeleted {
+		return w.handleDelete(ctx, machine)
+	}
 	if machine.DesiredStatus == db.MachineDesiredStopped {
 		return w.handleStop(ctx, machine)
 	}
@@ -445,6 +455,10 @@ func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
 }
 
 func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {
+	if machine.DesiredStatus == db.MachineDesiredDeleted {
+		return w.handleDelete(ctx, machine)
+	}
+
 	if err := w.store.UpdateMachineRuntimeStateByMachineID(
 		ctx,
 		machine.ID,
@@ -468,6 +482,98 @@ func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {
 		"",
 		"",
 	)
+}
+
+func (w *Worker) handleDelete(ctx context.Context, machine db.Machine) error {
+	if err := w.store.UpdateMachineRuntimeStateByMachineID(
+		ctx,
+		machine.ID,
+		db.MachineStatusDeleting,
+		db.MachineDesiredDeleted,
+		machine.ContainerID,
+		"",
+	); err != nil {
+		return err
+	}
+
+	if err := w.runtime.EnsureStopped(ctx, machine); err != nil {
+		return err
+	}
+
+	if err := w.deleteMachineTunnel(ctx, machine.ID); err != nil {
+		return err
+	}
+
+	_, err := w.store.DeleteMachineByID(ctx, machine.ID)
+	return err
+}
+
+func (w *Worker) deleteMachineTunnel(ctx context.Context, machineID string) error {
+	tunnel, err := w.store.GetMachineTunnelByMachineID(ctx, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+
+	if w.cfClient == nil {
+		return errors.New("cloudflare client unavailable")
+	}
+
+	setup, err := w.store.GetSetupState(ctx)
+	if err != nil {
+		return err
+	}
+	apiToken := strings.TrimSpace(setup.CloudflareAPIToken)
+	if apiToken == "" {
+		return errors.New("cloudflare api token is not configured")
+	}
+
+	for attempt := 1; attempt <= deleteTunnelMaxAttempts; attempt++ {
+		err = w.cfClient.DeleteTunnel(ctx, apiToken, tunnel.AccountID, tunnel.TunnelID)
+		if err == nil {
+			return nil
+		}
+
+		var apiErr cloudflare.APIError
+		if !errors.As(err, &apiErr) {
+			return err
+		}
+
+		msg := strings.ToLower(apiErr.Message)
+		if strings.Contains(msg, "not found") || apiErr.Code == 1003 || apiErr.Code == 1033 {
+			return nil
+		}
+		if !isActiveTunnelConnectionError(apiErr) || attempt == deleteTunnelMaxAttempts {
+			return err
+		}
+
+		if err := sleepContext(ctx, deleteTunnelRetryBackoff); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func isActiveTunnelConnectionError(err cloudflare.APIError) bool {
+	if err.Code == 1022 {
+		return true
+	}
+	return strings.Contains(strings.ToLower(err.Message), "active connections")
+}
+
+func sleepContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func retryDelaySeconds(attempt int64) int64 {

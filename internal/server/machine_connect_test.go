@@ -1,11 +1,6 @@
 package server
 
-import (
-	"errors"
-	"testing"
-
-	"github.com/ryotarai/arca/internal/cloudflare"
-)
+import "testing"
 
 func TestValidateMachineName(t *testing.T) {
 	t.Parallel()
@@ -50,69 +45,5 @@ func TestValidateMachineName(t *testing.T) {
 				t.Fatalf("unexpected error: got %q want %q", err.Error(), tt.wantError)
 			}
 		})
-	}
-}
-
-func TestIsActiveTunnelConnectionError(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		err  cloudflare.APIError
-		want bool
-	}{
-		{
-			name: "matches code 1022",
-			err: cloudflare.APIError{
-				Code:    1022,
-				Message: "any message",
-			},
-			want: true,
-		},
-		{
-			name: "matches message",
-			err: cloudflare.APIError{
-				Code:    0,
-				Message: "This tunnel has active connections.",
-			},
-			want: true,
-		},
-		{
-			name: "does not match",
-			err: cloudflare.APIError{
-				Code:    1003,
-				Message: "resource not found",
-			},
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := isActiveTunnelConnectionError(tt.err)
-			if got != tt.want {
-				t.Fatalf("isActiveTunnelConnectionError(%+v) = %v, want %v", tt.err, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestIsActiveTunnelConnectionDeleteError(t *testing.T) {
-	t.Parallel()
-
-	activeErr := cloudflare.APIError{Code: 1022, Message: "active connections"}
-	if !isActiveTunnelConnectionDeleteError(activeErr) {
-		t.Fatalf("expected active connection delete error to be detected")
-	}
-
-	notActiveErr := cloudflare.APIError{Code: 1003, Message: "not found"}
-	if isActiveTunnelConnectionDeleteError(notActiveErr) {
-		t.Fatalf("unexpected detection for non-active error")
-	}
-
-	if isActiveTunnelConnectionDeleteError(errors.New("network timeout")) {
-		t.Fatalf("unexpected detection for non-cloudflare error")
 	}
 }

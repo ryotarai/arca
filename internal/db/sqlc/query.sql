@@ -85,6 +85,10 @@ WHERE id = sqlc.arg(machine_id)
     WHERE um.machine_id = machines.id
   );
 
+-- name: DeleteMachineByID :execrows
+DELETE FROM machines
+WHERE id = sqlc.arg(machine_id);
+
 -- name: CreateMachineState :exec
 INSERT INTO machine_states (machine_id, status, desired_status, updated_at)
 VALUES (sqlc.arg(machine_id), sqlc.arg(status), sqlc.arg(desired_status), sqlc.arg(updated_at));
