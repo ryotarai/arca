@@ -50,7 +50,7 @@ TTYD_SOCKET="${TTYD_SOCKET:-$ARCAD_TTYD_SOCKET}"
 TTYD_BASE_PATH="${TTYD_BASE_PATH:-/__arca/ttyd}"
 mkdir -p "$(dirname "$TTYD_SOCKET")"
 rm -f "$TTYD_SOCKET"
-ttyd -W -i "$TTYD_SOCKET" -U arca:arca -b "$TTYD_BASE_PATH" bash &
+ttyd -W -i "$TTYD_SOCKET" -U arca:arca -b "$TTYD_BASE_PATH" tmux new-session -A -s arca &
 ttyd_pid=$!
 
 BASE_PATH="${BASE_PATH:-/__arca/claudecodeui}"

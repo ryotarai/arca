@@ -390,7 +390,7 @@ provision_marker="/var/lib/arca/provisioned"
 mkdir -p /var/lib/arca
 if [ ! -f "$provision_marker" ]; then
   apt-get update
-  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd
   touch "$provision_marker"
 fi
 
@@ -424,7 +424,7 @@ chown arca:arca /workspace
 chmod 700 /workspace
 
 need_packages=0
-for cmd in bash curl git jq python3 ttyd; do
+for cmd in bash curl git jq python3 tmux ttyd; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     need_packages=1
     break
@@ -432,7 +432,7 @@ for cmd in bash curl git jq python3 ttyd; do
 done
 if [ ! -f "$provision_marker" ] || [ "$need_packages" -eq 1 ]; then
   apt-get update
-  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd
   touch "$provision_marker"
 fi
 
@@ -535,7 +535,7 @@ write_files:
       EnvironmentFile=/etc/arca/arcad.env
       RuntimeDirectory=arca
       ExecStartPre=/usr/bin/rm -f ${TTYD_SOCKET}
-      ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arca:arca -b ${TTYD_BASE_PATH} bash
+      ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arca:arca -b ${TTYD_BASE_PATH} tmux new-session -A -s arca
       Restart=always
       User=arca
       Group=arca
