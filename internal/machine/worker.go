@@ -500,12 +500,50 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine) error {
 		return err
 	}
 
+	if err := w.deleteMachineDNSRecords(ctx, machine.ID); err != nil {
+		return err
+	}
+
 	if err := w.deleteMachineTunnel(ctx, machine.ID); err != nil {
 		return err
 	}
 
 	_, err := w.store.DeleteMachineByID(ctx, machine.ID)
 	return err
+}
+
+func (w *Worker) deleteMachineDNSRecords(ctx context.Context, machineID string) error {
+	if w.cfClient == nil {
+		return errors.New("cloudflare client unavailable")
+	}
+
+	setup, err := w.store.GetSetupState(ctx)
+	if err != nil {
+		return err
+	}
+	apiToken := strings.TrimSpace(setup.CloudflareAPIToken)
+	if apiToken == "" {
+		return errors.New("cloudflare api token is not configured")
+	}
+	zoneID := strings.TrimSpace(setup.CloudflareZoneID)
+	if zoneID == "" {
+		return errors.New("cloudflare zone id is not configured")
+	}
+
+	exposures, err := w.store.ListMachineExposuresByMachineID(ctx, machineID)
+	if err != nil {
+		return err
+	}
+	for _, exposure := range exposures {
+		hostname := strings.TrimSpace(exposure.Hostname)
+		if hostname == "" {
+			continue
+		}
+		if err := w.cfClient.DeleteDNSCNAME(ctx, apiToken, zoneID, hostname); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (w *Worker) deleteMachineTunnel(ctx context.Context, machineID string) error {
