@@ -40,6 +40,7 @@ type Worker struct {
 	leaseTTL     time.Duration
 	reconcileTTL time.Duration
 	startupTTL   time.Duration
+	stopTTL      time.Duration
 	lastSweep    time.Time
 }
 
@@ -58,6 +59,7 @@ func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, wo
 		leaseTTL:     30 * time.Second,
 		reconcileTTL: 15 * time.Second,
 		startupTTL:   4 * time.Minute,
+		stopTTL:      90 * time.Second,
 	}
 }
 
@@ -479,7 +481,9 @@ func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {
 		return err
 	}
 
-	if err := w.runtime.EnsureStopped(ctx, machine); err != nil {
+	stopCtx, cancel := context.WithTimeout(ctx, w.stopTTL)
+	defer cancel()
+	if err := w.runtime.EnsureStopped(stopCtx, machine); err != nil {
 		return err
 	}
 
@@ -505,7 +509,9 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine) error {
 		return err
 	}
 
-	if err := w.runtime.EnsureStopped(ctx, machine); err != nil {
+	stopCtx, cancel := context.WithTimeout(ctx, w.stopTTL)
+	defer cancel()
+	if err := w.runtime.EnsureStopped(stopCtx, machine); err != nil {
 		return err
 	}
 
