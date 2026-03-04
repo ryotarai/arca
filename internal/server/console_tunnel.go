@@ -122,7 +122,8 @@ func runCloudflared(ctx context.Context, binaryPath, tunnelToken string) {
 		binary = "cloudflared"
 	}
 	for {
-		cmd := exec.CommandContext(ctx, binary, "tunnel", "run", "--token", tunnelToken)
+		cmd := exec.CommandContext(ctx, binary, "tunnel", "run")
+		cmd.Env = append(os.Environ(), "TUNNEL_TOKEN="+tunnelToken)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		log.Printf("starting console cloudflared: %s", binary)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -28,7 +29,8 @@ func (r *CloudflaredRunner) Run(ctx context.Context) error {
 	}
 	restart := r.RestartOnExit
 	for {
-		cmd := exec.CommandContext(ctx, binary, "tunnel", "run", "--token", r.TunnelToken)
+		cmd := exec.CommandContext(ctx, binary, "tunnel", "run")
+		cmd.Env = append(os.Environ(), "TUNNEL_TOKEN="+r.TunnelToken)
 		cmd.Stdout = r.Stdout
 		cmd.Stderr = r.Stderr
 		log.Printf("starting cloudflared: %s", binary)
