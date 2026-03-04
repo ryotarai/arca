@@ -5,6 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { updateDomainSettings } from '@/lib/api'
+import {
+  normalizeBaseDomainInput,
+  normalizeDomainPrefixInput,
+  validateBaseDomainInput,
+  validateDomainPrefixInput,
+} from '@/lib/domainValidation'
 import { messageFromError } from '@/lib/errors'
 import type { SetupStatus, User } from '@/lib/types'
 
@@ -22,6 +28,8 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const baseDomainError = validateBaseDomainInput(baseDomain)
+  const domainPrefixError = validateDomainPrefixInput(domainPrefix)
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -33,11 +41,21 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
     setSaved(false)
     setLoading(true)
     try {
-      await updateDomainSettings(baseDomain, domainPrefix, machineRuntime)
+      const normalizedBaseDomain = normalizeBaseDomainInput(baseDomain)
+      const normalizedDomainPrefix = normalizeDomainPrefixInput(domainPrefix)
+      const nextBaseDomainError = validateBaseDomainInput(normalizedBaseDomain)
+      if (nextBaseDomainError != null) {
+        throw new Error(nextBaseDomainError)
+      }
+      const nextDomainPrefixError = validateDomainPrefixInput(normalizedDomainPrefix)
+      if (nextDomainPrefixError != null) {
+        throw new Error(nextDomainPrefixError)
+      }
+      await updateDomainSettings(normalizedBaseDomain, normalizedDomainPrefix, machineRuntime)
       onSetupStatusChange({
         ...setupStatus,
-        baseDomain: baseDomain.trim(),
-        domainPrefix: domainPrefix.trim(),
+        baseDomain: normalizedBaseDomain,
+        domainPrefix: normalizedDomainPrefix,
         machineRuntime,
       })
       setSaved(true)
@@ -91,6 +109,9 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                   placeholder="ryotarai.info"
                 />
+                {baseDomain !== '' && baseDomainError != null && (
+                  <p className="text-sm text-red-300">{baseDomainError}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="settings-domain-prefix" className="text-slate-200">
@@ -103,6 +124,9 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                   placeholder="arca-"
                 />
+                {domainPrefix !== '' && domainPrefixError != null && (
+                  <p className="text-sm text-red-300">{domainPrefixError}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="settings-machine-runtime" className="text-slate-200">
@@ -118,7 +142,11 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   <option value="libvirt">Libvirt (Ubuntu 24.04 VM)</option>
                 </select>
               </div>
-              <Button type="submit" className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100" disabled={loading}>
+              <Button
+                type="submit"
+                className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100"
+                disabled={loading || baseDomainError != null || domainPrefixError != null}
+              >
                 {loading ? 'Saving...' : 'Save settings'}
               </Button>
             </form>
