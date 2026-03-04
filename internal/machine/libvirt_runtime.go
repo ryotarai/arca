@@ -385,8 +385,15 @@ exec python3 -m http.server 8080 --directory /home/arca/www --bind 127.0.0.1
 	installScript := `#!/usr/bin/env bash
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
+provision_marker="/var/lib/arca/provisioned"
+
+mkdir -p /var/lib/arca
+if [ ! -f "$provision_marker" ]; then
+  apt-get update
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
+  touch "$provision_marker"
+fi
+
 id -u arca >/dev/null 2>&1 || useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 mkdir -p /workspace /etc/arca /opt/arca
 chown arca:arca /workspace
@@ -408,14 +415,27 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 sentinel="${ARCAD_STARTUP_SENTINEL:-/var/lib/arca/startup.done}"
+provision_marker="/var/lib/arca/provisioned"
 rm -f "$sentinel"
 
-apt-get update
-apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
 id -u arca >/dev/null 2>&1 || useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 mkdir -p /workspace /etc/arca /opt/arca /var/lib/arca
 chown arca:arca /workspace
 chmod 700 /workspace
+
+need_packages=0
+for cmd in bash curl git jq python3 ttyd; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    need_packages=1
+    break
+  fi
+done
+if [ ! -f "$provision_marker" ] || [ "$need_packages" -eq 1 ]; then
+  apt-get update
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
+  touch "$provision_marker"
+fi
+
 if [ ! -x /usr/local/bin/cloudflared ]; then
   arch="$(dpkg --print-architecture)"
   curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o /usr/local/bin/cloudflared
