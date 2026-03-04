@@ -10,6 +10,12 @@ import {
   setupCreateAdmin,
   setupValidateCloudflare,
 } from '@/lib/api'
+import {
+  normalizeBaseDomainInput,
+  normalizeDomainPrefixInput,
+  validateBaseDomainInput,
+  validateDomainPrefixInput,
+} from '@/lib/domainValidation'
 import { messageFromError } from '@/lib/errors'
 import type { User } from '@/lib/types'
 
@@ -57,18 +63,21 @@ export function SetupPage({
     return 100
   }, [step])
 
+  const baseDomainError = useMemo(() => validateBaseDomainInput(baseDomain), [baseDomain])
+  const domainPrefixError = useMemo(() => validateDomainPrefixInput(domainPrefix), [domainPrefix])
+
   const consoleEndpoint = useMemo(() => {
-    const normalizedDomain = baseDomain.trim().toLowerCase()
+    if (baseDomainError != null || domainPrefixError != null) {
+      return ''
+    }
+    const normalizedDomain = normalizeBaseDomainInput(baseDomain)
     if (normalizedDomain === '') {
       return ''
     }
-    const normalizedPrefix = domainPrefix
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '')
+    const normalizedPrefix = normalizeDomainPrefixInput(domainPrefix)
     const label = `${normalizedPrefix}app`.replace(/^-+|-+$/g, '') || 'app'
     return `https://${label}.${normalizedDomain}`
-  }, [baseDomain, domainPrefix])
+  }, [baseDomain, baseDomainError, domainPrefix, domainPrefixError])
 
   const submitAdmin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -97,13 +106,23 @@ export function SetupPage({
     setError('')
     setLoadingStep(true)
     try {
+      const normalizedBaseDomain = normalizeBaseDomainInput(baseDomain)
+      const normalizedDomainPrefix = normalizeDomainPrefixInput(domainPrefix)
+      const nextBaseDomainError = validateBaseDomainInput(normalizedBaseDomain)
+      if (nextBaseDomainError != null) {
+        throw new Error(nextBaseDomainError)
+      }
+      const nextDomainPrefixError = validateDomainPrefixInput(normalizedDomainPrefix)
+      if (nextDomainPrefixError != null) {
+        throw new Error(nextDomainPrefixError)
+      }
       if (cloudflareZoneID.trim() === '') {
         throw new Error('cloudflare zone id is required')
       }
       if (cloudflareAccountID.trim() === '') {
         throw new Error('cloudflare account id is required')
       }
-      await setupValidateCloudflare(cloudflareToken, cloudflareAccountID, baseDomain)
+      await setupValidateCloudflare(cloudflareToken, cloudflareAccountID, normalizedBaseDomain)
       setStep(3)
     } catch (e) {
       setError(messageFromError(e))
@@ -117,9 +136,27 @@ export function SetupPage({
     setError('')
     setLoadingStep(true)
     try {
+      const normalizedBaseDomain = normalizeBaseDomainInput(baseDomain)
+      const normalizedDomainPrefix = normalizeDomainPrefixInput(domainPrefix)
+      const nextBaseDomainError = validateBaseDomainInput(normalizedBaseDomain)
+      if (nextBaseDomainError != null) {
+        throw new Error(nextBaseDomainError)
+      }
+      const nextDomainPrefixError = validateDomainPrefixInput(normalizedDomainPrefix)
+      if (nextDomainPrefixError != null) {
+        throw new Error(nextDomainPrefixError)
+      }
       await setupConfigureProviderDocker()
-      await setupComplete(email, password, baseDomain, domainPrefix, cloudflareToken, cloudflareZoneID, machineRuntime)
-      onSetupComplete(cloudflareZoneID, baseDomain, domainPrefix, machineRuntime)
+      await setupComplete(
+        email,
+        password,
+        normalizedBaseDomain,
+        normalizedDomainPrefix,
+        cloudflareToken,
+        cloudflareZoneID,
+        machineRuntime,
+      )
+      onSetupComplete(cloudflareZoneID, normalizedBaseDomain, normalizedDomainPrefix, machineRuntime)
       window.setTimeout(() => {
         void navigate('/', { replace: true })
       }, 350)
@@ -244,6 +281,9 @@ export function SetupPage({
                     className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                     placeholder="arca.dev"
                   />
+                  {baseDomain !== '' && baseDomainError != null && (
+                    <p className="text-sm text-red-300">{baseDomainError}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="setup-domain-prefix" className="text-slate-200">
@@ -256,6 +296,9 @@ export function SetupPage({
                     className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
                     placeholder="arca- (optional)"
                   />
+                  {domainPrefix !== '' && domainPrefixError != null && (
+                    <p className="text-sm text-red-300">{domainPrefixError}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="setup-account-id" className="text-slate-200">
@@ -299,7 +342,7 @@ export function SetupPage({
                 </div>
                 <Button
                   type="submit"
-                  disabled={loadingStep}
+                  disabled={loadingStep || baseDomainError != null || domainPrefixError != null}
                   className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100"
                 >
                   {loadingStep ? 'Validating...' : 'Validate and continue'}
@@ -353,7 +396,7 @@ export function SetupPage({
                 )}
                 <Button
                   type="submit"
-                  disabled={loadingStep}
+                  disabled={loadingStep || baseDomainError != null || domainPrefixError != null}
                   className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100"
                 >
                   {loadingStep ? 'Completing setup...' : 'Finish setup'}

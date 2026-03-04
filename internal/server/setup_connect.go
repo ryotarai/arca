@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -21,6 +22,11 @@ type setupConnectService struct {
 	cf            *cloudflare.Client
 	consoleTunnel *ConsoleTunnelManager
 }
+
+var (
+	baseDomainPattern   = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$`)
+	domainPrefixPattern = regexp.MustCompile(`^[a-z0-9-]*$`)
+)
 
 func newSetupConnectService(store *db.Store, authenticator Authenticator, cf *cloudflare.Client, consoleTunnel *ConsoleTunnelManager) *setupConnectService {
 	return &setupConnectService{store: store, authenticator: authenticator, cf: cf, consoleTunnel: consoleTunnel}
@@ -111,11 +117,17 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 
 	email := strings.TrimSpace(req.Msg.GetAdminEmail())
 	password := req.Msg.GetAdminPassword()
-	baseDomain := normalizeBaseDomain(req.Msg.GetBaseDomain())
-	domainPrefix := normalizeDomainPrefix(req.Msg.GetDomainPrefix())
+	baseDomain, err := validateBaseDomain(req.Msg.GetBaseDomain())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	domainPrefix, err := validateDomainPrefix(req.Msg.GetDomainPrefix())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 	cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken())
 	zoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId())
-	if email == "" || password == "" || baseDomain == "" || cfToken == "" || zoneID == "" {
+	if email == "" || password == "" || cfToken == "" || zoneID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("admin email, password, base domain, cloudflare token, and cloudflare zone id are required"))
 	}
 
@@ -187,13 +199,17 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("setup is not completed yet"))
 	}
 
-	baseDomain := normalizeBaseDomain(req.Msg.GetBaseDomain())
-	if baseDomain == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("base domain is required"))
+	baseDomain, err := validateBaseDomain(req.Msg.GetBaseDomain())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	domainPrefix, err := validateDomainPrefix(req.Msg.GetDomainPrefix())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	current.BaseDomain = baseDomain
-	current.DomainPrefix = normalizeDomainPrefix(req.Msg.GetDomainPrefix())
+	current.DomainPrefix = domainPrefix
 	if strings.TrimSpace(req.Msg.GetMachineRuntime()) != "" {
 		current.MachineRuntime = normalizeMachineRuntime(req.Msg.GetMachineRuntime())
 	}
@@ -225,23 +241,33 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 	}
 }
 
-func normalizeBaseDomain(domain string) string {
-	domain = strings.ToLower(strings.TrimSpace(domain))
-	domain = strings.TrimPrefix(domain, "http://")
-	domain = strings.TrimPrefix(domain, "https://")
-	domain = strings.TrimSuffix(domain, "/")
-	return domain
+func validateBaseDomain(domain string) (string, error) {
+	value := strings.ToLower(strings.TrimSpace(domain))
+	if value == "" {
+		return "", errors.New("base domain is required")
+	}
+	if len(value) > 253 {
+		return "", errors.New("base domain is too long")
+	}
+	if !baseDomainPattern.MatchString(value) {
+		return "", errors.New("base domain must be a valid domain name")
+	}
+	return value, nil
 }
 
-func normalizeDomainPrefix(prefix string) string {
-	prefix = strings.ToLower(strings.TrimSpace(prefix))
-	var b strings.Builder
-	for _, r := range prefix {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
-			b.WriteRune(r)
-		}
+func validateDomainPrefix(prefix string) (string, error) {
+	value := strings.ToLower(strings.TrimSpace(prefix))
+	if !domainPrefixPattern.MatchString(value) {
+		return "", errors.New("domain prefix may contain only lowercase letters, numbers, and hyphens")
 	}
-	return b.String()
+	label := strings.Trim(value+"app", "-")
+	if label == "" {
+		label = "app"
+	}
+	if len(label) > 63 {
+		return "", errors.New("domain prefix is too long")
+	}
+	return value, nil
 }
 
 func normalizeMachineRuntime(runtime string) string {
