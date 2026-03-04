@@ -204,8 +204,12 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 	}
 
 	if err := s.deleteMachineTunnel(ctx, machineID); err != nil {
-		log.Printf("delete machine tunnel failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete cloudflare tunnel"))
+		if isActiveTunnelConnectionDeleteError(err) {
+			log.Printf("delete machine tunnel deferred due to active connections: %v", err)
+		} else {
+			log.Printf("delete machine tunnel failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete cloudflare tunnel"))
+		}
 	}
 
 	deleted, err := s.store.DeleteMachineByIDForOwner(ctx, userID, machineID)
@@ -274,6 +278,14 @@ func isActiveTunnelConnectionError(err cloudflare.APIError) bool {
 		return true
 	}
 	return strings.Contains(strings.ToLower(err.Message), "active connections")
+}
+
+func isActiveTunnelConnectionDeleteError(err error) bool {
+	var apiErr cloudflare.APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return isActiveTunnelConnectionError(apiErr)
 }
 
 func sleepContext(ctx context.Context, d time.Duration) error {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ryotarai/arca/internal/cloudflare"
@@ -95,5 +96,23 @@ func TestIsActiveTunnelConnectionError(t *testing.T) {
 				t.Fatalf("isActiveTunnelConnectionError(%+v) = %v, want %v", tt.err, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestIsActiveTunnelConnectionDeleteError(t *testing.T) {
+	t.Parallel()
+
+	activeErr := cloudflare.APIError{Code: 1022, Message: "active connections"}
+	if !isActiveTunnelConnectionDeleteError(activeErr) {
+		t.Fatalf("expected active connection delete error to be detected")
+	}
+
+	notActiveErr := cloudflare.APIError{Code: 1003, Message: "not found"}
+	if isActiveTunnelConnectionDeleteError(notActiveErr) {
+		t.Fatalf("unexpected detection for non-active error")
+	}
+
+	if isActiveTunnelConnectionDeleteError(errors.New("network timeout")) {
+		t.Fatalf("unexpected detection for non-cloudflare error")
 	}
 }
