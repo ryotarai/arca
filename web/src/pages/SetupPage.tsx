@@ -79,6 +79,14 @@ export function SetupPage({
     return `https://${label}.${normalizedDomain}`
   }, [baseDomain, baseDomainError, domainPrefix, domainPrefixError])
 
+  const machineEndpointPreview = useMemo(() => {
+    const normalizedDomain = normalizeBaseDomainInput(baseDomain)
+    const base = normalizedDomain === '' ? 'your-domain.example.com' : normalizedDomain
+    const normalizedPrefix = normalizeDomainPrefixInput(domainPrefix)
+    const prefix = normalizedPrefix === '' ? 'your-prefix-' : normalizedPrefix
+    return `${prefix}machine-name.${base}`
+  }, [baseDomain, domainPrefix])
+
   const submitAdmin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (password !== confirmPassword) {
@@ -299,6 +307,9 @@ export function SetupPage({
                   {domainPrefix !== '' && domainPrefixError != null && (
                     <p className="text-sm text-red-300">{domainPrefixError}</p>
                   )}
+                  <p className="text-xs text-slate-400">
+                    Your domain will look like <code>{machineEndpointPreview}</code>.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="setup-account-id" className="text-slate-200">
