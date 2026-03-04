@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   createMachine,
+  getMachine,
   deleteMachine,
   listMachines,
   startMachine,
@@ -20,6 +21,8 @@ type MachinesPageProps = {
 }
 
 const pollingRequestTimeoutMs = 2500
+const restartWaitTimeoutMs = 60000
+const restartWaitIntervalMs = 1500
 
 function statusTone(status: string): string {
   switch (status) {
@@ -133,6 +136,10 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
   }
 
   const submitStop = async (machineID: string) => {
+    if (!window.confirm('Stop this machine?')) {
+      return
+    }
+
     setError('')
     try {
       const updated = await stopMachine(machineID)
@@ -143,10 +150,41 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
   }
 
   const submitDelete = async (machineID: string) => {
+    if (!window.confirm('Delete this machine? This action cannot be undone.')) {
+      return
+    }
+
     setError('')
     try {
       await deleteMachine(machineID)
       setMachines((prev) => prev.filter((machine) => machine.id !== machineID))
+    } catch (e) {
+      setError(messageFromError(e))
+    }
+  }
+
+  const submitRestart = async (machineID: string) => {
+    if (!window.confirm('Restart this machine?')) {
+      return
+    }
+
+    setError('')
+    try {
+      await stopMachine(machineID)
+
+      const startedAt = Date.now()
+      while (Date.now() < startedAt + restartWaitTimeoutMs) {
+        const machine = await getMachine(machineID)
+        if (machine.status === 'stopped') {
+          break
+        }
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, restartWaitIntervalMs)
+        })
+      }
+
+      const updated = await startMachine(machineID)
+      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
     } catch (e) {
       setError(messageFromError(e))
     }
@@ -248,6 +286,9 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                             disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
                           >
                             Stop
+                          </Button>
+                          <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
+                            Restart
                           </Button>
                           <Button
                             type="button"

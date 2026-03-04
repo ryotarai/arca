@@ -12,6 +12,8 @@ type MachineDetailPageProps = {
 }
 
 const pollingRequestTimeoutMs = 2500
+const restartWaitTimeoutMs = 60000
+const restartWaitIntervalMs = 1500
 
 function statusTone(status: string): string {
   switch (status) {
@@ -111,9 +113,39 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   }
 
   const handleStop = async () => {
+    if (!window.confirm('Stop this machine?')) {
+      return
+    }
+
     setError('')
     try {
       const updated = await stopMachine(machineID)
+      setMachine(updated)
+    } catch (e) {
+      setError(messageFromError(e))
+    }
+  }
+
+  const handleRestart = async () => {
+    if (!window.confirm('Restart this machine?')) {
+      return
+    }
+
+    setError('')
+    try {
+      await stopMachine(machineID)
+      const startedAt = Date.now()
+      while (Date.now() < startedAt + restartWaitTimeoutMs) {
+        const current = await getMachine(machineID)
+        setMachine(current)
+        if (current.status === 'stopped') {
+          break
+        }
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, restartWaitIntervalMs)
+        })
+      }
+      const updated = await startMachine(machineID)
       setMachine(updated)
     } catch (e) {
       setError(messageFromError(e))
@@ -202,6 +234,9 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
                   >
                     Stop
+                  </Button>
+                  <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void handleRestart()}>
+                    Restart
                   </Button>
                 </div>
               </>
