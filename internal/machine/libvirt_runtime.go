@@ -307,9 +307,6 @@ ARCAD_MACHINE_ID=%s
 ARCAD_MACHINE_TOKEN=%s
 TTYD_PORT=21032
 TTYD_BASE_PATH=/__arca/ttyd
-BASE_PATH=/__arca/claudecodeui
-PORT=21031
-VITE_IS_PLATFORM=true
 `, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken))
 
 	entrypointScript := `#!/usr/bin/env bash
@@ -334,7 +331,7 @@ exec python3 -m http.server 8080 --directory /home/arca/www --bind 127.0.0.1
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd unzip npm golang-go make g++
+apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
 id -u arca >/dev/null 2>&1 || useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 mkdir -p /workspace /etc/arca /opt/arca
 chown arca:arca /workspace
@@ -344,19 +341,10 @@ if [ ! -x /usr/local/bin/cloudflared ]; then
   curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o /usr/local/bin/cloudflared
   chmod +x /usr/local/bin/cloudflared
 fi
-if [ ! -d /home/arca/claudecodeui ]; then
-  curl -fsSL https://github.com/ryotarai/claudecodeui/archive/refs/tags/ryotarai-v1.21.0-2.zip -o /tmp/claudecodeui.zip
-  unzip -q /tmp/claudecodeui.zip -d /tmp
-  mv /tmp/claudecodeui-* /home/arca/claudecodeui
-  rm -f /tmp/claudecodeui.zip
-fi
-cd /home/arca/claudecodeui
-npm ci
-npm run build
 chown -R arca:arca /home/arca
 chmod +x /usr/local/bin/arca-entrypoint.sh
 systemctl daemon-reload
-systemctl enable --now arca-http.service arca-arcad.service arca-ttyd.service arca-claudecodeui.service
+systemctl enable --now arca-http.service arca-arcad.service arca-ttyd.service
 `
 
 	return fmt.Sprintf(`#cloud-config
@@ -427,24 +415,6 @@ write_files:
       Type=simple
       EnvironmentFile=/etc/arca/arcad.env
       ExecStart=/usr/bin/ttyd -p ${TTYD_PORT} -b ${TTYD_BASE_PATH} bash
-      Restart=always
-      User=arca
-      Group=arca
-      [Install]
-      WantedBy=multi-user.target
-  - path: /etc/systemd/system/arca-claudecodeui.service
-    permissions: "0644"
-    owner: root:root
-    content: |
-      [Unit]
-      Description=Arca ClaudeCode UI
-      After=network-online.target
-      Wants=network-online.target
-      [Service]
-      Type=simple
-      EnvironmentFile=/etc/arca/arcad.env
-      WorkingDirectory=/home/arca/claudecodeui
-      ExecStart=/usr/bin/node /home/arca/claudecodeui/server/index.js
       Restart=always
       User=arca
       Group=arca
