@@ -414,7 +414,7 @@ write_files:
       [Service]
       Type=simple
       EnvironmentFile=/etc/arca/arcad.env
-      ExecStart=/usr/bin/ttyd -p ${TTYD_PORT} -b ${TTYD_BASE_PATH} bash
+      ExecStart=/usr/bin/ttyd -W -p ${TTYD_PORT} -b ${TTYD_BASE_PATH} bash
       Restart=always
       User=arca
       Group=arca
