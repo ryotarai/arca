@@ -205,6 +205,19 @@ func (q *Queries) CreateUserMachine(ctx context.Context, arg CreateUserMachinePa
 	return err
 }
 
+const deleteMachineByID = `-- name: DeleteMachineByID :execrows
+DELETE FROM machines
+WHERE id = $1
+`
+
+func (q *Queries) DeleteMachineByID(ctx context.Context, machineID string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteMachineByID, machineID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteMachineIfNoUsers = `-- name: DeleteMachineIfNoUsers :exec
 DELETE FROM machines
 WHERE id = $1

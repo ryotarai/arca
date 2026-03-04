@@ -43,7 +43,9 @@ type MachineStore interface {
 	UpdateMachineNameByIDForOwner(context.Context, string, string, string) (bool, error)
 	RequestStartMachineByIDForOwner(context.Context, string, string) (bool, error)
 	RequestStopMachineByIDForOwner(context.Context, string, string) (bool, error)
+	RequestDeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
+	DeleteMachineByID(context.Context, string) (bool, error)
 	GetMachineTunnelByMachineID(context.Context, string) (db.MachineTunnel, error)
 	GetSetupState(context.Context) (db.SetupState, error)
 }
