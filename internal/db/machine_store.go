@@ -36,6 +36,7 @@ type Machine struct {
 	ID            string
 	Name          string
 	Runtime       string
+	Endpoint      string
 	Status        string
 	DesiredStatus string
 	ContainerID   string
@@ -177,6 +178,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		ID:            machineID,
 		Name:          name,
 		Runtime:       runtime,
+		Endpoint:      "",
 		Status:        MachineStatusPending,
 		DesiredStatus: MachineDesiredRunning,
 		MachineToken:  machineToken,
@@ -196,6 +198,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				ID:            row.ID,
 				Name:          row.Name,
 				Runtime:       NormalizeMachineRuntime(row.Runtime),
+				Endpoint:      strings.TrimSpace(row.Endpoint),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,
@@ -214,6 +217,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				ID:            row.ID,
 				Name:          row.Name,
 				Runtime:       NormalizeMachineRuntime(row.Runtime),
+				Endpoint:      strings.TrimSpace(row.Endpoint),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,
@@ -355,6 +359,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			ID:            row.ID,
 			Name:          row.Name,
 			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -369,6 +374,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			ID:            row.ID,
 			Name:          row.Name,
 			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -393,6 +399,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			ID:            row.ID,
 			Name:          row.Name,
 			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -410,6 +417,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			ID:            row.ID,
 			Name:          row.Name,
 			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
 			ContainerID:   row.ContainerID,
@@ -440,6 +448,24 @@ func (s *Store) UpdateMachineRuntimeStateByMachineID(ctx context.Context, machin
 			LastError:     lastError,
 			UpdatedAt:     nowUnix,
 			MachineID:     machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpdateMachineEndpointByID(ctx context.Context, machineID, endpoint string) error {
+	endpoint = strings.TrimSpace(endpoint)
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateMachineEndpointByID(ctx, sqlitesqlc.UpdateMachineEndpointByIDParams{
+			Endpoint:  endpoint,
+			MachineID: machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateMachineEndpointByID(ctx, postgresqlsqlc.UpdateMachineEndpointByIDParams{
+			Endpoint:  endpoint,
+			MachineID: machineID,
 		})
 	default:
 		return unsupportedDriverError(s.driver)

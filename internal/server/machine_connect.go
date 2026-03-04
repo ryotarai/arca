@@ -267,6 +267,7 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 		Status:        machine.Status,
 		DesiredStatus: machine.DesiredStatus,
 		LastError:     machine.LastError,
+		Endpoint:      machine.Endpoint,
 	}
 }
 
