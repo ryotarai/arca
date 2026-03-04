@@ -15,6 +15,7 @@ import (
 const callbackPath = "/callback"
 const claudecodeuiBasePath = "/__arca/claudecodeui"
 const ttydBasePath = "/__arca/ttyd"
+const readyPath = "/__arca/readyz"
 
 type Proxy struct {
 	cache         *ExposureCache
@@ -25,6 +26,7 @@ type Proxy struct {
 	ttyd          *url.URL
 	sessionCookie string
 	sessionMaxAge time.Duration
+	readiness     *ReadinessChecker
 }
 
 func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *SessionManager, sessionCookie string, upstream *url.URL) *Proxy {
@@ -46,6 +48,11 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == readyPath {
+		p.handleReady(w, r)
+		return
+	}
+
 	host := stripPort(r.Host)
 	exposure, err := p.cache.GetByHost(r.Context(), host)
 	if err != nil {
@@ -77,6 +84,24 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+func (p *Proxy) SetReadinessChecker(checker *ReadinessChecker) {
+	p.readiness = checker
+}
+
+func (p *Proxy) handleReady(w http.ResponseWriter, r *http.Request) {
+	if p.readiness == nil {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+		return
+	}
+	if err := p.readiness.Ready(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
 }
 
 func (p *Proxy) targetUpstream(path string) *url.URL {

@@ -39,6 +39,14 @@ func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 	return runtime.IsRunning(ctx, machine)
 }
 
+func (r *RoutingRuntime) WaitReady(ctx context.Context, machine db.Machine, instanceID string) error {
+	runtime, err := r.runtimeFor(machine.Runtime)
+	if err != nil {
+		return err
+	}
+	return runtime.WaitReady(ctx, machine, instanceID)
+}
+
 func (r *RoutingRuntime) runtimeFor(runtimeName string) (Runtime, error) {
 	normalized := db.NormalizeMachineRuntime(runtimeName)
 	runtime, ok := r.runtimes[normalized]

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -157,6 +159,30 @@ func TestProxyRoutesTTydPathToDedicatedUpstream(t *testing.T) {
 	}
 	if string(body) != "ttyd" {
 		t.Fatalf("unexpected body: %q", string(body))
+	}
+}
+
+func TestProxyReadyz(t *testing.T) {
+	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"))
+
+	sentinel := filepath.Join(t.TempDir(), "startup.done")
+	proxy.SetReadinessChecker(NewReadinessChecker(sentinel, nil))
+
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/readyz", nil)
+	rr := httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected status %d, got %d", http.StatusServiceUnavailable, rr.Code)
+	}
+
+	if err := os.WriteFile(sentinel, []byte("ok"), 0o644); err != nil {
+		t.Fatalf("write sentinel: %v", err)
+	}
+	rr = httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
 	}
 }
 

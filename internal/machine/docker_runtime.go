@@ -2,6 +2,7 @@ package machine
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strings"
 
@@ -166,6 +167,38 @@ func (r *DockerRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool
 		return true, foundID, nil
 	}
 	return false, foundID, nil
+}
+
+func (r *DockerRuntime) WaitReady(ctx context.Context, machine db.Machine, instanceID string) error {
+	containerID := firstNonEmpty(instanceID, machine.ContainerID)
+	if containerID == "" {
+		foundID, err := r.findContainerByMachineID(ctx, machine.ID)
+		if err != nil {
+			return err
+		}
+		containerID = foundID
+	}
+	if containerID == "" {
+		return fmt.Errorf("container id is empty")
+	}
+
+	inspect, err := r.client.ContainerInspect(ctx, containerID)
+	if err != nil {
+		return err
+	}
+	ip := strings.TrimSpace(inspect.NetworkSettings.IPAddress)
+	if ip == "" {
+		for _, netCfg := range inspect.NetworkSettings.Networks {
+			if strings.TrimSpace(netCfg.IPAddress) != "" {
+				ip = strings.TrimSpace(netCfg.IPAddress)
+				break
+			}
+		}
+	}
+	if ip == "" {
+		return fmt.Errorf("container %s has no ip address", containerID)
+	}
+	return waitHTTPReady(ctx, fmt.Sprintf("http://%s:21030/__arca/readyz", ip))
 }
 
 func (r *DockerRuntime) pullImageIfNeeded(ctx context.Context) error {
