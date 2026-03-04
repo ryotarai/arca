@@ -66,7 +66,7 @@ export function SetupPage({
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9-]/g, '')
-    const label = `${normalizedPrefix}console`.replace(/^-+|-+$/g, '') || 'console'
+    const label = `${normalizedPrefix}app`.replace(/^-+|-+$/g, '') || 'app'
     return `https://${label}.${normalizedDomain}`
   }, [baseDomain, domainPrefix])
 
