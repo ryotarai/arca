@@ -434,9 +434,9 @@ func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
 		return "", fmt.Errorf("base domain is not configured")
 	}
 	prefix := sanitizeSubdomainPart(setup.DomainPrefix)
-	label := strings.Trim(prefix+"console", "-")
+	label := strings.Trim(prefix+"app", "-")
 	if label == "" {
-		label = "console"
+		label = "app"
 	}
 	return "https://" + label + "." + baseDomain, nil
 }

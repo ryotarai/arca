@@ -145,9 +145,9 @@ func runCloudflared(ctx context.Context, binaryPath, tunnelToken string) {
 
 func consoleHostname(prefix, baseDomain string) string {
 	prefix = sanitizeSubdomainPart(prefix)
-	label := strings.Trim(prefix+"console", "-")
+	label := strings.Trim(prefix+"app", "-")
 	if label == "" {
-		label = "console"
+		label = "app"
 	}
 	return label + "." + strings.TrimSpace(baseDomain)
 }
