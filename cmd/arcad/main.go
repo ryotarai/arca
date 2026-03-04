@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -31,6 +32,7 @@ func main() {
 	exposureCache := arcad.NewExposureCache(controlPlaneClient)
 	sessions := arcad.NewSessionManager(cfg.MachineToken)
 	proxy := arcad.NewProxy(exposureCache, controlPlaneClient, sessions, cfg.SessionCookie, upstreamURL)
+	proxy.SetReadinessChecker(arcad.NewReadinessChecker(cfg.StartupSentinel, splitCSV(cfg.ReadyEndpoints)))
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -72,4 +74,15 @@ func main() {
 		_ = httpServer.Shutdown(shutdownCtx)
 		log.Fatalf("arcad failed: %v", err)
 	}
+}
+
+func splitCSV(value string) []string {
+	items := strings.Split(value, ",")
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		if trimmed := strings.TrimSpace(item); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }

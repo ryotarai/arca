@@ -21,6 +21,7 @@ type Runtime interface {
 	EnsureRunning(context.Context, db.Machine, RuntimeStartOptions) (string, error)
 	EnsureStopped(context.Context, db.Machine) error
 	IsRunning(context.Context, db.Machine) (bool, string, error)
+	WaitReady(context.Context, db.Machine, string) error
 }
 
 type RuntimeStartOptions struct {
@@ -38,6 +39,7 @@ type Worker struct {
 	pollInterval time.Duration
 	leaseTTL     time.Duration
 	reconcileTTL time.Duration
+	startupTTL   time.Duration
 	lastSweep    time.Time
 }
 
@@ -55,6 +57,7 @@ func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, wo
 		pollInterval: 2 * time.Second,
 		leaseTTL:     30 * time.Second,
 		reconcileTTL: 15 * time.Second,
+		startupTTL:   4 * time.Minute,
 	}
 }
 
@@ -245,6 +248,12 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	readyCtx, cancel := context.WithTimeout(ctx, w.startupTTL)
+	defer cancel()
+	if err := w.runtime.WaitReady(readyCtx, machine, containerID); err != nil {
+		return fmt.Errorf("wait machine ready: %w", err)
 	}
 
 	return w.store.UpdateMachineRuntimeStateByMachineID(

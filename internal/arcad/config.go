@@ -15,6 +15,8 @@ type Config struct {
 	ListenAddr      string
 	UpstreamURL     string
 	SessionCookie   string
+	StartupSentinel string
+	ReadyEndpoints  string
 }
 
 func ConfigFromEnv() (Config, error) {
@@ -27,6 +29,8 @@ func ConfigFromEnv() (Config, error) {
 		ListenAddr:      os.Getenv("ARCAD_LISTEN_ADDR"),
 		UpstreamURL:     os.Getenv("ARCAD_UPSTREAM_URL"),
 		SessionCookie:   os.Getenv("ARCAD_SESSION_COOKIE_NAME"),
+		StartupSentinel: os.Getenv("ARCAD_STARTUP_SENTINEL"),
+		ReadyEndpoints:  os.Getenv("ARCAD_READY_TCP_ENDPOINTS"),
 	}
 	if cfg.ListenAddr == "" {
 		cfg.ListenAddr = ":21030"
@@ -36,6 +40,12 @@ func ConfigFromEnv() (Config, error) {
 	}
 	if cfg.SessionCookie == "" {
 		cfg.SessionCookie = "arcad_session"
+	}
+	if cfg.StartupSentinel == "" {
+		cfg.StartupSentinel = "/var/lib/arca/startup.done"
+	}
+	if cfg.ReadyEndpoints == "" {
+		cfg.ReadyEndpoints = "127.0.0.1:8080,127.0.0.1:21032"
 	}
 	if cfg.ControlPlaneURL == "" {
 		return Config{}, fmt.Errorf("ARCAD_CONTROL_PLANE_URL is required")

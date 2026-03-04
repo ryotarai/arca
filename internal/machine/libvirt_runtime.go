@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -84,7 +85,8 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 	if err != nil {
 		return "", err
 	}
-	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts, arcadBinaryBase64); err != nil {
+	startupNonce := time.Now().UTC().Format("20060102T150405")
+	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts, arcadBinaryBase64, startupNonce); err != nil {
 		return "", err
 	}
 
@@ -149,12 +151,6 @@ func (r *LibvirtRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 		}
 	}
 
-	if _, err := r.runVirsh(ctx, "undefine", domainName, "--nvram"); err != nil {
-		if !strings.Contains(strings.ToLower(err.Error()), "no domain with matching name") {
-			return err
-		}
-	}
-	_ = os.RemoveAll(filepath.Join(r.workspaceDir, machine.ID))
 	return nil
 }
 
@@ -174,6 +170,15 @@ func (r *LibvirtRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 	return false, domainName, nil
 }
 
+func (r *LibvirtRuntime) WaitReady(ctx context.Context, machine db.Machine, instanceID string) error {
+	domainName := firstNonEmpty(instanceID, machine.ContainerID, r.domainName(machine))
+	ip, err := r.waitDomainIPv4(ctx, domainName)
+	if err != nil {
+		return err
+	}
+	return waitHTTPReady(ctx, fmt.Sprintf("http://%s:21030/__arca/readyz", ip))
+}
+
 func (r *LibvirtRuntime) domainName(machine db.Machine) string {
 	if strings.TrimSpace(machine.ContainerID) != "" {
 		return machine.ContainerID
@@ -190,13 +195,13 @@ func (r *LibvirtRuntime) ensureDiskImage(ctx context.Context, workspace string) 
 	return err
 }
 
-func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Machine, workspace string, opts RuntimeStartOptions, arcadBinaryBase64 string) error {
+func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Machine, workspace string, opts RuntimeStartOptions, arcadBinaryBase64, startupNonce string) error {
 	userDataPath := filepath.Join(workspace, "user-data")
 	metaDataPath := filepath.Join(workspace, "meta-data")
 	seedPath := filepath.Join(workspace, "seed.iso")
 
 	userData := cloudInitUserData(machine, opts, arcadBinaryBase64)
-	metaData := fmt.Sprintf("instance-id: %s\nlocal-hostname: arca-%s\n", machine.ID, machine.ID[:12])
+	metaData := fmt.Sprintf("instance-id: %s-%s\nlocal-hostname: arca-%s\n", machine.ID, startupNonce, machine.ID[:12])
 
 	if err := os.WriteFile(userDataPath, []byte(userData), 0o644); err != nil {
 		return err
@@ -300,11 +305,60 @@ func (r *LibvirtRuntime) runVirsh(ctx context.Context, args ...string) (string, 
 	return runCommand(ctx, "virsh", base...)
 }
 
+func (r *LibvirtRuntime) waitDomainIPv4(ctx context.Context, domainName string) (string, error) {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	var lastErr error
+	for {
+		ip, err := r.domainIPv4(ctx, domainName)
+		if err == nil {
+			return ip, nil
+		}
+		lastErr = err
+
+		select {
+		case <-ctx.Done():
+			if lastErr == nil {
+				return "", ctx.Err()
+			}
+			return "", fmt.Errorf("%w (last error: %v)", ctx.Err(), lastErr)
+		case <-ticker.C:
+		}
+	}
+}
+
+func (r *LibvirtRuntime) domainIPv4(ctx context.Context, domainName string) (string, error) {
+	output, err := r.runVirsh(ctx, "domifaddr", domainName, "--source", "lease")
+	if err != nil {
+		return "", err
+	}
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		fields := strings.Fields(strings.TrimSpace(line))
+		if len(fields) < 4 {
+			continue
+		}
+		cidr := fields[3]
+		addr, _, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		ip4 := addr.To4()
+		if ip4 == nil {
+			continue
+		}
+		return ip4.String(), nil
+	}
+	return "", fmt.Errorf("no ipv4 lease found for domain %s", domainName)
+}
+
 func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinaryBase64 string) string {
 	envFile := fmt.Sprintf(`ARCAD_TUNNEL_TOKEN=%s
 ARCAD_CONTROL_PLANE_URL=%s
 ARCAD_MACHINE_ID=%s
 ARCAD_MACHINE_TOKEN=%s
+ARCAD_STARTUP_SENTINEL=/var/lib/arca/startup.done
+ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:8080,127.0.0.1:21032
 TTYD_PORT=21032
 TTYD_BASE_PATH=/__arca/ttyd
 `, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken))
@@ -343,8 +397,47 @@ if [ ! -x /usr/local/bin/cloudflared ]; then
 fi
 chown -R arca:arca /home/arca
 chmod +x /usr/local/bin/arca-entrypoint.sh
+chmod +x /usr/local/bin/arca-bootstrap.sh
 systemctl daemon-reload
-systemctl enable --now arca-http.service arca-arcad.service arca-ttyd.service
+systemctl enable --now arca-bootstrap.service
+`
+
+	bootstrapScript := `#!/usr/bin/env bash
+set -euo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+sentinel="${ARCAD_STARTUP_SENTINEL:-/var/lib/arca/startup.done}"
+rm -f "$sentinel"
+
+apt-get update
+apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 ttyd
+id -u arca >/dev/null 2>&1 || useradd --create-home --home-dir /home/arca --shell /bin/bash arca
+mkdir -p /workspace /etc/arca /opt/arca /var/lib/arca
+chown arca:arca /workspace
+chmod 700 /workspace
+if [ ! -x /usr/local/bin/cloudflared ]; then
+  arch="$(dpkg --print-architecture)"
+  curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o /usr/local/bin/cloudflared
+  chmod +x /usr/local/bin/cloudflared
+fi
+chown -R arca:arca /home/arca
+chmod +x /usr/local/bin/arca-entrypoint.sh /usr/local/bin/arcad
+
+systemctl daemon-reload
+systemctl enable arca-http.service arca-arcad.service arca-ttyd.service
+systemctl restart arca-http.service arca-arcad.service arca-ttyd.service
+
+for service in arca-http.service arca-arcad.service arca-ttyd.service; do
+  for _ in $(seq 1 60); do
+    if systemctl is-active --quiet "$service"; then
+      break
+    fi
+    sleep 1
+  done
+  systemctl is-active --quiet "$service"
+done
+
+touch "$sentinel"
 `
 
 	return fmt.Sprintf(`#cloud-config
@@ -361,6 +454,11 @@ write_files:
     encoding: b64
     content: %s
   - path: /usr/local/bin/arca-machine-install.sh
+    permissions: "0755"
+    owner: root:root
+    encoding: b64
+    content: %s
+  - path: /usr/local/bin/arca-bootstrap.sh
     permissions: "0755"
     owner: root:root
     encoding: b64
@@ -420,9 +518,24 @@ write_files:
       Group=arca
       [Install]
       WantedBy=multi-user.target
+  - path: /etc/systemd/system/arca-bootstrap.service
+    permissions: "0644"
+    owner: root:root
+    content: |
+      [Unit]
+      Description=Arca machine bootstrap
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      Type=oneshot
+      EnvironmentFile=/etc/arca/arcad.env
+      ExecStart=/usr/local/bin/arca-bootstrap.sh
+      RemainAfterExit=true
+      [Install]
+      WantedBy=multi-user.target
 runcmd:
   - ["/usr/local/bin/arca-machine-install.sh"]
-`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(entrypointScript)), base64.StdEncoding.EncodeToString([]byte(installScript)), arcadBinaryBase64)
+`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(entrypointScript)), base64.StdEncoding.EncodeToString([]byte(installScript)), base64.StdEncoding.EncodeToString([]byte(bootstrapScript)), arcadBinaryBase64)
 }
 
 func shellEscape(value string) string {
