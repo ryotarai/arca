@@ -66,6 +66,62 @@ func TestUpsertDNSCNAMEUpdatesExistingRecord(t *testing.T) {
 	}
 }
 
+func TestDeleteDNSCNAMENoRecord(t *testing.T) {
+	t.Parallel()
+
+	step := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if got, want := r.Method, http.MethodGet; got != want {
+				t.Fatalf("step1 method = %s, want %s", got, want)
+			}
+			_, _ = w.Write([]byte(`{"success":true,"result":[]}`))
+		default:
+			t.Fatalf("unexpected extra request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	if err := client.DeleteDNSCNAME(context.Background(), "token", "zone-1", "app.example.com"); err != nil {
+		t.Fatalf("DeleteDNSCNAME() error = %v", err)
+	}
+}
+
+func TestDeleteDNSCNAMEDeletesExistingRecord(t *testing.T) {
+	t.Parallel()
+
+	step := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		step++
+		switch step {
+		case 1:
+			if got, want := r.Method, http.MethodGet; got != want {
+				t.Fatalf("step1 method = %s, want %s", got, want)
+			}
+			_, _ = w.Write([]byte(`{"success":true,"result":[{"id":"record-1"}]}`))
+		case 2:
+			if got, want := r.Method, http.MethodDelete; got != want {
+				t.Fatalf("step2 method = %s, want %s", got, want)
+			}
+			if !strings.HasSuffix(r.URL.Path, "/zones/zone-1/dns_records/record-1") {
+				t.Fatalf("unexpected delete path: %s", r.URL.Path)
+			}
+			_, _ = w.Write([]byte(`{"success":true,"result":{"id":"record-1"}}`))
+		default:
+			t.Fatalf("unexpected extra request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer ts.Close()
+
+	client := NewClientWithBaseURL(ts.Client(), ts.URL)
+	if err := client.DeleteDNSCNAME(context.Background(), "token", "zone-1", "app.example.com"); err != nil {
+		t.Fatalf("DeleteDNSCNAME() error = %v", err)
+	}
+}
+
 func TestUpdateTunnelIngressReturnsAPIError(t *testing.T) {
 	t.Parallel()
 

@@ -219,6 +219,28 @@ func (c *Client) UpsertDNSCNAME(ctx context.Context, apiToken, zoneID, hostname,
 	return toAPIError(err)
 }
 
+func (c *Client) DeleteDNSCNAME(ctx context.Context, apiToken, zoneID, hostname string) error {
+	api, err := c.apiForToken(apiToken)
+	if err != nil {
+		return err
+	}
+	listOut, _, err := api.ListDNSRecords(ctx, cf.ZoneIdentifier(zoneID), cf.ListDNSRecordsParams{
+		Type: "CNAME",
+		Name: hostname,
+		ResultInfo: cf.ResultInfo{
+			Page:    1,
+			PerPage: 1,
+		},
+	})
+	if err != nil {
+		return toAPIError(err)
+	}
+	if len(listOut) == 0 {
+		return nil
+	}
+	return toAPIError(api.DeleteDNSRecord(ctx, cf.ZoneIdentifier(zoneID), listOut[0].ID))
+}
+
 func (c *Client) UpdateTunnelIngress(ctx context.Context, apiToken, accountID, tunnelID string, rules []IngressRule) error {
 	api, err := c.apiForToken(apiToken)
 	if err != nil {
