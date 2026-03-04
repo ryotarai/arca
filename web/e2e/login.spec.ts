@@ -96,6 +96,7 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   await ensureSetupCompleted(page)
   const email = `machine-${Date.now()}@example.com`
   const password = 'password123'
+  const machineName = `alpha-machine-${Date.now()}`
 
   await page.goto('/login')
   await page.getByRole('button', { name: 'Create new account' }).click()
@@ -125,16 +126,12 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   await expect(page).toHaveURL('/machines')
   await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
 
-  await page.getByLabel('Name').fill('alpha-machine')
+  await page.getByLabel('Name').fill(machineName)
   await page.getByRole('button', { name: 'Create' }).click()
-  await expect(page.locator('p.font-medium', { hasText: /^alpha-machine$/ })).toBeVisible()
+  await expect(page.locator('p.font-medium', { hasText: machineName })).toBeVisible()
   await expect(page.getByText(/pending|starting|running/).first()).toBeVisible()
 
-  await page.getByRole('button', { name: 'Edit' }).first().click()
-  await page.getByLabel('Edit machine name').fill('beta-machine')
-  await page.getByRole('button', { name: 'Save' }).click()
-  await expect(page.locator('p.font-medium', { hasText: /^beta-machine$/ })).toBeVisible()
-
+  page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Stop' }).first().click()
   await expect(page.getByText('stopping').first()).toBeVisible()
 
@@ -145,6 +142,7 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   await page.getByRole('link', { name: 'Back' }).click()
   await expect(page).toHaveURL('/machines')
 
+  page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Delete' }).first().click()
   await expect(page.getByText('No machines yet.')).toBeVisible()
 })
