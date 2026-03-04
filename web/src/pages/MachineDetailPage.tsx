@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getMachine, startMachine, stopMachine } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, User } from '@/lib/types'
+import type { Machine, SetupStatus, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
+  setupStatus: SetupStatus
   onLogout: () => Promise<void>
 }
 
@@ -41,11 +42,15 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
+export function MachineDetailPage({ user, setupStatus, onLogout }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const endpointURL =
+    machine == null || setupStatus.baseDomain === ''
+      ? null
+      : `https://${setupStatus.domainPrefix}${machine.name}.${setupStatus.baseDomain}`
 
   useEffect(() => {
     if (user == null || machineID == null || machineID === '') {
@@ -164,6 +169,19 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     <span className="text-sm text-slate-300">desired: {machine.desiredStatus}</span>
                   </div>
                 </div>
+                {endpointURL != null && (
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm text-slate-300">Endpoint</p>
+                    <a
+                      href={endpointURL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
+                    >
+                      {endpointURL}
+                    </a>
+                  </div>
+                )}
                 {machine.lastError != null && machine.lastError !== '' && (
                   <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
                     <p className="text-sm text-red-200">last error</p>

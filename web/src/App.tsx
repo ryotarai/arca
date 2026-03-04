@@ -94,7 +94,10 @@ export function App() {
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
       <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
-      <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
+      <Route
+        path="/machines/:machineID"
+        element={<MachineDetailPage user={user} setupStatus={setupStatus} onLogout={handleLogout} />}
+      />
       <Route
         path="/settings"
         element={
