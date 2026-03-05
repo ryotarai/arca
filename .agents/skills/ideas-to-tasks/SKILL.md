@@ -11,7 +11,7 @@ Convert unchecked idea items in `tmp/ideas.md` into standalone task specs in `tm
 
 1. Read `tmp/ideas.md` and collect unchecked checklist items (`- [ ] ...`).
 2. Ignore already checked items (`- [x] ...`).
-3. Determine the next task number by scanning `tmp/tasks/*.md` and taking `max(NNN) + 1`.
+3. Determine the next task number by scanning both `tmp/tasks/*.md` and `tmp/tasks-done/*.md`, then taking `max(NNN) + 1` across both directories.
 4. Process each unchecked idea in order of appearance.
 5. Create one task file per idea at `tmp/tasks/NNN-TASK_NAME.md`.
 6. After writing each task file, update the corresponding line in `tmp/ideas.md` from `- [ ]` to `- [x]`.
@@ -19,6 +19,7 @@ Convert unchecked idea items in `tmp/ideas.md` into standalone task specs in `tm
 ## File Naming Rules
 
 - Use zero-padded 3-digit numbers for `NNN` (`001`, `002`, ...).
+- Always compute `NNN` from the global max across `tmp/tasks/` and `tmp/tasks-done/`.
 - Build `TASK_NAME` as uppercase snake case (`[A-Z0-9_]+`).
 - Keep filenames ASCII only.
 - Translate non-English idea text into concise English keywords for `TASK_NAME`.
