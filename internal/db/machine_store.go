@@ -54,6 +54,24 @@ type MachineJob struct {
 	Attempt   int64
 }
 
+type MachineEvent struct {
+	ID        string
+	MachineID string
+	JobID     string
+	Level     string
+	EventType string
+	Message   string
+	CreatedAt int64
+}
+
+type MachineEventInput struct {
+	MachineID string
+	JobID     string
+	Level     string
+	EventType string
+	Message   string
+}
+
 var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
 
 func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtime string) (Machine, error) {
@@ -84,6 +102,10 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 	}()
 
 	jobID, err := randomID()
+	if err != nil {
+		return Machine{}, err
+	}
+	eventID, err := randomID()
 	if err != nil {
 		return Machine{}, err
 	}
@@ -129,6 +151,17 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		}); err != nil {
 			return Machine{}, err
 		}
+		if err = q.CreateMachineEvent(ctx, sqlitesqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: machineID,
+			JobID:     jobID,
+			Level:     "info",
+			EventType: "start_requested",
+			Message:   "machine created and start requested",
+			CreatedAt: nowUnix,
+		}); err != nil {
+			return Machine{}, err
+		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
 		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, Runtime: runtime}); err != nil {
@@ -166,6 +199,17 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 			Kind:      MachineJobStart,
 			NextRunAt: nowUnix,
 			NowUnix:   nowUnix,
+		}); err != nil {
+			return Machine{}, err
+		}
+		if err = q.CreateMachineEvent(ctx, postgresqlsqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: machineID,
+			JobID:     jobID,
+			Level:     "info",
+			EventType: "start_requested",
+			Message:   "machine created and start requested",
+			CreatedAt: nowUnix,
 		}); err != nil {
 			return Machine{}, err
 		}
@@ -278,6 +322,12 @@ func (s *Store) requestStateTransition(ctx context.Context, userID, machineID, s
 	if err != nil {
 		return false, err
 	}
+	eventID, err := randomID()
+	if err != nil {
+		return false, err
+	}
+	eventType := requestedEventType(jobKind)
+	message := "desired state set to " + desiredStatus
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -318,6 +368,17 @@ func (s *Store) requestStateTransition(ctx context.Context, userID, machineID, s
 		}); err != nil {
 			return false, err
 		}
+		if err = q.CreateMachineEvent(ctx, sqlitesqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: machineID,
+			JobID:     jobID,
+			Level:     "info",
+			EventType: eventType,
+			Message:   message,
+			CreatedAt: nowUnix,
+		}); err != nil {
+			return false, err
+		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
 		updated, err = q.UpdateMachineStateForOwner(ctx, postgresqlsqlc.UpdateMachineStateForOwnerParams{
@@ -342,6 +403,17 @@ func (s *Store) requestStateTransition(ctx context.Context, userID, machineID, s
 			Kind:      jobKind,
 			NextRunAt: nowUnix,
 			NowUnix:   nowUnix,
+		}); err != nil {
+			return false, err
+		}
+		if err = q.CreateMachineEvent(ctx, postgresqlsqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: machineID,
+			JobID:     jobID,
+			Level:     "info",
+			EventType: eventType,
+			Message:   message,
+			CreatedAt: nowUnix,
 		}); err != nil {
 			return false, err
 		}
@@ -741,6 +813,116 @@ func (s *Store) DeleteMachineByID(ctx context.Context, machineID string) (bool, 
 		return deleted > 0, err
 	default:
 		return false, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) CreateMachineEvent(ctx context.Context, input MachineEventInput) error {
+	eventID, err := randomID()
+	if err != nil {
+		return err
+	}
+	nowUnix := time.Now().Unix()
+	level := strings.TrimSpace(input.Level)
+	if level == "" {
+		level = "info"
+	}
+
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.CreateMachineEvent(ctx, sqlitesqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: input.MachineID,
+			JobID:     strings.TrimSpace(input.JobID),
+			Level:     level,
+			EventType: strings.TrimSpace(input.EventType),
+			Message:   strings.TrimSpace(input.Message),
+			CreatedAt: nowUnix,
+		})
+	case DriverPostgres:
+		return s.pgQueries.CreateMachineEvent(ctx, postgresqlsqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: input.MachineID,
+			JobID:     strings.TrimSpace(input.JobID),
+			Level:     level,
+			EventType: strings.TrimSpace(input.EventType),
+			Message:   strings.TrimSpace(input.Message),
+			CreatedAt: nowUnix,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ListMachineEventsByMachineIDForUser(ctx context.Context, userID, machineID string, limit int64) ([]MachineEvent, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 500 {
+		limit = 500
+	}
+
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListMachineEventsByMachineIDForUser(ctx, sqlitesqlc.ListMachineEventsByMachineIDForUserParams{
+			MachineID: machineID,
+			UserID:    userID,
+			LimitN:    limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+		events := make([]MachineEvent, 0, len(rows))
+		for _, row := range rows {
+			events = append(events, MachineEvent{
+				ID:        row.ID,
+				MachineID: row.MachineID,
+				JobID:     row.JobID,
+				Level:     row.Level,
+				EventType: row.EventType,
+				Message:   row.Message,
+				CreatedAt: row.CreatedAt,
+			})
+		}
+		return events, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListMachineEventsByMachineIDForUser(ctx, postgresqlsqlc.ListMachineEventsByMachineIDForUserParams{
+			MachineID: machineID,
+			UserID:    userID,
+			LimitN:    int32(limit),
+		})
+		if err != nil {
+			return nil, err
+		}
+		events := make([]MachineEvent, 0, len(rows))
+		for _, row := range rows {
+			events = append(events, MachineEvent{
+				ID:        row.ID,
+				MachineID: row.MachineID,
+				JobID:     row.JobID,
+				Level:     row.Level,
+				EventType: row.EventType,
+				Message:   row.Message,
+				CreatedAt: row.CreatedAt,
+			})
+		}
+		return events, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func requestedEventType(jobKind string) string {
+	switch jobKind {
+	case MachineJobStart:
+		return "start_requested"
+	case MachineJobStop:
+		return "stop_requested"
+	case MachineJobDelete:
+		return "delete_requested"
+	case MachineJobReconcile:
+		return "reconcile_requested"
+	default:
+		return "state_change_requested"
 	}
 }
 

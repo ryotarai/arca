@@ -721,6 +721,194 @@ func (*DeleteMachineResponse) Descriptor() ([]byte, []int) {
 	return file_arca_v1_machine_proto_rawDescGZIP(), []int{14}
 }
 
+type MachineEvent struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	MachineId     string                 `protobuf:"bytes,2,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	JobId         string                 `protobuf:"bytes,3,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Level         string                 `protobuf:"bytes,4,opt,name=level,proto3" json:"level,omitempty"`
+	EventType     string                 `protobuf:"bytes,5,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Message       string                 `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachineEvent) Reset() {
+	*x = MachineEvent{}
+	mi := &file_arca_v1_machine_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineEvent) ProtoMessage() {}
+
+func (x *MachineEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_machine_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineEvent.ProtoReflect.Descriptor instead.
+func (*MachineEvent) Descriptor() ([]byte, []int) {
+	return file_arca_v1_machine_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *MachineEvent) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *MachineEvent) GetMachineId() string {
+	if x != nil {
+		return x.MachineId
+	}
+	return ""
+}
+
+func (x *MachineEvent) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *MachineEvent) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *MachineEvent) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *MachineEvent) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *MachineEvent) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+type ListMachineEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMachineEventsRequest) Reset() {
+	*x = ListMachineEventsRequest{}
+	mi := &file_arca_v1_machine_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMachineEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMachineEventsRequest) ProtoMessage() {}
+
+func (x *ListMachineEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_machine_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMachineEventsRequest.ProtoReflect.Descriptor instead.
+func (*ListMachineEventsRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_machine_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListMachineEventsRequest) GetMachineId() string {
+	if x != nil {
+		return x.MachineId
+	}
+	return ""
+}
+
+func (x *ListMachineEventsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListMachineEventsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Events        []*MachineEvent        `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMachineEventsResponse) Reset() {
+	*x = ListMachineEventsResponse{}
+	mi := &file_arca_v1_machine_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMachineEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMachineEventsResponse) ProtoMessage() {}
+
+func (x *ListMachineEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_machine_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMachineEventsResponse.ProtoReflect.Descriptor instead.
+func (*ListMachineEventsResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_machine_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListMachineEventsResponse) GetEvents() []*MachineEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
 var File_arca_v1_machine_proto protoreflect.FileDescriptor
 
 const file_arca_v1_machine_proto_rawDesc = "" +
@@ -766,7 +954,24 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x14DeleteMachineRequest\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\"\x17\n" +
-	"\x15DeleteMachineResponse2\xab\x04\n" +
+	"\x15DeleteMachineResponse\"\xc2\x01\n" +
+	"\fMachineEvent\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x02 \x01(\tR\tmachineId\x12\x15\n" +
+	"\x06job_id\x18\x03 \x01(\tR\x05jobId\x12\x14\n" +
+	"\x05level\x18\x04 \x01(\tR\x05level\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x05 \x01(\tR\teventType\x12\x18\n" +
+	"\amessage\x18\x06 \x01(\tR\amessage\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\a \x01(\x03R\tcreatedAt\"O\n" +
+	"\x18ListMachineEventsRequest\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"J\n" +
+	"\x19ListMachineEventsResponse\x12-\n" +
+	"\x06events\x18\x01 \x03(\v2\x15.arca.v1.MachineEventR\x06events2\x87\x05\n" +
 	"\x0eMachineService\x12K\n" +
 	"\fListMachines\x12\x1c.arca.v1.ListMachinesRequest\x1a\x1d.arca.v1.ListMachinesResponse\x12E\n" +
 	"\n" +
@@ -775,7 +980,8 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\rUpdateMachine\x12\x1d.arca.v1.UpdateMachineRequest\x1a\x1e.arca.v1.UpdateMachineResponse\x12K\n" +
 	"\fStartMachine\x12\x1c.arca.v1.StartMachineRequest\x1a\x1d.arca.v1.StartMachineResponse\x12H\n" +
 	"\vStopMachine\x12\x1b.arca.v1.StopMachineRequest\x1a\x1c.arca.v1.StopMachineResponse\x12N\n" +
-	"\rDeleteMachine\x12\x1d.arca.v1.DeleteMachineRequest\x1a\x1e.arca.v1.DeleteMachineResponseB\x8e\x01\n" +
+	"\rDeleteMachine\x12\x1d.arca.v1.DeleteMachineRequest\x1a\x1e.arca.v1.DeleteMachineResponse\x12Z\n" +
+	"\x11ListMachineEvents\x12!.arca.v1.ListMachineEventsRequest\x1a\".arca.v1.ListMachineEventsResponseB\x8e\x01\n" +
 	"\vcom.arca.v1B\fMachineProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -790,23 +996,26 @@ func file_arca_v1_machine_proto_rawDescGZIP() []byte {
 	return file_arca_v1_machine_proto_rawDescData
 }
 
-var file_arca_v1_machine_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_arca_v1_machine_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_arca_v1_machine_proto_goTypes = []any{
-	(*Machine)(nil),               // 0: arca.v1.Machine
-	(*ListMachinesRequest)(nil),   // 1: arca.v1.ListMachinesRequest
-	(*ListMachinesResponse)(nil),  // 2: arca.v1.ListMachinesResponse
-	(*GetMachineRequest)(nil),     // 3: arca.v1.GetMachineRequest
-	(*GetMachineResponse)(nil),    // 4: arca.v1.GetMachineResponse
-	(*CreateMachineRequest)(nil),  // 5: arca.v1.CreateMachineRequest
-	(*CreateMachineResponse)(nil), // 6: arca.v1.CreateMachineResponse
-	(*UpdateMachineRequest)(nil),  // 7: arca.v1.UpdateMachineRequest
-	(*UpdateMachineResponse)(nil), // 8: arca.v1.UpdateMachineResponse
-	(*StartMachineRequest)(nil),   // 9: arca.v1.StartMachineRequest
-	(*StartMachineResponse)(nil),  // 10: arca.v1.StartMachineResponse
-	(*StopMachineRequest)(nil),    // 11: arca.v1.StopMachineRequest
-	(*StopMachineResponse)(nil),   // 12: arca.v1.StopMachineResponse
-	(*DeleteMachineRequest)(nil),  // 13: arca.v1.DeleteMachineRequest
-	(*DeleteMachineResponse)(nil), // 14: arca.v1.DeleteMachineResponse
+	(*Machine)(nil),                   // 0: arca.v1.Machine
+	(*ListMachinesRequest)(nil),       // 1: arca.v1.ListMachinesRequest
+	(*ListMachinesResponse)(nil),      // 2: arca.v1.ListMachinesResponse
+	(*GetMachineRequest)(nil),         // 3: arca.v1.GetMachineRequest
+	(*GetMachineResponse)(nil),        // 4: arca.v1.GetMachineResponse
+	(*CreateMachineRequest)(nil),      // 5: arca.v1.CreateMachineRequest
+	(*CreateMachineResponse)(nil),     // 6: arca.v1.CreateMachineResponse
+	(*UpdateMachineRequest)(nil),      // 7: arca.v1.UpdateMachineRequest
+	(*UpdateMachineResponse)(nil),     // 8: arca.v1.UpdateMachineResponse
+	(*StartMachineRequest)(nil),       // 9: arca.v1.StartMachineRequest
+	(*StartMachineResponse)(nil),      // 10: arca.v1.StartMachineResponse
+	(*StopMachineRequest)(nil),        // 11: arca.v1.StopMachineRequest
+	(*StopMachineResponse)(nil),       // 12: arca.v1.StopMachineResponse
+	(*DeleteMachineRequest)(nil),      // 13: arca.v1.DeleteMachineRequest
+	(*DeleteMachineResponse)(nil),     // 14: arca.v1.DeleteMachineResponse
+	(*MachineEvent)(nil),              // 15: arca.v1.MachineEvent
+	(*ListMachineEventsRequest)(nil),  // 16: arca.v1.ListMachineEventsRequest
+	(*ListMachineEventsResponse)(nil), // 17: arca.v1.ListMachineEventsResponse
 }
 var file_arca_v1_machine_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.ListMachinesResponse.machines:type_name -> arca.v1.Machine
@@ -815,25 +1024,28 @@ var file_arca_v1_machine_proto_depIdxs = []int32{
 	0,  // 3: arca.v1.UpdateMachineResponse.machine:type_name -> arca.v1.Machine
 	0,  // 4: arca.v1.StartMachineResponse.machine:type_name -> arca.v1.Machine
 	0,  // 5: arca.v1.StopMachineResponse.machine:type_name -> arca.v1.Machine
-	1,  // 6: arca.v1.MachineService.ListMachines:input_type -> arca.v1.ListMachinesRequest
-	3,  // 7: arca.v1.MachineService.GetMachine:input_type -> arca.v1.GetMachineRequest
-	5,  // 8: arca.v1.MachineService.CreateMachine:input_type -> arca.v1.CreateMachineRequest
-	7,  // 9: arca.v1.MachineService.UpdateMachine:input_type -> arca.v1.UpdateMachineRequest
-	9,  // 10: arca.v1.MachineService.StartMachine:input_type -> arca.v1.StartMachineRequest
-	11, // 11: arca.v1.MachineService.StopMachine:input_type -> arca.v1.StopMachineRequest
-	13, // 12: arca.v1.MachineService.DeleteMachine:input_type -> arca.v1.DeleteMachineRequest
-	2,  // 13: arca.v1.MachineService.ListMachines:output_type -> arca.v1.ListMachinesResponse
-	4,  // 14: arca.v1.MachineService.GetMachine:output_type -> arca.v1.GetMachineResponse
-	6,  // 15: arca.v1.MachineService.CreateMachine:output_type -> arca.v1.CreateMachineResponse
-	8,  // 16: arca.v1.MachineService.UpdateMachine:output_type -> arca.v1.UpdateMachineResponse
-	10, // 17: arca.v1.MachineService.StartMachine:output_type -> arca.v1.StartMachineResponse
-	12, // 18: arca.v1.MachineService.StopMachine:output_type -> arca.v1.StopMachineResponse
-	14, // 19: arca.v1.MachineService.DeleteMachine:output_type -> arca.v1.DeleteMachineResponse
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	15, // 6: arca.v1.ListMachineEventsResponse.events:type_name -> arca.v1.MachineEvent
+	1,  // 7: arca.v1.MachineService.ListMachines:input_type -> arca.v1.ListMachinesRequest
+	3,  // 8: arca.v1.MachineService.GetMachine:input_type -> arca.v1.GetMachineRequest
+	5,  // 9: arca.v1.MachineService.CreateMachine:input_type -> arca.v1.CreateMachineRequest
+	7,  // 10: arca.v1.MachineService.UpdateMachine:input_type -> arca.v1.UpdateMachineRequest
+	9,  // 11: arca.v1.MachineService.StartMachine:input_type -> arca.v1.StartMachineRequest
+	11, // 12: arca.v1.MachineService.StopMachine:input_type -> arca.v1.StopMachineRequest
+	13, // 13: arca.v1.MachineService.DeleteMachine:input_type -> arca.v1.DeleteMachineRequest
+	16, // 14: arca.v1.MachineService.ListMachineEvents:input_type -> arca.v1.ListMachineEventsRequest
+	2,  // 15: arca.v1.MachineService.ListMachines:output_type -> arca.v1.ListMachinesResponse
+	4,  // 16: arca.v1.MachineService.GetMachine:output_type -> arca.v1.GetMachineResponse
+	6,  // 17: arca.v1.MachineService.CreateMachine:output_type -> arca.v1.CreateMachineResponse
+	8,  // 18: arca.v1.MachineService.UpdateMachine:output_type -> arca.v1.UpdateMachineResponse
+	10, // 19: arca.v1.MachineService.StartMachine:output_type -> arca.v1.StartMachineResponse
+	12, // 20: arca.v1.MachineService.StopMachine:output_type -> arca.v1.StopMachineResponse
+	14, // 21: arca.v1.MachineService.DeleteMachine:output_type -> arca.v1.DeleteMachineResponse
+	17, // 22: arca.v1.MachineService.ListMachineEvents:output_type -> arca.v1.ListMachineEventsResponse
+	15, // [15:23] is the sub-list for method output_type
+	7,  // [7:15] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_machine_proto_init() }
@@ -847,7 +1059,7 @@ func file_arca_v1_machine_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_machine_proto_rawDesc), len(file_arca_v1_machine_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

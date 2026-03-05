@@ -12,6 +12,7 @@ service MachineService {
   rpc StartMachine(StartMachineRequest) returns (StartMachineResponse);
   rpc StopMachine(StopMachineRequest) returns (StopMachineResponse);
   rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
+  rpc ListMachineEvents(ListMachineEventsRequest) returns (ListMachineEventsResponse);
 }
 
 message Machine {
@@ -76,3 +77,22 @@ message DeleteMachineRequest {
 }
 
 message DeleteMachineResponse {}
+
+message MachineEvent {
+  string id = 1;
+  string machine_id = 2;
+  string job_id = 3;
+  string level = 4;
+  string event_type = 5;
+  string message = 6;
+  int64 created_at = 7;
+}
+
+message ListMachineEventsRequest {
+  string machine_id = 1;
+  int32 limit = 2;
+}
+
+message ListMachineEventsResponse {
+  repeated MachineEvent events = 1;
+}

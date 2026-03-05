@@ -33,6 +33,16 @@ type Machine struct {
 	CreatedAt time.Time
 }
 
+type MachineEvent struct {
+	ID        string
+	MachineID string
+	JobID     string
+	Level     string
+	EventType string
+	Message   string
+	CreatedAt int64
+}
+
 type MachineExposure struct {
 	ID        string
 	MachineID string

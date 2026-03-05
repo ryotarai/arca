@@ -107,6 +107,42 @@ func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) er
 	return err
 }
 
+const createMachineEvent = `-- name: CreateMachineEvent :exec
+INSERT INTO machine_events (id, machine_id, job_id, level, event_type, message, created_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7
+)
+`
+
+type CreateMachineEventParams struct {
+	ID        string
+	MachineID string
+	JobID     string
+	Level     string
+	EventType string
+	Message   string
+	CreatedAt int64
+}
+
+func (q *Queries) CreateMachineEvent(ctx context.Context, arg CreateMachineEventParams) error {
+	_, err := q.db.ExecContext(ctx, createMachineEvent,
+		arg.ID,
+		arg.MachineID,
+		arg.JobID,
+		arg.Level,
+		arg.EventType,
+		arg.Message,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const createMachineState = `-- name: CreateMachineState :exec
 INSERT INTO machine_states (machine_id, status, desired_status, updated_at)
 VALUES ($1, $2, $3, $4)
@@ -601,6 +637,53 @@ func (q *Queries) GetValidAuthTicketByHashAndMachine(ctx context.Context, arg Ge
 		&i.ExposureID,
 	)
 	return i, err
+}
+
+const listMachineEventsByMachineIDForUser = `-- name: ListMachineEventsByMachineIDForUser :many
+SELECT me.id, me.machine_id, me.job_id, me.level, me.event_type, me.message, me.created_at
+FROM machine_events me
+JOIN user_machines um ON um.machine_id = me.machine_id
+WHERE me.machine_id = $1
+  AND um.user_id = $2
+ORDER BY me.created_at DESC
+LIMIT $3
+`
+
+type ListMachineEventsByMachineIDForUserParams struct {
+	MachineID string
+	UserID    string
+	LimitN    int32
+}
+
+func (q *Queries) ListMachineEventsByMachineIDForUser(ctx context.Context, arg ListMachineEventsByMachineIDForUserParams) ([]MachineEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineEventsByMachineIDForUser, arg.MachineID, arg.UserID, arg.LimitN)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MachineEvent
+	for rows.Next() {
+		var i MachineEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.MachineID,
+			&i.JobID,
+			&i.Level,
+			&i.EventType,
+			&i.Message,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMachineExposuresByMachineID = `-- name: ListMachineExposuresByMachineID :many
