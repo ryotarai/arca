@@ -191,6 +191,32 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 	return connect.NewResponse(&arcav1.DeleteMachineResponse{}), nil
 }
 
+func (s *machineConnectService) ListMachineEvents(ctx context.Context, req *connect.Request[arcav1.ListMachineEventsRequest]) (*connect.Response[arcav1.ListMachineEventsResponse], error) {
+	userID, err := s.authenticate(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	limit := int64(req.Msg.GetLimit())
+	events, err := s.store.ListMachineEventsByMachineIDForUser(ctx, userID, machineID, limit)
+	if err != nil {
+		log.Printf("list machine events failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list machine events"))
+	}
+
+	items := make([]*arcav1.MachineEvent, 0, len(events))
+	for _, event := range events {
+		items = append(items, toMachineEventMessage(event))
+	}
+
+	return connect.NewResponse(&arcav1.ListMachineEventsResponse{Events: items}), nil
+}
+
 func (s *machineConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
 	if s.authenticator == nil {
 		return "", connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
@@ -219,6 +245,18 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 		DesiredStatus: machine.DesiredStatus,
 		LastError:     machine.LastError,
 		Endpoint:      machine.Endpoint,
+	}
+}
+
+func toMachineEventMessage(event db.MachineEvent) *arcav1.MachineEvent {
+	return &arcav1.MachineEvent{
+		Id:        event.ID,
+		MachineId: event.MachineID,
+		JobId:     event.JobID,
+		Level:     event.Level,
+		EventType: event.EventType,
+		Message:   event.Message,
+		CreatedAt: event.CreatedAt,
 	}
 }
 

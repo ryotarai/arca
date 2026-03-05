@@ -153,17 +153,20 @@ func (w *Worker) maybeReconcile(ctx context.Context, nowUnix int64) {
 			slog.Warn("machine reconcile enqueue failed", "machine_id", machine.ID, "error", err)
 			continue
 		}
+		w.emitEvent(ctx, machine.ID, "", "warn", "reconcile_scheduled", "container is not running; reconcile job enqueued")
 		slog.Info("machine reconcile job enqueued", "machine_id", machine.ID)
 	}
 }
 
 func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 	nowUnix := time.Now().Unix()
+	w.emitEvent(ctx, job.MachineID, job.ID, "info", "job_started", "processing "+job.Kind+" job")
 
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			message := fmt.Sprintf("panic: %v", recovered)
 			log.Printf("machine worker panic: %s\n%s", message, string(debug.Stack()))
+			w.emitEvent(ctx, job.MachineID, job.ID, "error", "job_panic", message)
 			_ = w.store.RequeueMachineJob(ctx, job.ID, nowUnix+retryDelaySeconds(job.Attempt), message, nowUnix)
 		}
 	}()
@@ -171,20 +174,22 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 	machine, err := w.store.GetMachineByID(ctx, job.MachineID)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			w.emitEvent(ctx, job.MachineID, job.ID, "warn", "machine_missing", "machine no longer exists; marking job succeeded")
 			_ = w.store.MarkMachineJobSucceeded(ctx, job.ID, nowUnix)
 			return
 		}
+		w.emitEvent(ctx, job.MachineID, job.ID, "error", "load_machine_failed", err.Error())
 		_ = w.store.RequeueMachineJob(ctx, job.ID, nowUnix+retryDelaySeconds(job.Attempt), err.Error(), nowUnix)
 		return
 	}
 
 	switch job.Kind {
 	case db.MachineJobStart, db.MachineJobReconcile:
-		err = w.handleStart(ctx, machine)
+		err = w.handleStart(ctx, machine, job.ID)
 	case db.MachineJobStop:
-		err = w.handleStop(ctx, machine)
+		err = w.handleStop(ctx, machine, job.ID)
 	case db.MachineJobDelete:
-		err = w.handleDelete(ctx, machine)
+		err = w.handleDelete(ctx, machine, job.ID)
 	default:
 		err = fmt.Errorf("unknown machine job kind: %s", job.Kind)
 	}
@@ -200,21 +205,25 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 			"error", err,
 		)
 		_ = w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusFailed, machine.DesiredStatus, machine.ContainerID, err.Error())
-		_ = w.store.RequeueMachineJob(ctx, job.ID, nowUnix+retryDelaySeconds(job.Attempt), err.Error(), nowUnix)
+		nextRunAt := nowUnix + retryDelaySeconds(job.Attempt)
+		w.emitEvent(ctx, machine.ID, job.ID, "error", "job_failed", err.Error())
+		w.emitEvent(ctx, machine.ID, job.ID, "info", "retry_scheduled", fmt.Sprintf("retry scheduled at unix=%d", nextRunAt))
+		_ = w.store.RequeueMachineJob(ctx, job.ID, nextRunAt, err.Error(), nowUnix)
 		return
 	}
 
+	w.emitEvent(ctx, machine.ID, job.ID, "info", "job_succeeded", "job completed")
 	if err := w.store.MarkMachineJobSucceeded(ctx, job.ID, nowUnix); err != nil {
 		log.Printf("machine worker mark success failed: %v", err)
 	}
 }
 
-func (w *Worker) handleStart(ctx context.Context, machine db.Machine) error {
+func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID string) error {
 	if machine.DesiredStatus == db.MachineDesiredDeleted {
-		return w.handleDelete(ctx, machine)
+		return w.handleDelete(ctx, machine, jobID)
 	}
 	if machine.DesiredStatus == db.MachineDesiredStopped {
-		return w.handleStop(ctx, machine)
+		return w.handleStop(ctx, machine, jobID)
 	}
 
 	if err := w.store.UpdateMachineRuntimeStateByMachineID(
@@ -227,11 +236,13 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine) error {
 	); err != nil {
 		return err
 	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "runtime_starting", "starting machine runtime")
 
 	tunnelToken, err := w.ensureMachineTunnel(ctx, machine)
 	if err != nil {
 		return err
 	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "tunnel_ready", "machine tunnel is ready")
 
 	setup, err := w.store.GetSetupState(ctx)
 	if err != nil {
@@ -252,20 +263,25 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine) error {
 		return err
 	}
 
+	w.emitEvent(ctx, machine.ID, jobID, "info", "waiting_ready", "waiting for machine readiness")
 	readyCtx, cancel := context.WithTimeout(ctx, w.startupTTL)
 	defer cancel()
 	if err := w.runtime.WaitReady(readyCtx, machine, containerID); err != nil {
 		return fmt.Errorf("wait machine ready: %w", err)
 	}
 
-	return w.store.UpdateMachineRuntimeStateByMachineID(
+	if err := w.store.UpdateMachineRuntimeStateByMachineID(
 		ctx,
 		machine.ID,
 		db.MachineStatusRunning,
 		db.MachineDesiredRunning,
 		containerID,
 		"",
-	)
+	); err != nil {
+		return err
+	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "ready", "machine is ready")
+	return nil
 }
 
 func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (string, error) {
@@ -465,9 +481,9 @@ func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
 	return "https://" + label + "." + baseDomain, nil
 }
 
-func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {
+func (w *Worker) handleStop(ctx context.Context, machine db.Machine, jobID string) error {
 	if machine.DesiredStatus == db.MachineDesiredDeleted {
-		return w.handleDelete(ctx, machine)
+		return w.handleDelete(ctx, machine, jobID)
 	}
 
 	if err := w.store.UpdateMachineRuntimeStateByMachineID(
@@ -480,6 +496,7 @@ func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {
 	); err != nil {
 		return err
 	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "runtime_stopping", "stopping machine runtime")
 
 	stopCtx, cancel := context.WithTimeout(ctx, w.stopTTL)
 	defer cancel()
@@ -487,17 +504,21 @@ func (w *Worker) handleStop(ctx context.Context, machine db.Machine) error {
 		return err
 	}
 
-	return w.store.UpdateMachineRuntimeStateByMachineID(
+	if err := w.store.UpdateMachineRuntimeStateByMachineID(
 		ctx,
 		machine.ID,
 		db.MachineStatusStopped,
 		db.MachineDesiredStopped,
 		"",
 		"",
-	)
+	); err != nil {
+		return err
+	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "stopped", "machine is stopped")
+	return nil
 }
 
-func (w *Worker) handleDelete(ctx context.Context, machine db.Machine) error {
+func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID string) error {
 	if err := w.store.UpdateMachineRuntimeStateByMachineID(
 		ctx,
 		machine.ID,
@@ -508,6 +529,7 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine) error {
 	); err != nil {
 		return err
 	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "deleting", "deleting machine resources")
 
 	stopCtx, cancel := context.WithTimeout(ctx, w.stopTTL)
 	defer cancel()
@@ -523,8 +545,15 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine) error {
 		return err
 	}
 
-	_, err := w.store.DeleteMachineByID(ctx, machine.ID)
-	return err
+	deleted, err := w.store.DeleteMachineByID(ctx, machine.ID)
+	if err != nil {
+		return err
+	}
+	if !deleted {
+		return fmt.Errorf("machine %s not found during delete", machine.ID)
+	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "deleted", "machine deleted")
+	return nil
 }
 
 func (w *Worker) deleteMachineDNSRecords(ctx context.Context, machineID string) error {
@@ -608,6 +637,21 @@ func (w *Worker) deleteMachineTunnel(ctx context.Context, machineID string) erro
 	}
 
 	return nil
+}
+
+func (w *Worker) emitEvent(ctx context.Context, machineID, jobID, level, eventType, message string) {
+	if w.store == nil || strings.TrimSpace(machineID) == "" {
+		return
+	}
+	if err := w.store.CreateMachineEvent(ctx, db.MachineEventInput{
+		MachineID: strings.TrimSpace(machineID),
+		JobID:     strings.TrimSpace(jobID),
+		Level:     strings.TrimSpace(level),
+		EventType: strings.TrimSpace(eventType),
+		Message:   strings.TrimSpace(message),
+	}); err != nil {
+		slog.Warn("record machine event failed", "machine_id", machineID, "job_id", jobID, "event_type", eventType, "error", err)
+	}
 }
 
 func isActiveTunnelConnectionError(err cloudflare.APIError) bool {

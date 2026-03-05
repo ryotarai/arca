@@ -141,6 +141,27 @@ SET status = sqlc.arg(status),
     updated_at = sqlc.arg(updated_at)
 WHERE machine_id = sqlc.arg(machine_id);
 
+-- name: CreateMachineEvent :exec
+INSERT INTO machine_events (id, machine_id, job_id, level, event_type, message, created_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(machine_id),
+  sqlc.arg(job_id),
+  sqlc.arg(level),
+  sqlc.arg(event_type),
+  sqlc.arg(message),
+  sqlc.arg(created_at)
+);
+
+-- name: ListMachineEventsByMachineIDForUser :many
+SELECT me.id, me.machine_id, me.job_id, me.level, me.event_type, me.message, me.created_at
+FROM machine_events me
+JOIN user_machines um ON um.machine_id = me.machine_id
+WHERE me.machine_id = sqlc.arg(machine_id)
+  AND um.user_id = sqlc.arg(user_id)
+ORDER BY me.created_at DESC
+LIMIT sqlc.arg(limit_n);
+
 -- name: EnqueueMachineJob :exec
 INSERT INTO machine_jobs (
   id, machine_id, kind, status, attempt, next_run_at, created_at, updated_at
