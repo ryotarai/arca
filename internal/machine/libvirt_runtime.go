@@ -394,7 +394,7 @@ provision_marker="/var/lib/arca/provisioned"
 mkdir -p /var/lib/arca
 if [ ! -f "$provision_marker" ]; then
   apt-get update
-  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential
   touch "$provision_marker"
 fi
 
@@ -436,7 +436,7 @@ for cmd in bash curl git jq python3 tmux ttyd; do
 done
 if [ ! -f "$provision_marker" ] || [ "$need_packages" -eq 1 ]; then
   apt-get update
-  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential
   touch "$provision_marker"
 fi
 
@@ -455,6 +455,24 @@ mkdir -p /var/lib/arca/shelley
 chown -R arca:arca /var/lib/arca/shelley
 chown -R arca:arca /home/arca
 chmod +x /usr/local/bin/arca-entrypoint.sh /usr/local/bin/arcad
+
+if [ ! -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  su - arca -c 'CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+fi
+
+brew_shellenv_line='eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
+touch /home/arca/.bashrc
+if ! grep -Fqx "$brew_shellenv_line" /home/arca/.bashrc; then
+  printf '\n# Homebrew\n%s\n' "$brew_shellenv_line" >> /home/arca/.bashrc
+fi
+chown arca:arca /home/arca/.bashrc
+
+if ! su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --formula codex >/dev/null 2>&1'; then
+  su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install codex'
+fi
+if ! su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --cask claude-code >/dev/null 2>&1'; then
+  su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install --cask claude-code'
+fi
 
 systemctl daemon-reload
 systemctl enable arca-http.service arca-arcad.service arca-ttyd.service arca-shelley.service
