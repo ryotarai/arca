@@ -18,30 +18,13 @@ if [ -z "${ARCAD_TUNNEL_TOKEN:-}" ]; then
   export ARCAD_TUNNEL_TOKEN="${ARCA_TUNNEL_TOKEN}"
 fi
 export ARCAD_STARTUP_SENTINEL="${ARCAD_STARTUP_SENTINEL:-/var/lib/arca/startup.done}"
-export ARCAD_READY_TCP_ENDPOINTS="${ARCAD_READY_TCP_ENDPOINTS:-127.0.0.1:8080,127.0.0.1:21031}"
+export ARCAD_READY_TCP_ENDPOINTS="${ARCAD_READY_TCP_ENDPOINTS:-127.0.0.1:21031}"
 export ARCAD_TTYD_SOCKET="${ARCAD_TTYD_SOCKET:-/run/arca/ttyd.sock}"
 mkdir -p "$(dirname "$ARCAD_STARTUP_SENTINEL")"
 rm -f "$ARCAD_STARTUP_SENTINEL"
 
 git config --global user.name "Arca"
 git config --global user.email "arca@ryotarai.dev"
-
-mkdir -p /home/arca/www
-cat > /home/arca/www/index.html <<'HTML'
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Arca machine</title>
-  </head>
-  <body>
-    <h1>Arca machine is running</h1>
-  </body>
-</html>
-HTML
-
-python3 -m http.server 8080 --directory /home/arca/www --bind 127.0.0.1 &
-app_pid=$!
 
 /usr/local/bin/arcad &
 arcad_pid=$!
@@ -87,12 +70,12 @@ setup_claudecodeui
 touch "$ARCAD_STARTUP_SENTINEL"
 
 cleanup() {
-  kill "$arcad_pid" "$ttyd_pid" "$claudecodeui_pid" "$app_pid" 2>/dev/null || true
+  kill "$arcad_pid" "$ttyd_pid" "$claudecodeui_pid" 2>/dev/null || true
 }
 
 trap cleanup TERM INT
 
-wait -n "$arcad_pid" "$ttyd_pid" "$claudecodeui_pid" "$app_pid"
+wait -n "$arcad_pid" "$ttyd_pid" "$claudecodeui_pid"
 status=$?
 cleanup
 exit "$status"
