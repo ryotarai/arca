@@ -13,13 +13,14 @@ import {
   DeleteMachineRequestSchema,
   GetMachineRequestSchema,
   ListMachinesRequestSchema,
+  ListMachineEventsRequestSchema,
   MachineService,
   StartMachineRequestSchema,
   StopMachineRequestSchema,
   UpdateMachineRequestSchema,
 } from '@/gen/arca/v1/machine_pb'
 import { ApiError, parseApiErrorPayload } from '@/lib/errors'
-import type { Machine, SetupStatus, User } from '@/lib/types'
+import type { Machine, MachineEvent, SetupStatus, User } from '@/lib/types'
 
 const connectTransport = createConnectTransport({
   baseUrl: window.location.origin,
@@ -210,6 +211,16 @@ export async function stopMachine(id: string): Promise<Machine> {
     throw new Error('request failed')
   }
   return response.machine
+}
+
+export async function listMachineEvents(id: string, limit = 100, options: PollingOptions = {}): Promise<MachineEvent[]> {
+  const response = await withRequestTimeout(options.timeoutMs, (signal) =>
+    machineClient.listMachineEvents(
+      create(ListMachineEventsRequestSchema, { machineId: id, limit }),
+      signal == null ? undefined : { signal },
+    ),
+  )
+  return response.events
 }
 
 export async function deleteMachine(id: string): Promise<void> {

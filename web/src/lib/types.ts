@@ -7,6 +7,8 @@ export type User = {
 
 export type Machine = MachineMessage
 
+export type MachineEvent = import("@/gen/arca/v1/machine_pb").MachineEvent
+
 export type SetupStatus = {
   isConfigured: boolean
   hasAdmin: boolean
