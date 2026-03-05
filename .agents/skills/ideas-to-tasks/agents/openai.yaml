@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ideas to Tasks"
+  short_description: "Convert tmp/ideas.md into task files"
+  default_prompt: "Read tmp/ideas.md, turn unchecked ideas into concrete task specs in tmp/tasks/NNN-TASK_NAME.md, then check each processed idea in tmp/ideas.md."
