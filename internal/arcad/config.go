@@ -49,9 +49,6 @@ func ConfigFromEnv() (Config, error) {
 	if cfg.StartupSentinel == "" {
 		cfg.StartupSentinel = "/var/lib/arca/startup.done"
 	}
-	if cfg.ReadyEndpoints == "" {
-		cfg.ReadyEndpoints = "127.0.0.1:8080"
-	}
 	if cfg.ControlPlaneURL == "" {
 		return Config{}, fmt.Errorf("ARCAD_CONTROL_PLANE_URL is required")
 	}

@@ -359,7 +359,7 @@ ARCAD_MACHINE_ID=%s
 ARCAD_MACHINE_TOKEN=%s
 ARCAD_STARTUP_SENTINEL=/var/lib/arca/startup.done
 ARCAD_TTYD_SOCKET=/run/arca/ttyd.sock
-ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:8080
+ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:21032
 TTYD_SOCKET=/run/arca/ttyd.sock
 TTYD_BASE_PATH=/__arca/ttyd
 SHELLEY_BINARY_URL=https://github.com/ryotarai/shelley/releases/download/v0.321.967457453-ryotarai/shelley_linux_amd64
@@ -367,24 +367,6 @@ SHELLEY_BASE_PATH=/__arca/shelley
 SHELLEY_PORT=21032
 SHELLEY_DB_PATH=/var/lib/arca/shelley/shelley.db
 `, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken))
-
-	entrypointScript := `#!/usr/bin/env bash
-set -euo pipefail
-mkdir -p /home/arca/www
-cat > /home/arca/www/index.html <<'HTML'
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Arca machine</title>
-  </head>
-  <body>
-    <h1>Arca machine is running</h1>
-  </body>
-</html>
-HTML
-exec python3 -m http.server 8080 --directory /home/arca/www --bind 127.0.0.1
-`
 
 	installScript := `#!/usr/bin/env bash
 set -euxo pipefail
@@ -412,7 +394,6 @@ if [ ! -x /usr/local/bin/cloudflared ]; then
   chmod +x /usr/local/bin/cloudflared
 fi
 chown -R arca:arca /home/arca
-chmod +x /usr/local/bin/arca-entrypoint.sh
 chmod +x /usr/local/bin/arca-bootstrap.sh
 systemctl daemon-reload
 systemctl enable --now arca-bootstrap.service
@@ -462,14 +443,14 @@ fi
 mkdir -p /var/lib/arca/shelley
 chown -R arca:arca /var/lib/arca/shelley
 chown -R arca:arca /home/arca
-chmod +x /usr/local/bin/arca-entrypoint.sh /usr/local/bin/arcad
+chmod +x /usr/local/bin/arcad
 
 
 systemctl daemon-reload
-systemctl enable arca-http.service arca-arcad.service arca-ttyd.service arca-shelley.service
-systemctl restart arca-http.service arca-arcad.service arca-ttyd.service arca-shelley.service
+systemctl enable arca-arcad.service arca-ttyd.service arca-shelley.service
+systemctl restart arca-arcad.service arca-ttyd.service arca-shelley.service
 
-for service in arca-http.service arca-arcad.service arca-ttyd.service arca-shelley.service; do
+for service in arca-arcad.service arca-ttyd.service arca-shelley.service; do
   for _ in $(seq 1 60); do
     if systemctl is-active --quiet "$service"; then
       break
@@ -516,11 +497,6 @@ write_files:
     owner: root:root
     encoding: b64
     content: %s
-  - path: /usr/local/bin/arca-entrypoint.sh
-    permissions: "0755"
-    owner: root:root
-    encoding: b64
-    content: %s
   - path: /usr/local/bin/arca-machine-install.sh
     permissions: "0755"
     owner: root:root
@@ -537,22 +513,6 @@ write_files:
     owner: root:root
     encoding: b64
     content: %s
-  - path: /etc/systemd/system/arca-http.service
-    permissions: "0644"
-    owner: root:root
-    content: |
-      [Unit]
-      Description=Arca machine sample HTTP service
-      After=network-online.target
-      Wants=network-online.target
-      [Service]
-      Type=simple
-      ExecStart=/usr/local/bin/arca-entrypoint.sh
-      Restart=always
-      User=arca
-      Group=arca
-      [Install]
-      WantedBy=multi-user.target
   - path: /etc/systemd/system/arca-arcad.service
     permissions: "0644"
     owner: root:root
@@ -623,7 +583,7 @@ write_files:
       WantedBy=multi-user.target
 runcmd:
   - ["/usr/local/bin/arca-machine-install.sh"]
-`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(entrypointScript)), base64.StdEncoding.EncodeToString([]byte(installScript)), base64.StdEncoding.EncodeToString([]byte(bootstrapScript)), arcadBinaryBase64)
+`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(installScript)), base64.StdEncoding.EncodeToString([]byte(bootstrapScript)), arcadBinaryBase64)
 }
 
 func shellEscape(value string) string {
