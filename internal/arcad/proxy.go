@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -88,6 +89,9 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	if target == p.ttyd && p.ttydSocket != "" {
 		proxy.Transport = ttydUnixSocketTransport(p.ttydSocket)
+	}
+	if target == p.shelley {
+		proxy.ModifyResponse = rewriteShelleyHTMLResponse
 	}
 	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
 		log.Printf("reverse proxy error for host %q target %q: %v", host, target, err)
@@ -251,4 +255,55 @@ func isSecureRequest(r *http.Request) bool {
 		return true
 	}
 	return r.TLS != nil
+}
+
+func rewriteShelleyHTMLResponse(resp *http.Response) error {
+	if resp == nil || resp.Body == nil {
+		return nil
+	}
+	if !isShelleyPath(resp.Request.URL.Path) {
+		return nil
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil
+	}
+	if strings.TrimSpace(resp.Header.Get("Content-Encoding")) != "" {
+		return nil
+	}
+	contentType := strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Type")))
+	if !strings.HasPrefix(contentType, "text/html") {
+		return nil
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	_ = resp.Body.Close()
+
+	rewritten := rewriteShelleyAssetPaths(string(body))
+	resp.Body = io.NopCloser(strings.NewReader(rewritten))
+	resp.ContentLength = int64(len(rewritten))
+	resp.Header.Set("Content-Length", fmt.Sprintf("%d", len(rewritten)))
+	return nil
+}
+
+func rewriteShelleyAssetPaths(indexHTML string) string {
+	replacer := strings.NewReplacer(
+		`href="/manifest.json"`, `href="`+shelleyBasePath+`/manifest.json"`,
+		`href='/manifest.json'`, `href='`+shelleyBasePath+`/manifest.json'`,
+		`href="/apple-touch-icon.png"`, `href="`+shelleyBasePath+`/apple-touch-icon.png"`,
+		`href='/apple-touch-icon.png'`, `href='`+shelleyBasePath+`/apple-touch-icon.png'`,
+		`href="/styles.css"`, `href="`+shelleyBasePath+`/styles.css"`,
+		`href='/styles.css'`, `href='`+shelleyBasePath+`/styles.css'`,
+		`href="/main.css"`, `href="`+shelleyBasePath+`/main.css"`,
+		`href='/main.css'`, `href='`+shelleyBasePath+`/main.css'`,
+		`src="/main.js"`, `src="`+shelleyBasePath+`/main.js"`,
+		`src='/main.js'`, `src='`+shelleyBasePath+`/main.js'`,
+	)
+	return replacer.Replace(indexHTML)
+}
+
+func isShelleyPath(path string) bool {
+	return path == shelleyBasePath || strings.HasPrefix(path, shelleyBasePath+"/")
 }

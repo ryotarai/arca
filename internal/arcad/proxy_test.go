@@ -208,6 +208,66 @@ func TestProxyRoutesShelleyPathToDedicatedUpstream(t *testing.T) {
 	}
 }
 
+func TestProxyRewritesShelleyIndexAssetPaths(t *testing.T) {
+	defaultUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("default"))
+	}))
+	t.Cleanup(defaultUpstream.Close)
+
+	shelleyIndex := `<!doctype html><html><head><link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/main.css"></head><body><script type="module" src="/main.js"></script></body></html>`
+	shelleyUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(shelleyIndex))
+	}))
+	t.Cleanup(shelleyUpstream.Close)
+
+	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), "")
+	proxy.shelley = mustURL(t, shelleyUpstream.URL)
+
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/shelley/", nil)
+	rr := httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	body, err := io.ReadAll(rr.Result().Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	got := string(body)
+	for _, want := range []string{
+		`href="/__arca/shelley/manifest.json"`,
+		`href="/__arca/shelley/apple-touch-icon.png"`,
+		`href="/__arca/shelley/styles.css"`,
+		`href="/__arca/shelley/main.css"`,
+		`src="/__arca/shelley/main.js"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected rewritten asset path %q in %q", want, got)
+		}
+	}
+}
+
+func TestRewriteShelleyAssetPaths(t *testing.T) {
+	input := `<link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href='/apple-touch-icon.png'><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href='/main.css'><script src='/main.js'></script>`
+	got := rewriteShelleyAssetPaths(input)
+	for _, want := range []string{
+		`href="/__arca/shelley/manifest.json"`,
+		`href='/__arca/shelley/apple-touch-icon.png'`,
+		`href="/__arca/shelley/styles.css"`,
+		`href='/__arca/shelley/main.css'`,
+		`src='/__arca/shelley/main.js'`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected %q in %q", want, got)
+		}
+	}
+}
+
 func TestProxyReadyz(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
 	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
