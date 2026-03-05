@@ -1,4 +1,4 @@
 interface:
   display_name: "Do Tasks"
-  short_description: "Execute tmp/tasks.md with dependency ordering"
-  default_prompt: "Read tmp/tasks.md and complete all possible tasks in dependency order, marking each completed item as - [x]. Defer only tasks requiring human input and ask all remaining questions together at the end."
+  short_description: "Execute tmp/tasks/ with DAG + parallelism"
+  default_prompt: "Read task files under tmp/tasks/, analyze dependencies, execute ready tasks in parallel (using sub-agents where effective), and move each completed markdown file to tmp/tasks-done/."

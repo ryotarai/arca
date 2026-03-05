@@ -1,43 +1,54 @@
 ---
 name: do-tasks
-description: Process task lists in tmp/tasks.md end-to-end. Use when asked to execute all tasks from a markdown checklist, respect task dependencies, mark completed tasks as - [x], move completed tasks to tmp/tasks-done.md, defer only items that require human input, and ask all remaining questions in one batch at the end.
+description: Execute task files from `tmp/tasks/` end-to-end. Use when asked to run project task markdown files, analyze dependencies, execute independent tasks in parallel, offload suitable work to sub-agents to reduce context usage, and move completed task files into `tmp/tasks-done/`.
 ---
 
 # Do Tasks
 
-Execute tasks in `tmp/tasks.md` autonomously with dependency-aware ordering.
+Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-first orchestration.
 
 ## Workflow
 
-1. Read `tmp/tasks.md` and extract all unchecked tasks (`- [ ]`).
-2. Detect dependencies from explicit signals first.
-- Treat text such as `depends on`, `blocked by`, `after`, `requires`, or task-number references as hard dependencies.
-- If dependency structure is unclear, use file order as the fallback order and state that assumption.
-3. Split tasks into two groups.
-- `doable now`: Can be executed without user decisions.
-- `needs input`: Requires human choice, missing credentials, or unavailable external info.
-4. Execute all `doable now` tasks.
-- Run independent tasks in parallel when safe.
-- Run dependent tasks sequentially in resolved order.
-5. After each completed task, immediately update the task text to `- [x]`.
-6. Move each checked completed task from `tmp/tasks.md` to `tmp/tasks-done.md` right away.
-- If `tmp/tasks-done.md` does not exist, create it.
-- Preserve the original task wording when moving it.
-7. Leave `needs input` tasks unchecked in `tmp/tasks.md` and continue with every other task.
-8. When no more doable tasks remain, ask one consolidated question set covering every remaining blocker.
+1. List task files in `tmp/tasks/` (`NNN-*.md`).
+2. Read `tmp/tasks/000-dependencies.md` if present, then read each task file.
+3. Build a dependency DAG from explicit dependency lines first.
+- Trust `000-dependencies.md` as the source of truth when it conflicts with inferred dependencies.
+- If no explicit dependency exists, treat tasks as independent.
+4. Classify tasks:
+- `ready`: dependencies already completed.
+- `blocked`: waiting for dependency or missing external input.
+5. Execute `ready` tasks.
+- Run independent `ready` tasks in parallel.
+- Use sub-agents for self-contained tasks to reduce main-context usage.
+- Keep dependency-coupled or high-risk integration work in the main agent when coordination is required.
+6. For each completed task, move its file from `tmp/tasks/` to `tmp/tasks-done/` immediately.
+- Create `tmp/tasks-done/` when missing.
+- Preserve filename and markdown content.
+7. Recompute the DAG state after every completion and continue until no `ready` tasks remain.
+8. Ask one consolidated question set for unresolved blockers only after all executable work is exhausted.
 
-## Execution Rules
+## Dependency Rules
 
-- Prefer finishing implementation, verification, and local validation before marking done.
-- Keep unfinished and blocked tasks in `tmp/tasks.md`; keep completed tasks in `tmp/tasks-done.md`.
-- Do not mark a task done if it is only partially complete.
-- If a task becomes unblocked during execution, move it back to `doable now` and continue.
-- Prefer multi-agent execution when possible: assign independent tasks to separate agents and keep dependency-bound tasks sequential.
-- Keep questions concise and grouped, not scattered through the run.
-- Do not bundle commits; split commits into the smallest meaningful units with clear intent.
+- Treat `depends on`, `blocked by`, `after`, `requires`, and task-id references as hard dependencies.
+- Resolve by task id (`NNN`) instead of title text where possible.
+- Reject cycles by reporting the minimal cycle set and stop those tasks until clarified.
+
+## Sub-Agent Rules
+
+- Delegate bounded tasks with clear ownership and disjoint write scope.
+- Avoid delegating the immediate critical-path blocker when main-agent local execution is faster.
+- While sub-agents run, continue non-overlapping main-agent work.
+- Integrate returned changes, run validation, then mark task complete.
+
+## Completion Rules
+
+- Mark a task complete only after implementation and relevant verification for that task scope.
+- Do not move partially completed or blocked tasks.
+- Keep blocked files in `tmp/tasks/`.
+- Never move `tmp/tasks/000-dependencies.md` to `tmp/tasks-done/`.
 
 ## Output Rules
 
-- Report what was completed and what remains blocked.
-- Include concrete next actions for each blocked task.
-- Keep responses concise and action-oriented.
+- Report completed task files moved to `tmp/tasks-done/`.
+- Report remaining blocked task files in `tmp/tasks/` with concrete blockers.
+- Keep final status concise and actionable.
