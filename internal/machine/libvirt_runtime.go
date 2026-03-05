@@ -394,11 +394,15 @@ provision_marker="/var/lib/arca/provisioned"
 mkdir -p /var/lib/arca
 if [ ! -f "$provision_marker" ]; then
   apt-get update
-  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential sudo
   touch "$provision_marker"
 fi
 
 id -u arca >/dev/null 2>&1 || useradd --create-home --home-dir /home/arca --shell /bin/bash arca
+cat > /etc/sudoers.d/90-arca <<'EOF'
+arca ALL=(ALL) NOPASSWD:ALL
+EOF
+chmod 0440 /etc/sudoers.d/90-arca
 mkdir -p /workspace /etc/arca /opt/arca
 chown arca:arca /workspace
 chmod 700 /workspace
@@ -428,7 +432,7 @@ chown arca:arca /workspace
 chmod 700 /workspace
 
 need_packages=0
-for cmd in bash curl git jq python3 tmux ttyd; do
+for cmd in bash curl git jq python3 tmux ttyd sudo; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     need_packages=1
     break
@@ -436,9 +440,13 @@ for cmd in bash curl git jq python3 tmux ttyd; do
 done
 if [ ! -f "$provision_marker" ] || [ "$need_packages" -eq 1 ]; then
   apt-get update
-  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential
+  apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential sudo
   touch "$provision_marker"
 fi
+cat > /etc/sudoers.d/90-arca <<'EOF'
+arca ALL=(ALL) NOPASSWD:ALL
+EOF
+chmod 0440 /etc/sudoers.d/90-arca
 
 if [ ! -x /usr/local/bin/cloudflared ]; then
   arch="$(dpkg --print-architecture)"
