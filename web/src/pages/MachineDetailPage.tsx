@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getMachine, startMachine, stopMachine } from '@/lib/api'
+import { getMachine, listMachineEvents, startMachine, stopMachine } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, User } from '@/lib/types'
+import type { Machine, MachineEvent, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -14,6 +14,7 @@ type MachineDetailPageProps = {
 const pollingRequestTimeoutMs = 2500
 const restartWaitTimeoutMs = 60000
 const restartWaitIntervalMs = 1500
+const eventLimit = 100
 
 function statusTone(status: string): string {
   switch (status) {
@@ -33,6 +34,17 @@ function statusTone(status: string): string {
   }
 }
 
+function eventLevelTone(level: string): string {
+  switch (level) {
+    case 'error':
+      return 'border-red-400/40 bg-red-500/15 text-red-200'
+    case 'warn':
+      return 'border-amber-400/40 bg-amber-500/15 text-amber-200'
+    default:
+      return 'border-sky-400/40 bg-sky-500/15 text-sky-200'
+  }
+}
+
 function StatusBadge({ status }: { status: string }) {
   return (
     <span
@@ -43,12 +55,35 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function formatEventTimestamp(createdAt: number): string {
+  if (createdAt <= 0) {
+    return 'unknown time'
+  }
+  return new Date(createdAt * 1000).toLocaleString()
+}
+
+function EventLevelBadge({ level }: { level: string }) {
+  const normalized = level.trim().toLowerCase() || 'info'
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] ${eventLevelTone(normalized)}`}
+    >
+      {normalized}
+    </span>
+  )
+}
+
 export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const [machine, setMachine] = useState<Machine | null>(null)
+  const [events, setEvents] = useState<MachineEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
+
+  const sortedEvents = useMemo(() => {
+    return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
+  }, [events])
 
   useEffect(() => {
     if (user == null || machineID == null || machineID === '') {
@@ -65,9 +100,13 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const item = await getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs })
+        const [item, eventItems] = await Promise.all([
+          getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
+          listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
+        ])
         if (!cancelled) {
           setMachine(item)
+          setEvents(eventItems)
           setError('')
         }
       } catch (e) {
@@ -213,7 +252,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                 {machine.lastError != null && machine.lastError !== '' && (
                   <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
                     <p className="text-sm text-red-200">last error</p>
-                    <p className="mt-1 text-xs text-red-100 break-all">{machine.lastError}</p>
+                    <p className="mt-1 break-all text-xs text-red-100">{machine.lastError}</p>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
@@ -246,6 +285,36 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
               <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
                 {error}
               </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+          <CardHeader className="space-y-2 p-6 pb-3">
+            <CardTitle className="text-xl text-white">Machine events</CardTitle>
+            <CardDescription className="text-slate-300">Recent state transitions and worker activities.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 pt-3">
+            {loading ? (
+              <p className="text-sm text-slate-300">Loading events...</p>
+            ) : sortedEvents.length === 0 ? (
+              <p className="text-sm text-slate-300">No events yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {sortedEvents.map((event) => (
+                  <div key={event.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <EventLevelBadge level={event.level} />
+                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-slate-300">{event.eventType}</span>
+                      </div>
+                      <span className="text-xs text-slate-400">{formatEventTimestamp(Number(event.createdAt))}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-100">{event.message}</p>
+                    {event.jobId !== '' && <p className="mt-1 text-xs text-slate-400">job: {event.jobId}</p>}
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
