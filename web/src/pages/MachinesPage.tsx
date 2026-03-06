@@ -2,19 +2,15 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
-  createMachine,
   getMachine,
   deleteMachine,
   listMachines,
-  listRuntimes,
   startMachine,
   stopMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, RuntimeCatalogItem, User } from '@/lib/types'
+import type { Machine, User } from '@/lib/types'
 
 type MachinesPageProps = {
   user: User | null
@@ -55,10 +51,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function MachinesPage({ user, onLogout }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
-  const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [name, setName] = useState('')
-  const [selectedRuntimeID, setSelectedRuntimeID] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -106,66 +99,8 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
     }
   }, [user])
 
-  useEffect(() => {
-	if (user == null) {
-		return
-	}
-
-	let cancelled = false
-
-	const loadRuntimes = async () => {
-		try {
-			const items = await listRuntimes()
-			if (cancelled) {
-				return
-			}
-			setRuntimes(items)
-			setSelectedRuntimeID((current) => {
-				if (current !== '' && items.some((runtime) => runtime.id === current)) {
-					return current
-				}
-				if (items.length > 0) {
-					return items[0].id
-				}
-				return ''
-			})
-		} catch (e) {
-			if (!cancelled) {
-				setError(messageFromError(e))
-			}
-		}
-	}
-
-	void loadRuntimes()
-
-	return () => {
-		cancelled = true
-	}
-  }, [user])
-
   if (user == null) {
     return <Navigate to="/login" replace />
-  }
-
-  const submitCreate = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const trimmed = name.trim()
-    if (trimmed === '') {
-      setError('name is required')
-      return
-    }
-    setError('')
-    if (selectedRuntimeID.trim() === "") {
-      setError("runtime is required")
-      return
-    }
-    try {
-      const created = await createMachine(trimmed, selectedRuntimeID)
-      setMachines((prev) => [created, ...prev])
-      setName('')
-    } catch (e) {
-      setError(messageFromError(e))
-    }
   }
 
   const submitStart = async (machineID: string) => {
@@ -246,6 +181,9 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
             <p className="mt-1 text-sm text-slate-300">Signed in as {user.email}</p>
           </div>
           <div className="flex items-center gap-3">
+            <Button asChild type="button" className="bg-white text-slate-900 hover:bg-slate-100">
+              <Link to="/machines/create">Create machine</Link>
+            </Button>
             <Button asChild type="button" variant="secondary">
               <Link to="/">Back</Link>
             </Button>
@@ -254,51 +192,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
             </Button>
           </div>
         </header>
-
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
-          <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Create machine</CardTitle>
-            <CardDescription className="text-slate-300">Choose a runtime catalog entry and machine name.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 pt-3">
-            <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submitCreate}>
-              <div className="w-full space-y-2">
-                <Label htmlFor="machine-name" className="text-slate-200">
-                  Name
-                </Label>
-                <Input
-                  id="machine-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                  placeholder="my-machine"
-                  required
-                />
-              </div>
-              <div className="w-full space-y-2">
-				<Label htmlFor="machine-runtime" className="text-slate-200">
-				  Runtime
-				</Label>
-				<select
-				  id="machine-runtime"
-				  value={selectedRuntimeID}
-				  onChange={(event) => setSelectedRuntimeID(event.target.value)}
-				  className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
-				>
-				  {runtimes.length === 0 && <option value="">No runtime available</option>}
-				  {runtimes.map((runtime) => (
-					<option key={runtime.id} value={runtime.id}>
-					  {runtime.name} ({runtime.type})
-					</option>
-				  ))}
-				</select>
-			  </div>
-              <Button type="submit" className="h-10 self-end bg-white text-slate-900 hover:bg-slate-100" disabled={runtimes.length === 0}>
-                Create
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
 
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">

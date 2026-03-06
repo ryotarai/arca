@@ -4,6 +4,13 @@ import { adminEmail, adminPassword, bestEffortDeleteMachine, ensureSetupAdmin, l
 
 const e2eDBPath = '/tmp/arca-e2e.db'
 
+function ensureLibvirtRuntimeInDB() {
+  execFileSync('sqlite3', [
+    e2eDBPath,
+    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('libvirt', 'libvirt-default', 'libvirt', '{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
+  ], { stdio: 'pipe' })
+}
+
 function updateMachineForRestartVisibility(machineID: string, status: string) {
   for (let attempt = 0; attempt < 6; attempt += 1) {
     try {
@@ -27,12 +34,9 @@ UPDATE machine_states SET status = '${status}' WHERE machine_id = '${machineID}'
 }
 
 async function createMachineViaAPI(page: import('@playwright/test').Page, machineName: string): Promise<string> {
-  execFileSync('sqlite3', [
-    e2eDBPath,
-    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('libvirt', 'libvirt-default', 'libvirt', '{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
-  ], { stdio: 'pipe' })
+  ensureLibvirtRuntimeInDB()
 
-  const response = await page.request.post('/arca.v1.MachineService/CreateMachine', {
+  const response = await page.request.post('//arca.v1.MachineService/CreateMachine', {
     data: { name: machineName, runtimeId: 'libvirt' },
   })
   expect(response.ok()).toBeTruthy()
@@ -116,13 +120,23 @@ test('login and logout via Connect RPC', async ({ page }) => {
 test('machine CRUD screen works for authenticated user', async ({ page }) => {
   const machineName = `alpha-machine-${Date.now()}`
   await loginAsAdmin(page)
+  ensureLibvirtRuntimeInDB()
 
   await page.getByRole('link', { name: 'Machines' }).click()
   await expect(page).toHaveURL('/machines')
   await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
 
+  await page.getByRole('link', { name: 'Create machine' }).click()
+  await expect(page).toHaveURL('/machines/create')
+  await expect(page.getByRole('heading', { name: 'Create machine' })).toBeVisible()
+
   await page.getByLabel('Name').fill(machineName)
-  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('button', { name: 'Create machine' }).click()
+  await expect(page).toHaveURL(/\/machines\/.+/)
+  await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+  await page.getByRole('link', { name: 'Back' }).click()
+  await expect(page).toHaveURL('/machines')
+
   await expect(page.locator('p.font-medium', { hasText: machineName })).toBeVisible()
   await expect(page.getByText(/pending|starting|running/).first()).toBeVisible()
 
@@ -140,6 +154,32 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Delete' }).first().click()
   await expect(page.getByText('No machines yet.')).toBeVisible()
+})
+
+test('machine detail runtime links to runtime detail route', async ({ page }) => {
+  const machineName = `runtime-link-${Date.now()}`
+
+  await loginAsAdmin(page)
+  ensureLibvirtRuntimeInDB()
+
+  await page.goto('/machines/create')
+  await page.getByLabel('Name').fill(machineName)
+  await page.getByRole('button', { name: 'Create machine' }).click()
+  await expect(page).toHaveURL(/\/machines\/.+/)
+  await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+
+  const runtimeLink = page.locator('a[href^="/runtimes/"]').first()
+  await expect(runtimeLink).toBeVisible({ timeout: 15_000 })
+  const runtimeHref = await runtimeLink.getAttribute('href')
+  expect(runtimeHref).toBeTruthy()
+  await runtimeLink.click()
+
+  await expect(page).toHaveURL(runtimeHref!)
+  await expect(page.getByRole('heading', { name: 'Runtime detail' })).toBeVisible()
+  await expect(page.getByText('Runtime metadata')).toBeVisible()
+
+  const machine = await waitForMachineByName(page, machineName)
+  await bestEffortDeleteMachine(page, machine.id)
 })
 
 test('authenticated login route honors next parameter', async ({ page }) => {
