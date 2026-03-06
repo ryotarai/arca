@@ -357,10 +357,6 @@ export async function setupValidateCloudflare(
   }
 }
 
-export async function setupConfigureProviderDocker(): Promise<void> {
-  return
-}
-
 export async function setupComplete(
   adminEmail: string,
   adminPassword: string,
@@ -383,7 +379,6 @@ export async function setupComplete(
       domainPrefix,
       cloudflareApiToken,
       cloudflareZoneId: cloudflareZoneID,
-      dockerProviderEnabled: false,
       machineRuntime,
     })
     if (response.status?.completed !== true) {

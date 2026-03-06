@@ -40,7 +40,6 @@ func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Req
 				Completed:                      true,
 				AdminConfigured:                true,
 				CloudflareConfigured:           true,
-				DockerProviderEnabled:          false,
 				MachineRuntime:                 db.MachineRuntimeLibvirt,
 				InternetPublicExposureDisabled: false,
 			},
@@ -158,18 +157,17 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	}
 
 	state := db.SetupState{
-		Completed:             true,
-		AdminUserID:           adminUserID,
-		BaseDomain:            baseDomain,
-		DomainPrefix:          domainPrefix,
-		CloudflareAPIToken:    cfToken,
-		MachineRuntime:        normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
-		CloudflareZoneID:      zoneID,
-		DockerProviderEnabled: false,
-		OIDCEnabled:           current.OIDCEnabled,
-		OIDCIssuerURL:         current.OIDCIssuerURL,
-		OIDCClientID:          current.OIDCClientID,
-		OIDCClientSecret:      current.OIDCClientSecret,
+		Completed:          true,
+		AdminUserID:        adminUserID,
+		BaseDomain:         baseDomain,
+		DomainPrefix:       domainPrefix,
+		CloudflareAPIToken: cfToken,
+		MachineRuntime:     normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
+		CloudflareZoneID:   zoneID,
+		OIDCEnabled:        current.OIDCEnabled,
+		OIDCIssuerURL:      current.OIDCIssuerURL,
+		OIDCClientID:       current.OIDCClientID,
+		OIDCClientSecret:   current.OIDCClientSecret,
 		OIDCAllowedEmailDomains: append([]string(nil),
 			current.OIDCAllowedEmailDomains...,
 		),
@@ -224,7 +222,6 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	if strings.TrimSpace(req.Msg.GetMachineRuntime()) != "" {
 		current.MachineRuntime = normalizeMachineRuntime(req.Msg.GetMachineRuntime())
 	}
-	current.DockerProviderEnabled = false
 	current.InternetPublicExposureDisabled = req.Msg.GetDisableInternetPublicExposure()
 	oidcIssuerURL, err := validateOIDCIssuerURL(req.Msg.GetOidcIssuerUrl())
 	if err != nil {
@@ -269,7 +266,6 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		CloudflareConfigured:           strings.TrimSpace(state.CloudflareAPIToken) != "",
 		BaseDomain:                     state.BaseDomain,
 		DomainPrefix:                   state.DomainPrefix,
-		DockerProviderEnabled:          state.DockerProviderEnabled,
 		CloudflareZoneId:               state.CloudflareZoneID,
 		MachineRuntime:                 normalizeMachineRuntime(state.MachineRuntime),
 		InternetPublicExposureDisabled: state.InternetPublicExposureDisabled,

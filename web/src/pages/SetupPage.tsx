@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   setupComplete,
-  setupConfigureProviderDocker,
   setupCreateAdmin,
   setupValidateCloudflare,
 } from '@/lib/api'
@@ -154,7 +153,6 @@ export function SetupPage({
       if (nextDomainPrefixError != null) {
         throw new Error(nextDomainPrefixError)
       }
-      await setupConfigureProviderDocker()
       await setupComplete(
         email,
         password,
