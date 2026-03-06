@@ -216,7 +216,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                           <p className="text-xs text-slate-400">runtime: {machine.runtimeId}</p>
                           <div className="mt-1 flex items-center gap-2">
                             <StatusBadge status={machine.status} />
-                            <span className="text-xs text-slate-300">desired: {machine.desiredStatus}</span>
                           </div>
                           {machine.lastError != null && machine.lastError !== '' && (
                             <p className="text-xs text-red-300 break-all">error: {machine.lastError}</p>

@@ -264,7 +264,6 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                   <p className="text-sm text-slate-300">Status</p>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={machine.status} />
-                    <span className="text-sm text-slate-300">desired: {machine.desiredStatus}</span>
                   </div>
                 </div>
                 {endpointURL != null && (
