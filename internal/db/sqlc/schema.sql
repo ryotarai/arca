@@ -132,9 +132,19 @@ CREATE TABLE IF NOT EXISTS machine_exposures (
   hostname TEXT NOT NULL UNIQUE,
   service TEXT NOT NULL,
   is_public BOOLEAN NOT NULL DEFAULT FALSE,
+  visibility TEXT NOT NULL DEFAULT 'owner_only',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
   UNIQUE(machine_id, name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_machine_exposures_machine_id ON machine_exposures(machine_id);
+
+CREATE TABLE IF NOT EXISTS machine_exposure_acl_users (
+  exposure_id TEXT NOT NULL REFERENCES machine_exposures(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at BIGINT NOT NULL,
+  PRIMARY KEY (exposure_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_machine_exposure_acl_users_user_id ON machine_exposure_acl_users(user_id);

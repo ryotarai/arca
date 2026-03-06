@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -57,13 +58,8 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 			return
 		}
 
-		if _, err := store.GetMachineByIDForUser(r.Context(), userID, exposure.MachineID); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				http.NotFound(w, r)
-				return
-			}
-			log.Printf("console authorize machine ownership check failed: %v", err)
-			http.Error(w, "failed to authorize access", http.StatusInternalServerError)
+		if !canUserAccessExposure(r, store, exposure, userID) {
+			http.NotFound(w, r)
 			return
 		}
 
@@ -80,6 +76,19 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 		targetURL.RawQuery = query.Encode()
 		http.Redirect(w, r, targetURL.String(), http.StatusFound)
 	}
+}
+
+func canUserAccessExposure(r *http.Request, store *db.Store, exposure db.MachineExposure, userID string) bool {
+	if db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilityAllArcaUsers || db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilityInternetPublic {
+		return true
+	}
+	if _, err := store.GetMachineByIDForUser(r.Context(), userID, exposure.MachineID); err == nil {
+		return true
+	}
+	if db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilitySelectedUsers {
+		return slices.Contains(exposure.SelectedUserIDs, userID)
+	}
+	return false
 }
 
 func userIDFromSessionCookie(r *http.Request, authenticator Authenticator) (string, error) {

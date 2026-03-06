@@ -22,17 +22,18 @@ const (
 )
 
 type SetupStatus struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Completed             bool                   `protobuf:"varint,1,opt,name=completed,proto3" json:"completed,omitempty"`
-	AdminConfigured       bool                   `protobuf:"varint,2,opt,name=admin_configured,json=adminConfigured,proto3" json:"admin_configured,omitempty"`
-	CloudflareConfigured  bool                   `protobuf:"varint,3,opt,name=cloudflare_configured,json=cloudflareConfigured,proto3" json:"cloudflare_configured,omitempty"`
-	BaseDomain            string                 `protobuf:"bytes,4,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
-	DockerProviderEnabled bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
-	CloudflareZoneId      string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
-	DomainPrefix          string                 `protobuf:"bytes,7,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
-	MachineRuntime        string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"open.v1"`
+	Completed                      bool                   `protobuf:"varint,1,opt,name=completed,proto3" json:"completed,omitempty"`
+	AdminConfigured                bool                   `protobuf:"varint,2,opt,name=admin_configured,json=adminConfigured,proto3" json:"admin_configured,omitempty"`
+	CloudflareConfigured           bool                   `protobuf:"varint,3,opt,name=cloudflare_configured,json=cloudflareConfigured,proto3" json:"cloudflare_configured,omitempty"`
+	BaseDomain                     string                 `protobuf:"bytes,4,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
+	DockerProviderEnabled          bool                   `protobuf:"varint,5,opt,name=docker_provider_enabled,json=dockerProviderEnabled,proto3" json:"docker_provider_enabled,omitempty"`
+	CloudflareZoneId               string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
+	DomainPrefix                   string                 `protobuf:"bytes,7,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	MachineRuntime                 string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
+	InternetPublicExposureDisabled bool                   `protobuf:"varint,9,opt,name=internet_public_exposure_disabled,json=internetPublicExposureDisabled,proto3" json:"internet_public_exposure_disabled,omitempty"`
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *SetupStatus) Reset() {
@@ -119,6 +120,13 @@ func (x *SetupStatus) GetMachineRuntime() string {
 		return x.MachineRuntime
 	}
 	return ""
+}
+
+func (x *SetupStatus) GetInternetPublicExposureDisabled() bool {
+	if x != nil {
+		return x.InternetPublicExposureDisabled
+	}
+	return false
 }
 
 type GetSetupStatusRequest struct {
@@ -450,12 +458,13 @@ func (x *CompleteSetupResponse) GetStatus() *SetupStatus {
 }
 
 type UpdateDomainSettingsRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	BaseDomain     string                 `protobuf:"bytes,1,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
-	DomainPrefix   string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
-	MachineRuntime string                 `protobuf:"bytes,3,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"open.v1"`
+	BaseDomain                    string                 `protobuf:"bytes,1,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
+	DomainPrefix                  string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	MachineRuntime                string                 `protobuf:"bytes,3,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
+	DisableInternetPublicExposure bool                   `protobuf:"varint,4,opt,name=disable_internet_public_exposure,json=disableInternetPublicExposure,proto3" json:"disable_internet_public_exposure,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *UpdateDomainSettingsRequest) Reset() {
@@ -509,6 +518,13 @@ func (x *UpdateDomainSettingsRequest) GetMachineRuntime() string {
 	return ""
 }
 
+func (x *UpdateDomainSettingsRequest) GetDisableInternetPublicExposure() bool {
+	if x != nil {
+		return x.DisableInternetPublicExposure
+	}
+	return false
+}
+
 type UpdateDomainSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -557,7 +573,7 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xe0\x02\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xab\x03\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x123\n" +
@@ -567,7 +583,8 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x17docker_provider_enabled\x18\x05 \x01(\bR\x15dockerProviderEnabled\x12,\n" +
 	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12#\n" +
 	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\x12'\n" +
-	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\"\x17\n" +
+	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\x12I\n" +
+	"!internet_public_exposure_disabled\x18\t \x01(\bR\x1einternetPublicExposureDisabled\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\\\n" +
@@ -590,12 +607,13 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\x12'\n" +
 	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\x8c\x01\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xd5\x01\n" +
 	"\x1bUpdateDomainSettingsRequest\x12\x1f\n" +
 	"\vbase_domain\x18\x01 \x01(\tR\n" +
 	"baseDomain\x12#\n" +
 	"\rdomain_prefix\x18\x02 \x01(\tR\fdomainPrefix\x12'\n" +
-	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\"L\n" +
+	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\x12G\n" +
+	" disable_internet_public_exposure\x18\x04 \x01(\bR\x1ddisableInternetPublicExposure\"L\n" +
 	"\x1cUpdateDomainSettingsResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\x84\x03\n" +
 	"\fSetupService\x12Q\n" +

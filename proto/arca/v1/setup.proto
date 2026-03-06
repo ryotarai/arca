@@ -20,6 +20,7 @@ message SetupStatus {
   string cloudflare_zone_id = 6;
   string domain_prefix = 7;
   string machine_runtime = 8;
+  bool internet_public_exposure_disabled = 9;
 }
 
 message GetSetupStatusRequest {}
@@ -57,6 +58,7 @@ message UpdateDomainSettingsRequest {
   string base_domain = 1;
   string domain_prefix = 2;
   string machine_runtime = 3;
+  bool disable_internet_public_exposure = 4;
 }
 
 message UpdateDomainSettingsResponse {

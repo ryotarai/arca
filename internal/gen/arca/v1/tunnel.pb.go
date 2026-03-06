@@ -21,6 +21,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type EndpointVisibility int32
+
+const (
+	EndpointVisibility_ENDPOINT_VISIBILITY_UNSPECIFIED     EndpointVisibility = 0
+	EndpointVisibility_ENDPOINT_VISIBILITY_OWNER_ONLY      EndpointVisibility = 1
+	EndpointVisibility_ENDPOINT_VISIBILITY_SELECTED_USERS  EndpointVisibility = 2
+	EndpointVisibility_ENDPOINT_VISIBILITY_ALL_ARCA_USERS  EndpointVisibility = 3
+	EndpointVisibility_ENDPOINT_VISIBILITY_INTERNET_PUBLIC EndpointVisibility = 4
+)
+
+// Enum value maps for EndpointVisibility.
+var (
+	EndpointVisibility_name = map[int32]string{
+		0: "ENDPOINT_VISIBILITY_UNSPECIFIED",
+		1: "ENDPOINT_VISIBILITY_OWNER_ONLY",
+		2: "ENDPOINT_VISIBILITY_SELECTED_USERS",
+		3: "ENDPOINT_VISIBILITY_ALL_ARCA_USERS",
+		4: "ENDPOINT_VISIBILITY_INTERNET_PUBLIC",
+	}
+	EndpointVisibility_value = map[string]int32{
+		"ENDPOINT_VISIBILITY_UNSPECIFIED":     0,
+		"ENDPOINT_VISIBILITY_OWNER_ONLY":      1,
+		"ENDPOINT_VISIBILITY_SELECTED_USERS":  2,
+		"ENDPOINT_VISIBILITY_ALL_ARCA_USERS":  3,
+		"ENDPOINT_VISIBILITY_INTERNET_PUBLIC": 4,
+	}
+)
+
+func (x EndpointVisibility) Enum() *EndpointVisibility {
+	p := new(EndpointVisibility)
+	*p = x
+	return p
+}
+
+func (x EndpointVisibility) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (EndpointVisibility) Descriptor() protoreflect.EnumDescriptor {
+	return file_arca_v1_tunnel_proto_enumTypes[0].Descriptor()
+}
+
+func (EndpointVisibility) Type() protoreflect.EnumType {
+	return &file_arca_v1_tunnel_proto_enumTypes[0]
+}
+
+func (x EndpointVisibility) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use EndpointVisibility.Descriptor instead.
+func (EndpointVisibility) EnumDescriptor() ([]byte, []int) {
+	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{0}
+}
+
 type MachineTunnel struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
@@ -98,15 +153,17 @@ func (x *MachineTunnel) GetTunnelToken() string {
 }
 
 type MachineExposure struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	MachineId     string                 `protobuf:"bytes,2,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Hostname      string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	Service       string                 `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
-	Public        bool                   `protobuf:"varint,6,opt,name=public,proto3" json:"public,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	MachineId       string                 `protobuf:"bytes,2,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	Name            string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Hostname        string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Service         string                 `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
+	Public          bool                   `protobuf:"varint,6,opt,name=public,proto3" json:"public,omitempty"`
+	Visibility      EndpointVisibility     `protobuf:"varint,7,opt,name=visibility,proto3,enum=arca.v1.EndpointVisibility" json:"visibility,omitempty"`
+	SelectedUserIds []string               `protobuf:"bytes,8,rep,name=selected_user_ids,json=selectedUserIds,proto3" json:"selected_user_ids,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *MachineExposure) Reset() {
@@ -179,6 +236,20 @@ func (x *MachineExposure) GetPublic() bool {
 		return x.Public
 	}
 	return false
+}
+
+func (x *MachineExposure) GetVisibility() EndpointVisibility {
+	if x != nil {
+		return x.Visibility
+	}
+	return EndpointVisibility_ENDPOINT_VISIBILITY_UNSPECIFIED
+}
+
+func (x *MachineExposure) GetSelectedUserIds() []string {
+	if x != nil {
+		return x.SelectedUserIds
+	}
+	return nil
 }
 
 type CreateMachineTunnelRequest struct {
@@ -286,13 +357,15 @@ func (x *CreateMachineTunnelResponse) GetTunnel() *MachineTunnel {
 }
 
 type UpsertMachineExposureRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	ZoneId        string                 `protobuf:"bytes,2,opt,name=zone_id,json=zoneId,proto3" json:"zone_id,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Public        bool                   `protobuf:"varint,4,opt,name=public,proto3" json:"public,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	MachineId       string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	ZoneId          string                 `protobuf:"bytes,2,opt,name=zone_id,json=zoneId,proto3" json:"zone_id,omitempty"`
+	Name            string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Public          bool                   `protobuf:"varint,4,opt,name=public,proto3" json:"public,omitempty"`
+	Visibility      EndpointVisibility     `protobuf:"varint,5,opt,name=visibility,proto3,enum=arca.v1.EndpointVisibility" json:"visibility,omitempty"`
+	SelectedUserIds []string               `protobuf:"bytes,6,rep,name=selected_user_ids,json=selectedUserIds,proto3" json:"selected_user_ids,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpsertMachineExposureRequest) Reset() {
@@ -351,6 +424,20 @@ func (x *UpsertMachineExposureRequest) GetPublic() bool {
 		return x.Public
 	}
 	return false
+}
+
+func (x *UpsertMachineExposureRequest) GetVisibility() EndpointVisibility {
+	if x != nil {
+		return x.Visibility
+	}
+	return EndpointVisibility_ENDPOINT_VISIBILITY_UNSPECIFIED
+}
+
+func (x *UpsertMachineExposureRequest) GetSelectedUserIds() []string {
+	if x != nil {
+		return x.SelectedUserIds
+	}
+	return nil
 }
 
 type UpsertMachineExposureResponse struct {
@@ -586,7 +673,7 @@ const file_arca_v1_tunnel_proto_rawDesc = "" +
 	"\ttunnel_id\x18\x03 \x01(\tR\btunnelId\x12\x1f\n" +
 	"\vtunnel_name\x18\x04 \x01(\tR\n" +
 	"tunnelName\x12!\n" +
-	"\ftunnel_token\x18\x05 \x01(\tR\vtunnelToken\"\xa2\x01\n" +
+	"\ftunnel_token\x18\x05 \x01(\tR\vtunnelToken\"\x8b\x02\n" +
 	"\x0fMachineExposure\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -594,7 +681,11 @@ const file_arca_v1_tunnel_proto_rawDesc = "" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
 	"\bhostname\x18\x04 \x01(\tR\bhostname\x12\x18\n" +
 	"\aservice\x18\x05 \x01(\tR\aservice\x12\x16\n" +
-	"\x06public\x18\x06 \x01(\bR\x06public\"{\n" +
+	"\x06public\x18\x06 \x01(\bR\x06public\x12;\n" +
+	"\n" +
+	"visibility\x18\a \x01(\x0e2\x1b.arca.v1.EndpointVisibilityR\n" +
+	"visibility\x12*\n" +
+	"\x11selected_user_ids\x18\b \x03(\tR\x0fselectedUserIds\"{\n" +
 	"\x1aCreateMachineTunnelRequest\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x1d\n" +
@@ -603,13 +694,17 @@ const file_arca_v1_tunnel_proto_rawDesc = "" +
 	"\vtunnel_name\x18\x03 \x01(\tR\n" +
 	"tunnelName\"M\n" +
 	"\x1bCreateMachineTunnelResponse\x12.\n" +
-	"\x06tunnel\x18\x01 \x01(\v2\x16.arca.v1.MachineTunnelR\x06tunnel\"\x82\x01\n" +
+	"\x06tunnel\x18\x01 \x01(\v2\x16.arca.v1.MachineTunnelR\x06tunnel\"\xeb\x01\n" +
 	"\x1cUpsertMachineExposureRequest\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x17\n" +
 	"\azone_id\x18\x02 \x01(\tR\x06zoneId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x16\n" +
-	"\x06public\x18\x04 \x01(\bR\x06public\"U\n" +
+	"\x06public\x18\x04 \x01(\bR\x06public\x12;\n" +
+	"\n" +
+	"visibility\x18\x05 \x01(\x0e2\x1b.arca.v1.EndpointVisibilityR\n" +
+	"visibility\x12*\n" +
+	"\x11selected_user_ids\x18\x06 \x03(\tR\x0fselectedUserIds\"U\n" +
 	"\x1dUpsertMachineExposureResponse\x124\n" +
 	"\bexposure\x18\x01 \x01(\v2\x18.arca.v1.MachineExposureR\bexposure\"<\n" +
 	"\x1bListMachineExposuresRequest\x12\x1d\n" +
@@ -620,7 +715,13 @@ const file_arca_v1_tunnel_proto_rawDesc = "" +
 	"#GetMachineExposureByHostnameRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\"\\\n" +
 	"$GetMachineExposureByHostnameResponse\x124\n" +
-	"\bexposure\x18\x01 \x01(\v2\x18.arca.v1.MachineExposureR\bexposure2\xbb\x03\n" +
+	"\bexposure\x18\x01 \x01(\v2\x18.arca.v1.MachineExposureR\bexposure*\xd6\x01\n" +
+	"\x12EndpointVisibility\x12#\n" +
+	"\x1fENDPOINT_VISIBILITY_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eENDPOINT_VISIBILITY_OWNER_ONLY\x10\x01\x12&\n" +
+	"\"ENDPOINT_VISIBILITY_SELECTED_USERS\x10\x02\x12&\n" +
+	"\"ENDPOINT_VISIBILITY_ALL_ARCA_USERS\x10\x03\x12'\n" +
+	"#ENDPOINT_VISIBILITY_INTERNET_PUBLIC\x10\x042\xbb\x03\n" +
 	"\rTunnelService\x12`\n" +
 	"\x13CreateMachineTunnel\x12#.arca.v1.CreateMachineTunnelRequest\x1a$.arca.v1.CreateMachineTunnelResponse\x12f\n" +
 	"\x15UpsertMachineExposure\x12%.arca.v1.UpsertMachineExposureRequest\x1a&.arca.v1.UpsertMachineExposureResponse\x12c\n" +
@@ -640,37 +741,41 @@ func file_arca_v1_tunnel_proto_rawDescGZIP() []byte {
 	return file_arca_v1_tunnel_proto_rawDescData
 }
 
+var file_arca_v1_tunnel_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_arca_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_arca_v1_tunnel_proto_goTypes = []any{
-	(*MachineTunnel)(nil),                        // 0: arca.v1.MachineTunnel
-	(*MachineExposure)(nil),                      // 1: arca.v1.MachineExposure
-	(*CreateMachineTunnelRequest)(nil),           // 2: arca.v1.CreateMachineTunnelRequest
-	(*CreateMachineTunnelResponse)(nil),          // 3: arca.v1.CreateMachineTunnelResponse
-	(*UpsertMachineExposureRequest)(nil),         // 4: arca.v1.UpsertMachineExposureRequest
-	(*UpsertMachineExposureResponse)(nil),        // 5: arca.v1.UpsertMachineExposureResponse
-	(*ListMachineExposuresRequest)(nil),          // 6: arca.v1.ListMachineExposuresRequest
-	(*ListMachineExposuresResponse)(nil),         // 7: arca.v1.ListMachineExposuresResponse
-	(*GetMachineExposureByHostnameRequest)(nil),  // 8: arca.v1.GetMachineExposureByHostnameRequest
-	(*GetMachineExposureByHostnameResponse)(nil), // 9: arca.v1.GetMachineExposureByHostnameResponse
+	(EndpointVisibility)(0),                      // 0: arca.v1.EndpointVisibility
+	(*MachineTunnel)(nil),                        // 1: arca.v1.MachineTunnel
+	(*MachineExposure)(nil),                      // 2: arca.v1.MachineExposure
+	(*CreateMachineTunnelRequest)(nil),           // 3: arca.v1.CreateMachineTunnelRequest
+	(*CreateMachineTunnelResponse)(nil),          // 4: arca.v1.CreateMachineTunnelResponse
+	(*UpsertMachineExposureRequest)(nil),         // 5: arca.v1.UpsertMachineExposureRequest
+	(*UpsertMachineExposureResponse)(nil),        // 6: arca.v1.UpsertMachineExposureResponse
+	(*ListMachineExposuresRequest)(nil),          // 7: arca.v1.ListMachineExposuresRequest
+	(*ListMachineExposuresResponse)(nil),         // 8: arca.v1.ListMachineExposuresResponse
+	(*GetMachineExposureByHostnameRequest)(nil),  // 9: arca.v1.GetMachineExposureByHostnameRequest
+	(*GetMachineExposureByHostnameResponse)(nil), // 10: arca.v1.GetMachineExposureByHostnameResponse
 }
 var file_arca_v1_tunnel_proto_depIdxs = []int32{
-	0, // 0: arca.v1.CreateMachineTunnelResponse.tunnel:type_name -> arca.v1.MachineTunnel
-	1, // 1: arca.v1.UpsertMachineExposureResponse.exposure:type_name -> arca.v1.MachineExposure
-	1, // 2: arca.v1.ListMachineExposuresResponse.exposures:type_name -> arca.v1.MachineExposure
-	1, // 3: arca.v1.GetMachineExposureByHostnameResponse.exposure:type_name -> arca.v1.MachineExposure
-	2, // 4: arca.v1.TunnelService.CreateMachineTunnel:input_type -> arca.v1.CreateMachineTunnelRequest
-	4, // 5: arca.v1.TunnelService.UpsertMachineExposure:input_type -> arca.v1.UpsertMachineExposureRequest
-	6, // 6: arca.v1.TunnelService.ListMachineExposures:input_type -> arca.v1.ListMachineExposuresRequest
-	8, // 7: arca.v1.TunnelService.GetMachineExposureByHostname:input_type -> arca.v1.GetMachineExposureByHostnameRequest
-	3, // 8: arca.v1.TunnelService.CreateMachineTunnel:output_type -> arca.v1.CreateMachineTunnelResponse
-	5, // 9: arca.v1.TunnelService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
-	7, // 10: arca.v1.TunnelService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
-	9, // 11: arca.v1.TunnelService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: arca.v1.MachineExposure.visibility:type_name -> arca.v1.EndpointVisibility
+	1,  // 1: arca.v1.CreateMachineTunnelResponse.tunnel:type_name -> arca.v1.MachineTunnel
+	0,  // 2: arca.v1.UpsertMachineExposureRequest.visibility:type_name -> arca.v1.EndpointVisibility
+	2,  // 3: arca.v1.UpsertMachineExposureResponse.exposure:type_name -> arca.v1.MachineExposure
+	2,  // 4: arca.v1.ListMachineExposuresResponse.exposures:type_name -> arca.v1.MachineExposure
+	2,  // 5: arca.v1.GetMachineExposureByHostnameResponse.exposure:type_name -> arca.v1.MachineExposure
+	3,  // 6: arca.v1.TunnelService.CreateMachineTunnel:input_type -> arca.v1.CreateMachineTunnelRequest
+	5,  // 7: arca.v1.TunnelService.UpsertMachineExposure:input_type -> arca.v1.UpsertMachineExposureRequest
+	7,  // 8: arca.v1.TunnelService.ListMachineExposures:input_type -> arca.v1.ListMachineExposuresRequest
+	9,  // 9: arca.v1.TunnelService.GetMachineExposureByHostname:input_type -> arca.v1.GetMachineExposureByHostnameRequest
+	4,  // 10: arca.v1.TunnelService.CreateMachineTunnel:output_type -> arca.v1.CreateMachineTunnelResponse
+	6,  // 11: arca.v1.TunnelService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
+	8,  // 12: arca.v1.TunnelService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
+	10, // 13: arca.v1.TunnelService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_tunnel_proto_init() }
@@ -683,13 +788,14 @@ func file_arca_v1_tunnel_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_tunnel_proto_rawDesc), len(file_arca_v1_tunnel_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_arca_v1_tunnel_proto_goTypes,
 		DependencyIndexes: file_arca_v1_tunnel_proto_depIdxs,
+		EnumInfos:         file_arca_v1_tunnel_proto_enumTypes,
 		MessageInfos:      file_arca_v1_tunnel_proto_msgTypes,
 	}.Build()
 	File_arca_v1_tunnel_proto = out.File

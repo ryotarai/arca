@@ -18,8 +18,14 @@ import {
   StopMachineRequestSchema,
   UpdateMachineRequestSchema,
 } from '@/gen/arca/v1/machine_pb'
+import {
+  EndpointVisibility,
+  ListMachineExposuresRequestSchema,
+  TunnelService,
+  UpsertMachineExposureRequestSchema,
+} from '@/gen/arca/v1/tunnel_pb'
 import { ApiError, parseApiErrorPayload } from '@/lib/errors'
-import type { Machine, MachineEvent, SetupStatus, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineExposure, SetupStatus, User } from '@/lib/types'
 
 const connectTransport = createConnectTransport({
   baseUrl: window.location.origin,
@@ -28,6 +34,7 @@ const connectTransport = createConnectTransport({
 
 const authClient = createClient(AuthService, connectTransport)
 const machineClient = createClient(MachineService, connectTransport)
+const tunnelClient = createClient(TunnelService, connectTransport)
 
 type PollingOptions = {
   timeoutMs?: number
@@ -227,6 +234,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         baseDomain?: string
         domainPrefix?: string
         machineRuntime?: string
+        internetPublicExposureDisabled?: boolean
       }
       isConfigured?: boolean
       configured?: boolean
@@ -237,6 +245,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       baseDomain?: string
       domainPrefix?: string
       machineRuntime?: string
+      internetPublicExposureDisabled?: boolean
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -250,11 +259,29 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const domainPrefix = response.status?.domainPrefix ?? response.domainPrefix ?? ''
     const machineRuntimeRaw = (response.status?.machineRuntime ?? response.machineRuntime ?? 'libvirt').toLowerCase()
     const machineRuntime = machineRuntimeRaw === 'libvirt' ? 'libvirt' : 'libvirt'
+    const internetPublicExposureDisabled =
+      response.status?.internetPublicExposureDisabled ?? response.internetPublicExposureDisabled ?? false
 
-    return { isConfigured, hasAdmin, cloudflareZoneID, baseDomain, domainPrefix, machineRuntime }
+    return {
+      isConfigured,
+      hasAdmin,
+      cloudflareZoneID,
+      baseDomain,
+      domainPrefix,
+      machineRuntime,
+      internetPublicExposureDisabled,
+    }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
-      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '', baseDomain: '', domainPrefix: '', machineRuntime: 'libvirt' }
+      return {
+        isConfigured: true,
+        hasAdmin: true,
+        cloudflareZoneID: '',
+        baseDomain: '',
+        domainPrefix: '',
+        machineRuntime: 'libvirt',
+        internetPublicExposureDisabled: false,
+      }
     }
     throw error
   }
@@ -325,6 +352,7 @@ export async function updateDomainSettings(
   baseDomain: string,
   domainPrefix: string,
   machineRuntime: 'libvirt',
+  disableInternetPublicExposure: boolean,
 ): Promise<void> {
   const response = await callConnectJSONCandidates<{
     status?: {
@@ -335,8 +363,36 @@ export async function updateDomainSettings(
     baseDomain,
     domainPrefix,
     machineRuntime,
+    disableInternetPublicExposure,
   })
   if ((response.status?.baseDomain ?? '').trim() === '') {
     throw new Error(response.message ?? 'failed to update domain settings')
   }
+}
+
+export async function listMachineExposures(machineID: string): Promise<MachineExposure[]> {
+  const response = await tunnelClient.listMachineExposures(
+    create(ListMachineExposuresRequestSchema, { machineId: machineID }),
+  )
+  return response.exposures
+}
+
+export async function updateMachineExposureVisibility(
+  machineID: string,
+  name: string,
+  visibility: EndpointVisibility,
+  selectedUserIDs: string[],
+): Promise<MachineExposure> {
+  const response = await tunnelClient.upsertMachineExposure(
+    create(UpsertMachineExposureRequestSchema, {
+      machineId: machineID,
+      name,
+      visibility,
+      selectedUserIds: selectedUserIDs,
+    }),
+  )
+  if (response.exposure == null) {
+    throw new Error('request failed')
+  }
+  return response.exposure
 }

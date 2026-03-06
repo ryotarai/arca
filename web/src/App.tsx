@@ -19,6 +19,7 @@ export function App() {
     baseDomain: '',
     domainPrefix: '',
     machineRuntime: 'libvirt',
+    internetPublicExposureDisabled: false,
   })
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export function App() {
                   baseDomain,
                   domainPrefix,
                   machineRuntime,
+                  internetPublicExposureDisabled: false,
                 })
               }
             />

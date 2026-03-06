@@ -343,7 +343,7 @@ WHERE machine_id = sqlc.arg(machine_id)
 LIMIT 1;
 
 -- name: UpsertMachineExposure :exec
-INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, created_at, updated_at)
+INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at)
 VALUES (
   sqlc.arg(id),
   sqlc.arg(machine_id),
@@ -351,6 +351,7 @@ VALUES (
   sqlc.arg(hostname),
   sqlc.arg(service),
   sqlc.arg(is_public),
+  sqlc.arg(visibility),
   sqlc.arg(created_at),
   sqlc.arg(updated_at)
 )
@@ -358,23 +359,39 @@ ON CONFLICT (machine_id, name) DO UPDATE
 SET hostname = excluded.hostname,
     service = excluded.service,
     is_public = excluded.is_public,
+    visibility = excluded.visibility,
     updated_at = excluded.updated_at;
 
 -- name: ListMachineExposuresByMachineID :many
-SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = sqlc.arg(machine_id)
 ORDER BY created_at ASC;
 
 -- name: GetMachineExposureByHostname :one
-SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
 FROM machine_exposures
 WHERE hostname = sqlc.arg(hostname)
 LIMIT 1;
 
 -- name: GetMachineExposureByMachineIDAndName :one
-SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = sqlc.arg(machine_id)
   AND name = sqlc.arg(name)
 LIMIT 1;
+
+-- name: DeleteMachineExposureACLUsersByExposureID :exec
+DELETE FROM machine_exposure_acl_users
+WHERE exposure_id = sqlc.arg(exposure_id);
+
+-- name: InsertMachineExposureACLUser :exec
+INSERT INTO machine_exposure_acl_users (exposure_id, user_id, created_at)
+VALUES (sqlc.arg(exposure_id), sqlc.arg(user_id), sqlc.arg(created_at))
+ON CONFLICT (exposure_id, user_id) DO NOTHING;
+
+-- name: ListMachineExposureACLUsersByExposureID :many
+SELECT user_id
+FROM machine_exposure_acl_users
+WHERE exposure_id = sqlc.arg(exposure_id)
+ORDER BY user_id ASC;

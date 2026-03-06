@@ -36,11 +36,12 @@ func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Req
 	if shouldSkipSetup() {
 		return connect.NewResponse(&arcav1.GetSetupStatusResponse{
 			Status: &arcav1.SetupStatus{
-				Completed:             true,
-				AdminConfigured:       true,
-				CloudflareConfigured:  true,
-				DockerProviderEnabled: false,
-				MachineRuntime:        db.MachineRuntimeLibvirt,
+				Completed:                      true,
+				AdminConfigured:                true,
+				CloudflareConfigured:           true,
+				DockerProviderEnabled:          false,
+				MachineRuntime:                 db.MachineRuntimeLibvirt,
+				InternetPublicExposureDisabled: false,
 			},
 		}), nil
 	}
@@ -184,7 +185,8 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	if s.store == nil || s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("setup dependencies unavailable"))
 	}
-	if _, err := s.authenticate(ctx, req.Header()); err != nil {
+	userID, err := s.authenticate(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -195,6 +197,9 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	}
 	if !current.Completed {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("setup is not completed yet"))
+	}
+	if strings.TrimSpace(current.AdminUserID) != "" && userID != current.AdminUserID {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
 	}
 
 	baseDomain, err := validateBaseDomain(req.Msg.GetBaseDomain())
@@ -212,6 +217,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		current.MachineRuntime = normalizeMachineRuntime(req.Msg.GetMachineRuntime())
 	}
 	current.DockerProviderEnabled = false
+	current.InternetPublicExposureDisabled = req.Msg.GetDisableInternetPublicExposure()
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
@@ -228,14 +234,15 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 
 func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 	return &arcav1.SetupStatus{
-		Completed:             state.Completed,
-		AdminConfigured:       strings.TrimSpace(state.AdminUserID) != "",
-		CloudflareConfigured:  strings.TrimSpace(state.CloudflareAPIToken) != "",
-		BaseDomain:            state.BaseDomain,
-		DomainPrefix:          state.DomainPrefix,
-		DockerProviderEnabled: state.DockerProviderEnabled,
-		CloudflareZoneId:      state.CloudflareZoneID,
-		MachineRuntime:        normalizeMachineRuntime(state.MachineRuntime),
+		Completed:                      state.Completed,
+		AdminConfigured:                strings.TrimSpace(state.AdminUserID) != "",
+		CloudflareConfigured:           strings.TrimSpace(state.CloudflareAPIToken) != "",
+		BaseDomain:                     state.BaseDomain,
+		DomainPrefix:                   state.DomainPrefix,
+		DockerProviderEnabled:          state.DockerProviderEnabled,
+		CloudflareZoneId:               state.CloudflareZoneID,
+		MachineRuntime:                 normalizeMachineRuntime(state.MachineRuntime),
+		InternetPublicExposureDisabled: state.InternetPublicExposureDisabled,
 	}
 }
 
