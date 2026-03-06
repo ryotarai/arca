@@ -47,7 +47,7 @@ export function HomePage({ user, onLogout }: HomePageProps) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_5%,_rgba(56,189,248,0.14),_transparent_30%),radial-gradient(circle_at_90%_10%,_rgba(148,163,184,0.18),_transparent_42%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_78%)]" />
 
-      <SidebarProvider defaultOpen>
+      <SidebarProvider defaultOpen className="dark">
         <Sidebar className="z-20 border-r border-white/10" collapsible="icon">
           <SidebarHeader className="p-4">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
