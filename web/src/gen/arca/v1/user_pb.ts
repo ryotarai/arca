@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/user.proto.
  */
 export const file_arca_v1_user: GenFile = /*@__PURE__*/
-  fileDesc("ChJhcmNhL3YxL3VzZXIucHJvdG8SB2FyY2EudjEidAoLTWFuYWdlZFVzZXISCgoCaWQYASABKAkSDQoFZW1haWwYAiABKAkSFgoOc2V0dXBfcmVxdWlyZWQYAyABKAgSHgoWc2V0dXBfdG9rZW5fZXhwaXJlc19hdBgEIAEoAxISCgpjcmVhdGVkX2F0GAUgASgDIhIKEExpc3RVc2Vyc1JlcXVlc3QiOAoRTGlzdFVzZXJzUmVzcG9uc2USIwoFdXNlcnMYASADKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyIiIKEUNyZWF0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIm0KEkNyZWF0ZVVzZXJSZXNwb25zZRIiCgR1c2VyGAEgASgLMhQuYXJjYS52MS5NYW5hZ2VkVXNlchITCgtzZXR1cF90b2tlbhgCIAEoCRIeChZzZXR1cF90b2tlbl9leHBpcmVzX2F0GAMgASgDIi0KGklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkidgobSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEiIKBHVzZXIYASABKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyEhMKC3NldHVwX3Rva2VuGAIgASgJEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMiQQoYQ29tcGxldGVVc2VyU2V0dXBSZXF1ZXN0EhMKC3NldHVwX3Rva2VuGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjgKGUNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLmFyY2EudjEuVXNlcjLWAgoLVXNlclNlcnZpY2USQgoJTGlzdFVzZXJzEhkuYXJjYS52MS5MaXN0VXNlcnNSZXF1ZXN0GhouYXJjYS52MS5MaXN0VXNlcnNSZXNwb25zZRJFCgpDcmVhdGVVc2VyEhouYXJjYS52MS5DcmVhdGVVc2VyUmVxdWVzdBobLmFyY2EudjEuQ3JlYXRlVXNlclJlc3BvbnNlEmAKE0lzc3VlVXNlclNldHVwVG9rZW4SIy5hcmNhLnYxLklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0GiQuYXJjYS52MS5Jc3N1ZVVzZXJTZXR1cFRva2VuUmVzcG9uc2USWgoRQ29tcGxldGVVc2VyU2V0dXASIS5hcmNhLnYxLkNvbXBsZXRlVXNlclNldHVwUmVxdWVzdBoiLmFyY2EudjEuQ29tcGxldGVVc2VyU2V0dXBSZXNwb25zZUKLAQoLY29tLmFyY2EudjFCCVVzZXJQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw", [file_arca_v1_auth]);
+  fileDesc("ChJhcmNhL3YxL3VzZXIucHJvdG8SB2FyY2EudjEiggEKC01hbmFnZWRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJEhYKDnNldHVwX3JlcXVpcmVkGAMgASgIEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYBCABKAMSEgoKY3JlYXRlZF9hdBgFIAEoAxIMCgRyb2xlGAYgASgJIhIKEExpc3RVc2Vyc1JlcXVlc3QiOAoRTGlzdFVzZXJzUmVzcG9uc2USIwoFdXNlcnMYASADKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyIiIKEUNyZWF0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIm0KEkNyZWF0ZVVzZXJSZXNwb25zZRIiCgR1c2VyGAEgASgLMhQuYXJjYS52MS5NYW5hZ2VkVXNlchITCgtzZXR1cF90b2tlbhgCIAEoCRIeChZzZXR1cF90b2tlbl9leHBpcmVzX2F0GAMgASgDIi0KGklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkidgobSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEiIKBHVzZXIYASABKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyEhMKC3NldHVwX3Rva2VuGAIgASgJEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMiQQoYQ29tcGxldGVVc2VyU2V0dXBSZXF1ZXN0EhMKC3NldHVwX3Rva2VuGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjgKGUNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLmFyY2EudjEuVXNlciI2ChVVcGRhdGVVc2VyUm9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjwKFlVwZGF0ZVVzZXJSb2xlUmVzcG9uc2USIgoEdXNlchgBIAEoCzIULmFyY2EudjEuTWFuYWdlZFVzZXIyqQMKC1VzZXJTZXJ2aWNlEkIKCUxpc3RVc2VycxIZLmFyY2EudjEuTGlzdFVzZXJzUmVxdWVzdBoaLmFyY2EudjEuTGlzdFVzZXJzUmVzcG9uc2USRQoKQ3JlYXRlVXNlchIaLmFyY2EudjEuQ3JlYXRlVXNlclJlcXVlc3QaGy5hcmNhLnYxLkNyZWF0ZVVzZXJSZXNwb25zZRJgChNJc3N1ZVVzZXJTZXR1cFRva2VuEiMuYXJjYS52MS5Jc3N1ZVVzZXJTZXR1cFRva2VuUmVxdWVzdBokLmFyY2EudjEuSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEloKEUNvbXBsZXRlVXNlclNldHVwEiEuYXJjYS52MS5Db21wbGV0ZVVzZXJTZXR1cFJlcXVlc3QaIi5hcmNhLnYxLkNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USUQoOVXBkYXRlVXNlclJvbGUSHi5hcmNhLnYxLlVwZGF0ZVVzZXJSb2xlUmVxdWVzdBofLmFyY2EudjEuVXBkYXRlVXNlclJvbGVSZXNwb25zZUKLAQoLY29tLmFyY2EudjFCCVVzZXJQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw", [file_arca_v1_auth]);
 
 /**
  * @generated from message arca.v1.ManagedUser
@@ -42,6 +42,11 @@ export type ManagedUser = Message<"arca.v1.ManagedUser"> & {
    * @generated from field: int64 created_at = 5;
    */
   createdAt: bigint;
+
+  /**
+   * @generated from field: string role = 6;
+   */
+  role: string;
 };
 
 /**
@@ -209,6 +214,45 @@ export const CompleteUserSetupResponseSchema: GenMessage<CompleteUserSetupRespon
   messageDesc(file_arca_v1_user, 8);
 
 /**
+ * @generated from message arca.v1.UpdateUserRoleRequest
+ */
+export type UpdateUserRoleRequest = Message<"arca.v1.UpdateUserRoleRequest"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string role = 2;
+   */
+  role: string;
+};
+
+/**
+ * Describes the message arca.v1.UpdateUserRoleRequest.
+ * Use `create(UpdateUserRoleRequestSchema)` to create a new message.
+ */
+export const UpdateUserRoleRequestSchema: GenMessage<UpdateUserRoleRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_user, 9);
+
+/**
+ * @generated from message arca.v1.UpdateUserRoleResponse
+ */
+export type UpdateUserRoleResponse = Message<"arca.v1.UpdateUserRoleResponse"> & {
+  /**
+   * @generated from field: arca.v1.ManagedUser user = 1;
+   */
+  user?: ManagedUser;
+};
+
+/**
+ * Describes the message arca.v1.UpdateUserRoleResponse.
+ * Use `create(UpdateUserRoleResponseSchema)` to create a new message.
+ */
+export const UpdateUserRoleResponseSchema: GenMessage<UpdateUserRoleResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_user, 10);
+
+/**
  * @generated from service arca.v1.UserService
  */
 export const UserService: GenService<{
@@ -243,6 +287,14 @@ export const UserService: GenService<{
     methodKind: "unary";
     input: typeof CompleteUserSetupRequestSchema;
     output: typeof CompleteUserSetupResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.UserService.UpdateUserRole
+   */
+  updateUserRole: {
+    methodKind: "unary";
+    input: typeof UpdateUserRoleRequestSchema;
+    output: typeof UpdateUserRoleResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_arca_v1_user, 0);

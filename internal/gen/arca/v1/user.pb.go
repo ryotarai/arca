@@ -28,6 +28,7 @@ type ManagedUser struct {
 	SetupRequired       bool                   `protobuf:"varint,3,opt,name=setup_required,json=setupRequired,proto3" json:"setup_required,omitempty"`
 	SetupTokenExpiresAt int64                  `protobuf:"varint,4,opt,name=setup_token_expires_at,json=setupTokenExpiresAt,proto3" json:"setup_token_expires_at,omitempty"`
 	CreatedAt           int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Role                string                 `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -95,6 +96,13 @@ func (x *ManagedUser) GetCreatedAt() int64 {
 		return x.CreatedAt
 	}
 	return 0
+}
+
+func (x *ManagedUser) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
 }
 
 type ListUsersRequest struct {
@@ -481,18 +489,115 @@ func (x *CompleteUserSetupResponse) GetUser() *User {
 	return nil
 }
 
+type UpdateUserRoleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserRoleRequest) Reset() {
+	*x = UpdateUserRoleRequest{}
+	mi := &file_arca_v1_user_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserRoleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserRoleRequest) ProtoMessage() {}
+
+func (x *UpdateUserRoleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserRoleRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserRoleRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UpdateUserRoleRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdateUserRoleRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+type UpdateUserRoleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *ManagedUser           `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserRoleResponse) Reset() {
+	*x = UpdateUserRoleResponse{}
+	mi := &file_arca_v1_user_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserRoleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserRoleResponse) ProtoMessage() {}
+
+func (x *UpdateUserRoleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserRoleResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserRoleResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UpdateUserRoleResponse) GetUser() *ManagedUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
 var File_arca_v1_user_proto protoreflect.FileDescriptor
 
 const file_arca_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12arca/v1/user.proto\x12\aarca.v1\x1a\x12arca/v1/auth.proto\"\xae\x01\n" +
+	"\x12arca/v1/user.proto\x12\aarca.v1\x1a\x12arca/v1/auth.proto\"\xc2\x01\n" +
 	"\vManagedUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12%\n" +
 	"\x0esetup_required\x18\x03 \x01(\bR\rsetupRequired\x123\n" +
 	"\x16setup_token_expires_at\x18\x04 \x01(\x03R\x13setupTokenExpiresAt\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\x03R\tcreatedAt\"\x12\n" +
+	"created_at\x18\x05 \x01(\x03R\tcreatedAt\x12\x12\n" +
+	"\x04role\x18\x06 \x01(\tR\x04role\"\x12\n" +
 	"\x10ListUsersRequest\"?\n" +
 	"\x11ListUsersResponse\x12*\n" +
 	"\x05users\x18\x01 \x03(\v2\x14.arca.v1.ManagedUserR\x05users\")\n" +
@@ -515,13 +620,19 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"setupToken\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\">\n" +
 	"\x19CompleteUserSetupResponse\x12!\n" +
-	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user2\xd6\x02\n" +
+	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user\"D\n" +
+	"\x15UpdateUserRoleRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
+	"\x04role\x18\x02 \x01(\tR\x04role\"B\n" +
+	"\x16UpdateUserRoleResponse\x12(\n" +
+	"\x04user\x18\x01 \x01(\v2\x14.arca.v1.ManagedUserR\x04user2\xa9\x03\n" +
 	"\vUserService\x12B\n" +
 	"\tListUsers\x12\x19.arca.v1.ListUsersRequest\x1a\x1a.arca.v1.ListUsersResponse\x12E\n" +
 	"\n" +
 	"CreateUser\x12\x1a.arca.v1.CreateUserRequest\x1a\x1b.arca.v1.CreateUserResponse\x12`\n" +
 	"\x13IssueUserSetupToken\x12#.arca.v1.IssueUserSetupTokenRequest\x1a$.arca.v1.IssueUserSetupTokenResponse\x12Z\n" +
-	"\x11CompleteUserSetup\x12!.arca.v1.CompleteUserSetupRequest\x1a\".arca.v1.CompleteUserSetupResponseB\x8b\x01\n" +
+	"\x11CompleteUserSetup\x12!.arca.v1.CompleteUserSetupRequest\x1a\".arca.v1.CompleteUserSetupResponse\x12Q\n" +
+	"\x0eUpdateUserRole\x12\x1e.arca.v1.UpdateUserRoleRequest\x1a\x1f.arca.v1.UpdateUserRoleResponseB\x8b\x01\n" +
 	"\vcom.arca.v1B\tUserProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -536,7 +647,7 @@ func file_arca_v1_user_proto_rawDescGZIP() []byte {
 	return file_arca_v1_user_proto_rawDescData
 }
 
-var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_arca_v1_user_proto_goTypes = []any{
 	(*ManagedUser)(nil),                 // 0: arca.v1.ManagedUser
 	(*ListUsersRequest)(nil),            // 1: arca.v1.ListUsersRequest
@@ -547,26 +658,31 @@ var file_arca_v1_user_proto_goTypes = []any{
 	(*IssueUserSetupTokenResponse)(nil), // 6: arca.v1.IssueUserSetupTokenResponse
 	(*CompleteUserSetupRequest)(nil),    // 7: arca.v1.CompleteUserSetupRequest
 	(*CompleteUserSetupResponse)(nil),   // 8: arca.v1.CompleteUserSetupResponse
-	(*User)(nil),                        // 9: arca.v1.User
+	(*UpdateUserRoleRequest)(nil),       // 9: arca.v1.UpdateUserRoleRequest
+	(*UpdateUserRoleResponse)(nil),      // 10: arca.v1.UpdateUserRoleResponse
+	(*User)(nil),                        // 11: arca.v1.User
 }
 var file_arca_v1_user_proto_depIdxs = []int32{
-	0, // 0: arca.v1.ListUsersResponse.users:type_name -> arca.v1.ManagedUser
-	0, // 1: arca.v1.CreateUserResponse.user:type_name -> arca.v1.ManagedUser
-	0, // 2: arca.v1.IssueUserSetupTokenResponse.user:type_name -> arca.v1.ManagedUser
-	9, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
-	1, // 4: arca.v1.UserService.ListUsers:input_type -> arca.v1.ListUsersRequest
-	3, // 5: arca.v1.UserService.CreateUser:input_type -> arca.v1.CreateUserRequest
-	5, // 6: arca.v1.UserService.IssueUserSetupToken:input_type -> arca.v1.IssueUserSetupTokenRequest
-	7, // 7: arca.v1.UserService.CompleteUserSetup:input_type -> arca.v1.CompleteUserSetupRequest
-	2, // 8: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
-	4, // 9: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
-	6, // 10: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
-	8, // 11: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: arca.v1.ListUsersResponse.users:type_name -> arca.v1.ManagedUser
+	0,  // 1: arca.v1.CreateUserResponse.user:type_name -> arca.v1.ManagedUser
+	0,  // 2: arca.v1.IssueUserSetupTokenResponse.user:type_name -> arca.v1.ManagedUser
+	11, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
+	0,  // 4: arca.v1.UpdateUserRoleResponse.user:type_name -> arca.v1.ManagedUser
+	1,  // 5: arca.v1.UserService.ListUsers:input_type -> arca.v1.ListUsersRequest
+	3,  // 6: arca.v1.UserService.CreateUser:input_type -> arca.v1.CreateUserRequest
+	5,  // 7: arca.v1.UserService.IssueUserSetupToken:input_type -> arca.v1.IssueUserSetupTokenRequest
+	7,  // 8: arca.v1.UserService.CompleteUserSetup:input_type -> arca.v1.CompleteUserSetupRequest
+	9,  // 9: arca.v1.UserService.UpdateUserRole:input_type -> arca.v1.UpdateUserRoleRequest
+	2,  // 10: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
+	4,  // 11: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
+	6,  // 12: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
+	8,  // 13: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
+	10, // 14: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
+	10, // [10:15] is the sub-list for method output_type
+	5,  // [5:10] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_user_proto_init() }
@@ -581,7 +697,7 @@ func file_arca_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_user_proto_rawDesc), len(file_arca_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

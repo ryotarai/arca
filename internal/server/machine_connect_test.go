@@ -60,8 +60,8 @@ func TestListMachinesPropagatesUpdateRequired(t *testing.T) {
 	t.Setenv("ARCA_SETUP_VERSION", "v2.0.0")
 
 	auth := &authenticatorStub{
-		authenticateFunc: func(ctx context.Context, sessionToken string) (string, string, error) {
-			return "user-1", "admin@example.com", nil
+		authenticateFunc: func(ctx context.Context, sessionToken string) (string, string, string, error) {
+			return "user-1", "admin@example.com", "user", nil
 		},
 	}
 	store := &machineStoreStub{
@@ -112,8 +112,8 @@ func TestGetMachinePropagatesUpdateRequired(t *testing.T) {
 	t.Setenv("ARCA_SETUP_VERSION", "v3.0.0")
 
 	auth := &authenticatorStub{
-		authenticateFunc: func(ctx context.Context, sessionToken string) (string, string, error) {
-			return "user-1", "admin@example.com", nil
+		authenticateFunc: func(ctx context.Context, sessionToken string) (string, string, string, error) {
+			return "user-1", "admin@example.com", "user", nil
 		},
 	}
 	store := &machineStoreStub{
@@ -150,14 +150,14 @@ func TestGetMachinePropagatesUpdateRequired(t *testing.T) {
 }
 
 type authenticatorStub struct {
-	authenticateFunc func(context.Context, string) (string, string, error)
+	authenticateFunc func(context.Context, string) (string, string, string, error)
 }
 
 func (s *authenticatorStub) Register(context.Context, string, string) (string, string, error) {
 	panic("Register should not be called in this test")
 }
 
-func (s *authenticatorStub) Login(context.Context, string, string) (string, string, string, time.Time, error) {
+func (s *authenticatorStub) Login(context.Context, string, string) (string, string, string, string, time.Time, error) {
 	panic("Login should not be called in this test")
 }
 
@@ -181,11 +181,11 @@ func (s *authenticatorStub) StartOIDCLogin(context.Context, string, string) (str
 	panic("StartOIDCLogin should not be called in this test")
 }
 
-func (s *authenticatorStub) LoginWithOIDCCode(context.Context, string, string) (string, string, string, time.Time, error) {
+func (s *authenticatorStub) LoginWithOIDCCode(context.Context, string, string) (string, string, string, string, time.Time, error) {
 	panic("LoginWithOIDCCode should not be called in this test")
 }
 
-func (s *authenticatorStub) Authenticate(ctx context.Context, sessionToken string) (string, string, error) {
+func (s *authenticatorStub) Authenticate(ctx context.Context, sessionToken string) (string, string, string, error) {
 	if s.authenticateFunc == nil {
 		panic("Authenticate should not be called in this test")
 	}

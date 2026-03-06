@@ -163,6 +163,11 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		}
 	}
 
+	if _, err := s.store.UpdateUserRoleByID(ctx, adminUserID, db.UserRoleAdmin); err != nil {
+		log.Printf("set admin role failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to set admin role"))
+	}
+
 	state := db.SetupState{
 		Completed:          true,
 		AdminUserID:        adminUserID,
@@ -198,8 +203,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	if s.store == nil || s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("setup dependencies unavailable"))
 	}
-	userID, err := s.authenticate(ctx, req.Header())
-	if err != nil {
+	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
 		return nil, err
 	}
 
@@ -210,9 +214,6 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	}
 	if !current.Completed {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("setup is not completed yet"))
-	}
-	if strings.TrimSpace(current.AdminUserID) != "" && userID != current.AdminUserID {
-		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
 	}
 
 	baseDomain, err := validateBaseDomain(req.Msg.GetBaseDomain())
@@ -363,9 +364,25 @@ func (s *setupConnectService) authenticate(ctx context.Context, header http.Head
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
 
-	userID, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+	userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
 	if err != nil {
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	}
+	return userID, nil
+}
+
+func (s *setupConnectService) authenticateAdmin(ctx context.Context, header http.Header) (string, error) {
+	sessionToken, err := sessionTokenFromHeader(header)
+	if err != nil || sessionToken == "" {
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	}
+
+	userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
+	if err != nil {
+		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	}
+	if role != db.UserRoleAdmin {
+		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
 	}
 	return userID, nil
 }

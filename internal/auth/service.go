@@ -74,37 +74,37 @@ func (s *Service) Register(ctx context.Context, email, password string) (string,
 	return userID, email, nil
 }
 
-func (s *Service) Login(ctx context.Context, email, password string) (string, string, string, time.Time, error) {
+func (s *Service) Login(ctx context.Context, email, password string) (string, string, string, string, time.Time, error) {
 	email = normalizeEmail(email)
 	if email == "" || password == "" {
-		return "", "", "", time.Time{}, ErrInvalidCredentials
+		return "", "", "", "", time.Time{}, ErrInvalidCredentials
 	}
 
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", "", "", time.Time{}, ErrInvalidCredentials
+			return "", "", "", "", time.Time{}, ErrInvalidCredentials
 		}
-		return "", "", "", time.Time{}, err
+		return "", "", "", "", time.Time{}, err
 	}
 	if user.PasswordSetupRequired {
-		return "", "", "", time.Time{}, ErrInvalidCredentials
+		return "", "", "", "", time.Time{}, ErrInvalidCredentials
 	}
 
 	ok, err := verifyPassword(user.PasswordHash, password)
 	if err != nil {
-		return "", "", "", time.Time{}, err
+		return "", "", "", "", time.Time{}, err
 	}
 	if !ok {
-		return "", "", "", time.Time{}, ErrInvalidCredentials
+		return "", "", "", "", time.Time{}, ErrInvalidCredentials
 	}
 
 	sessionToken, expiresAt, err := s.createSession(ctx, user.ID)
 	if err != nil {
-		return "", "", "", time.Time{}, err
+		return "", "", "", "", time.Time{}, err
 	}
 
-	return user.ID, user.Email, sessionToken, expiresAt, nil
+	return user.ID, user.Email, user.Role, sessionToken, expiresAt, nil
 }
 
 func (s *Service) ListUsers(ctx context.Context) ([]db.ManagedUser, error) {
@@ -198,13 +198,13 @@ func (s *Service) StartOIDCLogin(ctx context.Context, redirectURI, state string)
 	return oauthConfig.AuthCodeURL(state), nil
 }
 
-func (s *Service) LoginWithOIDCCode(ctx context.Context, code, redirectURI string) (string, string, string, time.Time, error) {
+func (s *Service) LoginWithOIDCCode(ctx context.Context, code, redirectURI string) (string, string, string, string, time.Time, error) {
 	config, err := s.loadOIDCConfig(ctx)
 	if err != nil {
-		return "", "", "", time.Time{}, err
+		return "", "", "", "", time.Time{}, err
 	}
 	if strings.TrimSpace(code) == "" {
-		return "", "", "", time.Time{}, ErrOIDCRejected
+		return "", "", "", "", time.Time{}, ErrOIDCRejected
 	}
 	oauthConfig := oauth2.Config{
 		ClientID:     config.ClientID,
@@ -218,57 +218,57 @@ func (s *Service) LoginWithOIDCCode(ctx context.Context, code, redirectURI strin
 	}
 	oauthToken, err := oauthConfig.Exchange(ctx, strings.TrimSpace(code))
 	if err != nil {
-		return "", "", "", time.Time{}, ErrOIDCRejected
+		return "", "", "", "", time.Time{}, ErrOIDCRejected
 	}
 	rawIDToken, _ := oauthToken.Extra("id_token").(string)
 	if strings.TrimSpace(rawIDToken) == "" {
-		return "", "", "", time.Time{}, ErrOIDCRejected
+		return "", "", "", "", time.Time{}, ErrOIDCRejected
 	}
 	verifier := oidc.NewVerifier(strings.TrimSpace(config.IssuerURL), oidc.NewRemoteKeySet(ctx, strings.TrimSpace(config.JWKSURL)), &oidc.Config{
 		ClientID: config.ClientID,
 	})
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return "", "", "", time.Time{}, ErrOIDCRejected
+		return "", "", "", "", time.Time{}, ErrOIDCRejected
 	}
 	var claims struct {
 		Email         string `json:"email"`
 		EmailVerified bool   `json:"email_verified"`
 	}
 	if err := idToken.Claims(&claims); err != nil {
-		return "", "", "", time.Time{}, ErrOIDCRejected
+		return "", "", "", "", time.Time{}, ErrOIDCRejected
 	}
 	email := normalizeEmail(claims.Email)
 	if email == "" || !claims.EmailVerified || !isEmailDomainAllowed(email, config.AllowedEmailDomains) {
-		return "", "", "", time.Time{}, ErrOIDCRejected
+		return "", "", "", "", time.Time{}, ErrOIDCRejected
 	}
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", "", "", time.Time{}, ErrOIDCRejected
+			return "", "", "", "", time.Time{}, ErrOIDCRejected
 		}
-		return "", "", "", time.Time{}, err
+		return "", "", "", "", time.Time{}, err
 	}
 	sessionToken, expiresAt, err := s.createSession(ctx, user.ID)
 	if err != nil {
-		return "", "", "", time.Time{}, err
+		return "", "", "", "", time.Time{}, err
 	}
-	return user.ID, user.Email, sessionToken, expiresAt, nil
+	return user.ID, user.Email, user.Role, sessionToken, expiresAt, nil
 }
 
-func (s *Service) Authenticate(ctx context.Context, sessionToken string) (string, string, error) {
+func (s *Service) Authenticate(ctx context.Context, sessionToken string) (string, string, string, error) {
 	if sessionToken == "" {
-		return "", "", ErrUnauthenticated
+		return "", "", "", ErrUnauthenticated
 	}
 	tokenHash := hashSessionToken(sessionToken)
 	user, err := s.store.GetUserByActiveSessionTokenHash(ctx, tokenHash, s.now().Unix())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", "", ErrUnauthenticated
+			return "", "", "", ErrUnauthenticated
 		}
-		return "", "", err
+		return "", "", "", err
 	}
-	return user.ID, user.Email, nil
+	return user.ID, user.Email, user.Role, nil
 }
 
 func (s *Service) Logout(ctx context.Context, sessionToken string) error {

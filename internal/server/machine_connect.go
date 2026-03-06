@@ -301,7 +301,7 @@ func (s *machineConnectService) authenticate(ctx context.Context, header http.He
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
 
-	userID, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+	userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
 	if err != nil {
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}

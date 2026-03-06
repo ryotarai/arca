@@ -155,16 +155,11 @@ func (s *runtimeConnectService) authenticateAdmin(ctx context.Context, header ht
 	if err != nil || sessionToken == "" {
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
-	userID, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+	userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
 	if err != nil {
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
-	setupState, err := s.store.GetSetupState(ctx)
-	if err != nil {
-		log.Printf("load setup state failed: %v", err)
-		return "", connect.NewError(connect.CodeInternal, errors.New("failed to authorize user"))
-	}
-	if strings.TrimSpace(setupState.AdminUserID) == "" || setupState.AdminUserID != userID {
+	if role != db.UserRoleAdmin {
 		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage runtimes"))
 	}
 	return userID, nil

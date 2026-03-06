@@ -31,14 +31,14 @@ type HealthChecker interface {
 
 type Authenticator interface {
 	Register(context.Context, string, string) (string, string, error)
-	Login(context.Context, string, string) (string, string, string, time.Time, error)
+	Login(context.Context, string, string) (string, string, string, string, time.Time, error)
 	ListUsers(context.Context) ([]db.ManagedUser, error)
 	ProvisionUser(context.Context, string, string) (string, string, string, time.Time, error)
 	IssueUserSetupToken(context.Context, string, string) (string, time.Time, error)
 	CompleteUserSetup(context.Context, string, string) (string, string, error)
 	StartOIDCLogin(context.Context, string, string) (string, error)
-	LoginWithOIDCCode(context.Context, string, string) (string, string, string, time.Time, error)
-	Authenticate(context.Context, string) (string, string, error)
+	LoginWithOIDCCode(context.Context, string, string) (string, string, string, string, time.Time, error)
+	Authenticate(context.Context, string) (string, string, string, error)
 	Logout(context.Context, string) error
 }
 

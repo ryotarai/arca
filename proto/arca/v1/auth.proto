@@ -15,6 +15,7 @@ service AuthService {
 message User {
   string id = 1;
   string email = 2;
+  string role = 3;
 }
 
 message LoginRequest {

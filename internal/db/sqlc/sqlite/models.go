@@ -136,6 +136,7 @@ type User struct {
 	Email                 string
 	PasswordHash          string
 	PasswordSetupRequired bool
+	Role                  string
 	CreatedAt             time.Time
 }
 
