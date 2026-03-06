@@ -196,9 +196,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl text-white">Machine list</CardTitle>
-            <CardDescription className="text-slate-300">
-              Start, stop, delete, and open details from this list.
-            </CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
