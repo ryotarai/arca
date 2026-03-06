@@ -114,7 +114,7 @@ export function MachineEditPage({ user, onLogout }: MachineEditPageProps) {
         <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Edit endpoint visibility</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Edit machine</h1>
             <p className="mt-1 text-xs text-slate-400">{machineID}</p>
           </div>
           <div className="flex items-center gap-3">
