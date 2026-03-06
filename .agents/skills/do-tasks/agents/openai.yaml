@@ -1,4 +1,4 @@
 interface:
   display_name: "Do Tasks"
-  short_description: "Execute tmp/tasks/ with DAG + parallelism"
-  default_prompt: "Read task files under tmp/tasks/, analyze dependencies, execute ready tasks in parallel (using sub-agents where effective), and move each completed markdown file to tmp/tasks-done/."
+  short_description: "Execute tmp/tasks/ with DAG + worktrees"
+  default_prompt: "Read task files under tmp/tasks/, analyze dependencies, execute only safe-independent tasks in parallel using git worktrees plus ./script/bgcodex.sh, then merge each completed branch to main and clean branch/worktree before moving task files to tmp/tasks-done/."
