@@ -25,6 +25,7 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 - Use about 20 characters that summarize the task title/content (for example `auth-fix`, `ui-login`, `db-migrate`).
 - Avoid id-only titles such as `task-001` unless no meaningful summary can be derived.
 - Start execution with `./scripts/bgcodex.sh "meaningful-20char-title" "your prompt" "path to the worktree dir"`.
+- If the user explicitly instructs to use Claude, set `AGENT=claude` for that run (for example `AGENT=claude ./scripts/bgcodex.sh "meaningful-20char-title" "your prompt" "path to the worktree dir"`).
 6. Schedule run units with **parallel-by-default** policy.
 - Launch all `ready` tasks immediately unless a hard dependency or high-confidence file conflict exists.
 - If 2+ tasks are `ready`, keep at least 2 concurrent run units active whenever possible.
@@ -62,6 +63,7 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 ## Prompting Rules For bgcodex
 
 - Include task file path and acceptance criteria in each prompt.
+- When the user instructs to use Claude, run `bgcodex.sh` with `AGENT=claude`.
 - Require worktree-local scope and disallow unrelated edits.
 - Require explicit report of verification commands and outcomes before marking done.
 - Add an execution pacing instruction: start code edits quickly (avoid prolonged restatement/search loops once relevant files are identified).
