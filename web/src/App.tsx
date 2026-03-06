@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { getSetupStatus, logout, me } from '@/lib/api'
 import type { SetupStatus, User } from '@/lib/types'
-import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { CreateMachinePage } from '@/pages/CreateMachinePage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
@@ -113,7 +112,7 @@ export function App() {
       <Route path="/users/setup" element={<UserSetupPage user={user} />} />
 
       <Route element={<AppLayout user={user} onLogout={handleLogout} />}>
-        <Route path="/" element={user == null ? <Navigate to="/login" replace /> : <HomePage user={user} />} />
+        <Route path="/" element={<Navigate to="/machines" replace />} />
         <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
         <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />
         <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
