@@ -8,12 +8,13 @@ import {
   getSetupStatus,
   listMachineEvents,
   listMachineExposures,
+  listRuntimes,
   startMachine,
   stopMachine,
   updateMachineExposureVisibility,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, MachineEvent, MachineExposure, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineExposure, RuntimeCatalogItem, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -86,6 +87,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [events, setEvents] = useState<MachineEvent[]>([])
+  const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [defaultExposure, setDefaultExposure] = useState<MachineExposure | null>(null)
@@ -116,15 +118,17 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const [item, eventItems, exposureItems, setupStatus] = await Promise.all([
+        const [item, eventItems, exposureItems, setupStatus, runtimeItems] = await Promise.all([
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineExposures(machineID),
           getSetupStatus(),
+          listRuntimes(),
         ])
         if (!cancelled) {
           setMachine(item)
           setEvents(eventItems)
+          setRuntimes(runtimeItems)
           const defaultItem = exposureItems.find((item) => item.name === 'default') ?? null
           setDefaultExposure(defaultItem)
           setExposureVisibility(defaultItem?.visibility ?? EndpointVisibility.OWNER_ONLY)
@@ -293,7 +297,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                       to={`/runtimes/${machine.runtimeId}`}
                       className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
                     >
-                      {machine.runtimeId}
+                      {runtimes.find((r) => r.id === machine.runtimeId)?.name ?? machine.runtimeId}
                     </Link>
                   )}
                 </div>
