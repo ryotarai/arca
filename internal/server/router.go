@@ -79,7 +79,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil {
-		path, handler := arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store))
+		path, handler := arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil {

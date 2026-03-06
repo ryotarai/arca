@@ -2,15 +2,15 @@
 // @generated from file arca/v1/tunnel.proto (package arca.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file arca/v1/tunnel.proto.
  */
 export const file_arca_v1_tunnel: GenFile = /*@__PURE__*/
-  fileDesc("ChRhcmNhL3YxL3R1bm5lbC5wcm90bxIHYXJjYS52MSJ1Cg1NYWNoaW5lVHVubmVsEhIKCm1hY2hpbmVfaWQYASABKAkSEgoKYWNjb3VudF9pZBgCIAEoCRIRCgl0dW5uZWxfaWQYAyABKAkSEwoLdHVubmVsX25hbWUYBCABKAkSFAoMdHVubmVsX3Rva2VuGAUgASgJInIKD01hY2hpbmVFeHBvc3VyZRIKCgJpZBgBIAEoCRISCgptYWNoaW5lX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSEAoIaG9zdG5hbWUYBCABKAkSDwoHc2VydmljZRgFIAEoCRIOCgZwdWJsaWMYBiABKAgiWQoaQ3JlYXRlTWFjaGluZVR1bm5lbFJlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJEhMKC3R1bm5lbF9uYW1lGAMgASgJIkUKG0NyZWF0ZU1hY2hpbmVUdW5uZWxSZXNwb25zZRImCgZ0dW5uZWwYASABKAsyFi5hcmNhLnYxLk1hY2hpbmVUdW5uZWwiYQocVXBzZXJ0TWFjaGluZUV4cG9zdXJlUmVxdWVzdBISCgptYWNoaW5lX2lkGAEgASgJEg8KB3pvbmVfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIOCgZwdWJsaWMYBCABKAgiSwodVXBzZXJ0TWFjaGluZUV4cG9zdXJlUmVzcG9uc2USKgoIZXhwb3N1cmUYASABKAsyGC5hcmNhLnYxLk1hY2hpbmVFeHBvc3VyZSIxChtMaXN0TWFjaGluZUV4cG9zdXJlc1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCSJLChxMaXN0TWFjaGluZUV4cG9zdXJlc1Jlc3BvbnNlEisKCWV4cG9zdXJlcxgBIAMoCzIYLmFyY2EudjEuTWFjaGluZUV4cG9zdXJlIjcKI0dldE1hY2hpbmVFeHBvc3VyZUJ5SG9zdG5hbWVSZXF1ZXN0EhAKCGhvc3RuYW1lGAEgASgJIlIKJEdldE1hY2hpbmVFeHBvc3VyZUJ5SG9zdG5hbWVSZXNwb25zZRIqCghleHBvc3VyZRgBIAEoCzIYLmFyY2EudjEuTWFjaGluZUV4cG9zdXJlMrsDCg1UdW5uZWxTZXJ2aWNlEmAKE0NyZWF0ZU1hY2hpbmVUdW5uZWwSIy5hcmNhLnYxLkNyZWF0ZU1hY2hpbmVUdW5uZWxSZXF1ZXN0GiQuYXJjYS52MS5DcmVhdGVNYWNoaW5lVHVubmVsUmVzcG9uc2USZgoVVXBzZXJ0TWFjaGluZUV4cG9zdXJlEiUuYXJjYS52MS5VcHNlcnRNYWNoaW5lRXhwb3N1cmVSZXF1ZXN0GiYuYXJjYS52MS5VcHNlcnRNYWNoaW5lRXhwb3N1cmVSZXNwb25zZRJjChRMaXN0TWFjaGluZUV4cG9zdXJlcxIkLmFyY2EudjEuTGlzdE1hY2hpbmVFeHBvc3VyZXNSZXF1ZXN0GiUuYXJjYS52MS5MaXN0TWFjaGluZUV4cG9zdXJlc1Jlc3BvbnNlEnsKHEdldE1hY2hpbmVFeHBvc3VyZUJ5SG9zdG5hbWUSLC5hcmNhLnYxLkdldE1hY2hpbmVFeHBvc3VyZUJ5SG9zdG5hbWVSZXF1ZXN0Gi0uYXJjYS52MS5HZXRNYWNoaW5lRXhwb3N1cmVCeUhvc3RuYW1lUmVzcG9uc2VCjQEKC2NvbS5hcmNhLnYxQgtUdW5uZWxQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
+  fileDesc("ChRhcmNhL3YxL3R1bm5lbC5wcm90bxIHYXJjYS52MSJ1Cg1NYWNoaW5lVHVubmVsEhIKCm1hY2hpbmVfaWQYASABKAkSEgoKYWNjb3VudF9pZBgCIAEoCRIRCgl0dW5uZWxfaWQYAyABKAkSEwoLdHVubmVsX25hbWUYBCABKAkSFAoMdHVubmVsX3Rva2VuGAUgASgJIr4BCg9NYWNoaW5lRXhwb3N1cmUSCgoCaWQYASABKAkSEgoKbWFjaGluZV9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhAKCGhvc3RuYW1lGAQgASgJEg8KB3NlcnZpY2UYBSABKAkSDgoGcHVibGljGAYgASgIEi8KCnZpc2liaWxpdHkYByABKA4yGy5hcmNhLnYxLkVuZHBvaW50VmlzaWJpbGl0eRIZChFzZWxlY3RlZF91c2VyX2lkcxgIIAMoCSJZChpDcmVhdGVNYWNoaW5lVHVubmVsUmVxdWVzdBISCgptYWNoaW5lX2lkGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkSEwoLdHVubmVsX25hbWUYAyABKAkiRQobQ3JlYXRlTWFjaGluZVR1bm5lbFJlc3BvbnNlEiYKBnR1bm5lbBgBIAEoCzIWLmFyY2EudjEuTWFjaGluZVR1bm5lbCKtAQocVXBzZXJ0TWFjaGluZUV4cG9zdXJlUmVxdWVzdBISCgptYWNoaW5lX2lkGAEgASgJEg8KB3pvbmVfaWQYAiABKAkSDAoEbmFtZRgDIAEoCRIOCgZwdWJsaWMYBCABKAgSLwoKdmlzaWJpbGl0eRgFIAEoDjIbLmFyY2EudjEuRW5kcG9pbnRWaXNpYmlsaXR5EhkKEXNlbGVjdGVkX3VzZXJfaWRzGAYgAygJIksKHVVwc2VydE1hY2hpbmVFeHBvc3VyZVJlc3BvbnNlEioKCGV4cG9zdXJlGAEgASgLMhguYXJjYS52MS5NYWNoaW5lRXhwb3N1cmUiMQobTGlzdE1hY2hpbmVFeHBvc3VyZXNSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAkiSwocTGlzdE1hY2hpbmVFeHBvc3VyZXNSZXNwb25zZRIrCglleHBvc3VyZXMYASADKAsyGC5hcmNhLnYxLk1hY2hpbmVFeHBvc3VyZSI3CiNHZXRNYWNoaW5lRXhwb3N1cmVCeUhvc3RuYW1lUmVxdWVzdBIQCghob3N0bmFtZRgBIAEoCSJSCiRHZXRNYWNoaW5lRXhwb3N1cmVCeUhvc3RuYW1lUmVzcG9uc2USKgoIZXhwb3N1cmUYASABKAsyGC5hcmNhLnYxLk1hY2hpbmVFeHBvc3VyZSrWAQoSRW5kcG9pbnRWaXNpYmlsaXR5EiMKH0VORFBPSU5UX1ZJU0lCSUxJVFlfVU5TUEVDSUZJRUQQABIiCh5FTkRQT0lOVF9WSVNJQklMSVRZX09XTkVSX09OTFkQARImCiJFTkRQT0lOVF9WSVNJQklMSVRZX1NFTEVDVEVEX1VTRVJTEAISJgoiRU5EUE9JTlRfVklTSUJJTElUWV9BTExfQVJDQV9VU0VSUxADEicKI0VORFBPSU5UX1ZJU0lCSUxJVFlfSU5URVJORVRfUFVCTElDEAQyuwMKDVR1bm5lbFNlcnZpY2USYAoTQ3JlYXRlTWFjaGluZVR1bm5lbBIjLmFyY2EudjEuQ3JlYXRlTWFjaGluZVR1bm5lbFJlcXVlc3QaJC5hcmNhLnYxLkNyZWF0ZU1hY2hpbmVUdW5uZWxSZXNwb25zZRJmChVVcHNlcnRNYWNoaW5lRXhwb3N1cmUSJS5hcmNhLnYxLlVwc2VydE1hY2hpbmVFeHBvc3VyZVJlcXVlc3QaJi5hcmNhLnYxLlVwc2VydE1hY2hpbmVFeHBvc3VyZVJlc3BvbnNlEmMKFExpc3RNYWNoaW5lRXhwb3N1cmVzEiQuYXJjYS52MS5MaXN0TWFjaGluZUV4cG9zdXJlc1JlcXVlc3QaJS5hcmNhLnYxLkxpc3RNYWNoaW5lRXhwb3N1cmVzUmVzcG9uc2USewocR2V0TWFjaGluZUV4cG9zdXJlQnlIb3N0bmFtZRIsLmFyY2EudjEuR2V0TWFjaGluZUV4cG9zdXJlQnlIb3N0bmFtZVJlcXVlc3QaLS5hcmNhLnYxLkdldE1hY2hpbmVFeHBvc3VyZUJ5SG9zdG5hbWVSZXNwb25zZUKNAQoLY29tLmFyY2EudjFCC1R1bm5lbFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message arca.v1.MachineTunnel
@@ -82,6 +82,16 @@ export type MachineExposure = Message<"arca.v1.MachineExposure"> & {
    * @generated from field: bool public = 6;
    */
   public: boolean;
+
+  /**
+   * @generated from field: arca.v1.EndpointVisibility visibility = 7;
+   */
+  visibility: EndpointVisibility;
+
+  /**
+   * @generated from field: repeated string selected_user_ids = 8;
+   */
+  selectedUserIds: string[];
 };
 
 /**
@@ -158,6 +168,16 @@ export type UpsertMachineExposureRequest = Message<"arca.v1.UpsertMachineExposur
    * @generated from field: bool public = 4;
    */
   public: boolean;
+
+  /**
+   * @generated from field: arca.v1.EndpointVisibility visibility = 5;
+   */
+  visibility: EndpointVisibility;
+
+  /**
+   * @generated from field: repeated string selected_user_ids = 6;
+   */
+  selectedUserIds: string[];
 };
 
 /**
@@ -251,6 +271,42 @@ export type GetMachineExposureByHostnameResponse = Message<"arca.v1.GetMachineEx
  */
 export const GetMachineExposureByHostnameResponseSchema: GenMessage<GetMachineExposureByHostnameResponse> = /*@__PURE__*/
   messageDesc(file_arca_v1_tunnel, 9);
+
+/**
+ * @generated from enum arca.v1.EndpointVisibility
+ */
+export enum EndpointVisibility {
+  /**
+   * @generated from enum value: ENDPOINT_VISIBILITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: ENDPOINT_VISIBILITY_OWNER_ONLY = 1;
+   */
+  OWNER_ONLY = 1,
+
+  /**
+   * @generated from enum value: ENDPOINT_VISIBILITY_SELECTED_USERS = 2;
+   */
+  SELECTED_USERS = 2,
+
+  /**
+   * @generated from enum value: ENDPOINT_VISIBILITY_ALL_ARCA_USERS = 3;
+   */
+  ALL_ARCA_USERS = 3,
+
+  /**
+   * @generated from enum value: ENDPOINT_VISIBILITY_INTERNET_PUBLIC = 4;
+   */
+  INTERNET_PUBLIC = 4,
+}
+
+/**
+ * Describes the enum arca.v1.EndpointVisibility.
+ */
+export const EndpointVisibilitySchema: GenEnum<EndpointVisibility> = /*@__PURE__*/
+  enumDesc(file_arca_v1_tunnel, 0);
 
 /**
  * @generated from service arca.v1.TunnelService

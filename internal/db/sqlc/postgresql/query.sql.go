@@ -260,6 +260,16 @@ func (q *Queries) DeleteMachineByID(ctx context.Context, machineID string) (int6
 	return result.RowsAffected()
 }
 
+const deleteMachineExposureACLUsersByExposureID = `-- name: DeleteMachineExposureACLUsersByExposureID :exec
+DELETE FROM machine_exposure_acl_users
+WHERE exposure_id = $1
+`
+
+func (q *Queries) DeleteMachineExposureACLUsersByExposureID(ctx context.Context, exposureID string) error {
+	_, err := q.db.ExecContext(ctx, deleteMachineExposureACLUsersByExposureID, exposureID)
+	return err
+}
+
 const deleteMachineIfNoUsers = `-- name: DeleteMachineIfNoUsers :exec
 DELETE FROM machines
 WHERE id = $1
@@ -412,7 +422,7 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 }
 
 const getMachineExposureByHostname = `-- name: GetMachineExposureByHostname :one
-SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
 FROM machine_exposures
 WHERE hostname = $1
 LIMIT 1
@@ -428,6 +438,7 @@ func (q *Queries) GetMachineExposureByHostname(ctx context.Context, hostname str
 		&i.Hostname,
 		&i.Service,
 		&i.IsPublic,
+		&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -435,7 +446,7 @@ func (q *Queries) GetMachineExposureByHostname(ctx context.Context, hostname str
 }
 
 const getMachineExposureByMachineIDAndName = `-- name: GetMachineExposureByMachineIDAndName :one
-SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = $1
   AND name = $2
@@ -457,6 +468,7 @@ func (q *Queries) GetMachineExposureByMachineIDAndName(ctx context.Context, arg 
 		&i.Hostname,
 		&i.Service,
 		&i.IsPublic,
+		&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -649,6 +661,23 @@ func (q *Queries) GetValidAuthTicketByHashAndMachine(ctx context.Context, arg Ge
 	return i, err
 }
 
+const insertMachineExposureACLUser = `-- name: InsertMachineExposureACLUser :exec
+INSERT INTO machine_exposure_acl_users (exposure_id, user_id, created_at)
+VALUES ($1, $2, $3)
+ON CONFLICT (exposure_id, user_id) DO NOTHING
+`
+
+type InsertMachineExposureACLUserParams struct {
+	ExposureID string
+	UserID     string
+	CreatedAt  int64
+}
+
+func (q *Queries) InsertMachineExposureACLUser(ctx context.Context, arg InsertMachineExposureACLUserParams) error {
+	_, err := q.db.ExecContext(ctx, insertMachineExposureACLUser, arg.ExposureID, arg.UserID, arg.CreatedAt)
+	return err
+}
+
 const listMachineEventsByMachineIDForUser = `-- name: ListMachineEventsByMachineIDForUser :many
 SELECT me.id, me.machine_id, me.job_id, me.level, me.event_type, me.message, me.created_at
 FROM machine_events me
@@ -696,8 +725,38 @@ func (q *Queries) ListMachineEventsByMachineIDForUser(ctx context.Context, arg L
 	return items, nil
 }
 
+const listMachineExposureACLUsersByExposureID = `-- name: ListMachineExposureACLUsersByExposureID :many
+SELECT user_id
+FROM machine_exposure_acl_users
+WHERE exposure_id = $1
+ORDER BY user_id ASC
+`
+
+func (q *Queries) ListMachineExposureACLUsersByExposureID(ctx context.Context, exposureID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineExposureACLUsersByExposureID, exposureID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMachineExposuresByMachineID = `-- name: ListMachineExposuresByMachineID :many
-SELECT id, machine_id, name, hostname, service, is_public, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = $1
 ORDER BY created_at ASC
@@ -719,6 +778,7 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 			&i.Hostname,
 			&i.Service,
 			&i.IsPublic,
+			&i.Visibility,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1149,7 +1209,7 @@ func (q *Queries) UpdateMachineStateForOwner(ctx context.Context, arg UpdateMach
 }
 
 const upsertMachineExposure = `-- name: UpsertMachineExposure :exec
-INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, created_at, updated_at)
+INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at)
 VALUES (
   $1,
   $2,
@@ -1158,24 +1218,27 @@ VALUES (
   $5,
   $6,
   $7,
-  $8
+  $8,
+  $9
 )
 ON CONFLICT (machine_id, name) DO UPDATE
 SET hostname = excluded.hostname,
     service = excluded.service,
     is_public = excluded.is_public,
+    visibility = excluded.visibility,
     updated_at = excluded.updated_at
 `
 
 type UpsertMachineExposureParams struct {
-	ID        string
-	MachineID string
-	Name      string
-	Hostname  string
-	Service   string
-	IsPublic  bool
-	CreatedAt int64
-	UpdatedAt int64
+	ID         string
+	MachineID  string
+	Name       string
+	Hostname   string
+	Service    string
+	IsPublic   bool
+	Visibility string
+	CreatedAt  int64
+	UpdatedAt  int64
 }
 
 func (q *Queries) UpsertMachineExposure(ctx context.Context, arg UpsertMachineExposureParams) error {
@@ -1186,6 +1249,7 @@ func (q *Queries) UpsertMachineExposure(ctx context.Context, arg UpsertMachineEx
 		arg.Hostname,
 		arg.Service,
 		arg.IsPublic,
+		arg.Visibility,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

@@ -12,15 +12,16 @@ import (
 )
 
 type SetupState struct {
-	Completed             bool
-	AdminUserID           string
-	BaseDomain            string
-	DomainPrefix          string
-	CloudflareAPIToken    string
-	CloudflareZoneID      string
-	MachineRuntime        string
-	DockerProviderEnabled bool
-	UpdatedAtUnix         int64
+	Completed                      bool
+	AdminUserID                    string
+	BaseDomain                     string
+	DomainPrefix                   string
+	CloudflareAPIToken             string
+	CloudflareZoneID               string
+	MachineRuntime                 string
+	DockerProviderEnabled          bool
+	InternetPublicExposureDisabled bool
+	UpdatedAtUnix                  int64
 }
 
 type VerifiedTicket struct {
@@ -41,14 +42,16 @@ type MachineTunnel struct {
 }
 
 type MachineExposure struct {
-	ID        string
-	MachineID string
-	Name      string
-	Hostname  string
-	Service   string
-	IsPublic  bool
-	CreatedAt int64
-	UpdatedAt int64
+	ID              string
+	MachineID       string
+	Name            string
+	Hostname        string
+	Service         string
+	IsPublic        bool
+	Visibility      string
+	SelectedUserIDs []string
+	CreatedAt       int64
+	UpdatedAt       int64
 }
 
 func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
@@ -61,6 +64,11 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		return SetupState{}, err
 	}
 	machineRuntime = NormalizeMachineRuntime(machineRuntime)
+	internetPublicExposureDisabledRaw, err := s.getMetaValue(ctx, setupMetaDisableInternetPublicExposure)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	internetPublicExposureDisabled := parseBoolMetaValue(internetPublicExposureDisabledRaw)
 
 	switch s.driver {
 	case DriverSQLite:
@@ -72,15 +80,16 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			return SetupState{}, err
 		}
 		return SetupState{
-			Completed:             state.Completed,
-			AdminUserID:           state.AdminUserID.String,
-			BaseDomain:            state.BaseDomain,
-			DomainPrefix:          state.DomainPrefix,
-			CloudflareAPIToken:    state.CloudflareApiToken,
-			CloudflareZoneID:      zoneID,
-			MachineRuntime:        machineRuntime,
-			DockerProviderEnabled: state.DockerProviderEnabled,
-			UpdatedAtUnix:         state.UpdatedAt,
+			Completed:                      state.Completed,
+			AdminUserID:                    state.AdminUserID.String,
+			BaseDomain:                     state.BaseDomain,
+			DomainPrefix:                   state.DomainPrefix,
+			CloudflareAPIToken:             state.CloudflareApiToken,
+			CloudflareZoneID:               zoneID,
+			MachineRuntime:                 machineRuntime,
+			DockerProviderEnabled:          state.DockerProviderEnabled,
+			InternetPublicExposureDisabled: internetPublicExposureDisabled,
+			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	case DriverPostgres:
 		state, err := s.pgQueries.GetSetupState(ctx)
@@ -91,15 +100,16 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			return SetupState{}, err
 		}
 		return SetupState{
-			Completed:             state.Completed,
-			AdminUserID:           state.AdminUserID.String,
-			BaseDomain:            state.BaseDomain,
-			DomainPrefix:          state.DomainPrefix,
-			CloudflareAPIToken:    state.CloudflareApiToken,
-			CloudflareZoneID:      zoneID,
-			MachineRuntime:        machineRuntime,
-			DockerProviderEnabled: state.DockerProviderEnabled,
-			UpdatedAtUnix:         state.UpdatedAt,
+			Completed:                      state.Completed,
+			AdminUserID:                    state.AdminUserID.String,
+			BaseDomain:                     state.BaseDomain,
+			DomainPrefix:                   state.DomainPrefix,
+			CloudflareAPIToken:             state.CloudflareApiToken,
+			CloudflareZoneID:               zoneID,
+			MachineRuntime:                 machineRuntime,
+			DockerProviderEnabled:          state.DockerProviderEnabled,
+			InternetPublicExposureDisabled: internetPublicExposureDisabled,
+			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	default:
 		return SetupState{}, unsupportedDriverError(s.driver)
@@ -144,11 +154,27 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaCloudflareZoneID, strings.TrimSpace(state.CloudflareZoneID)); err != nil {
 		return err
 	}
-	return s.upsertMetaValue(ctx, setupMetaMachineRuntime, state.MachineRuntime)
+	if err := s.upsertMetaValue(ctx, setupMetaMachineRuntime, state.MachineRuntime); err != nil {
+		return err
+	}
+	return s.upsertMetaValue(ctx, setupMetaDisableInternetPublicExposure, boolMetaValue(state.InternetPublicExposureDisabled))
 }
 
 const setupMetaCloudflareZoneID = "setup.cloudflare_zone_id"
 const setupMetaMachineRuntime = "setup.machine_runtime"
+const setupMetaDisableInternetPublicExposure = "setup.disable_internet_public_exposure"
+
+func parseBoolMetaValue(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	return value == "1" || value == "true" || value == "yes"
+}
+
+func boolMetaValue(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
 
 func (s *Store) getMetaValue(ctx context.Context, key string) (string, error) {
 	switch s.driver {
@@ -365,24 +391,27 @@ func (s *Store) GetMachineTunnelByMachineID(ctx context.Context, machineID strin
 	}
 }
 
-func (s *Store) UpsertMachineExposure(ctx context.Context, machineID, name, hostname, service string, isPublic bool) (MachineExposure, error) {
+func (s *Store) UpsertMachineExposure(ctx context.Context, machineID, name, hostname, service, visibility string, selectedUserIDs []string) (MachineExposure, error) {
 	nowUnix := time.Now().Unix()
 	exposureID, err := randomID()
 	if err != nil {
 		return MachineExposure{}, err
 	}
+	visibility = NormalizeEndpointVisibility(visibility)
+	isPublic := IsInternetPublicVisibility(visibility)
 
 	switch s.driver {
 	case DriverSQLite:
 		if err := s.sqliteQueries.UpsertMachineExposure(ctx, sqlitesqlc.UpsertMachineExposureParams{
-			ID:        exposureID,
-			MachineID: machineID,
-			Name:      name,
-			Hostname:  hostname,
-			Service:   service,
-			IsPublic:  isPublic,
-			CreatedAt: nowUnix,
-			UpdatedAt: nowUnix,
+			ID:         exposureID,
+			MachineID:  machineID,
+			Name:       name,
+			Hostname:   hostname,
+			Service:    service,
+			IsPublic:   isPublic,
+			Visibility: visibility,
+			CreatedAt:  nowUnix,
+			UpdatedAt:  nowUnix,
 		}); err != nil {
 			return MachineExposure{}, err
 		}
@@ -390,17 +419,27 @@ func (s *Store) UpsertMachineExposure(ctx context.Context, machineID, name, host
 		if err != nil {
 			return MachineExposure{}, err
 		}
-		return toMachineExposure(row), nil
+		if err := s.syncMachineExposureACLUsersSQLite(ctx, row.ID, selectedUserIDs, nowUnix); err != nil {
+			return MachineExposure{}, err
+		}
+		selected, err := s.listMachineExposureACLUsersSQLite(ctx, row.ID)
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure := toMachineExposure(row)
+		exposure.SelectedUserIDs = selected
+		return exposure, nil
 	case DriverPostgres:
 		if err := s.pgQueries.UpsertMachineExposure(ctx, postgresqlsqlc.UpsertMachineExposureParams{
-			ID:        exposureID,
-			MachineID: machineID,
-			Name:      name,
-			Hostname:  hostname,
-			Service:   service,
-			IsPublic:  isPublic,
-			CreatedAt: nowUnix,
-			UpdatedAt: nowUnix,
+			ID:         exposureID,
+			MachineID:  machineID,
+			Name:       name,
+			Hostname:   hostname,
+			Service:    service,
+			IsPublic:   isPublic,
+			Visibility: visibility,
+			CreatedAt:  nowUnix,
+			UpdatedAt:  nowUnix,
 		}); err != nil {
 			return MachineExposure{}, err
 		}
@@ -408,7 +447,16 @@ func (s *Store) UpsertMachineExposure(ctx context.Context, machineID, name, host
 		if err != nil {
 			return MachineExposure{}, err
 		}
-		return toMachineExposurePG(row), nil
+		if err := s.syncMachineExposureACLUsersPostgres(ctx, row.ID, selectedUserIDs, nowUnix); err != nil {
+			return MachineExposure{}, err
+		}
+		selected, err := s.listMachineExposureACLUsersPostgres(ctx, row.ID)
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure := toMachineExposurePG(row)
+		exposure.SelectedUserIDs = selected
+		return exposure, nil
 	default:
 		return MachineExposure{}, unsupportedDriverError(s.driver)
 	}
@@ -423,7 +471,13 @@ func (s *Store) ListMachineExposuresByMachineID(ctx context.Context, machineID s
 		}
 		out := make([]MachineExposure, 0, len(rows))
 		for _, row := range rows {
-			out = append(out, toMachineExposure(row))
+			item := toMachineExposure(row)
+			selected, aclErr := s.listMachineExposureACLUsersSQLite(ctx, row.ID)
+			if aclErr != nil {
+				return nil, aclErr
+			}
+			item.SelectedUserIDs = selected
+			out = append(out, item)
 		}
 		return out, nil
 	case DriverPostgres:
@@ -433,11 +487,48 @@ func (s *Store) ListMachineExposuresByMachineID(ctx context.Context, machineID s
 		}
 		out := make([]MachineExposure, 0, len(rows))
 		for _, row := range rows {
-			out = append(out, toMachineExposurePG(row))
+			item := toMachineExposurePG(row)
+			selected, aclErr := s.listMachineExposureACLUsersPostgres(ctx, row.ID)
+			if aclErr != nil {
+				return nil, aclErr
+			}
+			item.SelectedUserIDs = selected
+			out = append(out, item)
 		}
 		return out, nil
 	default:
 		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) GetMachineExposureByMachineIDAndName(ctx context.Context, machineID, name string) (MachineExposure, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetMachineExposureByMachineIDAndName(ctx, sqlitesqlc.GetMachineExposureByMachineIDAndNameParams{MachineID: machineID, Name: name})
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure := toMachineExposure(row)
+		selected, err := s.listMachineExposureACLUsersSQLite(ctx, row.ID)
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure.SelectedUserIDs = selected
+		return exposure, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetMachineExposureByMachineIDAndName(ctx, postgresqlsqlc.GetMachineExposureByMachineIDAndNameParams{MachineID: machineID, Name: name})
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure := toMachineExposurePG(row)
+		selected, err := s.listMachineExposureACLUsersPostgres(ctx, row.ID)
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure.SelectedUserIDs = selected
+		return exposure, nil
+	default:
+		return MachineExposure{}, unsupportedDriverError(s.driver)
 	}
 }
 
@@ -448,28 +539,102 @@ func (s *Store) GetMachineExposureByHostname(ctx context.Context, hostname strin
 		if err != nil {
 			return MachineExposure{}, err
 		}
-		return toMachineExposure(row), nil
+		exposure := toMachineExposure(row)
+		selected, err := s.listMachineExposureACLUsersSQLite(ctx, row.ID)
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure.SelectedUserIDs = selected
+		return exposure, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineExposureByHostname(ctx, hostname)
 		if err != nil {
 			return MachineExposure{}, err
 		}
-		return toMachineExposurePG(row), nil
+		exposure := toMachineExposurePG(row)
+		selected, err := s.listMachineExposureACLUsersPostgres(ctx, row.ID)
+		if err != nil {
+			return MachineExposure{}, err
+		}
+		exposure.SelectedUserIDs = selected
+		return exposure, nil
 	default:
 		return MachineExposure{}, unsupportedDriverError(s.driver)
 	}
 }
 
+func (s *Store) syncMachineExposureACLUsersSQLite(ctx context.Context, exposureID string, userIDs []string, nowUnix int64) error {
+	if err := s.sqliteQueries.DeleteMachineExposureACLUsersByExposureID(ctx, exposureID); err != nil {
+		return err
+	}
+	for _, userID := range userIDs {
+		trimmed := strings.TrimSpace(userID)
+		if trimmed == "" {
+			continue
+		}
+		if _, err := s.sqliteQueries.GetUserByID(ctx, trimmed); err != nil {
+			return err
+		}
+		if err := s.sqliteQueries.InsertMachineExposureACLUser(ctx, sqlitesqlc.InsertMachineExposureACLUserParams{
+			ExposureID: exposureID,
+			UserID:     trimmed,
+			CreatedAt:  nowUnix,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) syncMachineExposureACLUsersPostgres(ctx context.Context, exposureID string, userIDs []string, nowUnix int64) error {
+	if err := s.pgQueries.DeleteMachineExposureACLUsersByExposureID(ctx, exposureID); err != nil {
+		return err
+	}
+	for _, userID := range userIDs {
+		trimmed := strings.TrimSpace(userID)
+		if trimmed == "" {
+			continue
+		}
+		if _, err := s.pgQueries.GetUserByID(ctx, trimmed); err != nil {
+			return err
+		}
+		if err := s.pgQueries.InsertMachineExposureACLUser(ctx, postgresqlsqlc.InsertMachineExposureACLUserParams{
+			ExposureID: exposureID,
+			UserID:     trimmed,
+			CreatedAt:  nowUnix,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) listMachineExposureACLUsersSQLite(ctx context.Context, exposureID string) ([]string, error) {
+	rows, err := s.sqliteQueries.ListMachineExposureACLUsersByExposureID(ctx, exposureID)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (s *Store) listMachineExposureACLUsersPostgres(ctx context.Context, exposureID string) ([]string, error) {
+	rows, err := s.pgQueries.ListMachineExposureACLUsersByExposureID(ctx, exposureID)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 func toMachineExposure(row sqlitesqlc.MachineExposure) MachineExposure {
 	return MachineExposure{
 		ID: row.ID, MachineID: row.MachineID, Name: row.Name, Hostname: row.Hostname,
-		Service: row.Service, IsPublic: row.IsPublic, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		Service: row.Service, IsPublic: row.IsPublic, Visibility: NormalizeEndpointVisibility(row.Visibility), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
 }
 
 func toMachineExposurePG(row postgresqlsqlc.MachineExposure) MachineExposure {
 	return MachineExposure{
 		ID: row.ID, MachineID: row.MachineID, Name: row.Name, Hostname: row.Hostname,
-		Service: row.Service, IsPublic: row.IsPublic, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		Service: row.Service, IsPublic: row.IsPublic, Visibility: NormalizeEndpointVisibility(row.Visibility), CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
 }

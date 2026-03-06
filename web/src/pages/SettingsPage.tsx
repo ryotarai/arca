@@ -25,6 +25,7 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
   const [baseDomain, setBaseDomain] = useState(setupStatus.baseDomain)
   const [domainPrefix, setDomainPrefix] = useState(setupStatus.domainPrefix)
   const [machineRuntime, setMachineRuntime] = useState<'libvirt'>(setupStatus.machineRuntime)
+  const [disableInternetPublicExposure, setDisableInternetPublicExposure] = useState(setupStatus.internetPublicExposureDisabled)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -51,12 +52,18 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
       if (nextDomainPrefixError != null) {
         throw new Error(nextDomainPrefixError)
       }
-      await updateDomainSettings(normalizedBaseDomain, normalizedDomainPrefix, machineRuntime)
+      await updateDomainSettings(
+        normalizedBaseDomain,
+        normalizedDomainPrefix,
+        machineRuntime,
+        disableInternetPublicExposure,
+      )
       onSetupStatusChange({
         ...setupStatus,
         baseDomain: normalizedBaseDomain,
         domainPrefix: normalizedDomainPrefix,
         machineRuntime,
+        internetPublicExposureDisabled: disableInternetPublicExposure,
       })
       setSaved(true)
     } catch (e) {
@@ -140,6 +147,23 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                 >
                   <option value="libvirt">Libvirt (Ubuntu 24.04 VM)</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="settings-disable-internet-public" className="text-slate-200">
+                  Internet public exposure
+                </Label>
+                <label className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200">
+                  <input
+                    id="settings-disable-internet-public"
+                    type="checkbox"
+                    checked={disableInternetPublicExposure}
+                    onChange={(event) => setDisableInternetPublicExposure(event.target.checked)}
+                  />
+                  Disable internet-public endpoint visibility
+                </label>
+                <p className="text-xs text-slate-400">
+                  When enabled, users cannot set endpoint visibility to internet public.
+                </p>
               </div>
               <Button
                 type="submit"

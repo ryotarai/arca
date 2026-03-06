@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { EndpointVisibility } from '@/gen/arca/v1/tunnel_pb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getMachine, listMachineEvents, startMachine, stopMachine } from '@/lib/api'
+import {
+  getMachine,
+  listMachineEvents,
+  listMachineExposures,
+  startMachine,
+  stopMachine,
+  updateMachineExposureVisibility,
+} from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, MachineEvent, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineExposure, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -79,6 +87,10 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [events, setEvents] = useState<MachineEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [defaultExposure, setDefaultExposure] = useState<MachineExposure | null>(null)
+  const [exposureVisibility, setExposureVisibility] = useState<EndpointVisibility>(EndpointVisibility.OWNER_ONLY)
+  const [selectedUserIDsInput, setSelectedUserIDsInput] = useState('')
+  const [savingExposure, setSavingExposure] = useState(false)
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
 
   const sortedEvents = useMemo(() => {
@@ -100,13 +112,18 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const [item, eventItems] = await Promise.all([
+        const [item, eventItems, exposureItems] = await Promise.all([
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
+          listMachineExposures(machineID),
         ])
         if (!cancelled) {
           setMachine(item)
           setEvents(eventItems)
+          const defaultItem = exposureItems.find((item) => item.name === 'default') ?? null
+          setDefaultExposure(defaultItem)
+          setExposureVisibility(defaultItem?.visibility ?? EndpointVisibility.OWNER_ONLY)
+          setSelectedUserIDsInput((defaultItem?.selectedUserIds ?? []).join(', '))
           setError('')
         }
       } catch (e) {
@@ -191,6 +208,38 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
     }
   }
 
+  const handleSaveExposure = async () => {
+    if (defaultExposure == null) {
+      setError('default exposure is not provisioned yet')
+      return
+    }
+
+    setSavingExposure(true)
+    setError('')
+    try {
+      const selectedUserIDs =
+        exposureVisibility === EndpointVisibility.SELECTED_USERS
+          ? selectedUserIDsInput
+              .split(',')
+              .map((value) => value.trim())
+              .filter((value) => value !== '')
+          : []
+      const updated = await updateMachineExposureVisibility(
+        machineID,
+        defaultExposure.name,
+        exposureVisibility,
+        selectedUserIDs,
+      )
+      setDefaultExposure(updated)
+      setExposureVisibility(updated.visibility)
+      setSelectedUserIDsInput((updated.selectedUserIds ?? []).join(', '))
+    } catch (e) {
+      setError(messageFromError(e))
+    } finally {
+      setSavingExposure(false)
+    }
+  }
+
   return (
     <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
@@ -249,6 +298,40 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     </a>
                   </div>
                 )}
+                <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-300">Endpoint visibility</p>
+                  <select
+                    value={exposureVisibility}
+                    onChange={(event) => setExposureVisibility(Number(event.target.value) as EndpointVisibility)}
+                    className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
+                    disabled={defaultExposure == null}
+                  >
+                    <option value={EndpointVisibility.OWNER_ONLY}>Owner only</option>
+                    <option value={EndpointVisibility.SELECTED_USERS}>Selected Arca users</option>
+                    <option value={EndpointVisibility.ALL_ARCA_USERS}>All Arca users</option>
+                    <option value={EndpointVisibility.INTERNET_PUBLIC}>Internet public</option>
+                  </select>
+                  {exposureVisibility === EndpointVisibility.SELECTED_USERS && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-slate-400">Comma-separated user IDs allowed to access this endpoint.</p>
+                      <input
+                        value={selectedUserIDsInput}
+                        onChange={(event) => setSelectedUserIDsInput(event.target.value)}
+                        className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
+                        placeholder="user-id-1, user-id-2"
+                      />
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-9 px-3"
+                    onClick={() => void handleSaveExposure()}
+                    disabled={savingExposure || defaultExposure == null}
+                  >
+                    {savingExposure ? 'Saving...' : 'Save visibility'}
+                  </Button>
+                </div>
                 {machine.lastError != null && machine.lastError !== '' && (
                   <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
                     <p className="text-sm text-red-200">last error</p>
