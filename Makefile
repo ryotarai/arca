@@ -5,15 +5,11 @@ BUF ?= buf
 WEB_DIR ?= web
 BIN_DIR ?= bin
 SERVER_BIN ?= $(BIN_DIR)/server
-MACHINE_DOCKER_IMAGE ?= arca-machine:dev
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
-.PHONY: build build-docker build-frontend build-server build-server-dev proto sqlc test go/test web/test run watch
-build: build-frontend build-server build-docker
-
-build-docker:
-	docker build -t $(MACHINE_DOCKER_IMAGE) -f docker/machine/Dockerfile .
+.PHONY: build build-frontend build-server build-server-dev proto sqlc test go/test web/test run watch
+build: build-frontend build-server
 
 build-frontend: proto
 	@if [ ! -f $(WEB_DIR)/package.json ]; then \
@@ -52,12 +48,12 @@ go/test:
 web/test:
 	$(NPM) --prefix $(WEB_DIR) run e2e
 
-run: build-server build-docker
-	MACHINE_DOCKER_IMAGE=$(MACHINE_DOCKER_IMAGE) ./$(SERVER_BIN)
+run: build-server
+	./$(SERVER_BIN)
 
-watch: build-docker
+watch:
 	@if command -v air >/dev/null 2>&1; then \
-		MACHINE_DOCKER_IMAGE=$(MACHINE_DOCKER_IMAGE) air -c .air.toml; \
+		air -c .air.toml; \
 	else \
-		MACHINE_DOCKER_IMAGE=$(MACHINE_DOCKER_IMAGE) $(GO) run github.com/air-verse/air@v1.61.7 -c .air.toml; \
+		$(GO) run github.com/air-verse/air@v1.61.7 -c .air.toml; \
 	fi
