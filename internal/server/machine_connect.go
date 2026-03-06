@@ -83,17 +83,9 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	setup, err := s.store.GetSetupState(ctx)
+	runtimeID, err := s.resolveCreateRuntimeID(ctx, req.Msg.GetRuntimeId())
 	if err != nil {
-		log.Printf("load setup state failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime configuration"))
-	}
-	runtimeID := strings.TrimSpace(req.Msg.GetRuntimeId())
-	if runtimeID == "" {
-		runtimeID = setup.MachineRuntime
-	}
-	if !db.IsSupportedMachineRuntime(runtimeID) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported runtime id"))
+		return nil, err
 	}
 	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion())
 	if err != nil {
@@ -122,11 +114,21 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
 
-	runtimeID := strings.TrimSpace(req.Msg.GetRuntimeId())
-	if runtimeID != "" {
-		if !db.IsSupportedMachineRuntime(runtimeID) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported runtime id"))
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
+		log.Printf("get machine failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
+	}
+
+	runtimeID, err := s.resolveStartRuntimeID(ctx, machine, req.Msg.GetRuntimeId())
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(runtimeID) != strings.TrimSpace(machine.RuntimeID) {
 		runtimeUpdated, updateErr := s.store.UpdateMachineRuntimeByIDForOwner(ctx, userID, machineID, runtimeID, currentSetupVersion())
 		if updateErr != nil {
 			log.Printf("set machine runtime id failed: %v", updateErr)
@@ -146,7 +148,7 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 	}
 
-	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	machine, err = s.store.GetMachineByIDForUser(ctx, userID, machineID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
@@ -156,6 +158,66 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 	}
 
 	return connect.NewResponse(&arcav1.StartMachineResponse{Machine: toMachineMessage(machine)}), nil
+}
+
+func (s *machineConnectService) resolveCreateRuntimeID(ctx context.Context, requestedRuntimeID string) (string, error) {
+	runtimeID := strings.TrimSpace(requestedRuntimeID)
+	if runtimeID == "" {
+		setup, err := s.store.GetSetupState(ctx)
+		if err != nil {
+			log.Printf("load setup state failed: %v", err)
+			return "", connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime configuration"))
+		}
+		runtimeID = strings.TrimSpace(setup.MachineRuntime)
+	}
+
+	if runtimeID == "" {
+		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("machine runtime is not configured"))
+	}
+
+	if err := s.validateRuntimeExists(ctx, runtimeID); err != nil {
+		return "", err
+	}
+
+	return runtimeID, nil
+}
+
+func (s *machineConnectService) resolveStartRuntimeID(ctx context.Context, machine db.Machine, requestedRuntimeID string) (string, error) {
+	runtimeID := strings.TrimSpace(requestedRuntimeID)
+	if runtimeID == "" {
+		runtimeID = strings.TrimSpace(machine.RuntimeID)
+	}
+	if runtimeID == "" {
+		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("machine runtime is not configured"))
+	}
+
+	if err := s.validateRuntimeExists(ctx, runtimeID); err != nil {
+		return "", err
+	}
+
+	return runtimeID, nil
+}
+
+func (s *machineConnectService) validateRuntimeExists(ctx context.Context, runtimeID string) error {
+	runtimeID = strings.TrimSpace(runtimeID)
+	if runtimeID == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime id is required"))
+	}
+
+	if db.IsSupportedMachineRuntime(runtimeID) {
+		return nil
+	}
+
+	_, err := s.store.GetRuntimeByID(ctx, runtimeID)
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime not found"))
+	}
+
+	log.Printf("get runtime failed: %v", err)
+	return connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
 }
 
 func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Request[arcav1.StopMachineRequest]) (*connect.Response[arcav1.StopMachineResponse], error) {
