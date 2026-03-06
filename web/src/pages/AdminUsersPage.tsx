@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createManagedUser, issueManagedUserSetupToken, listManagedUsers } from '@/lib/api'
+import { createManagedUser, issueManagedUserSetupToken, listManagedUsers, updateUserRole } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { ManagedUser, User } from '@/lib/types'
 
@@ -32,6 +32,7 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [refreshingUserID, setRefreshingUserID] = useState('')
+  const [togglingRoleUserID, setTogglingRoleUserID] = useState('')
   const [tokenResult, setTokenResult] = useState<TokenResult | null>(null)
   const [error, setError] = useState('')
   const setupBaseURL = useMemo(() => `${window.location.origin}/users/setup`, [])
@@ -76,6 +77,20 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
       setError(messageFromError(err))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleToggleRole = async (target: ManagedUser) => {
+    setError('')
+    setTogglingRoleUserID(target.id)
+    try {
+      const newRole = target.role === 'admin' ? 'user' : 'admin'
+      const updated = await updateUserRole(target.id, newRole)
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+    } catch (err) {
+      setError(messageFromError(err))
+    } finally {
+      setTogglingRoleUserID('')
     }
   }
 
@@ -177,7 +192,12 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
                   <div key={managedUser.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="text-sm font-medium text-white">{managedUser.email}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-white">{managedUser.email}</p>
+                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${managedUser.role === 'admin' ? 'bg-sky-500/20 text-sky-300' : 'bg-white/10 text-slate-400'}`}>
+                            {managedUser.role}
+                          </span>
+                        </div>
                         <p className="text-xs text-slate-400">Created {formatUnix(managedUser.createdAt)}</p>
                         <p className="text-xs text-slate-300">
                           {managedUser.setupRequired
@@ -185,14 +205,30 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
                             : 'Setup complete'}
                         </p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => handleIssueToken(managedUser)}
-                        disabled={refreshingUserID === managedUser.id}
-                      >
-                        {refreshingUserID === managedUser.id ? 'Issuing...' : 'Issue setup token'}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {managedUser.id !== user.id && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => handleToggleRole(managedUser)}
+                            disabled={togglingRoleUserID === managedUser.id}
+                          >
+                            {togglingRoleUserID === managedUser.id
+                              ? 'Updating...'
+                              : managedUser.role === 'admin'
+                                ? 'Revoke admin'
+                                : 'Make admin'}
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => handleIssueToken(managedUser)}
+                          disabled={refreshingUserID === managedUser.id}
+                        >
+                          {refreshingUserID === managedUser.id ? 'Issuing...' : 'Issue setup token'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

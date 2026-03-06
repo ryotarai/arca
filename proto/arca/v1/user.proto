@@ -11,6 +11,7 @@ service UserService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
   rpc IssueUserSetupToken(IssueUserSetupTokenRequest) returns (IssueUserSetupTokenResponse);
   rpc CompleteUserSetup(CompleteUserSetupRequest) returns (CompleteUserSetupResponse);
+  rpc UpdateUserRole(UpdateUserRoleRequest) returns (UpdateUserRoleResponse);
 }
 
 message ManagedUser {
@@ -19,6 +20,7 @@ message ManagedUser {
   bool setup_required = 3;
   int64 setup_token_expires_at = 4;
   int64 created_at = 5;
+  string role = 6;
 }
 
 message ListUsersRequest {}
@@ -54,4 +56,13 @@ message CompleteUserSetupRequest {
 
 message CompleteUserSetupResponse {
   User user = 1;
+}
+
+message UpdateUserRoleRequest {
+  string user_id = 1;
+  string role = 2;
+}
+
+message UpdateUserRoleResponse {
+  ManagedUser user = 1;
 }

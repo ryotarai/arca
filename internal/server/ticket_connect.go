@@ -103,7 +103,7 @@ func authenticateUserFromHeader(ctx context.Context, authenticator Authenticator
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
 
-	userID, _, err := authenticator.Authenticate(ctx, sessionToken)
+	userID, _, _, err := authenticator.Authenticate(ctx, sessionToken)
 	if err != nil {
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}

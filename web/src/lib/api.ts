@@ -39,6 +39,7 @@ import {
   CreateUserRequestSchema,
   IssueUserSetupTokenRequestSchema,
   ListUsersRequestSchema as ListManagedUsersRequestSchema,
+  UpdateUserRoleRequestSchema,
   UserService,
 } from '@/gen/arca/v1/user_pb'
 import { ApiError, parseApiErrorPayload } from '@/lib/errors'
@@ -86,13 +87,14 @@ async function withRequestTimeout<T>(
   }
 }
 
-export function toUser(user: { id: string; email: string } | undefined): User | null {
+export function toUser(user: { id: string; email: string; role?: string } | undefined): User | null {
   if (user == null) {
     return null
   }
   return {
     id: user.id,
     email: user.email,
+    role: user.role ?? 'user',
   }
 }
 
@@ -100,6 +102,7 @@ function toManagedUser(user: {
   id: string
   email: string
   setupRequired: boolean
+  role?: string
   setupTokenExpiresAt: bigint
   createdAt: bigint
 } | undefined): ManagedUser | null {
@@ -110,6 +113,7 @@ function toManagedUser(user: {
     id: user.id,
     email: user.email,
     setupRequired: user.setupRequired,
+    role: user.role ?? 'user',
     setupTokenExpiresAt: Number(user.setupTokenExpiresAt),
     createdAt: Number(user.createdAt),
   }
@@ -255,6 +259,15 @@ export async function issueManagedUserSetupToken(userID: string): Promise<{ user
     setupToken: response.setupToken,
     setupTokenExpiresAt: Number(response.setupTokenExpiresAt),
   }
+}
+
+export async function updateUserRole(userID: string, role: string): Promise<ManagedUser> {
+  const response = await userClient.updateUserRole(create(UpdateUserRoleRequestSchema, { userId: userID, role }))
+  const user = toManagedUser(response.user)
+  if (user == null) {
+    throw new Error('request failed')
+  }
+  return user
 }
 
 export async function completeUserSetup(setupToken: string, password: string): Promise<User | null> {

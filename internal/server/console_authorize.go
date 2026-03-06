@@ -96,7 +96,7 @@ func userIDFromSessionCookie(r *http.Request, authenticator Authenticator) (stri
 	if err != nil || sessionToken == "" {
 		return "", errors.New("unauthenticated")
 	}
-	userID, _, err := authenticator.Authenticate(r.Context(), sessionToken)
+	userID, _, _, err := authenticator.Authenticate(r.Context(), sessionToken)
 	if err != nil {
 		return "", err
 	}

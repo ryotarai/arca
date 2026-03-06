@@ -9,17 +9,22 @@ import (
 	sqlitesqlc "github.com/ryotarai/arca/internal/db/sqlc/sqlite"
 )
 
+const UserRoleAdmin = "admin"
+const UserRoleUser = "user"
+
 type AuthUser struct {
 	ID                    string
 	Email                 string
 	PasswordHash          string
 	PasswordSetupRequired bool
+	Role                  string
 }
 
 type ManagedUser struct {
 	ID                    string
 	Email                 string
 	PasswordSetupRequired bool
+	Role                  string
 	SetupTokenExpiresAt   int64
 	CreatedAt             int64
 }
@@ -106,6 +111,25 @@ func (s *Store) GetUserByActiveSessionTokenHash(ctx context.Context, tokenHash s
 	}
 }
 
+func (s *Store) UpdateUserRoleByID(ctx context.Context, id, role string) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		n, err := s.sqliteQueries.UpdateUserRoleByID(ctx, sqlitesqlc.UpdateUserRoleByIDParams{ID: id, Role: role})
+		if err != nil {
+			return false, err
+		}
+		return n > 0, nil
+	case DriverPostgres:
+		n, err := s.pgQueries.UpdateUserRoleByID(ctx, postgresqlsqlc.UpdateUserRoleByIDParams{ID: id, Role: role})
+		if err != nil {
+			return false, err
+		}
+		return n > 0, nil
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) ListUsers(ctx context.Context, nowUnix int64) ([]ManagedUser, error) {
 	switch s.driver {
 	case DriverSQLite:
@@ -119,6 +143,7 @@ func (s *Store) ListUsers(ctx context.Context, nowUnix int64) ([]ManagedUser, er
 				ID:                    user.ID,
 				Email:                 user.Email,
 				PasswordSetupRequired: user.PasswordSetupRequired,
+				Role:                  user.Role,
 				CreatedAt:             user.CreatedAt.Unix(),
 			}
 			if user.PasswordSetupRequired {
@@ -147,6 +172,7 @@ func (s *Store) ListUsers(ctx context.Context, nowUnix int64) ([]ManagedUser, er
 				ID:                    user.ID,
 				Email:                 user.Email,
 				PasswordSetupRequired: user.PasswordSetupRequired,
+				Role:                  user.Role,
 				CreatedAt:             user.CreatedAt.Unix(),
 			}
 			if user.PasswordSetupRequired {
@@ -411,6 +437,7 @@ func toAuthUser(user sqlitesqlc.User) AuthUser {
 		Email:                 user.Email,
 		PasswordHash:          user.PasswordHash,
 		PasswordSetupRequired: user.PasswordSetupRequired,
+		Role:                  user.Role,
 	}
 }
 
@@ -420,5 +447,6 @@ func toAuthUserPG(user postgresqlsqlc.User) AuthUser {
 		Email:                 user.Email,
 		PasswordHash:          user.PasswordHash,
 		PasswordSetupRequired: user.PasswordSetupRequired,
+		Role:                  user.Role,
 	}
 }

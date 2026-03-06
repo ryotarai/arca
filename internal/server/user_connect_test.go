@@ -34,7 +34,7 @@ func newUserServiceForTest(t *testing.T) (*db.Store, *auth.Service) {
 
 func loginToken(t *testing.T, authenticator *auth.Service, email, password string) string {
 	t.Helper()
-	_, _, sessionToken, _, err := authenticator.Login(context.Background(), email, password)
+	_, _, _, sessionToken, _, err := authenticator.Login(context.Background(), email, password)
 	if err != nil {
 		t.Fatalf("login %s: %v", email, err)
 	}
@@ -60,8 +60,8 @@ func TestUserConnectService_AdminOnlyOperations(t *testing.T) {
 		t.Fatalf("register member: %v", err)
 	}
 
-	if err := store.UpsertSetupState(ctx, db.SetupState{Completed: true, AdminUserID: adminID}); err != nil {
-		t.Fatalf("upsert setup state: %v", err)
+	if _, err := store.UpdateUserRoleByID(ctx, adminID, db.UserRoleAdmin); err != nil {
+		t.Fatalf("set admin role: %v", err)
 	}
 
 	adminToken := loginToken(t, authenticator, "admin@example.com", "admin-password")

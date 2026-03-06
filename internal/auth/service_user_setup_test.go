@@ -56,14 +56,14 @@ func TestProvisionAndCompleteUserSetupLifecycle(t *testing.T) {
 		t.Fatalf("setup token expiry %v must be in future", setupTokenExpiresAt)
 	}
 
-	if _, _, _, _, err := svc.Login(ctx, "user1@example.com", "initial-password"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, _, _, _, err := svc.Login(ctx, "user1@example.com", "initial-password"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("login before setup error = %v, want %v", err, ErrInvalidCredentials)
 	}
 
 	if _, _, err := svc.CompleteUserSetup(ctx, setupToken, "password-1234"); err != nil {
 		t.Fatalf("complete setup: %v", err)
 	}
-	if _, _, _, _, err := svc.Login(ctx, "user1@example.com", "password-1234"); err != nil {
+	if _, _, _, _, _, err := svc.Login(ctx, "user1@example.com", "password-1234"); err != nil {
 		t.Fatalf("login after setup: %v", err)
 	}
 
@@ -79,14 +79,14 @@ func TestProvisionAndCompleteUserSetupLifecycle(t *testing.T) {
 		t.Fatalf("new setup token is empty")
 	}
 
-	if _, _, _, _, err := svc.Login(ctx, "user1@example.com", "password-1234"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, _, _, _, err := svc.Login(ctx, "user1@example.com", "password-1234"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("login after reset issuance error = %v, want %v", err, ErrInvalidCredentials)
 	}
 
 	if _, _, err := svc.CompleteUserSetup(ctx, newSetupToken, "password-5678"); err != nil {
 		t.Fatalf("complete setup after reset issuance: %v", err)
 	}
-	if _, _, _, _, err := svc.Login(ctx, "user1@example.com", "password-5678"); err != nil {
+	if _, _, _, _, _, err := svc.Login(ctx, "user1@example.com", "password-5678"); err != nil {
 		t.Fatalf("login after reset completion: %v", err)
 	}
 }

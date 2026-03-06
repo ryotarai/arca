@@ -4,12 +4,14 @@ import { type EndpointVisibility, type MachineExposure as MachineExposureMessage
 export type User = {
   id: string
   email: string
+  role: string
 }
 
 export type ManagedUser = {
   id: string
   email: string
   setupRequired: boolean
+  role: string
   setupTokenExpiresAt: number
   createdAt: number
 }

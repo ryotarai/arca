@@ -28,7 +28,7 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
 
-	userID, email, token, expiresAt, err := s.authenticator.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
+	userID, email, role, token, expiresAt, err := s.authenticator.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrInvalidCredentials):
@@ -39,7 +39,7 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 		}
 	}
 
-	resp := connect.NewResponse(&arcav1.LoginResponse{User: &arcav1.User{Id: userID, Email: email}})
+	resp := connect.NewResponse(&arcav1.LoginResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}})
 	setSessionCookie(resp.Header(), token, expiresAt, isSecureRequest(req.Header()))
 	return resp, nil
 }
@@ -78,7 +78,7 @@ func (s *authConnectService) CompleteOidcLogin(ctx context.Context, req *connect
 	if err != nil || stateCookie == "" || stateCookie != strings.TrimSpace(req.Msg.GetState()) {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid oidc state"))
 	}
-	userID, email, token, expiresAt, err := s.authenticator.LoginWithOIDCCode(ctx, req.Msg.GetCode(), req.Msg.GetRedirectUri())
+	userID, email, role, token, expiresAt, err := s.authenticator.LoginWithOIDCCode(ctx, req.Msg.GetCode(), req.Msg.GetRedirectUri())
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrOIDCNotConfigured):
@@ -90,7 +90,7 @@ func (s *authConnectService) CompleteOidcLogin(ctx context.Context, req *connect
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to complete oidc login"))
 		}
 	}
-	resp := connect.NewResponse(&arcav1.CompleteOidcLoginResponse{User: &arcav1.User{Id: userID, Email: email}})
+	resp := connect.NewResponse(&arcav1.CompleteOidcLoginResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}})
 	secure := isSecureRequest(req.Header())
 	setSessionCookie(resp.Header(), token, expiresAt, secure)
 	clearOIDCStateCookie(resp.Header(), secure)
@@ -122,7 +122,7 @@ func (s *authConnectService) Me(ctx context.Context, req *connect.Request[arcav1
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
 
-	userID, email, err := s.authenticator.Authenticate(ctx, sessionToken)
+	userID, email, role, err := s.authenticator.Authenticate(ctx, sessionToken)
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrUnauthenticated):
@@ -133,7 +133,7 @@ func (s *authConnectService) Me(ctx context.Context, req *connect.Request[arcav1
 		}
 	}
 
-	return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email}}), nil
+	return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}}), nil
 }
 
 func sessionTokenFromHeader(header http.Header) (string, error) {

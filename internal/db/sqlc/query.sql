@@ -15,21 +15,26 @@ INSERT INTO users (id, email, password_hash)
 VALUES (sqlc.arg(id), sqlc.arg(email), sqlc.arg(password_hash));
 
 -- name: ListUsers :many
-SELECT id, email, password_hash, password_setup_required, created_at
+SELECT id, email, password_hash, password_setup_required, role, created_at
 FROM users
 ORDER BY created_at DESC;
 
 -- name: GetUserByEmail :one
-SELECT id, email, password_hash, password_setup_required, created_at
+SELECT id, email, password_hash, password_setup_required, role, created_at
 FROM users
 WHERE email = sqlc.arg(email)
 LIMIT 1;
 
 -- name: GetUserByID :one
-SELECT id, email, password_hash, password_setup_required, created_at
+SELECT id, email, password_hash, password_setup_required, role, created_at
 FROM users
 WHERE id = sqlc.arg(id)
 LIMIT 1;
+
+-- name: UpdateUserRoleByID :execrows
+UPDATE users
+SET role = sqlc.arg(role)
+WHERE id = sqlc.arg(id);
 
 -- name: UpdateUserPasswordHashByID :execrows
 UPDATE users
@@ -87,7 +92,7 @@ INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES (sqlc.arg(id), sqlc.arg(user_id), sqlc.arg(token_hash), sqlc.arg(expires_at_unix));
 
 -- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = sqlc.arg(token_hash)

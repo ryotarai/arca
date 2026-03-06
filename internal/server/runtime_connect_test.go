@@ -21,8 +21,8 @@ func TestRuntimeConnectService_AdminOnlyOperations(t *testing.T) {
 	if _, _, err := authenticator.Register(ctx, "runtime-member@example.com", "member-password"); err != nil {
 		t.Fatalf("register member: %v", err)
 	}
-	if err := store.UpsertSetupState(ctx, db.SetupState{Completed: true, AdminUserID: adminID}); err != nil {
-		t.Fatalf("upsert setup state: %v", err)
+	if _, err := store.UpdateUserRoleByID(ctx, adminID, db.UserRoleAdmin); err != nil {
+		t.Fatalf("set admin role: %v", err)
 	}
 
 	adminToken := loginToken(t, authenticator, "runtime-admin@example.com", "admin-password")
@@ -134,8 +134,8 @@ func TestRuntimeConnectService_CRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register admin: %v", err)
 	}
-	if err := store.UpsertSetupState(ctx, db.SetupState{Completed: true, AdminUserID: adminID}); err != nil {
-		t.Fatalf("upsert setup state: %v", err)
+	if _, err := store.UpdateUserRoleByID(ctx, adminID, db.UserRoleAdmin); err != nil {
+		t.Fatalf("set admin role: %v", err)
 	}
 	adminToken := loginToken(t, authenticator, "runtime-admin2@example.com", "admin-password")
 

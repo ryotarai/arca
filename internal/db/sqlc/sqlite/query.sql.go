@@ -687,7 +687,7 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 }
 
 const getUserByActiveSessionTokenHash = `-- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = ?1
@@ -709,13 +709,14 @@ func (q *Queries) GetUserByActiveSessionTokenHash(ctx context.Context, arg GetUs
 		&i.Email,
 		&i.PasswordHash,
 		&i.PasswordSetupRequired,
+		&i.Role,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, password_setup_required, created_at
+SELECT id, email, password_hash, password_setup_required, role, created_at
 FROM users
 WHERE email = ?1
 LIMIT 1
@@ -729,13 +730,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Email,
 		&i.PasswordHash,
 		&i.PasswordSetupRequired,
+		&i.Role,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, password_setup_required, created_at
+SELECT id, email, password_hash, password_setup_required, role, created_at
 FROM users
 WHERE id = ?1
 LIMIT 1
@@ -749,6 +751,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.Email,
 		&i.PasswordHash,
 		&i.PasswordSetupRequired,
+		&i.Role,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -1184,7 +1187,7 @@ func (q *Queries) ListRuntimes(ctx context.Context) ([]Runtime, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, password_setup_required, created_at
+SELECT id, email, password_hash, password_setup_required, role, created_at
 FROM users
 ORDER BY created_at DESC
 `
@@ -1203,6 +1206,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Email,
 			&i.PasswordHash,
 			&i.PasswordSetupRequired,
+			&i.Role,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -1552,6 +1556,25 @@ type UpdateUserPasswordSetupRequiredByIDParams struct {
 
 func (q *Queries) UpdateUserPasswordSetupRequiredByID(ctx context.Context, arg UpdateUserPasswordSetupRequiredByIDParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateUserPasswordSetupRequiredByID, arg.PasswordSetupRequired, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserRoleByID = `-- name: UpdateUserRoleByID :execrows
+UPDATE users
+SET role = ?1
+WHERE id = ?2
+`
+
+type UpdateUserRoleByIDParams struct {
+	Role string
+	ID   string
+}
+
+func (q *Queries) UpdateUserRoleByID(ctx context.Context, arg UpdateUserRoleByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserRoleByID, arg.Role, arg.ID)
 	if err != nil {
 		return 0, err
 	}

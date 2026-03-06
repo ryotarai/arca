@@ -149,19 +149,54 @@ func (s *userConnectService) authenticateAdmin(ctx context.Context, header http.
 	if err != nil || sessionToken == "" {
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
-	userID, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+	userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
 	if err != nil {
 		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 	}
-	setupState, err := s.store.GetSetupState(ctx)
-	if err != nil {
-		log.Printf("load setup state failed: %v", err)
-		return "", connect.NewError(connect.CodeInternal, errors.New("failed to authorize user"))
-	}
-	if strings.TrimSpace(setupState.AdminUserID) == "" || setupState.AdminUserID != userID {
+	if role != db.UserRoleAdmin {
 		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage users"))
 	}
 	return userID, nil
+}
+
+func (s *userConnectService) UpdateUserRole(ctx context.Context, req *connect.Request[arcav1.UpdateUserRoleRequest]) (*connect.Response[arcav1.UpdateUserRoleResponse], error) {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	userID := strings.TrimSpace(req.Msg.GetUserId())
+	role := strings.TrimSpace(req.Msg.GetRole())
+	if userID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("user id is required"))
+	}
+	if role != db.UserRoleAdmin && role != db.UserRoleUser {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("role must be 'admin' or 'user'"))
+	}
+	if userID == adminUserID {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot change your own role"))
+	}
+
+	updated, err := s.store.UpdateUserRoleByID(ctx, userID, role)
+	if err != nil {
+		log.Printf("update user role failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update user role"))
+	}
+	if !updated {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
+	}
+
+	users, err := s.authenticator.ListUsers(ctx)
+	if err != nil {
+		log.Printf("list users failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user"))
+	}
+	for _, u := range users {
+		if u.ID == userID {
+			return connect.NewResponse(&arcav1.UpdateUserRoleResponse{User: toManagedUserMessage(u)}), nil
+		}
+	}
+	return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
 }
 
 func toManagedUserMessage(user db.ManagedUser) *arcav1.ManagedUser {
@@ -171,5 +206,6 @@ func toManagedUserMessage(user db.ManagedUser) *arcav1.ManagedUser {
 		SetupRequired:       user.PasswordSetupRequired,
 		SetupTokenExpiresAt: user.SetupTokenExpiresAt,
 		CreatedAt:           user.CreatedAt,
+		Role:                user.Role,
 	}
 }
