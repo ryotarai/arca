@@ -87,7 +87,6 @@ CREATE TABLE IF NOT EXISTS setup_state (
   base_domain TEXT NOT NULL DEFAULT '',
   domain_prefix TEXT NOT NULL DEFAULT '',
   cloudflare_api_token TEXT NOT NULL DEFAULT '',
-  docker_provider_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   updated_at BIGINT NOT NULL DEFAULT 0
 );
 
