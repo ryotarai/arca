@@ -39,8 +39,8 @@ func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Req
 				Completed:             true,
 				AdminConfigured:       true,
 				CloudflareConfigured:  true,
-				DockerProviderEnabled: true,
-				MachineRuntime:        db.MachineRuntimeDocker,
+				DockerProviderEnabled: false,
+				MachineRuntime:        db.MachineRuntimeLibvirt,
 			},
 		}), nil
 	}
@@ -163,11 +163,9 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		CloudflareAPIToken:    cfToken,
 		MachineRuntime:        normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
 		CloudflareZoneID:      zoneID,
-		DockerProviderEnabled: req.Msg.GetDockerProviderEnabled(),
+		DockerProviderEnabled: false,
 	}
-	if state.MachineRuntime == db.MachineRuntimeDocker {
-		state.DockerProviderEnabled = true
-	}
+
 	if err := s.store.UpsertSetupState(ctx, state); err != nil {
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
@@ -213,7 +211,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	if strings.TrimSpace(req.Msg.GetMachineRuntime()) != "" {
 		current.MachineRuntime = normalizeMachineRuntime(req.Msg.GetMachineRuntime())
 	}
-	current.DockerProviderEnabled = current.MachineRuntime == db.MachineRuntimeDocker
+	current.DockerProviderEnabled = false
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))

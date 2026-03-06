@@ -38,7 +38,8 @@ const (
 type Machine struct {
 	ID            string
 	Name          string
-	Runtime       string
+	RuntimeID     string
+	SetupVersion  string
 	Endpoint      string
 	Status        string
 	DesiredStatus string
@@ -74,7 +75,7 @@ type MachineEventInput struct {
 
 var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
 
-func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtime string) (Machine, error) {
+func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtimeID, setupVersion string) (Machine, error) {
 	machineID, err := randomID()
 	if err != nil {
 		return Machine{}, err
@@ -89,7 +90,8 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		return Machine{}, err
 	}
 	nowUnix := time.Now().Unix()
-	runtime = NormalizeMachineRuntime(runtime)
+	runtimeID = NormalizeMachineRuntime(runtimeID)
+	setupVersion = strings.TrimSpace(setupVersion)
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -113,7 +115,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 	switch s.driver {
 	case DriverSQLite:
 		q := s.sqliteQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, Runtime: runtime}); err != nil {
+		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -164,7 +166,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, Runtime: runtime}); err != nil {
+		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -224,7 +226,8 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 	return Machine{
 		ID:            machineID,
 		Name:          name,
-		Runtime:       runtime,
+		RuntimeID:     runtimeID,
+		SetupVersion:  setupVersion,
 		Endpoint:      "",
 		Status:        MachineStatusPending,
 		DesiredStatus: MachineDesiredRunning,
@@ -244,7 +247,8 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
-				Runtime:       NormalizeMachineRuntime(row.Runtime),
+				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
+				SetupVersion:  strings.TrimSpace(row.SetupVersion),
 				Endpoint:      strings.TrimSpace(row.Endpoint),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
@@ -263,7 +267,8 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
-				Runtime:       NormalizeMachineRuntime(row.Runtime),
+				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
+				SetupVersion:  strings.TrimSpace(row.SetupVersion),
 				Endpoint:      strings.TrimSpace(row.Endpoint),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
@@ -298,6 +303,31 @@ func (s *Store) UpdateMachineNameByIDForOwner(ctx context.Context, userID, machi
 		if err != nil && isMachineNameUniqueConstraintError(err) {
 			return false, ErrMachineNameAlreadyExists
 		}
+		return updated > 0, err
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpdateMachineRuntimeByIDForOwner(ctx context.Context, userID, machineID, runtimeID, setupVersion string) (bool, error) {
+	runtimeID = NormalizeMachineRuntime(runtimeID)
+	setupVersion = strings.TrimSpace(setupVersion)
+	switch s.driver {
+	case DriverSQLite:
+		updated, err := s.sqliteQueries.UpdateMachineRuntimeByIDForOwner(ctx, sqlitesqlc.UpdateMachineRuntimeByIDForOwnerParams{
+			RuntimeID:    runtimeID,
+			SetupVersion: setupVersion,
+			MachineID:    machineID,
+			UserID:       userID,
+		})
+		return updated > 0, err
+	case DriverPostgres:
+		updated, err := s.pgQueries.UpdateMachineRuntimeByIDForOwner(ctx, postgresqlsqlc.UpdateMachineRuntimeByIDForOwnerParams{
+			RuntimeID:    runtimeID,
+			SetupVersion: setupVersion,
+			MachineID:    machineID,
+			UserID:       userID,
+		})
 		return updated > 0, err
 	default:
 		return false, unsupportedDriverError(s.driver)
@@ -437,7 +467,8 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
-			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:  strings.TrimSpace(row.SetupVersion),
 			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
@@ -452,7 +483,8 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
-			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:  strings.TrimSpace(row.SetupVersion),
 			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
@@ -477,7 +509,8 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
-			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:  strings.TrimSpace(row.SetupVersion),
 			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
@@ -495,7 +528,8 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 		return Machine{
 			ID:            row.ID,
 			Name:          row.Name,
-			Runtime:       NormalizeMachineRuntime(row.Runtime),
+			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:  strings.TrimSpace(row.SetupVersion),
 			Endpoint:      strings.TrimSpace(row.Endpoint),
 			Status:        row.Status,
 			DesiredStatus: row.DesiredStatus,
@@ -585,7 +619,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
-				Runtime:       NormalizeMachineRuntime(row.Runtime),
+				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,
@@ -606,7 +640,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 			machines = append(machines, Machine{
 				ID:            row.ID,
 				Name:          row.Name,
-				Runtime:       NormalizeMachineRuntime(row.Runtime),
+				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
 				Status:        row.Status,
 				DesiredStatus: row.DesiredStatus,
 				ContainerID:   row.ContainerID,

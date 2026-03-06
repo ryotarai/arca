@@ -166,8 +166,8 @@ export async function listMachines(options: PollingOptions = {}): Promise<Machin
   return response.machines
 }
 
-export async function createMachine(name: string): Promise<Machine> {
-  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name }))
+export async function createMachine(name: string, runtimeID?: string): Promise<Machine> {
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID ?? '' })) 
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -197,8 +197,8 @@ export async function updateMachine(id: string, name: string): Promise<Machine> 
   return response.machine
 }
 
-export async function startMachine(id: string): Promise<Machine> {
-  const response = await machineClient.startMachine(create(StartMachineRequestSchema, { machineId: id }))
+export async function startMachine(id: string, runtimeID?: string): Promise<Machine> {
+  const response = await machineClient.startMachine(create(StartMachineRequestSchema, { machineId: id, runtimeId: runtimeID ?? '' }))
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -258,13 +258,13 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const cloudflareZoneID = response.status?.cloudflareZoneId ?? response.cloudflareZoneId ?? ''
     const baseDomain = response.status?.baseDomain ?? response.baseDomain ?? ''
     const domainPrefix = response.status?.domainPrefix ?? response.domainPrefix ?? ''
-    const machineRuntimeRaw = (response.status?.machineRuntime ?? response.machineRuntime ?? 'docker').toLowerCase()
-    const machineRuntime = machineRuntimeRaw === 'libvirt' ? 'libvirt' : 'docker'
+    const machineRuntimeRaw = (response.status?.machineRuntime ?? response.machineRuntime ?? 'libvirt').toLowerCase()
+    const machineRuntime = machineRuntimeRaw === 'libvirt' ? 'libvirt' : 'libvirt'
 
     return { isConfigured, hasAdmin, cloudflareZoneID, baseDomain, domainPrefix, machineRuntime }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
-      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '', baseDomain: '', domainPrefix: '', machineRuntime: 'docker' }
+      return { isConfigured: true, hasAdmin: true, cloudflareZoneID: '', baseDomain: '', domainPrefix: '', machineRuntime: 'libvirt' }
     }
     throw error
   }
@@ -302,7 +302,7 @@ export async function setupComplete(
   domainPrefix: string,
   cloudflareApiToken: string,
   cloudflareZoneID: string,
-  machineRuntime: 'docker' | 'libvirt',
+  machineRuntime: 'libvirt',
 ): Promise<void> {
   try {
     const response = await callConnectJSONCandidates<{
@@ -317,7 +317,7 @@ export async function setupComplete(
       domainPrefix,
       cloudflareApiToken,
       cloudflareZoneId: cloudflareZoneID,
-      dockerProviderEnabled: machineRuntime === 'docker',
+      dockerProviderEnabled: false,
       machineRuntime,
     })
     if (response.status?.completed !== true) {
@@ -334,7 +334,7 @@ export async function setupComplete(
 export async function updateDomainSettings(
   baseDomain: string,
   domainPrefix: string,
-  machineRuntime: 'docker' | 'libvirt',
+  machineRuntime: 'libvirt',
 ): Promise<void> {
   const response = await callConnectJSONCandidates<{
     status?: {

@@ -22,6 +22,8 @@ message Machine {
   string desired_status = 4;
   string last_error = 5;
   string endpoint = 6;
+  string runtime_id = 7;
+  bool update_required = 8;
 }
 
 message ListMachinesRequest {}
@@ -40,6 +42,7 @@ message GetMachineResponse {
 
 message CreateMachineRequest {
   string name = 1;
+  string runtime_id = 2;
 }
 
 message CreateMachineResponse {
@@ -58,6 +61,7 @@ message UpdateMachineResponse {
 
 message StartMachineRequest {
   string machine_id = 1;
+  string runtime_id = 2;
 }
 
 message StartMachineResponse {

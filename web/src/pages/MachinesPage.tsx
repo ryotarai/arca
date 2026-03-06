@@ -287,9 +287,11 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                           >
                             Stop
                           </Button>
-                          <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
-                            Restart
-                          </Button>
+                          {machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' && (
+                            <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
+                              Restart to update
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             variant="secondary"

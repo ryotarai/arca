@@ -56,13 +56,8 @@ func main() {
 			log.Printf("console endpoint exposed at https://%s", hostname)
 		}
 	}
-	dockerRuntime, err := machine.NewDockerRuntime(os.Getenv("MACHINE_DOCKER_IMAGE"))
-	if err != nil {
-		log.Fatalf("docker runtime initialization failed: %v", err)
-	}
 	libvirtRuntime := machine.NewLibvirtRuntime()
 	runtime := machine.NewRoutingRuntime(map[string]machine.Runtime{
-		db.MachineRuntimeDocker:  dockerRuntime,
 		db.MachineRuntimeLibvirt: libvirtRuntime,
 	})
 	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))

@@ -12,7 +12,7 @@ export default defineConfig({
   },
   webServer: {
     command:
-      'cd .. && mkdir -p bin .cache/go-build .cache/go-mod && GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod go build -o ./bin/server ./cmd/server && SERVER_ADDR=127.0.0.1:18080 ARCA_SKIP_CLOUDFLARE_VALIDATION=1 ARCA_SKIP_SETUP=1 ./bin/server',
+      'cd .. && mkdir -p bin .cache/go-build .cache/go-mod && GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod go build -o ./bin/server ./cmd/server && rm -f /tmp/arca-e2e.db && SERVER_ADDR=127.0.0.1:18080 DB_DSN="file:/tmp/arca-e2e.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)" ARCA_SKIP_CLOUDFLARE_VALIDATION=1 ARCA_SKIP_SETUP=1 ./bin/server',
     url: 'http://127.0.0.1:18080/',
     reuseExistingServer: true,
     timeout: 120_000,

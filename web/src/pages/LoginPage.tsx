@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { login, register } from '@/lib/api'
+import { login } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { User } from '@/lib/types'
 
@@ -17,11 +17,9 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextPath = sanitizeNextPath(searchParams.get('next'))
-  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     if (user != null && nextPath !== '/') {
@@ -39,17 +37,8 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
-    setNotice('')
 
     try {
-      if (mode === 'register') {
-        await register(email, password)
-        setNotice('registered. please log in.')
-        setMode('login')
-        setPassword('')
-        return
-      }
-
       const loggedIn = await login(email, password)
       if (loggedIn == null) {
         setError('request failed')
@@ -77,7 +66,7 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
         <div className="max-w-lg space-y-5 animate-in fade-in slide-in-from-left-3 duration-700">
           <h2 className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">Arca</h2>
           <h1 className="text-balance text-4xl font-semibold leading-tight text-white sm:text-5xl">
-            {mode === 'register' ? 'Build fast with secure auth' : 'Ship faster with confidence'}
+            Ship faster with confidence
           </h1>
           <p className="max-w-md text-pretty text-sm leading-6 text-slate-300 sm:text-base">
             A clean workspace for developers who care about speed, clarity, and reliable collaboration.
@@ -86,14 +75,8 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
 
         <Card className="w-full max-w-md border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500">
           <CardHeader className="space-y-3 p-8 pb-4">
-            <CardTitle className="text-2xl font-semibold text-white">
-              {mode === 'register' ? 'Create account' : 'Login'}
-            </CardTitle>
-            <CardDescription className="text-slate-300">
-              {mode === 'register'
-                ? 'Use your work email and a secure password.'
-                : 'Use your registered email and password.'}
-            </CardDescription>
+            <CardTitle className="text-2xl font-semibold text-white">Login</CardTitle>
+            <CardDescription className="text-slate-300">Use your provisioned email and password.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 p-8 pt-2">
             <form className="space-y-4" onSubmit={submit}>
@@ -119,7 +102,7 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
                 <Input
                   id="password"
                   type="password"
-                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   minLength={8}
@@ -129,31 +112,13 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
                 />
               </div>
               <Button type="submit" className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100">
-                {mode === 'register' ? 'Register' : 'Login'}
+                Login
               </Button>
             </form>
-
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-10 w-full text-slate-200 hover:bg-white/10 hover:text-white"
-              onClick={() => {
-                setMode(mode === 'register' ? 'login' : 'register')
-                setError('')
-                setNotice('')
-              }}
-            >
-              {mode === 'register' ? 'Use login instead' : 'Create new account'}
-            </Button>
 
             {error !== '' && (
               <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
                 {error}
-              </p>
-            )}
-            {notice !== '' && (
-              <p className="rounded-md border border-emerald-400/30 bg-emerald-500/12 px-3 py-2 text-sm text-emerald-200">
-                {notice}
               </p>
             )}
           </CardContent>
