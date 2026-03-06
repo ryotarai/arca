@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service RuntimeService {
+  rpc ListRuntimes(ListRuntimesRequest) returns (ListRuntimesResponse);
+  rpc CreateRuntime(CreateRuntimeRequest) returns (CreateRuntimeResponse);
+  rpc UpdateRuntime(UpdateRuntimeRequest) returns (UpdateRuntimeResponse);
+  rpc DeleteRuntime(DeleteRuntimeRequest) returns (DeleteRuntimeResponse);
+}
+
+enum RuntimeType {
+  RUNTIME_TYPE_UNSPECIFIED = 0;
+  RUNTIME_TYPE_LIBVIRT = 1;
+  RUNTIME_TYPE_GCE = 2;
+}
+
+message LibvirtRuntimeConfig {
+  string uri = 1;
+  string network = 2;
+  string storage_pool = 3;
+}
+
+message GceRuntimeConfig {
+  string project = 1;
+  string zone = 2;
+  string network = 3;
+  string subnetwork = 4;
+  string service_account_email = 5;
+}
+
+message RuntimeConfig {
+  oneof provider {
+    LibvirtRuntimeConfig libvirt = 1;
+    GceRuntimeConfig gce = 2;
+  }
+}
+
+message Runtime {
+  string id = 1;
+  string name = 2;
+  RuntimeType type = 3;
+  RuntimeConfig config = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}
+
+message ListRuntimesRequest {}
+
+message ListRuntimesResponse {
+  repeated Runtime runtimes = 1;
+}
+
+message CreateRuntimeRequest {
+  string name = 1;
+  RuntimeType type = 2;
+  RuntimeConfig config = 3;
+}
+
+message CreateRuntimeResponse {
+  Runtime runtime = 1;
+}
+
+message UpdateRuntimeRequest {
+  string runtime_id = 1;
+  string name = 2;
+  RuntimeType type = 3;
+  RuntimeConfig config = 4;
+}
+
+message UpdateRuntimeResponse {
+  Runtime runtime = 1;
+}
+
+message DeleteRuntimeRequest {
+  string runtime_id = 1;
+}
+
+message DeleteRuntimeResponse {}

@@ -103,6 +103,15 @@ type MachineTunnel struct {
 	UpdatedAt   int64
 }
 
+type Runtime struct {
+	ID         string
+	Name       string
+	Type       string
+	ConfigJson string
+	CreatedAt  int64
+	UpdatedAt  int64
+}
+
 type Session struct {
 	ID        string
 	UserID    string

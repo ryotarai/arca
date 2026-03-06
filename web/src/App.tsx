@@ -7,6 +7,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
 import { MachinesPage } from '@/pages/MachinesPage'
 import { OidcCallbackPage } from '@/pages/OidcCallbackPage'
+import { RuntimeCatalogPage } from '@/pages/RuntimeCatalogPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
@@ -113,6 +114,7 @@ export function App() {
       <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
       <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
       <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
+      <Route path="/runtimes" element={<RuntimeCatalogPage user={user} onLogout={handleLogout} />} />
       <Route
         path="/settings"
         element={
