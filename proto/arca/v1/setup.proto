@@ -16,7 +16,7 @@ message SetupStatus {
   bool admin_configured = 2;
   bool cloudflare_configured = 3;
   string base_domain = 4;
-  bool docker_provider_enabled = 5;
+  reserved 5;
   string cloudflare_zone_id = 6;
   string domain_prefix = 7;
   string machine_runtime = 8;
@@ -49,7 +49,7 @@ message CompleteSetupRequest {
   string admin_password = 2;
   string base_domain = 3;
   string cloudflare_api_token = 4;
-  bool docker_provider_enabled = 5;
+  reserved 5;
   string cloudflare_zone_id = 6;
   string domain_prefix = 7;
   string machine_runtime = 8;

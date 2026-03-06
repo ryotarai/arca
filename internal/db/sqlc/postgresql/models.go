@@ -113,14 +113,13 @@ type Session struct {
 }
 
 type SetupState struct {
-	ID                    int32
-	Completed             bool
-	AdminUserID           sql.NullString
-	BaseDomain            string
-	DomainPrefix          string
-	CloudflareApiToken    string
-	DockerProviderEnabled bool
-	UpdatedAt             int64
+	ID                 int32
+	Completed          bool
+	AdminUserID        sql.NullString
+	BaseDomain         string
+	DomainPrefix       string
+	CloudflareApiToken string
+	UpdatedAt          int64
 }
 
 type User struct {
