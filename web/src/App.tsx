@@ -15,6 +15,7 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { UserSetupPage } from '@/pages/UserSetupPage'
+import { AppLayout } from '@/pages/AppLayout'
 
 export function App() {
   const [loading, setLoading] = useState(true)
@@ -106,29 +107,33 @@ export function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage user={user} onLogout={handleLogout} />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} />} />
       <Route path="/login/oidc/callback" element={<OidcCallbackPage user={user} onLogin={setUser} />} />
       <Route path="/users/setup" element={<UserSetupPage user={user} />} />
-      <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
-      <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />
-      <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
-      <Route path="/machines/:machineID/edit" element={<MachineEditPage user={user} onLogout={handleLogout} />} />
-      <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
-      <Route path="/runtimes" element={<RuntimeCatalogPage user={user} onLogout={handleLogout} />} />
-      <Route path="/runtimes/:runtimeID" element={<RuntimeDetailPage user={user} onLogout={handleLogout} />} />
-      <Route
-        path="/settings"
-        element={
-          <SettingsPage
-            user={user}
-            setupStatus={setupStatus}
-            onSetupStatusChange={(next) => setSetupStatus(next)}
-            onLogout={handleLogout}
-          />
-        }
-      />
+
+      <Route element={<AppLayout user={user} onLogout={handleLogout} />}>
+        <Route path="/" element={user == null ? <Navigate to="/login" replace /> : <HomePage user={user} />} />
+        <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
+        <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />
+        <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
+        <Route path="/machines/:machineID/edit" element={<MachineEditPage user={user} onLogout={handleLogout} />} />
+        <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
+        <Route path="/runtimes" element={<RuntimeCatalogPage user={user} onLogout={handleLogout} />} />
+        <Route path="/runtimes/:runtimeID" element={<RuntimeDetailPage user={user} onLogout={handleLogout} />} />
+        <Route
+          path="/settings"
+          element={
+            <SettingsPage
+              user={user}
+              setupStatus={setupStatus}
+              onSetupStatusChange={(next) => setSetupStatus(next)}
+              onLogout={handleLogout}
+            />
+          }
+        />
+      </Route>
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
