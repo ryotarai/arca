@@ -24,9 +24,9 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 - After creating the worktree, create a `tmp` symlink in that worktree that points to the repository root `tmp/` (for example: `ln -s "$(pwd)/tmp" ".worktrees/<branch-name>/tmp"` from repo root).
 - If `.worktrees/<branch-name>/tmp` already exists and is not the expected symlink, stop and fix it before starting execution.
 - Derive pane title from task meaning, not only id.
-- Use about 10 characters that summarize the task title/content (for example `auth-fix`, `ui-login`, `db-migrate`).
+- Use about 20 characters that summarize the task title/content (for example `auth-fix`, `ui-login`, `db-migrate`).
 - Avoid id-only titles such as `task-001` unless no meaningful summary can be derived.
-- Start execution with `./scripts/bgcodex.sh "meaningful-10char-title" "your prompt" "path to the worktree dir"`.
+- Start execution with `./scripts/bgcodex.sh "meaningful-20char-title" "your prompt" "path to the worktree dir"`.
 7. Schedule run units with **parallel-by-default** policy.
 - Launch all `ready` tasks immediately unless a hard dependency or high-confidence file conflict exists.
 - If 2+ tasks are `ready`, keep at least 2 concurrent run units active whenever possible.
