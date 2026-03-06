@@ -10,9 +10,8 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-firs
 ## Workflow
 
 1. List task files in `tmp/tasks/` (`NNN-*.md`).
-2. Read `tmp/tasks/000-dependencies.md` if present, then read each task file.
-3. Build a dependency DAG from explicit dependency lines first.
-- Trust `000-dependencies.md` as the source of truth when it conflicts with inferred dependencies.
+2. Read each task file in `tmp/tasks/`.
+3. Build a dependency DAG from explicit dependency lines in task files.
 - If no explicit dependency exists, treat tasks as independent.
 4. Classify tasks:
 - `ready`: dependencies already completed.
@@ -55,7 +54,6 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-firs
 
 - Create `tmp/tasks-done/` when missing.
 - Preserve filename and markdown content.
-- Never move `tmp/tasks/000-dependencies.md` to `tmp/tasks-done/`.
 - Do not move partially completed or blocked tasks.
 
 ## Dependency Rules
