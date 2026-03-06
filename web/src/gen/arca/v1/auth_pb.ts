@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/auth.proto.
  */
 export const file_arca_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChJhcmNhL3YxL2F1dGgucHJvdG8SB2FyY2EudjEiIQoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCSIyCg9SZWdpc3RlclJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiLwoQUmVnaXN0ZXJSZXNwb25zZRIbCgR1c2VyGAEgASgLMg0uYXJjYS52MS5Vc2VyIi8KDExvZ2luUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSIsCg1Mb2dpblJlc3BvbnNlEhsKBHVzZXIYASABKAsyDS5hcmNhLnYxLlVzZXIiDwoNTG9nb3V0UmVxdWVzdCIgCg5Mb2dvdXRSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiCwoJTWVSZXF1ZXN0IikKCk1lUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLmFyY2EudjEuVXNlcjLwAQoLQXV0aFNlcnZpY2USPwoIUmVnaXN0ZXISGC5hcmNhLnYxLlJlZ2lzdGVyUmVxdWVzdBoZLmFyY2EudjEuUmVnaXN0ZXJSZXNwb25zZRI2CgVMb2dpbhIVLmFyY2EudjEuTG9naW5SZXF1ZXN0GhYuYXJjYS52MS5Mb2dpblJlc3BvbnNlEjkKBkxvZ291dBIWLmFyY2EudjEuTG9nb3V0UmVxdWVzdBoXLmFyY2EudjEuTG9nb3V0UmVzcG9uc2USLQoCTWUSEi5hcmNhLnYxLk1lUmVxdWVzdBoTLmFyY2EudjEuTWVSZXNwb25zZUKLAQoLY29tLmFyY2EudjFCCUF1dGhQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
+  fileDesc("ChJhcmNhL3YxL2F1dGgucHJvdG8SB2FyY2EudjEiIQoEVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCSIvCgxMb2dpblJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiLAoNTG9naW5SZXNwb25zZRIbCgR1c2VyGAEgASgLMg0uYXJjYS52MS5Vc2VyIg8KDUxvZ291dFJlcXVlc3QiIAoOTG9nb3V0UmVzcG9uc2USDgoGc3RhdHVzGAEgASgJIgsKCU1lUmVxdWVzdCIpCgpNZVJlc3BvbnNlEhsKBHVzZXIYASABKAsyDS5hcmNhLnYxLlVzZXIyrwEKC0F1dGhTZXJ2aWNlEjYKBUxvZ2luEhUuYXJjYS52MS5Mb2dpblJlcXVlc3QaFi5hcmNhLnYxLkxvZ2luUmVzcG9uc2USOQoGTG9nb3V0EhYuYXJjYS52MS5Mb2dvdXRSZXF1ZXN0GhcuYXJjYS52MS5Mb2dvdXRSZXNwb25zZRItCgJNZRISLmFyY2EudjEuTWVSZXF1ZXN0GhMuYXJjYS52MS5NZVJlc3BvbnNlQosBCgtjb20uYXJjYS52MUIJQXV0aFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message arca.v1.User
@@ -35,45 +35,6 @@ export const UserSchema: GenMessage<User> = /*@__PURE__*/
   messageDesc(file_arca_v1_auth, 0);
 
 /**
- * @generated from message arca.v1.RegisterRequest
- */
-export type RegisterRequest = Message<"arca.v1.RegisterRequest"> & {
-  /**
-   * @generated from field: string email = 1;
-   */
-  email: string;
-
-  /**
-   * @generated from field: string password = 2;
-   */
-  password: string;
-};
-
-/**
- * Describes the message arca.v1.RegisterRequest.
- * Use `create(RegisterRequestSchema)` to create a new message.
- */
-export const RegisterRequestSchema: GenMessage<RegisterRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 1);
-
-/**
- * @generated from message arca.v1.RegisterResponse
- */
-export type RegisterResponse = Message<"arca.v1.RegisterResponse"> & {
-  /**
-   * @generated from field: arca.v1.User user = 1;
-   */
-  user?: User;
-};
-
-/**
- * Describes the message arca.v1.RegisterResponse.
- * Use `create(RegisterResponseSchema)` to create a new message.
- */
-export const RegisterResponseSchema: GenMessage<RegisterResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 2);
-
-/**
  * @generated from message arca.v1.LoginRequest
  */
 export type LoginRequest = Message<"arca.v1.LoginRequest"> & {
@@ -93,7 +54,7 @@ export type LoginRequest = Message<"arca.v1.LoginRequest"> & {
  * Use `create(LoginRequestSchema)` to create a new message.
  */
 export const LoginRequestSchema: GenMessage<LoginRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 3);
+  messageDesc(file_arca_v1_auth, 1);
 
 /**
  * @generated from message arca.v1.LoginResponse
@@ -110,7 +71,7 @@ export type LoginResponse = Message<"arca.v1.LoginResponse"> & {
  * Use `create(LoginResponseSchema)` to create a new message.
  */
 export const LoginResponseSchema: GenMessage<LoginResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 4);
+  messageDesc(file_arca_v1_auth, 2);
 
 /**
  * @generated from message arca.v1.LogoutRequest
@@ -123,7 +84,7 @@ export type LogoutRequest = Message<"arca.v1.LogoutRequest"> & {
  * Use `create(LogoutRequestSchema)` to create a new message.
  */
 export const LogoutRequestSchema: GenMessage<LogoutRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 5);
+  messageDesc(file_arca_v1_auth, 3);
 
 /**
  * @generated from message arca.v1.LogoutResponse
@@ -140,7 +101,7 @@ export type LogoutResponse = Message<"arca.v1.LogoutResponse"> & {
  * Use `create(LogoutResponseSchema)` to create a new message.
  */
 export const LogoutResponseSchema: GenMessage<LogoutResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 6);
+  messageDesc(file_arca_v1_auth, 4);
 
 /**
  * @generated from message arca.v1.MeRequest
@@ -153,7 +114,7 @@ export type MeRequest = Message<"arca.v1.MeRequest"> & {
  * Use `create(MeRequestSchema)` to create a new message.
  */
 export const MeRequestSchema: GenMessage<MeRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 7);
+  messageDesc(file_arca_v1_auth, 5);
 
 /**
  * @generated from message arca.v1.MeResponse
@@ -170,20 +131,12 @@ export type MeResponse = Message<"arca.v1.MeResponse"> & {
  * Use `create(MeResponseSchema)` to create a new message.
  */
 export const MeResponseSchema: GenMessage<MeResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_auth, 8);
+  messageDesc(file_arca_v1_auth, 6);
 
 /**
  * @generated from service arca.v1.AuthService
  */
 export const AuthService: GenService<{
-  /**
-   * @generated from rpc arca.v1.AuthService.Register
-   */
-  register: {
-    methodKind: "unary";
-    input: typeof RegisterRequestSchema;
-    output: typeof RegisterResponseSchema;
-  },
   /**
    * @generated from rpc arca.v1.AuthService.Login
    */

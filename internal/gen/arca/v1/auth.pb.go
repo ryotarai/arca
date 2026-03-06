@@ -73,102 +73,6 @@ func (x *User) GetEmail() string {
 	return ""
 }
 
-type RegisterRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RegisterRequest) Reset() {
-	*x = RegisterRequest{}
-	mi := &file_arca_v1_auth_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RegisterRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterRequest) ProtoMessage() {}
-
-func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
-func (*RegisterRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *RegisterRequest) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-func (x *RegisterRequest) GetPassword() string {
-	if x != nil {
-		return x.Password
-	}
-	return ""
-}
-
-type RegisterResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RegisterResponse) Reset() {
-	*x = RegisterResponse{}
-	mi := &file_arca_v1_auth_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RegisterResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterResponse) ProtoMessage() {}
-
-func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
-func (*RegisterResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *RegisterResponse) GetUser() *User {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
 type LoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
@@ -179,7 +83,7 @@ type LoginRequest struct {
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_arca_v1_auth_proto_msgTypes[3]
+	mi := &file_arca_v1_auth_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +95,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[3]
+	mi := &file_arca_v1_auth_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +108,7 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{3}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *LoginRequest) GetEmail() string {
@@ -230,7 +134,7 @@ type LoginResponse struct {
 
 func (x *LoginResponse) Reset() {
 	*x = LoginResponse{}
-	mi := &file_arca_v1_auth_proto_msgTypes[4]
+	mi := &file_arca_v1_auth_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -242,7 +146,7 @@ func (x *LoginResponse) String() string {
 func (*LoginResponse) ProtoMessage() {}
 
 func (x *LoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[4]
+	mi := &file_arca_v1_auth_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -255,7 +159,7 @@ func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
 func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{4}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *LoginResponse) GetUser() *User {
@@ -273,7 +177,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_arca_v1_auth_proto_msgTypes[5]
+	mi := &file_arca_v1_auth_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -285,7 +189,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[5]
+	mi := &file_arca_v1_auth_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -298,7 +202,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{5}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{3}
 }
 
 type LogoutResponse struct {
@@ -310,7 +214,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_arca_v1_auth_proto_msgTypes[6]
+	mi := &file_arca_v1_auth_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -322,7 +226,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[6]
+	mi := &file_arca_v1_auth_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +239,7 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{6}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *LogoutResponse) GetStatus() string {
@@ -353,7 +257,7 @@ type MeRequest struct {
 
 func (x *MeRequest) Reset() {
 	*x = MeRequest{}
-	mi := &file_arca_v1_auth_proto_msgTypes[7]
+	mi := &file_arca_v1_auth_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -365,7 +269,7 @@ func (x *MeRequest) String() string {
 func (*MeRequest) ProtoMessage() {}
 
 func (x *MeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[7]
+	mi := &file_arca_v1_auth_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -378,7 +282,7 @@ func (x *MeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeRequest.ProtoReflect.Descriptor instead.
 func (*MeRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{5}
 }
 
 type MeResponse struct {
@@ -390,7 +294,7 @@ type MeResponse struct {
 
 func (x *MeResponse) Reset() {
 	*x = MeResponse{}
-	mi := &file_arca_v1_auth_proto_msgTypes[8]
+	mi := &file_arca_v1_auth_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +306,7 @@ func (x *MeResponse) String() string {
 func (*MeResponse) ProtoMessage() {}
 
 func (x *MeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_auth_proto_msgTypes[8]
+	mi := &file_arca_v1_auth_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +319,7 @@ func (x *MeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeResponse.ProtoReflect.Descriptor instead.
 func (*MeResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_auth_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_auth_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *MeResponse) GetUser() *User {
@@ -432,12 +336,7 @@ const file_arca_v1_auth_proto_rawDesc = "" +
 	"\x12arca/v1/auth.proto\x12\aarca.v1\",\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\"C\n" +
-	"\x0fRegisterRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"5\n" +
-	"\x10RegisterResponse\x12!\n" +
-	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user\"@\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"2\n" +
@@ -449,9 +348,8 @@ const file_arca_v1_auth_proto_rawDesc = "" +
 	"\tMeRequest\"/\n" +
 	"\n" +
 	"MeResponse\x12!\n" +
-	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user2\xf0\x01\n" +
-	"\vAuthService\x12?\n" +
-	"\bRegister\x12\x18.arca.v1.RegisterRequest\x1a\x19.arca.v1.RegisterResponse\x126\n" +
+	"\x04user\x18\x01 \x01(\v2\r.arca.v1.UserR\x04user2\xaf\x01\n" +
+	"\vAuthService\x126\n" +
 	"\x05Login\x12\x15.arca.v1.LoginRequest\x1a\x16.arca.v1.LoginResponse\x129\n" +
 	"\x06Logout\x12\x16.arca.v1.LogoutRequest\x1a\x17.arca.v1.LogoutResponse\x12-\n" +
 	"\x02Me\x12\x12.arca.v1.MeRequest\x1a\x13.arca.v1.MeResponseB\x8b\x01\n" +
@@ -469,35 +367,30 @@ func file_arca_v1_auth_proto_rawDescGZIP() []byte {
 	return file_arca_v1_auth_proto_rawDescData
 }
 
-var file_arca_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_arca_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_arca_v1_auth_proto_goTypes = []any{
-	(*User)(nil),             // 0: arca.v1.User
-	(*RegisterRequest)(nil),  // 1: arca.v1.RegisterRequest
-	(*RegisterResponse)(nil), // 2: arca.v1.RegisterResponse
-	(*LoginRequest)(nil),     // 3: arca.v1.LoginRequest
-	(*LoginResponse)(nil),    // 4: arca.v1.LoginResponse
-	(*LogoutRequest)(nil),    // 5: arca.v1.LogoutRequest
-	(*LogoutResponse)(nil),   // 6: arca.v1.LogoutResponse
-	(*MeRequest)(nil),        // 7: arca.v1.MeRequest
-	(*MeResponse)(nil),       // 8: arca.v1.MeResponse
+	(*User)(nil),           // 0: arca.v1.User
+	(*LoginRequest)(nil),   // 1: arca.v1.LoginRequest
+	(*LoginResponse)(nil),  // 2: arca.v1.LoginResponse
+	(*LogoutRequest)(nil),  // 3: arca.v1.LogoutRequest
+	(*LogoutResponse)(nil), // 4: arca.v1.LogoutResponse
+	(*MeRequest)(nil),      // 5: arca.v1.MeRequest
+	(*MeResponse)(nil),     // 6: arca.v1.MeResponse
 }
 var file_arca_v1_auth_proto_depIdxs = []int32{
-	0, // 0: arca.v1.RegisterResponse.user:type_name -> arca.v1.User
-	0, // 1: arca.v1.LoginResponse.user:type_name -> arca.v1.User
-	0, // 2: arca.v1.MeResponse.user:type_name -> arca.v1.User
-	1, // 3: arca.v1.AuthService.Register:input_type -> arca.v1.RegisterRequest
-	3, // 4: arca.v1.AuthService.Login:input_type -> arca.v1.LoginRequest
-	5, // 5: arca.v1.AuthService.Logout:input_type -> arca.v1.LogoutRequest
-	7, // 6: arca.v1.AuthService.Me:input_type -> arca.v1.MeRequest
-	2, // 7: arca.v1.AuthService.Register:output_type -> arca.v1.RegisterResponse
-	4, // 8: arca.v1.AuthService.Login:output_type -> arca.v1.LoginResponse
-	6, // 9: arca.v1.AuthService.Logout:output_type -> arca.v1.LogoutResponse
-	8, // 10: arca.v1.AuthService.Me:output_type -> arca.v1.MeResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 0: arca.v1.LoginResponse.user:type_name -> arca.v1.User
+	0, // 1: arca.v1.MeResponse.user:type_name -> arca.v1.User
+	1, // 2: arca.v1.AuthService.Login:input_type -> arca.v1.LoginRequest
+	3, // 3: arca.v1.AuthService.Logout:input_type -> arca.v1.LogoutRequest
+	5, // 4: arca.v1.AuthService.Me:input_type -> arca.v1.MeRequest
+	2, // 5: arca.v1.AuthService.Login:output_type -> arca.v1.LoginResponse
+	4, // 6: arca.v1.AuthService.Logout:output_type -> arca.v1.LogoutResponse
+	6, // 7: arca.v1.AuthService.Me:output_type -> arca.v1.MeResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_auth_proto_init() }
@@ -511,7 +404,7 @@ func file_arca_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_auth_proto_rawDesc), len(file_arca_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

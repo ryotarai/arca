@@ -170,7 +170,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
-	if s.consoleTunnel != nil {
+	if s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
 		if _, err := s.consoleTunnel.EnsureExposed(ctx, state); err != nil {
 			log.Printf("ensure console tunnel failed: %v", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
@@ -216,7 +216,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
-	if s.consoleTunnel != nil {
+	if s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
 		if _, err := s.consoleTunnel.EnsureExposed(ctx, current); err != nil {
 			log.Printf("ensure console tunnel failed: %v", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
