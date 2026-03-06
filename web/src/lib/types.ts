@@ -21,4 +21,9 @@ export type SetupStatus = {
   domainPrefix: string
   machineRuntime: 'libvirt'
   internetPublicExposureDisabled: boolean
+  oidcEnabled: boolean
+  oidcIssuerURL: string
+  oidcClientID: string
+  oidcClientSecretConfigured: boolean
+  oidcAllowedEmailDomains: string[]
 }

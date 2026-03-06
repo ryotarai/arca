@@ -76,6 +76,13 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 				CloudflareAPIToken: "cf-token",
 				CloudflareZoneID:   "zone-id",
 				MachineRuntime:     "libvirt",
+				OIDCEnabled:        true,
+				OIDCIssuerURL:      "https://accounts.google.com",
+				OIDCClientID:       "client-id",
+				OIDCClientSecret:   "client-secret",
+				OIDCAllowedEmailDomains: []string{
+					"example.com",
+				},
 			}); err != nil {
 				t.Fatalf("upsert setup state: %v", err)
 			}
@@ -85,6 +92,9 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 			}
 			if !setup.Completed || setup.AdminUserID != userID || setup.CloudflareZoneID != "zone-id" || setup.MachineRuntime != "libvirt" {
 				t.Fatalf("unexpected setup state: %+v", setup)
+			}
+			if !setup.OIDCEnabled || setup.OIDCIssuerURL != "https://accounts.google.com" || setup.OIDCClientID != "client-id" || setup.OIDCClientSecret != "client-secret" {
+				t.Fatalf("unexpected oidc setup state: %+v", setup)
 			}
 
 			created, err := store.CreateMachineWithOwner(ctx, userID, "machine-one", "libvirt", "v1")

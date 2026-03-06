@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"log"
 	"net/http"
@@ -39,6 +41,59 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 
 	resp := connect.NewResponse(&arcav1.LoginResponse{User: &arcav1.User{Id: userID, Email: email}})
 	setSessionCookie(resp.Header(), token, expiresAt, isSecureRequest(req.Header()))
+	return resp, nil
+}
+
+func (s *authConnectService) StartOidcLogin(ctx context.Context, req *connect.Request[arcav1.StartOidcLoginRequest]) (*connect.Response[arcav1.StartOidcLoginResponse], error) {
+	if s.authenticator == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
+	}
+	state, err := randomCookieToken(24)
+	if err != nil {
+		log.Printf("generate oidc state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to prepare oidc login"))
+	}
+	authURL, err := s.authenticator.StartOIDCLogin(ctx, req.Msg.GetRedirectUri(), state)
+	if err != nil {
+		switch {
+		case errors.Is(err, auth.ErrOIDCNotConfigured):
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("oidc is not configured"))
+		case errors.Is(err, auth.ErrInvalidInput):
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid oidc login request"))
+		default:
+			log.Printf("start oidc login failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to start oidc login"))
+		}
+	}
+	resp := connect.NewResponse(&arcav1.StartOidcLoginResponse{AuthorizationUrl: authURL})
+	setOIDCStateCookie(resp.Header(), state, time.Now().Add(10*time.Minute), isSecureRequest(req.Header()))
+	return resp, nil
+}
+
+func (s *authConnectService) CompleteOidcLogin(ctx context.Context, req *connect.Request[arcav1.CompleteOidcLoginRequest]) (*connect.Response[arcav1.CompleteOidcLoginResponse], error) {
+	if s.authenticator == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
+	}
+	stateCookie, err := oidcStateFromHeader(req.Header())
+	if err != nil || stateCookie == "" || stateCookie != strings.TrimSpace(req.Msg.GetState()) {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid oidc state"))
+	}
+	userID, email, token, expiresAt, err := s.authenticator.LoginWithOIDCCode(ctx, req.Msg.GetCode(), req.Msg.GetRedirectUri())
+	if err != nil {
+		switch {
+		case errors.Is(err, auth.ErrOIDCNotConfigured):
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("oidc is not configured"))
+		case errors.Is(err, auth.ErrOIDCRejected):
+			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("oidc login rejected"))
+		default:
+			log.Printf("complete oidc login failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to complete oidc login"))
+		}
+	}
+	resp := connect.NewResponse(&arcav1.CompleteOidcLoginResponse{User: &arcav1.User{Id: userID, Email: email}})
+	secure := isSecureRequest(req.Header())
+	setSessionCookie(resp.Header(), token, expiresAt, secure)
+	clearOIDCStateCookie(resp.Header(), secure)
 	return resp, nil
 }
 
@@ -90,6 +145,15 @@ func sessionTokenFromHeader(header http.Header) (string, error) {
 	return cookie.Value, nil
 }
 
+func oidcStateFromHeader(header http.Header) (string, error) {
+	req := &http.Request{Header: header}
+	cookie, err := req.Cookie(oidcStateCookieName)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(cookie.Value), nil
+}
+
 func setSessionCookie(header http.Header, token string, expiresAt time.Time, secure bool) {
 	header.Add("Set-Cookie", (&http.Cookie{
 		Name:     sessionCookieName,
@@ -113,6 +177,42 @@ func clearSessionCookie(header http.Header, secure bool) {
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
 	}).String())
+}
+
+func setOIDCStateCookie(header http.Header, state string, expiresAt time.Time, secure bool) {
+	header.Add("Set-Cookie", (&http.Cookie{
+		Name:     oidcStateCookieName,
+		Value:    state,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   secure,
+		Expires:  expiresAt,
+	}).String())
+}
+
+func clearOIDCStateCookie(header http.Header, secure bool) {
+	header.Add("Set-Cookie", (&http.Cookie{
+		Name:     oidcStateCookieName,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   secure,
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+	}).String())
+}
+
+func randomCookieToken(n int) (string, error) {
+	if n <= 0 {
+		n = 24
+	}
+	buf := make([]byte, n)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
 func isSecureRequest(header http.Header) bool {

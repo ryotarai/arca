@@ -32,6 +32,11 @@ type SetupStatus struct {
 	DomainPrefix                   string                 `protobuf:"bytes,7,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
 	MachineRuntime                 string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
 	InternetPublicExposureDisabled bool                   `protobuf:"varint,9,opt,name=internet_public_exposure_disabled,json=internetPublicExposureDisabled,proto3" json:"internet_public_exposure_disabled,omitempty"`
+	OidcEnabled                    bool                   `protobuf:"varint,10,opt,name=oidc_enabled,json=oidcEnabled,proto3" json:"oidc_enabled,omitempty"`
+	OidcIssuerUrl                  string                 `protobuf:"bytes,11,opt,name=oidc_issuer_url,json=oidcIssuerUrl,proto3" json:"oidc_issuer_url,omitempty"`
+	OidcClientId                   string                 `protobuf:"bytes,12,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
+	OidcClientSecretConfigured     bool                   `protobuf:"varint,13,opt,name=oidc_client_secret_configured,json=oidcClientSecretConfigured,proto3" json:"oidc_client_secret_configured,omitempty"`
+	OidcAllowedEmailDomains        []string               `protobuf:"bytes,14,rep,name=oidc_allowed_email_domains,json=oidcAllowedEmailDomains,proto3" json:"oidc_allowed_email_domains,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
@@ -127,6 +132,41 @@ func (x *SetupStatus) GetInternetPublicExposureDisabled() bool {
 		return x.InternetPublicExposureDisabled
 	}
 	return false
+}
+
+func (x *SetupStatus) GetOidcEnabled() bool {
+	if x != nil {
+		return x.OidcEnabled
+	}
+	return false
+}
+
+func (x *SetupStatus) GetOidcIssuerUrl() string {
+	if x != nil {
+		return x.OidcIssuerUrl
+	}
+	return ""
+}
+
+func (x *SetupStatus) GetOidcClientId() string {
+	if x != nil {
+		return x.OidcClientId
+	}
+	return ""
+}
+
+func (x *SetupStatus) GetOidcClientSecretConfigured() bool {
+	if x != nil {
+		return x.OidcClientSecretConfigured
+	}
+	return false
+}
+
+func (x *SetupStatus) GetOidcAllowedEmailDomains() []string {
+	if x != nil {
+		return x.OidcAllowedEmailDomains
+	}
+	return nil
 }
 
 type GetSetupStatusRequest struct {
@@ -463,6 +503,12 @@ type UpdateDomainSettingsRequest struct {
 	DomainPrefix                  string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
 	MachineRuntime                string                 `protobuf:"bytes,3,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
 	DisableInternetPublicExposure bool                   `protobuf:"varint,4,opt,name=disable_internet_public_exposure,json=disableInternetPublicExposure,proto3" json:"disable_internet_public_exposure,omitempty"`
+	OidcEnabled                   bool                   `protobuf:"varint,5,opt,name=oidc_enabled,json=oidcEnabled,proto3" json:"oidc_enabled,omitempty"`
+	OidcIssuerUrl                 string                 `protobuf:"bytes,6,opt,name=oidc_issuer_url,json=oidcIssuerUrl,proto3" json:"oidc_issuer_url,omitempty"`
+	OidcClientId                  string                 `protobuf:"bytes,7,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
+	OidcClientSecret              string                 `protobuf:"bytes,8,opt,name=oidc_client_secret,json=oidcClientSecret,proto3" json:"oidc_client_secret,omitempty"`
+	OidcAllowedEmailDomains       []string               `protobuf:"bytes,9,rep,name=oidc_allowed_email_domains,json=oidcAllowedEmailDomains,proto3" json:"oidc_allowed_email_domains,omitempty"`
+	ClearOidcClientSecret         bool                   `protobuf:"varint,10,opt,name=clear_oidc_client_secret,json=clearOidcClientSecret,proto3" json:"clear_oidc_client_secret,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -525,6 +571,48 @@ func (x *UpdateDomainSettingsRequest) GetDisableInternetPublicExposure() bool {
 	return false
 }
 
+func (x *UpdateDomainSettingsRequest) GetOidcEnabled() bool {
+	if x != nil {
+		return x.OidcEnabled
+	}
+	return false
+}
+
+func (x *UpdateDomainSettingsRequest) GetOidcIssuerUrl() string {
+	if x != nil {
+		return x.OidcIssuerUrl
+	}
+	return ""
+}
+
+func (x *UpdateDomainSettingsRequest) GetOidcClientId() string {
+	if x != nil {
+		return x.OidcClientId
+	}
+	return ""
+}
+
+func (x *UpdateDomainSettingsRequest) GetOidcClientSecret() string {
+	if x != nil {
+		return x.OidcClientSecret
+	}
+	return ""
+}
+
+func (x *UpdateDomainSettingsRequest) GetOidcAllowedEmailDomains() []string {
+	if x != nil {
+		return x.OidcAllowedEmailDomains
+	}
+	return nil
+}
+
+func (x *UpdateDomainSettingsRequest) GetClearOidcClientSecret() bool {
+	if x != nil {
+		return x.ClearOidcClientSecret
+	}
+	return false
+}
+
 type UpdateDomainSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -573,7 +661,7 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xab\x03\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\x9c\x05\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x123\n" +
@@ -584,7 +672,13 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12#\n" +
 	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\x12'\n" +
 	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\x12I\n" +
-	"!internet_public_exposure_disabled\x18\t \x01(\bR\x1einternetPublicExposureDisabled\"\x17\n" +
+	"!internet_public_exposure_disabled\x18\t \x01(\bR\x1einternetPublicExposureDisabled\x12!\n" +
+	"\foidc_enabled\x18\n" +
+	" \x01(\bR\voidcEnabled\x12&\n" +
+	"\x0foidc_issuer_url\x18\v \x01(\tR\roidcIssuerUrl\x12$\n" +
+	"\x0eoidc_client_id\x18\f \x01(\tR\foidcClientId\x12A\n" +
+	"\x1doidc_client_secret_configured\x18\r \x01(\bR\x1aoidcClientSecretConfigured\x12;\n" +
+	"\x1aoidc_allowed_email_domains\x18\x0e \x03(\tR\x17oidcAllowedEmailDomains\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\\\n" +
@@ -607,13 +701,20 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\rdomain_prefix\x18\a \x01(\tR\fdomainPrefix\x12'\n" +
 	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xd5\x01\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xea\x03\n" +
 	"\x1bUpdateDomainSettingsRequest\x12\x1f\n" +
 	"\vbase_domain\x18\x01 \x01(\tR\n" +
 	"baseDomain\x12#\n" +
 	"\rdomain_prefix\x18\x02 \x01(\tR\fdomainPrefix\x12'\n" +
 	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\x12G\n" +
-	" disable_internet_public_exposure\x18\x04 \x01(\bR\x1ddisableInternetPublicExposure\"L\n" +
+	" disable_internet_public_exposure\x18\x04 \x01(\bR\x1ddisableInternetPublicExposure\x12!\n" +
+	"\foidc_enabled\x18\x05 \x01(\bR\voidcEnabled\x12&\n" +
+	"\x0foidc_issuer_url\x18\x06 \x01(\tR\roidcIssuerUrl\x12$\n" +
+	"\x0eoidc_client_id\x18\a \x01(\tR\foidcClientId\x12,\n" +
+	"\x12oidc_client_secret\x18\b \x01(\tR\x10oidcClientSecret\x12;\n" +
+	"\x1aoidc_allowed_email_domains\x18\t \x03(\tR\x17oidcAllowedEmailDomains\x127\n" +
+	"\x18clear_oidc_client_secret\x18\n" +
+	" \x01(\bR\x15clearOidcClientSecret\"L\n" +
 	"\x1cUpdateDomainSettingsResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\x84\x03\n" +
 	"\fSetupService\x12Q\n" +

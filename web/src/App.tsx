@@ -6,6 +6,7 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
 import { MachinesPage } from '@/pages/MachinesPage'
+import { OidcCallbackPage } from '@/pages/OidcCallbackPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
 
@@ -20,6 +21,11 @@ export function App() {
     domainPrefix: '',
     machineRuntime: 'libvirt',
     internetPublicExposureDisabled: false,
+    oidcEnabled: false,
+    oidcIssuerURL: '',
+    oidcClientID: '',
+    oidcClientSecretConfigured: false,
+    oidcAllowedEmailDomains: [],
   })
 
   useEffect(() => {
@@ -80,6 +86,11 @@ export function App() {
                   domainPrefix,
                   machineRuntime,
                   internetPublicExposureDisabled: false,
+                  oidcEnabled: false,
+                  oidcIssuerURL: '',
+                  oidcClientID: '',
+                  oidcClientSecretConfigured: false,
+                  oidcAllowedEmailDomains: [],
                 })
               }
             />
@@ -94,7 +105,8 @@ export function App() {
     <Routes>
       <Route path="/" element={<HomePage user={user} onLogout={handleLogout} />} />
       <Route path="/setup" element={<Navigate to="/" replace />} />
-      <Route path="/login" element={<LoginPage user={user} onLogin={setUser} />} />
+      <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} />} />
+      <Route path="/login/oidc/callback" element={<OidcCallbackPage user={user} onLogin={setUser} />} />
       <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
       <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
       <Route

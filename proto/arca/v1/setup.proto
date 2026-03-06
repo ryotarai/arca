@@ -21,6 +21,11 @@ message SetupStatus {
   string domain_prefix = 7;
   string machine_runtime = 8;
   bool internet_public_exposure_disabled = 9;
+  bool oidc_enabled = 10;
+  string oidc_issuer_url = 11;
+  string oidc_client_id = 12;
+  bool oidc_client_secret_configured = 13;
+  repeated string oidc_allowed_email_domains = 14;
 }
 
 message GetSetupStatusRequest {}
@@ -59,6 +64,12 @@ message UpdateDomainSettingsRequest {
   string domain_prefix = 2;
   string machine_runtime = 3;
   bool disable_internet_public_exposure = 4;
+  bool oidc_enabled = 5;
+  string oidc_issuer_url = 6;
+  string oidc_client_id = 7;
+  string oidc_client_secret = 8;
+  repeated string oidc_allowed_email_domains = 9;
+  bool clear_oidc_client_secret = 10;
 }
 
 message UpdateDomainSettingsResponse {

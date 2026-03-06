@@ -10,12 +10,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/ryotarai/arca/internal/db"
 	"golang.org/x/crypto/argon2"
+	"golang.org/x/oauth2"
 )
 
 var (
@@ -23,6 +26,8 @@ var (
 	ErrEmailAlreadyUsed   = errors.New("email already used")
 	ErrInvalidInput       = errors.New("invalid input")
 	ErrUnauthenticated    = errors.New("unauthenticated")
+	ErrOIDCNotConfigured  = errors.New("oidc not configured")
+	ErrOIDCRejected       = errors.New("oidc login rejected")
 )
 
 type Service struct {
@@ -87,21 +92,90 @@ func (s *Service) Login(ctx context.Context, email, password string) (string, st
 		return "", "", "", time.Time{}, ErrInvalidCredentials
 	}
 
-	sessionToken, err := randomToken()
+	sessionToken, expiresAt, err := s.createSession(ctx, user.ID)
 	if err != nil {
 		return "", "", "", time.Time{}, err
 	}
-	tokenHash := hashSessionToken(sessionToken)
 
-	sessionID, err := randomID()
+	return user.ID, user.Email, sessionToken, expiresAt, nil
+}
+
+func (s *Service) StartOIDCLogin(ctx context.Context, redirectURI, state string) (string, error) {
+	config, err := s.loadOIDCConfig(ctx)
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(state) == "" {
+		return "", ErrInvalidInput
+	}
+	oauthConfig := oauth2.Config{
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
+		RedirectURL:  strings.TrimSpace(redirectURI),
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  strings.TrimSpace(config.AuthURL),
+			TokenURL: strings.TrimSpace(config.TokenURL),
+		},
+		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
+	}
+	return oauthConfig.AuthCodeURL(state), nil
+}
+
+func (s *Service) LoginWithOIDCCode(ctx context.Context, code, redirectURI string) (string, string, string, time.Time, error) {
+	config, err := s.loadOIDCConfig(ctx)
 	if err != nil {
 		return "", "", "", time.Time{}, err
 	}
-	expiresAt := s.now().Add(s.sessionTTL)
-	if err := s.store.CreateSession(ctx, sessionID, user.ID, tokenHash, expiresAt.Unix()); err != nil {
+	if strings.TrimSpace(code) == "" {
+		return "", "", "", time.Time{}, ErrOIDCRejected
+	}
+	oauthConfig := oauth2.Config{
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
+		RedirectURL:  strings.TrimSpace(redirectURI),
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  strings.TrimSpace(config.AuthURL),
+			TokenURL: strings.TrimSpace(config.TokenURL),
+		},
+		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
+	}
+	oauthToken, err := oauthConfig.Exchange(ctx, strings.TrimSpace(code))
+	if err != nil {
+		return "", "", "", time.Time{}, ErrOIDCRejected
+	}
+	rawIDToken, _ := oauthToken.Extra("id_token").(string)
+	if strings.TrimSpace(rawIDToken) == "" {
+		return "", "", "", time.Time{}, ErrOIDCRejected
+	}
+	verifier := oidc.NewVerifier(strings.TrimSpace(config.IssuerURL), oidc.NewRemoteKeySet(ctx, strings.TrimSpace(config.JWKSURL)), &oidc.Config{
+		ClientID: config.ClientID,
+	})
+	idToken, err := verifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		return "", "", "", time.Time{}, ErrOIDCRejected
+	}
+	var claims struct {
+		Email         string `json:"email"`
+		EmailVerified bool   `json:"email_verified"`
+	}
+	if err := idToken.Claims(&claims); err != nil {
+		return "", "", "", time.Time{}, ErrOIDCRejected
+	}
+	email := normalizeEmail(claims.Email)
+	if email == "" || !claims.EmailVerified || !isEmailDomainAllowed(email, config.AllowedEmailDomains) {
+		return "", "", "", time.Time{}, ErrOIDCRejected
+	}
+	user, err := s.store.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", "", time.Time{}, ErrOIDCRejected
+		}
 		return "", "", "", time.Time{}, err
 	}
-
+	sessionToken, expiresAt, err := s.createSession(ctx, user.ID)
+	if err != nil {
+		return "", "", "", time.Time{}, err
+	}
 	return user.ID, user.Email, sessionToken, expiresAt, nil
 }
 
@@ -126,6 +200,116 @@ func (s *Service) Logout(ctx context.Context, sessionToken string) error {
 	}
 	tokenHash := hashSessionToken(sessionToken)
 	return s.store.RevokeSessionByTokenHash(ctx, tokenHash)
+}
+
+type oidcConfig struct {
+	IssuerURL           string
+	AuthURL             string
+	TokenURL            string
+	JWKSURL             string
+	ClientID            string
+	ClientSecret        string
+	AllowedEmailDomains []string
+}
+
+func (s *Service) loadOIDCConfig(ctx context.Context) (oidcConfig, error) {
+	setup, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		return oidcConfig{}, err
+	}
+	if !setup.OIDCEnabled {
+		return oidcConfig{}, ErrOIDCNotConfigured
+	}
+	issuerURL, err := validateOIDCIssuerURL(setup.OIDCIssuerURL)
+	if err != nil {
+		return oidcConfig{}, ErrOIDCNotConfigured
+	}
+	clientID := strings.TrimSpace(setup.OIDCClientID)
+	clientSecret := strings.TrimSpace(setup.OIDCClientSecret)
+	if clientID == "" || clientSecret == "" {
+		return oidcConfig{}, ErrOIDCNotConfigured
+	}
+	provider, err := oidc.NewProvider(ctx, issuerURL)
+	if err != nil {
+		return oidcConfig{}, ErrOIDCRejected
+	}
+	var discovery struct {
+		AuthorizationEndpoint string `json:"authorization_endpoint"`
+		TokenEndpoint         string `json:"token_endpoint"`
+		JWKSURI               string `json:"jwks_uri"`
+	}
+	if err := provider.Claims(&discovery); err != nil {
+		return oidcConfig{}, ErrOIDCRejected
+	}
+	if strings.TrimSpace(discovery.AuthorizationEndpoint) == "" || strings.TrimSpace(discovery.TokenEndpoint) == "" || strings.TrimSpace(discovery.JWKSURI) == "" {
+		return oidcConfig{}, ErrOIDCRejected
+	}
+	return oidcConfig{
+		IssuerURL:           issuerURL,
+		AuthURL:             discovery.AuthorizationEndpoint,
+		TokenURL:            discovery.TokenEndpoint,
+		JWKSURL:             discovery.JWKSURI,
+		ClientID:            clientID,
+		ClientSecret:        clientSecret,
+		AllowedEmailDomains: setup.OIDCAllowedEmailDomains,
+	}, nil
+}
+
+func validateOIDCIssuerURL(raw string) (string, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", errors.New("issuer is required")
+	}
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return "", err
+	}
+	if !strings.EqualFold(parsed.Scheme, "https") {
+		return "", errors.New("issuer must use https")
+	}
+	if strings.TrimSpace(parsed.Hostname()) == "" {
+		return "", errors.New("issuer host is required")
+	}
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return strings.TrimRight(parsed.String(), "/"), nil
+}
+
+func isEmailDomainAllowed(email string, allowedDomains []string) bool {
+	idx := strings.LastIndex(email, "@")
+	if idx <= 0 || idx == len(email)-1 {
+		return false
+	}
+	domain := strings.ToLower(strings.TrimSpace(email[idx+1:]))
+	if domain == "" {
+		return false
+	}
+	if len(allowedDomains) == 0 {
+		return true
+	}
+	for _, allowed := range allowedDomains {
+		if domain == strings.ToLower(strings.TrimSpace(allowed)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) createSession(ctx context.Context, userID string) (string, time.Time, error) {
+	sessionToken, err := randomToken()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	tokenHash := hashSessionToken(sessionToken)
+	sessionID, err := randomID()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	expiresAt := s.now().Add(s.sessionTTL)
+	if err := s.store.CreateSession(ctx, sessionID, userID, tokenHash, expiresAt.Unix()); err != nil {
+		return "", time.Time{}, err
+	}
+	return sessionToken, expiresAt, nil
 }
 
 func validateAndNormalize(email, password string) (string, string, error) {

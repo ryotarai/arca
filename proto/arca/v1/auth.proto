@@ -6,6 +6,8 @@ option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
 
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
+  rpc StartOidcLogin(StartOidcLoginRequest) returns (StartOidcLoginResponse);
+  rpc CompleteOidcLogin(CompleteOidcLoginRequest) returns (CompleteOidcLoginResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc Me(MeRequest) returns (MeResponse);
 }
@@ -21,6 +23,24 @@ message LoginRequest {
 }
 
 message LoginResponse {
+  User user = 1;
+}
+
+message StartOidcLoginRequest {
+  string redirect_uri = 1;
+}
+
+message StartOidcLoginResponse {
+  string authorization_url = 1;
+}
+
+message CompleteOidcLoginRequest {
+  string code = 1;
+  string state = 2;
+  string redirect_uri = 3;
+}
+
+message CompleteOidcLoginResponse {
   User user = 1;
 }
 

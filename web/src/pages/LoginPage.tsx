@@ -4,22 +4,24 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { login } from '@/lib/api'
+import { login, startOidcLogin } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { User } from '@/lib/types'
 
 type LoginPageProps = {
   user: User | null
   onLogin: (user: User) => void
+  oidcEnabled: boolean
 }
 
-export function LoginPage({ user, onLogin }: LoginPageProps) {
+export function LoginPage({ user, onLogin, oidcEnabled }: LoginPageProps) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextPath = sanitizeNextPath(searchParams.get('next'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [oidcLoading, setOidcLoading] = useState(false)
 
   useEffect(() => {
     if (user != null && nextPath !== '/') {
@@ -54,6 +56,22 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
       void navigate('/', { replace: true })
     } catch (e) {
       setError(messageFromError(e))
+    }
+  }
+
+  const startGoogleLogin = async () => {
+    setError('')
+    setOidcLoading(true)
+    try {
+      const redirectUri = `${window.location.origin}/login/oidc/callback`
+      const authorizationURL = await startOidcLogin(redirectUri)
+      if (authorizationURL.trim() === '') {
+        throw new Error('failed to prepare oidc login')
+      }
+      window.location.assign(authorizationURL)
+    } catch (e) {
+      setError(messageFromError(e))
+      setOidcLoading(false)
     }
   }
 
@@ -115,6 +133,17 @@ export function LoginPage({ user, onLogin }: LoginPageProps) {
                 Login
               </Button>
             </form>
+            {oidcEnabled && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-10 w-full"
+                disabled={oidcLoading}
+                onClick={startGoogleLogin}
+              >
+                {oidcLoading ? 'Redirecting...' : 'Continue with Google'}
+              </Button>
+            )}
 
             {error !== '' && (
               <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">

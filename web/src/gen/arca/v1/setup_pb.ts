@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/setup.proto.
  */
 export const file_arca_v1_setup: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxIoYCCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSHwoXZG9ja2VyX3Byb3ZpZGVyX2VuYWJsZWQYBSABKAgSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEikKIWludGVybmV0X3B1YmxpY19leHBvc3VyZV9kaXNhYmxlZBgJIAEoCCIXChVHZXRTZXR1cFN0YXR1c1JlcXVlc3QiPgoWR2V0U2V0dXBTdGF0dXNSZXNwb25zZRIkCgZzdGF0dXMYASABKAsyFC5hcmNhLnYxLlNldHVwU3RhdHVzIkcKHlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVxdWVzdBIRCglhcGlfdG9rZW4YASABKAkSEgoKYWNjb3VudF9pZBgCIAEoCSJBCh9WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlc3BvbnNlEg0KBXZhbGlkGAEgASgIEg8KB21lc3NhZ2UYAiABKAki4wEKFENvbXBsZXRlU2V0dXBSZXF1ZXN0EhMKC2FkbWluX2VtYWlsGAEgASgJEhYKDmFkbWluX3Bhc3N3b3JkGAIgASgJEhMKC2Jhc2VfZG9tYWluGAMgASgJEhwKFGNsb3VkZmxhcmVfYXBpX3Rva2VuGAQgASgJEh8KF2RvY2tlcl9wcm92aWRlcl9lbmFibGVkGAUgASgIEhoKEmNsb3VkZmxhcmVfem9uZV9pZBgGIAEoCRIVCg1kb21haW5fcHJlZml4GAcgASgJEhcKD21hY2hpbmVfcnVudGltZRgIIAEoCSI9ChVDb21wbGV0ZVNldHVwUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyKMAQobVXBkYXRlRG9tYWluU2V0dGluZ3NSZXF1ZXN0EhMKC2Jhc2VfZG9tYWluGAEgASgJEhUKDWRvbWFpbl9wcmVmaXgYAiABKAkSFwoPbWFjaGluZV9ydW50aW1lGAMgASgJEigKIGRpc2FibGVfaW50ZXJuZXRfcHVibGljX2V4cG9zdXJlGAQgASgIIkQKHFVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1czKEAwoMU2V0dXBTZXJ2aWNlElEKDkdldFNldHVwU3RhdHVzEh4uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1JlcXVlc3QaHy5hcmNhLnYxLkdldFNldHVwU3RhdHVzUmVzcG9uc2USbAoXVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW4SJy5hcmNhLnYxLlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVxdWVzdBooLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRJOCg1Db21wbGV0ZVNldHVwEh0uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVxdWVzdBoeLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlc3BvbnNlEmMKFFVwZGF0ZURvbWFpblNldHRpbmdzEiQuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpTZXR1cFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
+  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxIpgDCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSHwoXZG9ja2VyX3Byb3ZpZGVyX2VuYWJsZWQYBSABKAgSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEikKIWludGVybmV0X3B1YmxpY19leHBvc3VyZV9kaXNhYmxlZBgJIAEoCBIUCgxvaWRjX2VuYWJsZWQYCiABKAgSFwoPb2lkY19pc3N1ZXJfdXJsGAsgASgJEhYKDm9pZGNfY2xpZW50X2lkGAwgASgJEiUKHW9pZGNfY2xpZW50X3NlY3JldF9jb25maWd1cmVkGA0gASgIEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGA4gAygJIhcKFUdldFNldHVwU3RhdHVzUmVxdWVzdCI+ChZHZXRTZXR1cFN0YXR1c1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMiRwoeVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXF1ZXN0EhEKCWFwaV90b2tlbhgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJIkEKH1ZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDwoHbWVzc2FnZRgCIAEoCSLjAQoUQ29tcGxldGVTZXR1cFJlcXVlc3QSEwoLYWRtaW5fZW1haWwYASABKAkSFgoOYWRtaW5fcGFzc3dvcmQYAiABKAkSEwoLYmFzZV9kb21haW4YAyABKAkSHAoUY2xvdWRmbGFyZV9hcGlfdG9rZW4YBCABKAkSHwoXZG9ja2VyX3Byb3ZpZGVyX2VuYWJsZWQYBSABKAgSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJIj0KFUNvbXBsZXRlU2V0dXBSZXNwb25zZRIkCgZzdGF0dXMYASABKAsyFC5hcmNhLnYxLlNldHVwU3RhdHVzIrUCChtVcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QSEwoLYmFzZV9kb21haW4YASABKAkSFQoNZG9tYWluX3ByZWZpeBgCIAEoCRIXCg9tYWNoaW5lX3J1bnRpbWUYAyABKAkSKAogZGlzYWJsZV9pbnRlcm5ldF9wdWJsaWNfZXhwb3N1cmUYBCABKAgSFAoMb2lkY19lbmFibGVkGAUgASgIEhcKD29pZGNfaXNzdWVyX3VybBgGIAEoCRIWCg5vaWRjX2NsaWVudF9pZBgHIAEoCRIaChJvaWRjX2NsaWVudF9zZWNyZXQYCCABKAkSIgoab2lkY19hbGxvd2VkX2VtYWlsX2RvbWFpbnMYCSADKAkSIAoYY2xlYXJfb2lkY19jbGllbnRfc2VjcmV0GAogASgIIkQKHFVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1czKEAwoMU2V0dXBTZXJ2aWNlElEKDkdldFNldHVwU3RhdHVzEh4uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1JlcXVlc3QaHy5hcmNhLnYxLkdldFNldHVwU3RhdHVzUmVzcG9uc2USbAoXVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW4SJy5hcmNhLnYxLlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVxdWVzdBooLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRJOCg1Db21wbGV0ZVNldHVwEh0uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVxdWVzdBoeLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlc3BvbnNlEmMKFFVwZGF0ZURvbWFpblNldHRpbmdzEiQuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpTZXR1cFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message arca.v1.SetupStatus
@@ -60,6 +60,31 @@ export type SetupStatus = Message<"arca.v1.SetupStatus"> & {
    * @generated from field: bool internet_public_exposure_disabled = 9;
    */
   internetPublicExposureDisabled: boolean;
+
+  /**
+   * @generated from field: bool oidc_enabled = 10;
+   */
+  oidcEnabled: boolean;
+
+  /**
+   * @generated from field: string oidc_issuer_url = 11;
+   */
+  oidcIssuerUrl: string;
+
+  /**
+   * @generated from field: string oidc_client_id = 12;
+   */
+  oidcClientId: string;
+
+  /**
+   * @generated from field: bool oidc_client_secret_configured = 13;
+   */
+  oidcClientSecretConfigured: boolean;
+
+  /**
+   * @generated from field: repeated string oidc_allowed_email_domains = 14;
+   */
+  oidcAllowedEmailDomains: string[];
 };
 
 /**
@@ -235,6 +260,36 @@ export type UpdateDomainSettingsRequest = Message<"arca.v1.UpdateDomainSettingsR
    * @generated from field: bool disable_internet_public_exposure = 4;
    */
   disableInternetPublicExposure: boolean;
+
+  /**
+   * @generated from field: bool oidc_enabled = 5;
+   */
+  oidcEnabled: boolean;
+
+  /**
+   * @generated from field: string oidc_issuer_url = 6;
+   */
+  oidcIssuerUrl: string;
+
+  /**
+   * @generated from field: string oidc_client_id = 7;
+   */
+  oidcClientId: string;
+
+  /**
+   * @generated from field: string oidc_client_secret = 8;
+   */
+  oidcClientSecret: string;
+
+  /**
+   * @generated from field: repeated string oidc_allowed_email_domains = 9;
+   */
+  oidcAllowedEmailDomains: string[];
+
+  /**
+   * @generated from field: bool clear_oidc_client_secret = 10;
+   */
+  clearOidcClientSecret: boolean;
 };
 
 /**
