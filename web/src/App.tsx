@@ -22,7 +22,6 @@ export function App() {
     cloudflareZoneID: '',
     baseDomain: '',
     domainPrefix: '',
-    machineRuntime: 'libvirt',
     internetPublicExposureDisabled: false,
     oidcEnabled: false,
     oidcIssuerURL: '',
@@ -78,16 +77,14 @@ export function App() {
             <SetupPage
               hasAdmin={setupStatus.hasAdmin}
               initialCloudflareZoneID={setupStatus.cloudflareZoneID}
-              initialMachineRuntime={setupStatus.machineRuntime}
               onAdminReady={setUser}
-              onSetupComplete={(zoneID, baseDomain, domainPrefix, machineRuntime) =>
+              onSetupComplete={(zoneID, baseDomain, domainPrefix) =>
                 setSetupStatus({
                   isConfigured: true,
                   hasAdmin: true,
                   cloudflareZoneID: zoneID,
                   baseDomain,
                   domainPrefix,
-                  machineRuntime,
                   internetPublicExposureDisabled: false,
                   oidcEnabled: false,
                   oidcIssuerURL: '',

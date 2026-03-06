@@ -14,15 +14,14 @@ const (
 	gceCatalogConfigJSON     = `{"gce":{"project":"arca-project","zone":"us-central1-a","network":"main","subnetwork":"main","serviceAccountEmail":"svc@example.iam.gserviceaccount.com"}}`
 )
 
-func TestMachineRuntimeSelection_DefaultAssignmentAndExplicitSelection(t *testing.T) {
+func TestMachineRuntimeSelection_CreateRequiresExplicitRuntimeAndAllowsStartOverride(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
 	service := newMachineConnectService(authenticator, store, nil)
 
-	ownerID, _, err := authenticator.Register(ctx, "runtime-owner@example.com", "owner-password")
-	if err != nil {
+	if _, _, err := authenticator.Register(ctx, "runtime-owner@example.com", "owner-password"); err != nil {
 		t.Fatalf("register owner: %v", err)
 	}
 	ownerToken := loginToken(t, authenticator, "runtime-owner@example.com", "owner-password")
@@ -36,16 +35,12 @@ func TestMachineRuntimeSelection_DefaultAssignmentAndExplicitSelection(t *testin
 		t.Fatalf("create override runtime: %v", err)
 	}
 
-	if err := store.UpsertSetupState(ctx, db.SetupState{Completed: true, AdminUserID: ownerID, MachineRuntime: defaultRuntime.ID}); err != nil {
-		t.Fatalf("upsert setup state: %v", err)
+	_, err = service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{Name: "machine-missing-runtime"}, ownerToken))
+	if err == nil {
+		t.Fatalf("expected create to fail when runtime id is omitted")
 	}
-
-	createdWithDefault, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{Name: "machine-default-runtime"}, ownerToken))
-	if err != nil {
-		t.Fatalf("create machine with default runtime: %v", err)
-	}
-	if got := createdWithDefault.Msg.GetMachine().GetRuntimeId(); got != defaultRuntime.ID {
-		t.Fatalf("default runtime id = %q, want %q", got, defaultRuntime.ID)
+	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
+		t.Fatalf("create missing-runtime error code = %v, want %v", got, connect.CodeInvalidArgument)
 	}
 
 	createdWithExplicit, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
@@ -78,8 +73,7 @@ func TestMachineRuntimeSelection_InvalidOrDeletedRuntimeIsRejected(t *testing.T)
 	store, authenticator := newUserServiceForTest(t)
 	service := newMachineConnectService(authenticator, store, nil)
 
-	ownerID, _, err := authenticator.Register(ctx, "runtime-owner-deleted@example.com", "owner-password")
-	if err != nil {
+	if _, _, err := authenticator.Register(ctx, "runtime-owner-deleted@example.com", "owner-password"); err != nil {
 		t.Fatalf("register owner: %v", err)
 	}
 	ownerToken := loginToken(t, authenticator, "runtime-owner-deleted@example.com", "owner-password")
@@ -87,10 +81,6 @@ func TestMachineRuntimeSelection_InvalidOrDeletedRuntimeIsRejected(t *testing.T)
 	runtimeEntry, err := store.CreateRuntime(ctx, "runtime-to-delete", db.RuntimeTypeLibvirt, libvirtCatalogConfigJSON)
 	if err != nil {
 		t.Fatalf("create runtime: %v", err)
-	}
-
-	if err := store.UpsertSetupState(ctx, db.SetupState{Completed: true, AdminUserID: ownerID, MachineRuntime: runtimeEntry.ID}); err != nil {
-		t.Fatalf("upsert setup state: %v", err)
 	}
 
 	machineResp, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{

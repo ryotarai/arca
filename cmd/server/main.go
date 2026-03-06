@@ -56,10 +56,7 @@ func main() {
 			log.Printf("console endpoint exposed at https://%s", hostname)
 		}
 	}
-	libvirtRuntime := machine.NewLibvirtRuntime()
-	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{
-		db.MachineRuntimeLibvirt: libvirtRuntime,
-	})
+	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{})
 	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))
 	go machineWorker.Run(ctx)
 

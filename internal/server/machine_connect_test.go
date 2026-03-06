@@ -257,10 +257,6 @@ func (s *machineStoreStub) GetMachineTunnelByMachineID(context.Context, string) 
 	panic("GetMachineTunnelByMachineID should not be called in this test")
 }
 
-func (s *machineStoreStub) GetSetupState(context.Context) (db.SetupState, error) {
-	panic("GetSetupState should not be called in this test")
-}
-
 func (s *machineStoreStub) GetRuntimeByID(context.Context, string) (db.RuntimeCatalog, error) {
 	panic("GetRuntimeByID should not be called in this test")
 }

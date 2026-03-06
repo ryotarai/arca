@@ -163,16 +163,7 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 func (s *machineConnectService) resolveCreateRuntimeID(ctx context.Context, requestedRuntimeID string) (string, error) {
 	runtimeID := strings.TrimSpace(requestedRuntimeID)
 	if runtimeID == "" {
-		setup, err := s.store.GetSetupState(ctx)
-		if err != nil {
-			log.Printf("load setup state failed: %v", err)
-			return "", connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime configuration"))
-		}
-		runtimeID = strings.TrimSpace(setup.MachineRuntime)
-	}
-
-	if runtimeID == "" {
-		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("machine runtime is not configured"))
+		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("runtime id is required"))
 	}
 
 	if err := s.validateRuntimeExists(ctx, runtimeID); err != nil {
@@ -202,10 +193,6 @@ func (s *machineConnectService) validateRuntimeExists(ctx context.Context, runti
 	runtimeID = strings.TrimSpace(runtimeID)
 	if runtimeID == "" {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime id is required"))
-	}
-
-	if db.IsSupportedMachineRuntime(runtimeID) {
-		return nil
 	}
 
 	_, err := s.store.GetRuntimeByID(ctx, runtimeID)

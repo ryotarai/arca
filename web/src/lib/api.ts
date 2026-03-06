@@ -274,8 +274,8 @@ export async function listMachines(options: PollingOptions = {}): Promise<Machin
   return response.machines
 }
 
-export async function createMachine(name: string, runtimeID?: string): Promise<Machine> {
-  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID ?? '' })) 
+export async function createMachine(name: string, runtimeID: string): Promise<Machine> {
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID })) 
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -511,8 +511,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const cloudflareZoneID = response.status?.cloudflareZoneId ?? response.cloudflareZoneId ?? ''
     const baseDomain = response.status?.baseDomain ?? response.baseDomain ?? ''
     const domainPrefix = response.status?.domainPrefix ?? response.domainPrefix ?? ''
-    const machineRuntimeRaw = (response.status?.machineRuntime ?? response.machineRuntime ?? 'libvirt').toLowerCase()
-    const machineRuntime = machineRuntimeRaw === 'libvirt' ? 'libvirt' : 'libvirt'
     const internetPublicExposureDisabled =
       response.status?.internetPublicExposureDisabled ?? response.internetPublicExposureDisabled ?? false
     const oidcEnabled = response.status?.oidcEnabled ?? response.oidcEnabled ?? false
@@ -529,7 +527,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       cloudflareZoneID,
       baseDomain,
       domainPrefix,
-      machineRuntime,
       internetPublicExposureDisabled,
       oidcEnabled,
       oidcIssuerURL,
@@ -545,7 +542,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         cloudflareZoneID: '',
         baseDomain: '',
         domainPrefix: '',
-        machineRuntime: 'libvirt',
         internetPublicExposureDisabled: false,
         oidcEnabled: false,
         oidcIssuerURL: '',
@@ -586,7 +582,6 @@ export async function setupComplete(
   domainPrefix: string,
   cloudflareApiToken: string,
   cloudflareZoneID: string,
-  machineRuntime: 'libvirt',
 ): Promise<void> {
   try {
     const response = await callConnectJSONCandidates<{
@@ -601,7 +596,6 @@ export async function setupComplete(
       domainPrefix,
       cloudflareApiToken,
       cloudflareZoneId: cloudflareZoneID,
-      machineRuntime,
     })
     if (response.status?.completed !== true) {
       throw new Error(response.message ?? 'setup completion failed')
@@ -617,7 +611,6 @@ export async function setupComplete(
 export async function updateDomainSettings(
   baseDomain: string,
   domainPrefix: string,
-  machineRuntime: 'libvirt',
   disableInternetPublicExposure: boolean,
   oidcEnabled: boolean,
   oidcIssuerURL: string,
@@ -634,7 +627,6 @@ export async function updateDomainSettings(
   }>(['/arca.v1.SetupService/UpdateDomainSettings'], {
     baseDomain,
     domainPrefix,
-    machineRuntime,
     disableInternetPublicExposure,
     oidcEnabled,
     oidcIssuerUrl: oidcIssuerURL,
