@@ -9,11 +9,12 @@ import {
   getMachine,
   deleteMachine,
   listMachines,
+  listRuntimes,
   startMachine,
   stopMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, User } from '@/lib/types'
+import type { Machine, RuntimeCatalogItem, User } from '@/lib/types'
 
 type MachinesPageProps = {
   user: User | null
@@ -54,8 +55,10 @@ function StatusBadge({ status }: { status: string }) {
 
 export function MachinesPage({ user, onLogout }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
+  const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
+  const [selectedRuntimeID, setSelectedRuntimeID] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -103,6 +106,43 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
     }
   }, [user])
 
+  useEffect(() => {
+	if (user == null) {
+		return
+	}
+
+	let cancelled = false
+
+	const loadRuntimes = async () => {
+		try {
+			const items = await listRuntimes()
+			if (cancelled) {
+				return
+			}
+			setRuntimes(items)
+			setSelectedRuntimeID((current) => {
+				if (current !== '' && items.some((runtime) => runtime.id === current)) {
+					return current
+				}
+				if (items.length > 0) {
+					return items[0].id
+				}
+				return ''
+			})
+		} catch (e) {
+			if (!cancelled) {
+				setError(messageFromError(e))
+			}
+		}
+	}
+
+	void loadRuntimes()
+
+	return () => {
+		cancelled = true
+	}
+  }, [user])
+
   if (user == null) {
     return <Navigate to="/login" replace />
   }
@@ -114,10 +154,10 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
       setError('name is required')
       return
     }
-
     setError('')
     try {
-      const created = await createMachine(trimmed)
+      const runtimeID = selectedRuntimeID === '' ? undefined : selectedRuntimeID
+      const created = await createMachine(trimmed, runtimeID)
       setMachines((prev) => [created, ...prev])
       setName('')
     } catch (e) {
@@ -215,7 +255,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl text-white">Create machine</CardTitle>
-            <CardDescription className="text-slate-300">Minimal setup with only a machine name.</CardDescription>
+            <CardDescription className="text-slate-300">Choose a runtime catalog entry and machine name.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submitCreate}>
@@ -232,6 +272,24 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                   required
                 />
               </div>
+              <div className="w-full space-y-2">
+				<Label htmlFor="machine-runtime" className="text-slate-200">
+				  Runtime
+				</Label>
+				<select
+				  id="machine-runtime"
+				  value={selectedRuntimeID}
+				  onChange={(event) => setSelectedRuntimeID(event.target.value)}
+				  className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
+				>
+				  {runtimes.length === 0 && <option value="">Use setup default runtime</option>}
+				  {runtimes.map((runtime) => (
+					<option key={runtime.id} value={runtime.id}>
+					  {runtime.name} ({runtime.type})
+					</option>
+				  ))}
+				</select>
+			  </div>
               <Button type="submit" className="h-10 self-end bg-white text-slate-900 hover:bg-slate-100">
                 Create
               </Button>
@@ -259,6 +317,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
                           <p className="font-medium text-white">{machine.name}</p>
+                          <p className="text-xs text-slate-400">runtime: {machine.runtimeId}</p>
                           <div className="mt-1 flex items-center gap-2">
                             <StatusBadge status={machine.status} />
                             <span className="text-xs text-slate-300">desired: {machine.desiredStatus}</span>
