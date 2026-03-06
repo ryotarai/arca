@@ -26,21 +26,25 @@ var (
 	ErrEmailAlreadyUsed   = errors.New("email already used")
 	ErrInvalidInput       = errors.New("invalid input")
 	ErrUnauthenticated    = errors.New("unauthenticated")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidSetupToken  = errors.New("invalid setup token")
 	ErrOIDCNotConfigured  = errors.New("oidc not configured")
 	ErrOIDCRejected       = errors.New("oidc login rejected")
 )
 
 type Service struct {
-	store      *db.Store
-	sessionTTL time.Duration
-	now        func() time.Time
+	store             *db.Store
+	sessionTTL        time.Duration
+	userSetupTokenTTL time.Duration
+	now               func() time.Time
 }
 
 func NewService(store *db.Store) *Service {
 	return &Service{
-		store:      store,
-		sessionTTL: 7 * 24 * time.Hour,
-		now:        time.Now,
+		store:             store,
+		sessionTTL:        7 * 24 * time.Hour,
+		userSetupTokenTTL: 24 * time.Hour,
+		now:               time.Now,
 	}
 }
 
@@ -83,6 +87,9 @@ func (s *Service) Login(ctx context.Context, email, password string) (string, st
 		}
 		return "", "", "", time.Time{}, err
 	}
+	if user.PasswordSetupRequired {
+		return "", "", "", time.Time{}, ErrInvalidCredentials
+	}
 
 	ok, err := verifyPassword(user.PasswordHash, password)
 	if err != nil {
@@ -98,6 +105,76 @@ func (s *Service) Login(ctx context.Context, email, password string) (string, st
 	}
 
 	return user.ID, user.Email, sessionToken, expiresAt, nil
+}
+
+func (s *Service) ListUsers(ctx context.Context) ([]db.ManagedUser, error) {
+	return s.store.ListUsers(ctx, s.now().Unix())
+}
+
+func (s *Service) ProvisionUser(ctx context.Context, email, createdByUserID string) (string, string, string, time.Time, error) {
+	email = normalizeEmail(email)
+	if email == "" || !strings.Contains(email, "@") {
+		return "", "", "", time.Time{}, ErrInvalidInput
+	}
+
+	initialPassword, err := randomToken()
+	if err != nil {
+		return "", "", "", time.Time{}, err
+	}
+	passwordHash, err := hashPassword(initialPassword)
+	if err != nil {
+		return "", "", "", time.Time{}, err
+	}
+	userID, err := randomID()
+	if err != nil {
+		return "", "", "", time.Time{}, err
+	}
+	if err := s.store.CreateUser(ctx, userID, email, passwordHash); err != nil {
+		if isUniqueViolation(err) {
+			return "", "", "", time.Time{}, ErrEmailAlreadyUsed
+		}
+		return "", "", "", time.Time{}, err
+	}
+	setupToken, expiresAt, err := s.issueUserSetupToken(ctx, userID, createdByUserID)
+	if err != nil {
+		return "", "", "", time.Time{}, err
+	}
+	return userID, email, setupToken, expiresAt, nil
+}
+
+func (s *Service) IssueUserSetupToken(ctx context.Context, userID, createdByUserID string) (string, time.Time, error) {
+	if strings.TrimSpace(userID) == "" {
+		return "", time.Time{}, ErrInvalidInput
+	}
+	if _, err := s.store.GetUserByID(ctx, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", time.Time{}, ErrUserNotFound
+		}
+		return "", time.Time{}, err
+	}
+	return s.issueUserSetupToken(ctx, userID, createdByUserID)
+}
+
+func (s *Service) CompleteUserSetup(ctx context.Context, setupToken, password string) (string, string, error) {
+	setupToken = strings.TrimSpace(setupToken)
+	password = strings.TrimSpace(password)
+	if setupToken == "" || len(password) < 8 {
+		return "", "", ErrInvalidInput
+	}
+
+	passwordHash, err := hashPassword(password)
+	if err != nil {
+		return "", "", err
+	}
+
+	user, err := s.store.CompleteUserSetup(ctx, hashSessionToken(setupToken), passwordHash, s.now().Unix())
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", ErrInvalidSetupToken
+		}
+		return "", "", err
+	}
+	return user.ID, user.Email, nil
 }
 
 func (s *Service) StartOIDCLogin(ctx context.Context, redirectURI, state string) (string, error) {
@@ -349,6 +426,33 @@ func randomToken() (string, error) {
 func hashSessionToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+func (s *Service) issueUserSetupToken(ctx context.Context, userID, createdByUserID string) (string, time.Time, error) {
+	setupToken, err := randomToken()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	tokenID, err := randomID()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	expiresAt := s.now().Add(s.userSetupTokenTTL)
+	if err := s.store.IssueUserSetupToken(
+		ctx,
+		tokenID,
+		hashSessionToken(setupToken),
+		userID,
+		strings.TrimSpace(createdByUserID),
+		expiresAt.Unix(),
+		s.now().Unix(),
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", time.Time{}, ErrUserNotFound
+		}
+		return "", time.Time{}, err
+	}
+	return setupToken, expiresAt, nil
 }
 
 func hashPassword(password string) (string, error) {
