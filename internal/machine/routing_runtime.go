@@ -37,6 +37,7 @@ func NewRoutingRuntimeWithCatalog(store RuntimeCatalogStore, runtimes map[string
 		store:    store,
 		factory: map[string]RuntimeFactory{
 			db.RuntimeTypeLibvirt: runtimeFromLibvirtCatalog,
+			db.RuntimeTypeGCE:     runtimeFromGceCatalog,
 		},
 	}
 }
@@ -127,4 +128,28 @@ func runtimeFromLibvirtCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error
 		Network:     strings.TrimSpace(libvirt.GetNetwork()),
 		StoragePool: strings.TrimSpace(libvirt.GetStoragePool()),
 	}), nil
+}
+
+func runtimeFromGceCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error) {
+	config := &arcav1.RuntimeConfig{}
+	if err := protojson.Unmarshal([]byte(catalogRuntime.ConfigJSON), config); err != nil {
+		return nil, fmt.Errorf("decode runtime config: %w", err)
+	}
+
+	gce := config.GetGce()
+	if gce == nil {
+		return nil, fmt.Errorf("gce runtime config is missing")
+	}
+
+	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
+		Project:             strings.TrimSpace(gce.GetProject()),
+		Zone:                strings.TrimSpace(gce.GetZone()),
+		Network:             strings.TrimSpace(gce.GetNetwork()),
+		Subnetwork:          strings.TrimSpace(gce.GetSubnetwork()),
+		ServiceAccountEmail: strings.TrimSpace(gce.GetServiceAccountEmail()),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return runtime, nil
 }
