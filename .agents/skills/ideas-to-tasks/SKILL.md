@@ -1,6 +1,6 @@
 ---
 name: ideas-to-tasks
-description: Convert product ideas in `tmp/ideas.md` into concrete implementation task files under `tmp/tasks/NNN-TASK_NAME.md`. Use when asked to operationalize idea backlogs, break vague ideas into actionable engineering tasks, and mark each processed idea as completed in `tmp/ideas.md`.
+description: Convert product ideas in `tmp/ideas.md` into concrete implementation task files under `tmp/tasks/NNN-TASK_NAME.md`. Use when asked to operationalize rough idea backlogs, break vague ideas into actionable engineering tasks, ask humans clarification questions when details are missing, and mark each fully processed idea as completed in `tmp/ideas.md`.
 ---
 
 # Ideas To Tasks
@@ -13,8 +13,10 @@ Convert unchecked idea items in `tmp/ideas.md` into standalone task specs in `tm
 2. Ignore already checked items (`- [x] ...`).
 3. Determine the next task number by scanning both `tmp/tasks/*.md` and `tmp/tasks-done/*.md`, then taking `max(NNN) + 1` across both directories.
 4. Process each unchecked idea in order of appearance.
-5. Create one task file per idea at `tmp/tasks/NNN-TASK_NAME.md`.
-6. After writing each task file, update the corresponding line in `tmp/ideas.md` from `- [ ]` to `- [x]`.
+5. Check whether each idea is specific enough to write an executable task file.
+6. If details are missing or ambiguous, ask concise clarification questions to a human before writing the task file.
+7. Create one task file per clarified idea at `tmp/tasks/NNN-TASK_NAME.md`.
+8. After writing each task file, update the corresponding line in `tmp/ideas.md` from `- [ ]` to `- [x]`.
 
 ## File Naming Rules
 
@@ -59,9 +61,17 @@ Use this structure for every generated task file:
 - Keep each task focused; split large ideas into phased steps inside the single task file.
 - Preserve original intent from `tmp/ideas.md`; do not silently redefine the idea.
 
+## Clarification Rules
+
+- Ask a human when an idea lacks implementation-critical information (for example target runtime, UX behavior, compatibility constraints, security expectations, or migration scope).
+- Prefer one consolidated question set for all currently ambiguous ideas instead of scattered questions.
+- Keep ambiguous ideas unchecked until clarification is received and a task file is created.
+- Do not invent irreversible product decisions to fill missing requirements.
+
 ## Completion Rules
 
 - Treat the operation as complete only when both are done:
 1. `tmp/tasks/NNN-TASK_NAME.md` is created for each processed idea.
 2. Matching idea lines in `tmp/ideas.md` are checked (`- [x]`).
+- If clarification is still pending, leave the corresponding idea line unchecked.
 - Do not commit files under `tmp/` unless the user explicitly requests it.
