@@ -70,7 +70,6 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 
 			if err := store.UpsertSetupState(ctx, SetupState{
 				Completed:          true,
-				AdminUserID:        userID,
 				BaseDomain:         "example.com",
 				DomainPrefix:       "arca-",
 				CloudflareAPIToken: "cf-token",
@@ -90,7 +89,7 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 			if err != nil {
 				t.Fatalf("get setup state: %v", err)
 			}
-			if !setup.Completed || setup.AdminUserID != userID || setup.CloudflareZoneID != "zone-id" || setup.MachineRuntime != "libvirt" {
+			if !setup.Completed || setup.CloudflareZoneID != "zone-id" || setup.MachineRuntime != "libvirt" {
 				t.Fatalf("unexpected setup state: %+v", setup)
 			}
 			if !setup.OIDCEnabled || setup.OIDCIssuerURL != "https://accounts.google.com" || setup.OIDCClientID != "client-id" || setup.OIDCClientSecret != "client-secret" {

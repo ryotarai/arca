@@ -13,7 +13,7 @@ import (
 
 type SetupState struct {
 	Completed                      bool
-	AdminUserID                    string
+	HasAdmin                       bool
 	BaseDomain                     string
 	DomainPrefix                   string
 	CloudflareAPIToken             string
@@ -96,6 +96,11 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 	}
 	oidcAllowedDomains := parseCSVMetaValue(oidcAllowedDomainsRaw)
 
+	hasAdmin, err := s.HasAdminUser(ctx)
+	if err != nil {
+		return SetupState{}, err
+	}
+
 	switch s.driver {
 	case DriverSQLite:
 		state, err := s.sqliteQueries.GetSetupState(ctx)
@@ -107,7 +112,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		}
 		return SetupState{
 			Completed:                      state.Completed,
-			AdminUserID:                    state.AdminUserID.String,
+			HasAdmin:                       hasAdmin,
 			BaseDomain:                     state.BaseDomain,
 			DomainPrefix:                   state.DomainPrefix,
 			CloudflareAPIToken:             state.CloudflareApiToken,
@@ -131,7 +136,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		}
 		return SetupState{
 			Completed:                      state.Completed,
-			AdminUserID:                    state.AdminUserID.String,
+			HasAdmin:                       hasAdmin,
 			BaseDomain:                     state.BaseDomain,
 			DomainPrefix:                   state.DomainPrefix,
 			CloudflareAPIToken:             state.CloudflareApiToken,
@@ -150,9 +155,19 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 	}
 }
 
+func (s *Store) HasAdminUser(ctx context.Context) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.HasAdminUser(ctx)
+	case DriverPostgres:
+		return s.pgQueries.HasAdminUser(ctx)
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	nowUnix := time.Now().Unix()
-	adminUserID := sql.NullString{String: strings.TrimSpace(state.AdminUserID), Valid: strings.TrimSpace(state.AdminUserID) != ""}
 	state.MachineRuntime = NormalizeMachineRuntime(state.MachineRuntime)
 
 	var err error
@@ -160,7 +175,6 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	case DriverSQLite:
 		err = s.sqliteQueries.UpsertSetupState(ctx, sqlitesqlc.UpsertSetupStateParams{
 			Completed:          state.Completed,
-			AdminUserID:        adminUserID,
 			BaseDomain:         strings.TrimSpace(state.BaseDomain),
 			DomainPrefix:       strings.TrimSpace(state.DomainPrefix),
 			CloudflareApiToken: state.CloudflareAPIToken,
@@ -169,7 +183,6 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	case DriverPostgres:
 		err = s.pgQueries.UpsertSetupState(ctx, postgresqlsqlc.UpsertSetupStateParams{
 			Completed:          state.Completed,
-			AdminUserID:        adminUserID,
 			BaseDomain:         strings.TrimSpace(state.BaseDomain),
 			DomainPrefix:       strings.TrimSpace(state.DomainPrefix),
 			CloudflareApiToken: state.CloudflareAPIToken,

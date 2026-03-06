@@ -50,8 +50,7 @@ func newVisibilityIntegrationFixture(t *testing.T) visibilityIntegrationFixture 
 	}
 
 	if err := store.UpsertSetupState(ctx, db.SetupState{
-		Completed:   true,
-		AdminUserID: ownerID,
+		Completed: true,
 	}); err != nil {
 		t.Fatalf("upsert setup state: %v", err)
 	}
@@ -204,7 +203,6 @@ func TestTunnelVisibility_AdminGuardrailDeniesInternetPublic(t *testing.T) {
 
 	if err := fx.store.UpsertSetupState(ctx, db.SetupState{
 		Completed:                      true,
-		AdminUserID:                    fx.ownerID,
 		InternetPublicExposureDisabled: true,
 	}); err != nil {
 		t.Fatalf("upsert setup state: %v", err)

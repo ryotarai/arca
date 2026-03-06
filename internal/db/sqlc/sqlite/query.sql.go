@@ -657,7 +657,7 @@ func (q *Queries) GetRuntimeByID(ctx context.Context, id string) (Runtime, error
 }
 
 const getSetupState = `-- name: GetSetupState :one
-SELECT completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, updated_at
+SELECT completed, base_domain, domain_prefix, cloudflare_api_token, updated_at
 FROM setup_state
 WHERE id = 1
 LIMIT 1
@@ -665,7 +665,6 @@ LIMIT 1
 
 type GetSetupStateRow struct {
 	Completed          bool
-	AdminUserID        sql.NullString
 	BaseDomain         string
 	DomainPrefix       string
 	CloudflareApiToken string
@@ -677,7 +676,6 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 	var i GetSetupStateRow
 	err := row.Scan(
 		&i.Completed,
-		&i.AdminUserID,
 		&i.BaseDomain,
 		&i.DomainPrefix,
 		&i.CloudflareApiToken,
@@ -835,6 +833,20 @@ func (q *Queries) GetValidUserSetupTokenByHash(ctx context.Context, arg GetValid
 		&i.Email,
 	)
 	return i, err
+}
+
+const hasAdminUser = `-- name: HasAdminUser :one
+SELECT COUNT(1) > 0
+FROM users
+WHERE role = 'admin'
+LIMIT 1
+`
+
+func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
+	row := q.db.QueryRowContext(ctx, hasAdminUser)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const insertMachineExposureACLUser = `-- name: InsertMachineExposureACLUser :exec
@@ -1689,19 +1701,17 @@ func (q *Queries) UpsertMeta(ctx context.Context, arg UpsertMetaParams) error {
 }
 
 const upsertSetupState = `-- name: UpsertSetupState :exec
-INSERT INTO setup_state (id, completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, updated_at)
+INSERT INTO setup_state (id, completed, base_domain, domain_prefix, cloudflare_api_token, updated_at)
 VALUES (
   1,
   ?1,
   ?2,
   ?3,
   ?4,
-  ?5,
-  ?6
+  ?5
 )
 ON CONFLICT (id) DO UPDATE
 SET completed = excluded.completed,
-    admin_user_id = excluded.admin_user_id,
     base_domain = excluded.base_domain,
     domain_prefix = excluded.domain_prefix,
     cloudflare_api_token = excluded.cloudflare_api_token,
@@ -1710,7 +1720,6 @@ SET completed = excluded.completed,
 
 type UpsertSetupStateParams struct {
 	Completed          bool
-	AdminUserID        sql.NullString
 	BaseDomain         string
 	DomainPrefix       string
 	CloudflareApiToken string
@@ -1720,7 +1729,6 @@ type UpsertSetupStateParams struct {
 func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStateParams) error {
 	_, err := q.db.ExecContext(ctx, upsertSetupState,
 		arg.Completed,
-		arg.AdminUserID,
 		arg.BaseDomain,
 		arg.DomainPrefix,
 		arg.CloudflareApiToken,

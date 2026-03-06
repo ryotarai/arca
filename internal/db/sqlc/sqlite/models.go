@@ -124,7 +124,6 @@ type Session struct {
 type SetupState struct {
 	ID                 int64
 	Completed          bool
-	AdminUserID        sql.NullString
 	BaseDomain         string
 	DomainPrefix       string
 	CloudflareApiToken string
