@@ -1,0 +1,133 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (for example v1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: arca-server
+            cmd: server
+            goos: linux
+            goarch: amd64
+          - app: arca-server
+            cmd: server
+            goos: linux
+            goarch: arm64
+          - app: arca-server
+            cmd: server
+            goos: darwin
+            goarch: amd64
+          - app: arca-server
+            cmd: server
+            goos: darwin
+            goarch: arm64
+          - app: arcad
+            cmd: arcad
+            goos: linux
+            goarch: amd64
+          - app: arcad
+            cmd: arcad
+            goos: linux
+            goarch: arm64
+          - app: arcad
+            cmd: arcad
+            goos: darwin
+            goarch: amd64
+          - app: arcad
+            cmd: arcad
+            goos: darwin
+            goarch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node.js
+        if: matrix.app == 'arca-server'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend artifacts for arca-server
+        if: matrix.app == 'arca-server'
+        run: |
+          npm --prefix web ci
+          make build-frontend
+          make sqlc
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          outdir="dist/${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          mkdir -p "$outdir"
+          go build -trimpath -ldflags "-s -w" -o "$outdir/${{ matrix.app }}" "./cmd/${{ matrix.cmd }}"
+
+      - name: Package archive
+        run: |
+          outdir="dist/${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          tar -C "$outdir" -czf "dist/${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" "${{ matrix.app }}"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dist/${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz > checksums.txt
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt
