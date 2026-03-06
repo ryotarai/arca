@@ -97,16 +97,13 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
-
-      <section className="relative z-10 mx-auto w-full max-w-3xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-3xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Settings</h1>
-            <p className="mt-1 text-sm text-slate-300">Update domain settings used for newly created machine exposures.</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Settings</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Update domain settings used for newly created machine exposures.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -118,17 +115,17 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
           </div>
         </header>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Domain settings</CardTitle>
-            <CardDescription className="text-slate-300">
+            <CardTitle className="text-xl">Domain settings</CardTitle>
+            <CardDescription>
               Existing machine hostnames stay unchanged. New machines use this configuration.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             <form className="space-y-4" onSubmit={submit}>
               <div className="space-y-2">
-                <Label htmlFor="settings-base-domain" className="text-slate-200">
+                <Label htmlFor="settings-base-domain">
                   Base domain
                 </Label>
                 <Input
@@ -136,7 +133,7 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   value={baseDomain}
                   onChange={(event) => setBaseDomain(event.target.value)}
                   required
-                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                  className="h-10"
                   placeholder="ryotarai.info"
                 />
                 {baseDomain !== '' && baseDomainError != null && (
@@ -144,14 +141,14 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="settings-domain-prefix" className="text-slate-200">
+                <Label htmlFor="settings-domain-prefix">
                   Domain prefix
                 </Label>
                 <Input
                   id="settings-domain-prefix"
                   value={domainPrefix}
                   onChange={(event) => setDomainPrefix(event.target.value)}
-                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                  className="h-10"
                   placeholder="arca-"
                 />
                 {domainPrefix !== '' && domainPrefixError != null && (
@@ -159,10 +156,10 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="settings-disable-internet-public" className="text-slate-200">
+                <Label htmlFor="settings-disable-internet-public">
                   Internet public exposure
                 </Label>
-                <label className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200">
+                <label className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-foreground">
                   <input
                     id="settings-disable-internet-public"
                     type="checkbox"
@@ -171,15 +168,15 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   />
                   Disable internet-public endpoint visibility
                 </label>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   When enabled, users cannot set endpoint visibility to internet public.
                 </p>
               </div>
-              <div className="space-y-2 rounded-md border border-white/10 bg-white/[0.03] p-4">
-                <Label htmlFor="settings-oidc-enabled" className="text-slate-200">
+              <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4">
+                <Label htmlFor="settings-oidc-enabled">
                   Google/OIDC login
                 </Label>
-                <label className="flex items-center gap-2 text-sm text-slate-200">
+                <label className="flex items-center gap-2 text-sm text-foreground">
                   <input
                     id="settings-oidc-enabled"
                     type="checkbox"
@@ -189,31 +186,31 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   Enable OIDC login
                 </label>
                 <div className="space-y-2">
-                  <Label htmlFor="settings-oidc-issuer" className="text-slate-200">
+                  <Label htmlFor="settings-oidc-issuer">
                     OIDC issuer URL
                   </Label>
                   <Input
                     id="settings-oidc-issuer"
                     value={oidcIssuerURL}
                     onChange={(event) => setOidcIssuerURL(event.target.value)}
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    className="h-10"
                     placeholder="https://accounts.google.com"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="settings-oidc-client-id" className="text-slate-200">
+                  <Label htmlFor="settings-oidc-client-id">
                     OIDC client ID
                   </Label>
                   <Input
                     id="settings-oidc-client-id"
                     value={oidcClientID}
                     onChange={(event) => setOidcClientID(event.target.value)}
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    className="h-10"
                     placeholder="your-client-id.apps.googleusercontent.com"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="settings-oidc-client-secret" className="text-slate-200">
+                  <Label htmlFor="settings-oidc-client-secret">
                     OIDC client secret
                   </Label>
                   <Input
@@ -221,10 +218,10 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                     type="password"
                     value={oidcClientSecret}
                     onChange={(event) => setOidcClientSecret(event.target.value)}
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    className="h-10"
                     placeholder={setupStatus.oidcClientSecretConfigured ? 'Leave empty to keep current secret' : 'Enter client secret'}
                   />
-                  <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
                     <input
                       type="checkbox"
                       checked={clearOidcClientSecret}
@@ -234,7 +231,7 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                   </label>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="settings-oidc-domains" className="text-slate-200">
+                  <Label htmlFor="settings-oidc-domains">
                     Allowed email domains (one per line)
                   </Label>
                   <textarea
@@ -242,17 +239,17 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                     value={oidcAllowedEmailDomainsText}
                     onChange={(event) => setOidcAllowedEmailDomainsText(event.target.value)}
                     rows={4}
-                    className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder={'example.com\ncorp.example.com'}
                   />
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Leave empty to allow any verified email domain.
                   </p>
                 </div>
               </div>
               <Button
                 type="submit"
-                className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100"
+                className="h-10 w-full"
                 disabled={loading || baseDomainError != null || domainPrefixError != null}
               >
                 {loading ? 'Saving...' : 'Save settings'}

@@ -106,16 +106,13 @@ export function MachineEditPage({ user, onLogout }: MachineEditPageProps) {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
-
-      <section className="relative z-10 mx-auto w-full max-w-3xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-3xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Edit machine</h1>
-            <p className="mt-1 text-xs text-slate-400">{machineID}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Edit machine</h1>
+            <p className="mt-1 text-xs text-muted-foreground">{machineID}</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -127,25 +124,25 @@ export function MachineEditPage({ user, onLogout }: MachineEditPageProps) {
           </div>
         </header>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Endpoint visibility</CardTitle>
-            <CardDescription className="text-slate-300">Control who can access this machine's endpoint.</CardDescription>
+            <CardTitle className="text-xl">Endpoint visibility</CardTitle>
+            <CardDescription>Control who can access this machine's endpoint.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-slate-300">Loading...</p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             ) : (
               <form className="space-y-4" onSubmit={(e) => void handleSave(e)}>
                 <div className="space-y-2">
-                  <label htmlFor="exposure-visibility" className="text-sm text-slate-200">
+                  <label htmlFor="exposure-visibility" className="text-sm text-foreground">
                     Visibility
                   </label>
                   <select
                     id="exposure-visibility"
                     value={exposureVisibility}
                     onChange={(event) => setExposureVisibility(Number(event.target.value) as EndpointVisibility)}
-                    className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                     disabled={defaultExposure == null}
                   >
                     <option value={EndpointVisibility.OWNER_ONLY}>Owner only</option>
@@ -167,15 +164,15 @@ export function MachineEditPage({ user, onLogout }: MachineEditPageProps) {
 
                 {exposureVisibility === EndpointVisibility.SELECTED_USERS && (
                   <div className="space-y-2">
-                    <label htmlFor="exposure-selected-users" className="text-sm text-slate-200">
+                    <label htmlFor="exposure-selected-users" className="text-sm text-foreground">
                       Allowed user IDs
                     </label>
-                    <p className="text-xs text-slate-400">Comma-separated user IDs allowed to access this endpoint.</p>
+                    <p className="text-xs text-muted-foreground">Comma-separated user IDs allowed to access this endpoint.</p>
                     <input
                       id="exposure-selected-users"
                       value={selectedUserIDsInput}
                       onChange={(event) => setSelectedUserIDsInput(event.target.value)}
-                      className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                       placeholder="user-id-1, user-id-2"
                     />
                   </div>
@@ -187,7 +184,7 @@ export function MachineEditPage({ user, onLogout }: MachineEditPageProps) {
 
                 <Button
                   type="submit"
-                  className="h-10 bg-white px-5 text-slate-900 hover:bg-slate-100"
+                  className="h-10 px-5"
                   disabled={saving || defaultExposure == null || internetPublicBlockedByPolicy}
                 >
                   {saving ? 'Saving...' : 'Save'}
