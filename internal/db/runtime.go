@@ -7,12 +7,13 @@ const (
 )
 
 func NormalizeMachineRuntime(runtime string) string {
-	if strings.EqualFold(strings.TrimSpace(runtime), MachineRuntimeLibvirt) {
+	runtime = strings.TrimSpace(runtime)
+	if runtime == "" {
 		return MachineRuntimeLibvirt
 	}
-	return MachineRuntimeLibvirt
+	return runtime
 }
 
 func IsSupportedMachineRuntime(runtime string) bool {
-	return NormalizeMachineRuntime(runtime) == MachineRuntimeLibvirt
+	return strings.EqualFold(strings.TrimSpace(runtime), MachineRuntimeLibvirt)
 }
