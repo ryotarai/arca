@@ -9,6 +9,8 @@ import { MachinesPage } from '@/pages/MachinesPage'
 import { OidcCallbackPage } from '@/pages/OidcCallbackPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
+import { AdminUsersPage } from '@/pages/AdminUsersPage'
+import { UserSetupPage } from '@/pages/UserSetupPage'
 
 export function App() {
   const [loading, setLoading] = useState(true)
@@ -107,8 +109,10 @@ export function App() {
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} />} />
       <Route path="/login/oidc/callback" element={<OidcCallbackPage user={user} onLogin={setUser} />} />
+      <Route path="/users/setup" element={<UserSetupPage user={user} />} />
       <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
       <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
+      <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
       <Route
         path="/settings"
         element={

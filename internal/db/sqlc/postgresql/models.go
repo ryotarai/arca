@@ -124,10 +124,11 @@ type SetupState struct {
 }
 
 type User struct {
-	ID           string
-	Email        string
-	PasswordHash string
-	CreatedAt    time.Time
+	ID                    string
+	Email                 string
+	PasswordHash          string
+	PasswordSetupRequired bool
+	CreatedAt             time.Time
 }
 
 type UserMachine struct {
@@ -135,4 +136,14 @@ type UserMachine struct {
 	MachineID string
 	Role      string
 	CreatedAt time.Time
+}
+
+type UserSetupToken struct {
+	ID              string
+	TokenHash       string
+	UserID          string
+	CreatedByUserID sql.NullString
+	ExpiresAt       int64
+	UsedAt          sql.NullInt64
+	CreatedAt       int64
 }

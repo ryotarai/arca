@@ -32,6 +32,10 @@ type HealthChecker interface {
 type Authenticator interface {
 	Register(context.Context, string, string) (string, string, error)
 	Login(context.Context, string, string) (string, string, string, time.Time, error)
+	ListUsers(context.Context) ([]db.ManagedUser, error)
+	ProvisionUser(context.Context, string, string) (string, string, string, time.Time, error)
+	IssueUserSetupToken(context.Context, string, string) (string, time.Time, error)
+	CompleteUserSetup(context.Context, string, string) (string, string, error)
 	StartOIDCLogin(context.Context, string, string) (string, error)
 	LoginWithOIDCCode(context.Context, string, string) (string, string, string, time.Time, error)
 	Authenticate(context.Context, string) (string, string, error)
@@ -72,6 +76,10 @@ func NewRouter(deps Dependencies) http.Handler {
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {
 		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore, deps.Cloudflare))
+		r.Mount(path, handler)
+	}
+	if deps.Authenticator != nil && deps.Store != nil {
+		path, handler := arcav1connect.NewUserServiceHandler(newUserConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Cloudflare != nil && deps.Authenticator != nil {

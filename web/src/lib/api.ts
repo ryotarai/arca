@@ -26,8 +26,15 @@ import {
   TunnelService,
   UpsertMachineExposureRequestSchema,
 } from '@/gen/arca/v1/tunnel_pb'
+import {
+  CompleteUserSetupRequestSchema,
+  CreateUserRequestSchema,
+  IssueUserSetupTokenRequestSchema,
+  ListUsersRequestSchema as ListManagedUsersRequestSchema,
+  UserService,
+} from '@/gen/arca/v1/user_pb'
 import { ApiError, parseApiErrorPayload } from '@/lib/errors'
-import type { Machine, MachineEvent, MachineExposure, SetupStatus, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineExposure, ManagedUser, SetupStatus, User } from '@/lib/types'
 
 const connectTransport = createConnectTransport({
   baseUrl: window.location.origin,
@@ -37,6 +44,7 @@ const connectTransport = createConnectTransport({
 const authClient = createClient(AuthService, connectTransport)
 const machineClient = createClient(MachineService, connectTransport)
 const tunnelClient = createClient(TunnelService, connectTransport)
+const userClient = createClient(UserService, connectTransport)
 
 type PollingOptions = {
   timeoutMs?: number
@@ -66,6 +74,25 @@ export function toUser(user: { id: string; email: string } | undefined): User | 
   return {
     id: user.id,
     email: user.email,
+  }
+}
+
+function toManagedUser(user: {
+  id: string
+  email: string
+  setupRequired: boolean
+  setupTokenExpiresAt: bigint
+  createdAt: bigint
+} | undefined): ManagedUser | null {
+  if (user == null) {
+    return null
+  }
+  return {
+    id: user.id,
+    email: user.email,
+    setupRequired: user.setupRequired,
+    setupTokenExpiresAt: Number(user.setupTokenExpiresAt),
+    createdAt: Number(user.createdAt),
   }
 }
 
@@ -176,6 +203,49 @@ export async function completeOidcLogin(code: string, state: string, redirectURI
 
 export async function logout(): Promise<void> {
   await authClient.logout(create(LogoutRequestSchema))
+}
+
+export async function listManagedUsers(): Promise<ManagedUser[]> {
+  const response = await userClient.listUsers(create(ListManagedUsersRequestSchema))
+  return response.users
+    .map((user) => toManagedUser(user))
+    .filter((user): user is ManagedUser => user != null)
+}
+
+export async function createManagedUser(email: string): Promise<{ user: ManagedUser; setupToken: string; setupTokenExpiresAt: number }> {
+  const response = await userClient.createUser(create(CreateUserRequestSchema, { email }))
+  const user = toManagedUser(response.user)
+  if (user == null) {
+    throw new Error('request failed')
+  }
+  return {
+    user,
+    setupToken: response.setupToken,
+    setupTokenExpiresAt: Number(response.setupTokenExpiresAt),
+  }
+}
+
+export async function issueManagedUserSetupToken(userID: string): Promise<{ user: ManagedUser; setupToken: string; setupTokenExpiresAt: number }> {
+  const response = await userClient.issueUserSetupToken(create(IssueUserSetupTokenRequestSchema, { userId: userID }))
+  const user = toManagedUser(response.user)
+  if (user == null) {
+    throw new Error('request failed')
+  }
+  return {
+    user,
+    setupToken: response.setupToken,
+    setupTokenExpiresAt: Number(response.setupTokenExpiresAt),
+  }
+}
+
+export async function completeUserSetup(setupToken: string, password: string): Promise<User | null> {
+  const response = await userClient.completeUserSetup(
+    create(CompleteUserSetupRequestSchema, {
+      setupToken,
+      password,
+    }),
+  )
+  return toUser(response.user)
 }
 
 export async function listMachines(options: PollingOptions = {}): Promise<Machine[]> {
