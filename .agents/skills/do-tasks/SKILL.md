@@ -21,6 +21,8 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-firs
 6. For each `ready` task, create an isolated worktree run unit.
 - Generate branch name: `task/<id>-<short-kebab-summary>`.
 - Check out branch into `.worktrees/<branch-name>` using `git worktree add`.
+- After creating the worktree, create a `tmp` symlink in that worktree that points to the repository root `tmp/` (for example: `ln -s "$(pwd)/tmp" ".worktrees/<branch-name>/tmp"` from repo root).
+- If `.worktrees/<branch-name>/tmp` already exists and is not the expected symlink, stop and fix it before starting execution.
 - Derive pane title from task meaning, not only id.
 - Use about 10 characters that summarize the task title/content (for example `auth-fix`, `ui-login`, `db-migrate`).
 - Avoid id-only titles such as `task-001` unless no meaningful summary can be derived.
@@ -43,6 +45,7 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-firs
 
 - Keep `main` clean; do not implement task changes directly on `main`.
 - For each task, use one branch and one worktree.
+- Ensure each worktree has `tmp -> <repo-root>/tmp` symlink before running bgcodex.
 - Merge only after completion is verified.
 - If merge conflicts appear, stop concurrent execution for conflicting tasks and resolve sequentially.
 - After merge, clean both the branch and its worktree directory.
