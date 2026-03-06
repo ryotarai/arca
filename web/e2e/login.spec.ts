@@ -1,51 +1,5 @@
-import { expect, test, type Page, type APIResponse } from '@playwright/test'
-
-const adminEmail = 'admin@example.com'
-const adminPassword = 'password123'
-
-async function parseJSONSafe(response: APIResponse): Promise<Record<string, unknown> | null> {
-  try {
-    return (await response.json()) as Record<string, unknown>
-  } catch {
-    return null
-  }
-}
-
-async function ensureSetupAdmin(page: Page) {
-  const response = await page.request.post('/arca.v1.SetupService/CompleteSetup', {
-    data: {
-      adminEmail,
-      adminPassword,
-      baseDomain: 'example.com',
-      domainPrefix: 'arca-',
-      cloudflareApiToken: 'dummy-token',
-      cloudflareZoneId: 'dummy-zone',
-      dockerProviderEnabled: false,
-      machineRuntime: 'libvirt',
-    },
-  })
-
-  if (response.ok()) {
-    return
-  }
-
-  const payload = await parseJSONSafe(response)
-  const code = String(payload?.code ?? '').toLowerCase()
-  if (code === 'failed_precondition') {
-    return
-  }
-
-  throw new Error(`setup failed: ${response.status()} ${JSON.stringify(payload)}`)
-}
-
-async function login(page: Page, email = adminEmail, password = adminPassword) {
-  await ensureSetupAdmin(page)
-  await page.goto('/login')
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Login' }).click()
-  await expect(page).toHaveURL('/')
-}
+import { expect, test } from '@playwright/test'
+import { adminEmail, adminPassword, ensureSetupAdmin, loginAsAdmin } from './helpers'
 
 test('redirect path exposes login screen', async ({ page }) => {
   await page.goto('/')
@@ -103,7 +57,7 @@ test('login and logout via Connect RPC', async ({ page }) => {
 
 test('machine CRUD screen works for authenticated user', async ({ page }) => {
   const machineName = `alpha-machine-${Date.now()}`
-  await login(page)
+  await loginAsAdmin(page)
 
   await page.getByRole('link', { name: 'Machines' }).click()
   await expect(page).toHaveURL('/machines')
@@ -131,7 +85,7 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
 })
 
 test('authenticated login route honors next parameter', async ({ page }) => {
-  await login(page)
+  await loginAsAdmin(page)
 
   await page.goto('/login?next=%2Fmachines')
   await expect(page).toHaveURL('/machines')
@@ -139,7 +93,7 @@ test('authenticated login route honors next parameter', async ({ page }) => {
 })
 
 test('authenticated login route honors nested authorize next parameter', async ({ page }) => {
-  await login(page)
+  await loginAsAdmin(page)
 
   await page.goto(
     '/login?next=%2Fconsole%2Fauthorize%3Ftarget%3Dhttps%253A%252F%252Farca-test3.ryotarai.info%252Fcallback%253Fnext%253D%25252F',
