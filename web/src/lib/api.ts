@@ -6,7 +6,6 @@ import {
   LoginRequestSchema,
   LogoutRequestSchema,
   MeRequestSchema,
-  RegisterRequestSchema,
 } from '@/gen/arca/v1/auth_pb'
 import {
   CreateMachineRequestSchema,
@@ -144,15 +143,6 @@ export async function login(email: string, password: string): Promise<User | nul
     }),
   )
   return toUser(response.user)
-}
-
-export async function register(email: string, password: string): Promise<void> {
-  await authClient.register(
-    create(RegisterRequestSchema, {
-      email,
-      password,
-    }),
-  )
 }
 
 export async function logout(): Promise<void> {

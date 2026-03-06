@@ -1,16 +1,45 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type APIResponse } from '@playwright/test'
 
-async function registerUser(page: Page, email: string, password: string) {
-  const response = await page.request.post('/arca.v1.AuthService/Register', {
-    data: {
-      email,
-      password,
-    },
-  })
-  expect(response.ok()).toBeTruthy()
+const adminEmail = 'admin@example.com'
+const adminPassword = 'password123'
+
+async function parseJSONSafe(response: APIResponse): Promise<Record<string, unknown> | null> {
+  try {
+    return (await response.json()) as Record<string, unknown>
+  } catch {
+    return null
+  }
 }
 
-async function login(page: Page, email: string, password: string) {
+async function ensureSetupAdmin(page: Page) {
+  const response = await page.request.post('/arca.v1.SetupService/CompleteSetup', {
+    data: {
+      adminEmail,
+      adminPassword,
+      baseDomain: 'example.com',
+      domainPrefix: 'arca-',
+      cloudflareApiToken: 'dummy-token',
+      cloudflareZoneId: 'dummy-zone',
+      dockerProviderEnabled: false,
+      machineRuntime: 'libvirt',
+    },
+  })
+
+  if (response.ok()) {
+    return
+  }
+
+  const payload = await parseJSONSafe(response)
+  const code = String(payload?.code ?? '').toLowerCase()
+  if (code === 'failed_precondition') {
+    return
+  }
+
+  throw new Error(`setup failed: ${response.status()} ${JSON.stringify(payload)}`)
+}
+
+async function login(page: Page, email = adminEmail, password = adminPassword) {
+  await ensureSetupAdmin(page)
   await page.goto('/login')
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password', { exact: true }).fill(password)
@@ -44,13 +73,11 @@ test('unauthenticated user cannot access authenticated dashboard view', async ({
 })
 
 test('login and logout via Connect RPC', async ({ page }) => {
-  const email = `e2e-${Date.now()}@example.com`
-  const password = 'password123'
-  await registerUser(page, email, password)
+  await ensureSetupAdmin(page)
 
   await page.goto('/login')
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByLabel('Email').fill(adminEmail)
+  await page.getByLabel('Password', { exact: true }).fill(adminPassword)
 
   const loginRequest = page.waitForRequest(
     (request) =>
@@ -61,7 +88,7 @@ test('login and logout via Connect RPC', async ({ page }) => {
   await loginRequest
 
   await expect(page).toHaveURL('/')
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
+  await expect(page.getByText(`Signed in as ${adminEmail}`)).toBeVisible()
 
   const logoutRequest = page.waitForRequest(
     (request) =>
@@ -75,12 +102,8 @@ test('login and logout via Connect RPC', async ({ page }) => {
 })
 
 test('machine CRUD screen works for authenticated user', async ({ page }) => {
-  const email = `machine-${Date.now()}@example.com`
-  const password = 'password123'
   const machineName = `alpha-machine-${Date.now()}`
-  await registerUser(page, email, password)
-
-  await login(page, email, password)
+  await login(page)
 
   await page.getByRole('link', { name: 'Machines' }).click()
   await expect(page).toHaveURL('/machines')
@@ -108,10 +131,7 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
 })
 
 test('authenticated login route honors next parameter', async ({ page }) => {
-  const email = `next-${Date.now()}@example.com`
-  const password = 'password123'
-  await registerUser(page, email, password)
-  await login(page, email, password)
+  await login(page)
 
   await page.goto('/login?next=%2Fmachines')
   await expect(page).toHaveURL('/machines')
@@ -119,10 +139,7 @@ test('authenticated login route honors next parameter', async ({ page }) => {
 })
 
 test('authenticated login route honors nested authorize next parameter', async ({ page }) => {
-  const email = `nested-next-${Date.now()}@example.com`
-  const password = 'password123'
-  await registerUser(page, email, password)
-  await login(page, email, password)
+  await login(page)
 
   await page.goto(
     '/login?next=%2Fconsole%2Fauthorize%3Ftarget%3Dhttps%253A%252F%252Farca-test3.ryotarai.info%252Fcallback%253Fnext%253D%25252F',

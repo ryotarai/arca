@@ -21,27 +21,6 @@ func newAuthConnectService(authenticator Authenticator) *authConnectService {
 	return &authConnectService{authenticator: authenticator}
 }
 
-func (s *authConnectService) Register(ctx context.Context, req *connect.Request[arcav1.RegisterRequest]) (*connect.Response[arcav1.RegisterResponse], error) {
-	if s.authenticator == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
-	}
-
-	userID, email, err := s.authenticator.Register(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
-	if err != nil {
-		switch {
-		case errors.Is(err, auth.ErrInvalidInput):
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("email or password is invalid"))
-		case errors.Is(err, auth.ErrEmailAlreadyUsed):
-			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("email already used"))
-		default:
-			log.Printf("register failed: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to register"))
-		}
-	}
-
-	return connect.NewResponse(&arcav1.RegisterResponse{User: &arcav1.User{Id: userID, Email: email}}), nil
-}
-
 func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arcav1.LoginRequest]) (*connect.Response[arcav1.LoginResponse], error) {
 	if s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
