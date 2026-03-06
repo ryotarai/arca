@@ -91,6 +91,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [defaultExposure, setDefaultExposure] = useState<MachineExposure | null>(null)
   const [exposureVisibility, setExposureVisibility] = useState<EndpointVisibility>(EndpointVisibility.OWNER_ONLY)
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
+  const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
@@ -276,6 +277,20 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                       className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
                     >
                       {endpointURL}
+                    </a>
+                    <p className="text-xs text-slate-400">Proxied to localhost:8080 inside the machine</p>
+                  </div>
+                )}
+                {ttydURL != null && (
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                    <p className="text-sm text-slate-300">Terminal (ttyd)</p>
+                    <a
+                      href={ttydURL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
+                    >
+                      {ttydURL}
                     </a>
                   </div>
                 )}
