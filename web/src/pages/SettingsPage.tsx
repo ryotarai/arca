@@ -26,6 +26,12 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
   const [domainPrefix, setDomainPrefix] = useState(setupStatus.domainPrefix)
   const [machineRuntime, setMachineRuntime] = useState<'libvirt'>(setupStatus.machineRuntime)
   const [disableInternetPublicExposure, setDisableInternetPublicExposure] = useState(setupStatus.internetPublicExposureDisabled)
+  const [oidcEnabled, setOidcEnabled] = useState(setupStatus.oidcEnabled)
+  const [oidcIssuerURL, setOidcIssuerURL] = useState(setupStatus.oidcIssuerURL)
+  const [oidcClientID, setOidcClientID] = useState(setupStatus.oidcClientID)
+  const [oidcClientSecret, setOidcClientSecret] = useState('')
+  const [clearOidcClientSecret, setClearOidcClientSecret] = useState(false)
+  const [oidcAllowedEmailDomainsText, setOidcAllowedEmailDomainsText] = useState(setupStatus.oidcAllowedEmailDomains.join('\n'))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -57,14 +63,34 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
         normalizedDomainPrefix,
         machineRuntime,
         disableInternetPublicExposure,
+        oidcEnabled,
+        oidcIssuerURL.trim(),
+        oidcClientID.trim(),
+        oidcClientSecret,
+        oidcAllowedEmailDomainsText
+          .split(/\r?\n/)
+          .map((value) => value.trim().toLowerCase())
+          .filter((value) => value !== ''),
+        clearOidcClientSecret,
       )
+      const normalizedOidcAllowedEmailDomains = oidcAllowedEmailDomainsText
+        .split(/\r?\n/)
+        .map((value) => value.trim().toLowerCase())
+        .filter((value) => value !== '')
       onSetupStatusChange({
         ...setupStatus,
         baseDomain: normalizedBaseDomain,
         domainPrefix: normalizedDomainPrefix,
         machineRuntime,
         internetPublicExposureDisabled: disableInternetPublicExposure,
+        oidcEnabled,
+        oidcIssuerURL: oidcIssuerURL.trim(),
+        oidcClientID: oidcClientID.trim(),
+        oidcClientSecretConfigured: clearOidcClientSecret ? false : setupStatus.oidcClientSecretConfigured || oidcClientSecret !== '',
+        oidcAllowedEmailDomains: normalizedOidcAllowedEmailDomains,
       })
+      setOidcClientSecret('')
+      setClearOidcClientSecret(false)
       setSaved(true)
     } catch (e) {
       setError(messageFromError(e))
@@ -164,6 +190,81 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                 <p className="text-xs text-slate-400">
                   When enabled, users cannot set endpoint visibility to internet public.
                 </p>
+              </div>
+              <div className="space-y-2 rounded-md border border-white/10 bg-white/[0.03] p-4">
+                <Label htmlFor="settings-oidc-enabled" className="text-slate-200">
+                  Google/OIDC login
+                </Label>
+                <label className="flex items-center gap-2 text-sm text-slate-200">
+                  <input
+                    id="settings-oidc-enabled"
+                    type="checkbox"
+                    checked={oidcEnabled}
+                    onChange={(event) => setOidcEnabled(event.target.checked)}
+                  />
+                  Enable OIDC login
+                </label>
+                <div className="space-y-2">
+                  <Label htmlFor="settings-oidc-issuer" className="text-slate-200">
+                    OIDC issuer URL
+                  </Label>
+                  <Input
+                    id="settings-oidc-issuer"
+                    value={oidcIssuerURL}
+                    onChange={(event) => setOidcIssuerURL(event.target.value)}
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="https://accounts.google.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="settings-oidc-client-id" className="text-slate-200">
+                    OIDC client ID
+                  </Label>
+                  <Input
+                    id="settings-oidc-client-id"
+                    value={oidcClientID}
+                    onChange={(event) => setOidcClientID(event.target.value)}
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="your-client-id.apps.googleusercontent.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="settings-oidc-client-secret" className="text-slate-200">
+                    OIDC client secret
+                  </Label>
+                  <Input
+                    id="settings-oidc-client-secret"
+                    type="password"
+                    value={oidcClientSecret}
+                    onChange={(event) => setOidcClientSecret(event.target.value)}
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder={setupStatus.oidcClientSecretConfigured ? 'Leave empty to keep current secret' : 'Enter client secret'}
+                  />
+                  <label className="flex items-center gap-2 text-sm text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={clearOidcClientSecret}
+                      onChange={(event) => setClearOidcClientSecret(event.target.checked)}
+                    />
+                    Clear stored client secret on save
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="settings-oidc-domains" className="text-slate-200">
+                    Allowed email domains (one per line)
+                  </Label>
+                  <textarea
+                    id="settings-oidc-domains"
+                    value={oidcAllowedEmailDomainsText}
+                    onChange={(event) => setOidcAllowedEmailDomainsText(event.target.value)}
+                    rows={4}
+                    className="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45"
+                    placeholder={'example.com\ncorp.example.com'}
+                  />
+                  <p className="text-xs text-slate-400">
+                    Leave empty to allow any verified email domain.
+                  </p>
+                </div>
               </div>
               <Button
                 type="submit"

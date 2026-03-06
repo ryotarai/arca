@@ -32,6 +32,8 @@ type HealthChecker interface {
 type Authenticator interface {
 	Register(context.Context, string, string) (string, string, error)
 	Login(context.Context, string, string) (string, string, string, time.Time, error)
+	StartOIDCLogin(context.Context, string, string) (string, error)
+	LoginWithOIDCCode(context.Context, string, string) (string, string, string, time.Time, error)
 	Authenticate(context.Context, string) (string, string, error)
 	Logout(context.Context, string) error
 }
@@ -53,6 +55,7 @@ type MachineStore interface {
 }
 
 const sessionCookieName = "arca_session"
+const oidcStateCookieName = "arca_oidc_state"
 
 func NewRouter(deps Dependencies) http.Handler {
 	r := chi.NewRouter()

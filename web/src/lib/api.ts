@@ -3,9 +3,11 @@ import { createClient } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
   AuthService,
+  CompleteOidcLoginRequestSchema,
   LoginRequestSchema,
   LogoutRequestSchema,
   MeRequestSchema,
+  StartOidcLoginRequestSchema,
 } from '@/gen/arca/v1/auth_pb'
 import {
   CreateMachineRequestSchema,
@@ -152,6 +154,26 @@ export async function login(email: string, password: string): Promise<User | nul
   return toUser(response.user)
 }
 
+export async function startOidcLogin(redirectURI: string): Promise<string> {
+  const response = await authClient.startOidcLogin(
+    create(StartOidcLoginRequestSchema, {
+      redirectUri: redirectURI,
+    }),
+  )
+  return response.authorizationUrl
+}
+
+export async function completeOidcLogin(code: string, state: string, redirectURI: string): Promise<User | null> {
+  const response = await authClient.completeOidcLogin(
+    create(CompleteOidcLoginRequestSchema, {
+      code,
+      state,
+      redirectUri: redirectURI,
+    }),
+  )
+  return toUser(response.user)
+}
+
 export async function logout(): Promise<void> {
   await authClient.logout(create(LogoutRequestSchema))
 }
@@ -235,6 +257,11 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         domainPrefix?: string
         machineRuntime?: string
         internetPublicExposureDisabled?: boolean
+        oidcEnabled?: boolean
+        oidcIssuerUrl?: string
+        oidcClientId?: string
+        oidcClientSecretConfigured?: boolean
+        oidcAllowedEmailDomains?: string[]
       }
       isConfigured?: boolean
       configured?: boolean
@@ -246,6 +273,11 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       domainPrefix?: string
       machineRuntime?: string
       internetPublicExposureDisabled?: boolean
+      oidcEnabled?: boolean
+      oidcIssuerUrl?: string
+      oidcClientId?: string
+      oidcClientSecretConfigured?: boolean
+      oidcAllowedEmailDomains?: string[]
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -261,6 +293,13 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const machineRuntime = machineRuntimeRaw === 'libvirt' ? 'libvirt' : 'libvirt'
     const internetPublicExposureDisabled =
       response.status?.internetPublicExposureDisabled ?? response.internetPublicExposureDisabled ?? false
+    const oidcEnabled = response.status?.oidcEnabled ?? response.oidcEnabled ?? false
+    const oidcIssuerURL = response.status?.oidcIssuerUrl ?? response.oidcIssuerUrl ?? ''
+    const oidcClientID = response.status?.oidcClientId ?? response.oidcClientId ?? ''
+    const oidcClientSecretConfigured =
+      response.status?.oidcClientSecretConfigured ?? response.oidcClientSecretConfigured ?? false
+    const oidcAllowedEmailDomains =
+      response.status?.oidcAllowedEmailDomains ?? response.oidcAllowedEmailDomains ?? []
 
     return {
       isConfigured,
@@ -270,6 +309,11 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       domainPrefix,
       machineRuntime,
       internetPublicExposureDisabled,
+      oidcEnabled,
+      oidcIssuerURL,
+      oidcClientID,
+      oidcClientSecretConfigured,
+      oidcAllowedEmailDomains,
     }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
@@ -281,6 +325,11 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         domainPrefix: '',
         machineRuntime: 'libvirt',
         internetPublicExposureDisabled: false,
+        oidcEnabled: false,
+        oidcIssuerURL: '',
+        oidcClientID: '',
+        oidcClientSecretConfigured: false,
+        oidcAllowedEmailDomains: [],
       }
     }
     throw error
@@ -353,6 +402,12 @@ export async function updateDomainSettings(
   domainPrefix: string,
   machineRuntime: 'libvirt',
   disableInternetPublicExposure: boolean,
+  oidcEnabled: boolean,
+  oidcIssuerURL: string,
+  oidcClientID: string,
+  oidcClientSecret: string,
+  oidcAllowedEmailDomains: string[],
+  clearOidcClientSecret: boolean,
 ): Promise<void> {
   const response = await callConnectJSONCandidates<{
     status?: {
@@ -364,6 +419,12 @@ export async function updateDomainSettings(
     domainPrefix,
     machineRuntime,
     disableInternetPublicExposure,
+    oidcEnabled,
+    oidcIssuerUrl: oidcIssuerURL,
+    oidcClientId: oidcClientID,
+    oidcClientSecret,
+    oidcAllowedEmailDomains,
+    clearOidcClientSecret,
   })
   if ((response.status?.baseDomain ?? '').trim() === '') {
     throw new Error(response.message ?? 'failed to update domain settings')

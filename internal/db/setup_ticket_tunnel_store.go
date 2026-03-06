@@ -21,6 +21,11 @@ type SetupState struct {
 	MachineRuntime                 string
 	DockerProviderEnabled          bool
 	InternetPublicExposureDisabled bool
+	OIDCEnabled                    bool
+	OIDCIssuerURL                  string
+	OIDCClientID                   string
+	OIDCClientSecret               string
+	OIDCAllowedEmailDomains        []string
 	UpdatedAtUnix                  int64
 }
 
@@ -69,6 +74,28 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		return SetupState{}, err
 	}
 	internetPublicExposureDisabled := parseBoolMetaValue(internetPublicExposureDisabledRaw)
+	oidcEnabledRaw, err := s.getMetaValue(ctx, setupMetaOIDCEnabled)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	oidcEnabled := parseBoolMetaValue(oidcEnabledRaw)
+	oidcIssuerURL, err := s.getMetaValue(ctx, setupMetaOIDCIssuerURL)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	oidcClientID, err := s.getMetaValue(ctx, setupMetaOIDCClientID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	oidcClientSecret, err := s.getMetaValue(ctx, setupMetaOIDCClientSecret)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	oidcAllowedDomainsRaw, err := s.getMetaValue(ctx, setupMetaOIDCAllowedEmailDomains)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	oidcAllowedDomains := parseCSVMetaValue(oidcAllowedDomainsRaw)
 
 	switch s.driver {
 	case DriverSQLite:
@@ -89,6 +116,11 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			MachineRuntime:                 machineRuntime,
 			DockerProviderEnabled:          state.DockerProviderEnabled,
 			InternetPublicExposureDisabled: internetPublicExposureDisabled,
+			OIDCEnabled:                    oidcEnabled,
+			OIDCIssuerURL:                  strings.TrimSpace(oidcIssuerURL),
+			OIDCClientID:                   strings.TrimSpace(oidcClientID),
+			OIDCClientSecret:               oidcClientSecret,
+			OIDCAllowedEmailDomains:        oidcAllowedDomains,
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	case DriverPostgres:
@@ -109,6 +141,11 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			MachineRuntime:                 machineRuntime,
 			DockerProviderEnabled:          state.DockerProviderEnabled,
 			InternetPublicExposureDisabled: internetPublicExposureDisabled,
+			OIDCEnabled:                    oidcEnabled,
+			OIDCIssuerURL:                  strings.TrimSpace(oidcIssuerURL),
+			OIDCClientID:                   strings.TrimSpace(oidcClientID),
+			OIDCClientSecret:               oidcClientSecret,
+			OIDCAllowedEmailDomains:        oidcAllowedDomains,
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	default:
@@ -157,12 +194,32 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaMachineRuntime, state.MachineRuntime); err != nil {
 		return err
 	}
-	return s.upsertMetaValue(ctx, setupMetaDisableInternetPublicExposure, boolMetaValue(state.InternetPublicExposureDisabled))
+	if err := s.upsertMetaValue(ctx, setupMetaDisableInternetPublicExposure, boolMetaValue(state.InternetPublicExposureDisabled)); err != nil {
+		return err
+	}
+	if err := s.upsertMetaValue(ctx, setupMetaOIDCEnabled, boolMetaValue(state.OIDCEnabled)); err != nil {
+		return err
+	}
+	if err := s.upsertMetaValue(ctx, setupMetaOIDCIssuerURL, strings.TrimSpace(state.OIDCIssuerURL)); err != nil {
+		return err
+	}
+	if err := s.upsertMetaValue(ctx, setupMetaOIDCClientID, strings.TrimSpace(state.OIDCClientID)); err != nil {
+		return err
+	}
+	if err := s.upsertMetaValue(ctx, setupMetaOIDCClientSecret, state.OIDCClientSecret); err != nil {
+		return err
+	}
+	return s.upsertMetaValue(ctx, setupMetaOIDCAllowedEmailDomains, csvMetaValue(state.OIDCAllowedEmailDomains))
 }
 
 const setupMetaCloudflareZoneID = "setup.cloudflare_zone_id"
 const setupMetaMachineRuntime = "setup.machine_runtime"
 const setupMetaDisableInternetPublicExposure = "setup.disable_internet_public_exposure"
+const setupMetaOIDCEnabled = "setup.oidc.enabled"
+const setupMetaOIDCIssuerURL = "setup.oidc.issuer_url"
+const setupMetaOIDCClientID = "setup.oidc.client_id"
+const setupMetaOIDCClientSecret = "setup.oidc.client_secret"
+const setupMetaOIDCAllowedEmailDomains = "setup.oidc.allowed_email_domains"
 
 func parseBoolMetaValue(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
@@ -174,6 +231,48 @@ func boolMetaValue(value bool) string {
 		return "true"
 	}
 	return "false"
+}
+
+func parseCSVMetaValue(value string) []string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	seen := map[string]struct{}{}
+	for _, part := range parts {
+		trimmed := strings.ToLower(strings.TrimSpace(part))
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		result = append(result, trimmed)
+	}
+	return result
+}
+
+func csvMetaValue(values []string) string {
+	if len(values) == 0 {
+		return ""
+	}
+	normalized := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		trimmed := strings.ToLower(strings.TrimSpace(value))
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		normalized = append(normalized, trimmed)
+	}
+	return strings.Join(normalized, ",")
 }
 
 func (s *Store) getMetaValue(ctx context.Context, key string) (string, error) {

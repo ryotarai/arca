@@ -35,6 +35,12 @@ const (
 const (
 	// AuthServiceLoginProcedure is the fully-qualified name of the AuthService's Login RPC.
 	AuthServiceLoginProcedure = "/arca.v1.AuthService/Login"
+	// AuthServiceStartOidcLoginProcedure is the fully-qualified name of the AuthService's
+	// StartOidcLogin RPC.
+	AuthServiceStartOidcLoginProcedure = "/arca.v1.AuthService/StartOidcLogin"
+	// AuthServiceCompleteOidcLoginProcedure is the fully-qualified name of the AuthService's
+	// CompleteOidcLogin RPC.
+	AuthServiceCompleteOidcLoginProcedure = "/arca.v1.AuthService/CompleteOidcLogin"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/arca.v1.AuthService/Logout"
 	// AuthServiceMeProcedure is the fully-qualified name of the AuthService's Me RPC.
@@ -44,6 +50,8 @@ const (
 // AuthServiceClient is a client for the arca.v1.AuthService service.
 type AuthServiceClient interface {
 	Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error)
+	StartOidcLogin(context.Context, *connect.Request[v1.StartOidcLoginRequest]) (*connect.Response[v1.StartOidcLoginResponse], error)
+	CompleteOidcLogin(context.Context, *connect.Request[v1.CompleteOidcLoginRequest]) (*connect.Response[v1.CompleteOidcLoginResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	Me(context.Context, *connect.Request[v1.MeRequest]) (*connect.Response[v1.MeResponse], error)
 }
@@ -65,6 +73,18 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("Login")),
 			connect.WithClientOptions(opts...),
 		),
+		startOidcLogin: connect.NewClient[v1.StartOidcLoginRequest, v1.StartOidcLoginResponse](
+			httpClient,
+			baseURL+AuthServiceStartOidcLoginProcedure,
+			connect.WithSchema(authServiceMethods.ByName("StartOidcLogin")),
+			connect.WithClientOptions(opts...),
+		),
+		completeOidcLogin: connect.NewClient[v1.CompleteOidcLoginRequest, v1.CompleteOidcLoginResponse](
+			httpClient,
+			baseURL+AuthServiceCompleteOidcLoginProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CompleteOidcLogin")),
+			connect.WithClientOptions(opts...),
+		),
 		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
 			httpClient,
 			baseURL+AuthServiceLogoutProcedure,
@@ -82,14 +102,26 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	login  *connect.Client[v1.LoginRequest, v1.LoginResponse]
-	logout *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	me     *connect.Client[v1.MeRequest, v1.MeResponse]
+	login             *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	startOidcLogin    *connect.Client[v1.StartOidcLoginRequest, v1.StartOidcLoginResponse]
+	completeOidcLogin *connect.Client[v1.CompleteOidcLoginRequest, v1.CompleteOidcLoginResponse]
+	logout            *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	me                *connect.Client[v1.MeRequest, v1.MeResponse]
 }
 
 // Login calls arca.v1.AuthService.Login.
 func (c *authServiceClient) Login(ctx context.Context, req *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error) {
 	return c.login.CallUnary(ctx, req)
+}
+
+// StartOidcLogin calls arca.v1.AuthService.StartOidcLogin.
+func (c *authServiceClient) StartOidcLogin(ctx context.Context, req *connect.Request[v1.StartOidcLoginRequest]) (*connect.Response[v1.StartOidcLoginResponse], error) {
+	return c.startOidcLogin.CallUnary(ctx, req)
+}
+
+// CompleteOidcLogin calls arca.v1.AuthService.CompleteOidcLogin.
+func (c *authServiceClient) CompleteOidcLogin(ctx context.Context, req *connect.Request[v1.CompleteOidcLoginRequest]) (*connect.Response[v1.CompleteOidcLoginResponse], error) {
+	return c.completeOidcLogin.CallUnary(ctx, req)
 }
 
 // Logout calls arca.v1.AuthService.Logout.
@@ -105,6 +137,8 @@ func (c *authServiceClient) Me(ctx context.Context, req *connect.Request[v1.MeRe
 // AuthServiceHandler is an implementation of the arca.v1.AuthService service.
 type AuthServiceHandler interface {
 	Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error)
+	StartOidcLogin(context.Context, *connect.Request[v1.StartOidcLoginRequest]) (*connect.Response[v1.StartOidcLoginResponse], error)
+	CompleteOidcLogin(context.Context, *connect.Request[v1.CompleteOidcLoginRequest]) (*connect.Response[v1.CompleteOidcLoginResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	Me(context.Context, *connect.Request[v1.MeRequest]) (*connect.Response[v1.MeResponse], error)
 }
@@ -120,6 +154,18 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		AuthServiceLoginProcedure,
 		svc.Login,
 		connect.WithSchema(authServiceMethods.ByName("Login")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceStartOidcLoginHandler := connect.NewUnaryHandler(
+		AuthServiceStartOidcLoginProcedure,
+		svc.StartOidcLogin,
+		connect.WithSchema(authServiceMethods.ByName("StartOidcLogin")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceCompleteOidcLoginHandler := connect.NewUnaryHandler(
+		AuthServiceCompleteOidcLoginProcedure,
+		svc.CompleteOidcLogin,
+		connect.WithSchema(authServiceMethods.ByName("CompleteOidcLogin")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceLogoutHandler := connect.NewUnaryHandler(
@@ -138,6 +184,10 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		switch r.URL.Path {
 		case AuthServiceLoginProcedure:
 			authServiceLoginHandler.ServeHTTP(w, r)
+		case AuthServiceStartOidcLoginProcedure:
+			authServiceStartOidcLoginHandler.ServeHTTP(w, r)
+		case AuthServiceCompleteOidcLoginProcedure:
+			authServiceCompleteOidcLoginHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
 		case AuthServiceMeProcedure:
@@ -153,6 +203,14 @@ type UnimplementedAuthServiceHandler struct{}
 
 func (UnimplementedAuthServiceHandler) Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AuthService.Login is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) StartOidcLogin(context.Context, *connect.Request[v1.StartOidcLoginRequest]) (*connect.Response[v1.StartOidcLoginResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AuthService.StartOidcLogin is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) CompleteOidcLogin(context.Context, *connect.Request[v1.CompleteOidcLoginRequest]) (*connect.Response[v1.CompleteOidcLoginResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AuthService.CompleteOidcLogin is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {

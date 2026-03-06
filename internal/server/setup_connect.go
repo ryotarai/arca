@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -165,6 +166,13 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		MachineRuntime:        normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
 		CloudflareZoneID:      zoneID,
 		DockerProviderEnabled: false,
+		OIDCEnabled:           current.OIDCEnabled,
+		OIDCIssuerURL:         current.OIDCIssuerURL,
+		OIDCClientID:          current.OIDCClientID,
+		OIDCClientSecret:      current.OIDCClientSecret,
+		OIDCAllowedEmailDomains: append([]string(nil),
+			current.OIDCAllowedEmailDomains...,
+		),
 	}
 
 	if err := s.store.UpsertSetupState(ctx, state); err != nil {
@@ -218,6 +226,28 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	}
 	current.DockerProviderEnabled = false
 	current.InternetPublicExposureDisabled = req.Msg.GetDisableInternetPublicExposure()
+	oidcIssuerURL, err := validateOIDCIssuerURL(req.Msg.GetOidcIssuerUrl())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	oidcAllowedEmailDomains, err := normalizeOIDCAllowedEmailDomains(req.Msg.GetOidcAllowedEmailDomains())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	current.OIDCEnabled = req.Msg.GetOidcEnabled()
+	current.OIDCIssuerURL = oidcIssuerURL
+	current.OIDCClientID = strings.TrimSpace(req.Msg.GetOidcClientId())
+	if req.Msg.GetClearOidcClientSecret() {
+		current.OIDCClientSecret = ""
+	} else if secret := strings.TrimSpace(req.Msg.GetOidcClientSecret()); secret != "" {
+		current.OIDCClientSecret = secret
+	}
+	current.OIDCAllowedEmailDomains = oidcAllowedEmailDomains
+	if current.OIDCEnabled {
+		if current.OIDCIssuerURL == "" || current.OIDCClientID == "" || strings.TrimSpace(current.OIDCClientSecret) == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("oidc issuer url, client id, and client secret are required when oidc is enabled"))
+		}
+	}
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
@@ -243,6 +273,11 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		CloudflareZoneId:               state.CloudflareZoneID,
 		MachineRuntime:                 normalizeMachineRuntime(state.MachineRuntime),
 		InternetPublicExposureDisabled: state.InternetPublicExposureDisabled,
+		OidcEnabled:                    state.OIDCEnabled,
+		OidcIssuerUrl:                  state.OIDCIssuerURL,
+		OidcClientId:                   state.OIDCClientID,
+		OidcClientSecretConfigured:     strings.TrimSpace(state.OIDCClientSecret) != "",
+		OidcAllowedEmailDomains:        append([]string(nil), state.OIDCAllowedEmailDomains...),
 	}
 }
 
@@ -277,6 +312,46 @@ func validateDomainPrefix(prefix string) (string, error) {
 
 func normalizeMachineRuntime(runtime string) string {
 	return db.NormalizeMachineRuntime(runtime)
+}
+
+func validateOIDCIssuerURL(raw string) (string, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", nil
+	}
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return "", errors.New("oidc issuer url is invalid")
+	}
+	if !strings.EqualFold(parsed.Scheme, "https") || strings.TrimSpace(parsed.Hostname()) == "" {
+		return "", errors.New("oidc issuer url must be an https url")
+	}
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return strings.TrimRight(parsed.String(), "/"), nil
+}
+
+func normalizeOIDCAllowedEmailDomains(values []string) ([]string, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	result := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		normalized := strings.ToLower(strings.TrimSpace(value))
+		if normalized == "" {
+			continue
+		}
+		if strings.Contains(normalized, "@") || strings.Contains(normalized, "/") || !strings.Contains(normalized, ".") {
+			return nil, errors.New("oidc allowed email domains must contain only domain names like example.com")
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		result = append(result, normalized)
+	}
+	return result, nil
 }
 
 func (s *setupConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
