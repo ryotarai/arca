@@ -5,7 +5,7 @@ description: Execute task files from `tmp/tasks/` end-to-end. Use when asked to 
 
 # Do Tasks
 
-Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-first orchestration using isolated git worktrees and `./script/bgcodex.sh`.
+Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively parallel orchestration using isolated git worktrees and `./scripts/bgcodex.sh`.
 
 ## Workflow
 
@@ -26,20 +26,24 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-firs
 - Derive pane title from task meaning, not only id.
 - Use about 10 characters that summarize the task title/content (for example `auth-fix`, `ui-login`, `db-migrate`).
 - Avoid id-only titles such as `task-001` unless no meaningful summary can be derived.
-- Start execution with `./script/bgcodex.sh "meaningful-10char-title" "your prompt" "path to the worktree dir"`.
-7. Schedule run units in parallel only when safe.
-- Run concurrently only if there is no dependency edge between tasks.
-- Run concurrently only if scope/file conflict risk is low.
-- If dependency or conflict risk exists, run serially.
-8. Monitor running sessions and capture logs when needed.
+- Start execution with `./scripts/bgcodex.sh "meaningful-10char-title" "your prompt" "path to the worktree dir"`.
+7. Schedule run units with **parallel-by-default** policy.
+- Launch all `ready` tasks immediately unless a hard dependency or high-confidence file conflict exists.
+- If 2+ tasks are `ready`, keep at least 2 concurrent run units active whenever possible.
+- Do not serialize preemptively for caution; serialize only when dependency/conflict evidence is explicit.
+- When conflict risk is uncertain, start tasks in parallel and resolve collisions during merge.
+8. Refill parallel capacity continuously.
+- Each time a run unit completes, recompute DAG and launch newly `ready` tasks immediately.
+- Keep the worker pool saturated until no executable tasks remain.
+9. Monitor running sessions and capture logs when needed.
 - Use tmux capture for active panes, for example: `tmux capture-pane -p -S - -t :codex-agents.0`.
-9. On confirmed completion of each task run unit:
+10. On confirmed completion of each task run unit:
 - Verify task-scoped checks/tests completed in that worktree.
 - Merge branch into `main`.
 - Delete branch and remove `.worktrees/<branch-name>`.
 - Move completed task file from `tmp/tasks/` to `tmp/tasks-done/`.
-10. Recompute DAG state after every completion and continue until no `ready` tasks remain.
-11. Ask one consolidated question set for unresolved blockers only after all executable work is exhausted.
+11. Recompute DAG state after every completion and continue until no `ready` tasks remain.
+12. Ask one consolidated question set for unresolved blockers only after all executable work is exhausted.
 
 ## Worktree And Merge Rules
 
@@ -49,6 +53,13 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-firs
 - Merge only after completion is verified.
 - If merge conflicts appear, stop concurrent execution for conflicting tasks and resolve sequentially.
 - After merge, clean both the branch and its worktree directory.
+
+## Parallel Execution Rules
+
+- Favor maximum safe concurrency over minimal risk.
+- Hard dependencies always block parallelism; soft uncertainty does not.
+- Use dependency plus touched-path evidence to decide conflicts, not intuition alone.
+- Typical default: run all independent tasks concurrently; fall back to serial only for known high-overlap scopes.
 
 ## Prompting Rules For bgcodex
 
