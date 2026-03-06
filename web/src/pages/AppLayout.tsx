@@ -46,10 +46,10 @@ export function AppLayout({ user, onLogout }: AppLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen className="dark">
-      <Sidebar className="z-40 border-r border-white/10" collapsible="icon">
+      <Sidebar className="z-40 border-r border-border" collapsible="icon">
         <SidebarHeader className="p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-          <p className="text-sm text-slate-300">{user.email}</p>
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+          <p className="text-sm text-foreground">{user.email}</p>
         </SidebarHeader>
         <SidebarSeparator />
         <SidebarContent>
@@ -98,10 +98,10 @@ export function AppLayout({ user, onLogout }: AppLayoutProps) {
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="bg-slate-950 text-slate-100">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-white/10 bg-slate-950/80 px-4 backdrop-blur md:px-6">
-          <SidebarTrigger className="bg-white/10 text-slate-100 hover:bg-white/20" />
-          <p className="text-sm text-slate-300">Arca workspace</p>
+      <SidebarInset className="bg-background text-foreground">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
+          <SidebarTrigger />
+          <p className="text-sm text-muted-foreground">Arca workspace</p>
         </header>
         <Outlet />
       </SidebarInset>
