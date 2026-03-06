@@ -4,10 +4,12 @@ import { getSetupStatus, logout, me } from '@/lib/api'
 import type { SetupStatus, User } from '@/lib/types'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
+import { CreateMachinePage } from '@/pages/CreateMachinePage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
 import { MachinesPage } from '@/pages/MachinesPage'
 import { OidcCallbackPage } from '@/pages/OidcCallbackPage'
 import { RuntimeCatalogPage } from '@/pages/RuntimeCatalogPage'
+import { RuntimeDetailPage } from '@/pages/RuntimeDetailPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
@@ -109,9 +111,11 @@ export function App() {
       <Route path="/login/oidc/callback" element={<OidcCallbackPage user={user} onLogin={setUser} />} />
       <Route path="/users/setup" element={<UserSetupPage user={user} />} />
       <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
+      <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />
       <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
       <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
       <Route path="/runtimes" element={<RuntimeCatalogPage user={user} onLogout={handleLogout} />} />
+      <Route path="/runtimes/:runtimeID" element={<RuntimeDetailPage user={user} onLogout={handleLogout} />} />
       <Route
         path="/settings"
         element={
