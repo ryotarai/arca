@@ -181,9 +181,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
             <Button asChild type="button">
               <Link to="/machines/create">Create machine</Link>
             </Button>
-            <Button asChild type="button" variant="secondary">
-              <Link to="/">Back</Link>
-            </Button>
             <Button type="button" variant="secondary" onClick={onLogout}>
               Logout
             </Button>

@@ -1,4 +1,4 @@
-import { Blocks, Cpu, Home, Settings, Users } from 'lucide-react'
+import { Blocks, Cpu, Settings, Users } from 'lucide-react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,7 +26,6 @@ type AppLayoutProps = {
 }
 
 const navItems = [
-  { to: '/', label: 'Overview', icon: Home },
   { to: '/machines', label: 'Machines', icon: Cpu },
 ]
 

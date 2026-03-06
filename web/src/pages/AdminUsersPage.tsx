@@ -123,7 +123,7 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
-              <Link to="/">Back</Link>
+              <Link to="/machines">Back</Link>
             </Button>
             <Button type="button" variant="secondary" onClick={onLogout}>
               Logout
