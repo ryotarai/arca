@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   getMachine,
+  getSetupStatus,
   listMachineEvents,
   listMachineExposures,
   startMachine,
@@ -90,8 +91,11 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [defaultExposure, setDefaultExposure] = useState<MachineExposure | null>(null)
   const [exposureVisibility, setExposureVisibility] = useState<EndpointVisibility>(EndpointVisibility.OWNER_ONLY)
   const [selectedUserIDsInput, setSelectedUserIDsInput] = useState('')
+  const [internetPublicExposureDisabled, setInternetPublicExposureDisabled] = useState(false)
   const [savingExposure, setSavingExposure] = useState(false)
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
+  const internetPublicBlockedByPolicy =
+    internetPublicExposureDisabled && exposureVisibility === EndpointVisibility.INTERNET_PUBLIC
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
@@ -112,10 +116,11 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const [item, eventItems, exposureItems] = await Promise.all([
+        const [item, eventItems, exposureItems, setupStatus] = await Promise.all([
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineExposures(machineID),
+          getSetupStatus(),
         ])
         if (!cancelled) {
           setMachine(item)
@@ -124,6 +129,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           setDefaultExposure(defaultItem)
           setExposureVisibility(defaultItem?.visibility ?? EndpointVisibility.OWNER_ONLY)
           setSelectedUserIDsInput((defaultItem?.selectedUserIds ?? []).join(', '))
+          setInternetPublicExposureDisabled(setupStatus.internetPublicExposureDisabled)
           setError('')
         }
       } catch (e) {
@@ -301,6 +307,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                 <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm text-slate-300">Endpoint visibility</p>
                   <select
+                    id="machine-exposure-visibility"
                     value={exposureVisibility}
                     onChange={(event) => setExposureVisibility(Number(event.target.value) as EndpointVisibility)}
                     className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
@@ -309,8 +316,18 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     <option value={EndpointVisibility.OWNER_ONLY}>Owner only</option>
                     <option value={EndpointVisibility.SELECTED_USERS}>Selected Arca users</option>
                     <option value={EndpointVisibility.ALL_ARCA_USERS}>All Arca users</option>
-                    <option value={EndpointVisibility.INTERNET_PUBLIC}>Internet public</option>
+                    <option
+                      value={EndpointVisibility.INTERNET_PUBLIC}
+                      disabled={internetPublicExposureDisabled}
+                    >
+                      Internet public
+                    </option>
                   </select>
+                  {internetPublicExposureDisabled && (
+                    <p className="text-xs text-amber-300">
+                      Internet public visibility is disabled by admin policy. Choose owner-only, selected users, or all Arca users.
+                    </p>
+                  )}
                   {exposureVisibility === EndpointVisibility.SELECTED_USERS && (
                     <div className="space-y-2">
                       <p className="text-xs text-slate-400">Comma-separated user IDs allowed to access this endpoint.</p>
@@ -327,7 +344,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     variant="secondary"
                     className="h-9 px-3"
                     onClick={() => void handleSaveExposure()}
-                    disabled={savingExposure || defaultExposure == null}
+                    disabled={savingExposure || defaultExposure == null || internetPublicBlockedByPolicy}
                   >
                     {savingExposure ? 'Saving...' : 'Save visibility'}
                   </Button>
