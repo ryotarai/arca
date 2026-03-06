@@ -105,6 +105,40 @@ WHERE token_hash = sqlc.arg(token_hash)
 INSERT INTO machines (id, name, runtime_id, setup_version)
 VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(runtime_id), sqlc.arg(setup_version));
 
+-- name: ListRuntimes :many
+SELECT id, name, type, config_json, created_at, updated_at
+FROM runtimes
+ORDER BY created_at ASC;
+
+-- name: CreateRuntime :exec
+INSERT INTO runtimes (id, name, type, config_json, created_at, updated_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(name),
+  sqlc.arg(type),
+  sqlc.arg(config_json),
+  sqlc.arg(created_at),
+  sqlc.arg(updated_at)
+);
+
+-- name: GetRuntimeByID :one
+SELECT id, name, type, config_json, created_at, updated_at
+FROM runtimes
+WHERE id = sqlc.arg(id)
+LIMIT 1;
+
+-- name: UpdateRuntimeByID :execrows
+UPDATE runtimes
+SET name = sqlc.arg(name),
+    type = sqlc.arg(type),
+    config_json = sqlc.arg(config_json),
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id);
+
+-- name: DeleteRuntimeByID :execrows
+DELETE FROM runtimes
+WHERE id = sqlc.arg(id);
+
 -- name: UpdateMachineEndpointByID :exec
 UPDATE machines
 SET endpoint = sqlc.arg(endpoint)

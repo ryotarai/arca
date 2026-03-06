@@ -35,3 +35,30 @@ export type SetupStatus = {
   oidcClientSecretConfigured: boolean
   oidcAllowedEmailDomains: string[]
 }
+
+export type RuntimeCatalogType = 'libvirt' | 'gce'
+
+export type RuntimeCatalogConfig =
+  | {
+      type: 'libvirt'
+      uri: string
+      network: string
+      storagePool: string
+    }
+  | {
+      type: 'gce'
+      project: string
+      zone: string
+      network: string
+      subnetwork: string
+      serviceAccountEmail: string
+    }
+
+export type RuntimeCatalogItem = {
+  id: string
+  name: string
+  type: RuntimeCatalogType
+  config: RuntimeCatalogConfig
+  createdAt: number
+  updatedAt: number
+}
