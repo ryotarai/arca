@@ -57,7 +57,7 @@ func main() {
 		}
 	}
 	libvirtRuntime := machine.NewLibvirtRuntime()
-	runtime := machine.NewRoutingRuntime(map[string]machine.Runtime{
+	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{
 		db.MachineRuntimeLibvirt: libvirtRuntime,
 	})
 	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))

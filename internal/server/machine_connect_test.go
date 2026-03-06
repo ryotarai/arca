@@ -181,22 +181,6 @@ func (s *authenticatorStub) StartOIDCLogin(context.Context, string, string) (str
 	panic("StartOIDCLogin should not be called in this test")
 }
 
-func (s *authenticatorStub) ListUsers(context.Context) ([]db.ManagedUser, error) {
-	panic("ListUsers should not be called in this test")
-}
-
-func (s *authenticatorStub) ProvisionUser(context.Context, string, string) (string, string, string, time.Time, error) {
-	panic("ProvisionUser should not be called in this test")
-}
-
-func (s *authenticatorStub) IssueUserSetupToken(context.Context, string, string) (string, time.Time, error) {
-	panic("IssueUserSetupToken should not be called in this test")
-}
-
-func (s *authenticatorStub) CompleteUserSetup(context.Context, string, string) (string, string, error) {
-	panic("CompleteUserSetup should not be called in this test")
-}
-
 func (s *authenticatorStub) LoginWithOIDCCode(context.Context, string, string) (string, string, string, time.Time, error) {
 	panic("LoginWithOIDCCode should not be called in this test")
 }
@@ -275,4 +259,8 @@ func (s *machineStoreStub) GetMachineTunnelByMachineID(context.Context, string) 
 
 func (s *machineStoreStub) GetSetupState(context.Context) (db.SetupState, error) {
 	panic("GetSetupState should not be called in this test")
+}
+
+func (s *machineStoreStub) GetRuntimeByID(context.Context, string) (db.RuntimeCatalog, error) {
+	panic("GetRuntimeByID should not be called in this test")
 }

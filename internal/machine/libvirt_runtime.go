@@ -19,6 +19,8 @@ const (
 	defaultLibvirtBaseImage    = "/var/lib/libvirt/images/ubuntu-24.04-server-cloudimg-amd64.img"
 	defaultLibvirtDiskSize     = "40G"
 	defaultLibvirtURI          = "qemu:///system"
+	defaultLibvirtNetwork      = "default"
+	defaultLibvirtStoragePool  = "default"
 	defaultLibvirtArcadGOOS    = "linux"
 	defaultLibvirtArcadGOARCH  = "amd64"
 )
@@ -28,40 +30,93 @@ type LibvirtRuntime struct {
 	baseImage    string
 	diskSize     string
 	uri          string
+	network      string
+	storagePool  string
 	arcadGOOS    string
 	arcadGOARCH  string
 }
 
+type LibvirtRuntimeOptions struct {
+	WorkspaceDir string
+	BaseImage    string
+	DiskSize     string
+	URI          string
+	Network      string
+	StoragePool  string
+	ArcadGOOS    string
+	ArcadGOARCH  string
+}
+
 func NewLibvirtRuntime() *LibvirtRuntime {
-	workspaceDir := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_WORKSPACE_DIR"))
+	return NewLibvirtRuntimeWithOptions(LibvirtRuntimeOptions{})
+}
+
+func NewLibvirtRuntimeWithOptions(options LibvirtRuntimeOptions) *LibvirtRuntime {
+	workspaceDir := strings.TrimSpace(options.WorkspaceDir)
+	if workspaceDir == "" {
+		workspaceDir = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_WORKSPACE_DIR"))
+	}
 	if workspaceDir == "" {
 		workspaceDir = defaultLibvirtWorkspaceDir
 	}
-	baseImage := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_BASE_IMAGE"))
+
+	baseImage := strings.TrimSpace(options.BaseImage)
+	if baseImage == "" {
+		baseImage = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_BASE_IMAGE"))
+	}
 	if baseImage == "" {
 		baseImage = defaultLibvirtBaseImage
 	}
-	diskSize := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_DISK_SIZE"))
+
+	diskSize := strings.TrimSpace(options.DiskSize)
+	if diskSize == "" {
+		diskSize = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_DISK_SIZE"))
+	}
 	if diskSize == "" {
 		diskSize = defaultLibvirtDiskSize
 	}
-	uri := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_URI"))
+
+	uri := strings.TrimSpace(options.URI)
+	if uri == "" {
+		uri = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_URI"))
+	}
 	if uri == "" {
 		uri = defaultLibvirtURI
 	}
-	arcadGOOS := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOOS"))
+
+	network := strings.TrimSpace(options.Network)
+	if network == "" {
+		network = defaultLibvirtNetwork
+	}
+
+	storagePool := strings.TrimSpace(options.StoragePool)
+	if storagePool == "" {
+		storagePool = defaultLibvirtStoragePool
+	}
+
+	arcadGOOS := strings.TrimSpace(options.ArcadGOOS)
+	if arcadGOOS == "" {
+		arcadGOOS = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOOS"))
+	}
 	if arcadGOOS == "" {
 		arcadGOOS = defaultLibvirtArcadGOOS
 	}
-	arcadGOARCH := strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOARCH"))
+
+	arcadGOARCH := strings.TrimSpace(options.ArcadGOARCH)
+	if arcadGOARCH == "" {
+		arcadGOARCH = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOARCH"))
+	}
 	if arcadGOARCH == "" {
 		arcadGOARCH = defaultLibvirtArcadGOARCH
 	}
+
 	return &LibvirtRuntime{
 		workspaceDir: workspaceDir,
 		baseImage:    baseImage,
 		diskSize:     diskSize,
 		uri:          uri,
+		network:      network,
+		storagePool:  storagePool,
 		arcadGOOS:    arcadGOOS,
 		arcadGOARCH:  arcadGOARCH,
 	}
@@ -273,14 +328,14 @@ func (r *LibvirtRuntime) domainXML(domainName, workspace string) string {
       <readonly/>
     </disk>
     <interface type='network'>
-      <source network='default'/>
+      <source network='%s'/>
       <model type='virtio'/>
     </interface>
     <console type='pty'/>
     <serial type='pty'/>
   </devices>
 </domain>
-`, r.domainType(), domainName, diskPath, seedPath)
+`, r.domainType(), domainName, diskPath, seedPath, r.network)
 }
 
 func (r *LibvirtRuntime) domainType() string {
