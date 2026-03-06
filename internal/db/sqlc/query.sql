@@ -253,13 +253,13 @@ WHERE machine_id = sqlc.arg(machine_id)
   AND kind IN ('start', 'reconcile');
 
 -- name: GetSetupState :one
-SELECT completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, docker_provider_enabled, updated_at
+SELECT completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, updated_at
 FROM setup_state
 WHERE id = 1
 LIMIT 1;
 
 -- name: UpsertSetupState :exec
-INSERT INTO setup_state (id, completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, docker_provider_enabled, updated_at)
+INSERT INTO setup_state (id, completed, admin_user_id, base_domain, domain_prefix, cloudflare_api_token, updated_at)
 VALUES (
   1,
   sqlc.arg(completed),
@@ -267,7 +267,6 @@ VALUES (
   sqlc.arg(base_domain),
   sqlc.arg(domain_prefix),
   sqlc.arg(cloudflare_api_token),
-  sqlc.arg(docker_provider_enabled),
   sqlc.arg(updated_at)
 )
 ON CONFLICT (id) DO UPDATE
@@ -276,7 +275,6 @@ SET completed = excluded.completed,
     base_domain = excluded.base_domain,
     domain_prefix = excluded.domain_prefix,
     cloudflare_api_token = excluded.cloudflare_api_token,
-    docker_provider_enabled = excluded.docker_provider_enabled,
     updated_at = excluded.updated_at;
 
 -- name: CreateMachineToken :exec

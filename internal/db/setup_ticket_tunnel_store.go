@@ -19,7 +19,6 @@ type SetupState struct {
 	CloudflareAPIToken             string
 	CloudflareZoneID               string
 	MachineRuntime                 string
-	DockerProviderEnabled          bool
 	InternetPublicExposureDisabled bool
 	OIDCEnabled                    bool
 	OIDCIssuerURL                  string
@@ -114,7 +113,6 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			CloudflareAPIToken:             state.CloudflareApiToken,
 			CloudflareZoneID:               zoneID,
 			MachineRuntime:                 machineRuntime,
-			DockerProviderEnabled:          state.DockerProviderEnabled,
 			InternetPublicExposureDisabled: internetPublicExposureDisabled,
 			OIDCEnabled:                    oidcEnabled,
 			OIDCIssuerURL:                  strings.TrimSpace(oidcIssuerURL),
@@ -139,7 +137,6 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			CloudflareAPIToken:             state.CloudflareApiToken,
 			CloudflareZoneID:               zoneID,
 			MachineRuntime:                 machineRuntime,
-			DockerProviderEnabled:          state.DockerProviderEnabled,
 			InternetPublicExposureDisabled: internetPublicExposureDisabled,
 			OIDCEnabled:                    oidcEnabled,
 			OIDCIssuerURL:                  strings.TrimSpace(oidcIssuerURL),
@@ -162,23 +159,21 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	switch s.driver {
 	case DriverSQLite:
 		err = s.sqliteQueries.UpsertSetupState(ctx, sqlitesqlc.UpsertSetupStateParams{
-			Completed:             state.Completed,
-			AdminUserID:           adminUserID,
-			BaseDomain:            strings.TrimSpace(state.BaseDomain),
-			DomainPrefix:          strings.TrimSpace(state.DomainPrefix),
-			CloudflareApiToken:    state.CloudflareAPIToken,
-			DockerProviderEnabled: state.DockerProviderEnabled,
-			UpdatedAt:             nowUnix,
+			Completed:          state.Completed,
+			AdminUserID:        adminUserID,
+			BaseDomain:         strings.TrimSpace(state.BaseDomain),
+			DomainPrefix:       strings.TrimSpace(state.DomainPrefix),
+			CloudflareApiToken: state.CloudflareAPIToken,
+			UpdatedAt:          nowUnix,
 		})
 	case DriverPostgres:
 		err = s.pgQueries.UpsertSetupState(ctx, postgresqlsqlc.UpsertSetupStateParams{
-			Completed:             state.Completed,
-			AdminUserID:           adminUserID,
-			BaseDomain:            strings.TrimSpace(state.BaseDomain),
-			DomainPrefix:          strings.TrimSpace(state.DomainPrefix),
-			CloudflareApiToken:    state.CloudflareAPIToken,
-			DockerProviderEnabled: state.DockerProviderEnabled,
-			UpdatedAt:             nowUnix,
+			Completed:          state.Completed,
+			AdminUserID:        adminUserID,
+			BaseDomain:         strings.TrimSpace(state.BaseDomain),
+			DomainPrefix:       strings.TrimSpace(state.DomainPrefix),
+			CloudflareApiToken: state.CloudflareAPIToken,
+			UpdatedAt:          nowUnix,
 		})
 	default:
 		return unsupportedDriverError(s.driver)
