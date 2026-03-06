@@ -58,7 +58,7 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 			return
 		}
 
-		if !canUserAccessExposure(r, store, exposure, userID) {
+		if !canUserAccessExposure(r, store, exposure, userID, targetURL.Path) {
 			http.NotFound(w, r)
 			return
 		}
@@ -78,7 +78,12 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 	}
 }
 
-func canUserAccessExposure(r *http.Request, store *db.Store, exposure db.MachineExposure, userID string) bool {
+func canUserAccessExposure(r *http.Request, store *db.Store, exposure db.MachineExposure, userID, targetPath string) bool {
+	if isOwnerOnlyArcaPath(targetPath) {
+		_, err := store.GetMachineByIDForUser(r.Context(), userID, exposure.MachineID)
+		return err == nil
+	}
+
 	if db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilityAllArcaUsers || db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilityInternetPublic {
 		return true
 	}
@@ -109,4 +114,12 @@ func stripPort(host string) string {
 		return h
 	}
 	return host
+}
+
+func isOwnerOnlyArcaPath(path string) bool {
+	path = strings.TrimSpace(path)
+	if path == "" || path == "/__arca/readyz" {
+		return false
+	}
+	return path == "/__arca" || strings.HasPrefix(path, "/__arca/")
 }

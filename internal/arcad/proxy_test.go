@@ -98,6 +98,7 @@ func TestProxyRoutesClaudeCodeUIPathToDedicatedUpstream(t *testing.T) {
 	t.Run("claudecodeui path", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/claudecodeui/", nil)
 		rr := httptest.NewRecorder()
+		addValidSessionCookie(t, req, proxy)
 		proxy.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusOK {
@@ -161,6 +162,7 @@ func TestProxyRoutesTTydPathToDedicatedUnixSocket(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/ttyd/", nil)
 	rr := httptest.NewRecorder()
+	addValidSessionCookie(t, req, proxy)
 	proxy.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -194,6 +196,7 @@ func TestProxyRoutesShelleyPathToDedicatedUpstream(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/shelley/", nil)
 	rr := httptest.NewRecorder()
+	addValidSessionCookie(t, req, proxy)
 	proxy.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -229,6 +232,7 @@ func TestProxyRewritesShelleyIndexAssetPaths(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/shelley/", nil)
 	rr := httptest.NewRecorder()
+	addValidSessionCookie(t, req, proxy)
 	proxy.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -299,4 +303,30 @@ func mustURL(t *testing.T, raw string) *url.URL {
 		t.Fatalf("parse url: %v", err)
 	}
 	return u
+}
+
+func TestProxyRedirectsUnauthenticatedArcaPathEvenWhenPublicExposure(t *testing.T) {
+	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
+	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/ttyd/", nil)
+	rr := httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusFound {
+		t.Fatalf("expected status %d, got %d", http.StatusFound, rr.Code)
+	}
+	loc := rr.Header().Get("Location")
+	if !strings.HasPrefix(loc, "https://control.example/auth/authorize?target=") {
+		t.Fatalf("unexpected redirect location: %q", loc)
+	}
+}
+
+func addValidSessionCookie(t *testing.T, req *http.Request, proxy *Proxy) {
+	t.Helper()
+	token, err := proxy.sessions.Encode(Session{UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)})
+	if err != nil {
+		t.Fatalf("encode session: %v", err)
+	}
+	req.AddCookie(&http.Cookie{Name: "arcad_session", Value: token})
 }

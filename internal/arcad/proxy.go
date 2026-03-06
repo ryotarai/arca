@@ -73,7 +73,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !exposure.Public {
+	if !exposure.Public || isOwnerOnlyArcaPath(r.URL.Path) {
 		if r.URL.Path == callbackPath {
 			p.handleTicketCallback(w, r, host)
 			return
@@ -306,4 +306,12 @@ func rewriteShelleyAssetPaths(indexHTML string) string {
 
 func isShelleyPath(path string) bool {
 	return path == shelleyBasePath || strings.HasPrefix(path, shelleyBasePath+"/")
+}
+
+func isOwnerOnlyArcaPath(path string) bool {
+	path = strings.TrimSpace(path)
+	if path == "" || path == readyPath {
+		return false
+	}
+	return path == "/__arca" || strings.HasPrefix(path, "/__arca/")
 }

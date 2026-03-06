@@ -175,7 +175,29 @@ func TestTunnelVisibility_UpsertAndAuthorizeAcrossModes(t *testing.T) {
 			assertStringSlicesEqual(t, stored.SelectedUserIDs, tt.wantStoredSelectedUsers)
 
 			for token, wantAllowed := range tt.wantAccessByToken {
-				status, location := authorizeStatusForToken(t, handler, fx.hostname, token)
+				status, location := authorizeStatusForTokenAtPath(t, handler, fx.hostname, "/", token)
+				if wantAllowed {
+					if status != http.StatusFound {
+						t.Fatalf("authorize status = %d, want %d", status, http.StatusFound)
+					}
+					targetURL, err := url.Parse(location)
+					if err != nil {
+						t.Fatalf("parse location %q: %v", location, err)
+					}
+					if strings.TrimSpace(targetURL.Query().Get("token")) == "" {
+						t.Fatalf("authorization redirect missing token query: %q", location)
+					}
+				} else if status != http.StatusNotFound {
+					t.Fatalf("authorize status = %d, want %d", status, http.StatusNotFound)
+				}
+			}
+
+			for token, wantAllowed := range map[string]bool{
+				fx.ownerToken:        true,
+				fx.selectedUserToken: false,
+				fx.unrelatedToken:    false,
+			} {
+				status, location := authorizeStatusForTokenAtPath(t, handler, fx.hostname, "/__arca/ttyd/", token)
 				if wantAllowed {
 					if status != http.StatusFound {
 						t.Fatalf("authorize status = %d, want %d", status, http.StatusFound)
@@ -224,10 +246,18 @@ func TestTunnelVisibility_AdminGuardrailDeniesInternetPublic(t *testing.T) {
 	}
 }
 
-func authorizeStatusForToken(t *testing.T, handler http.Handler, hostname, token string) (int, string) {
+func authorizeStatusForTokenAtPath(t *testing.T, handler http.Handler, hostname, targetPath, token string) (int, string) {
 	t.Helper()
 
-	target := "https://" + hostname + "/"
+	targetPath = strings.TrimSpace(targetPath)
+	if targetPath == "" {
+		targetPath = "/"
+	}
+	if !strings.HasPrefix(targetPath, "/") {
+		targetPath = "/" + targetPath
+	}
+
+	target := "https://" + hostname + targetPath
 	req := httptest.NewRequest(http.MethodGet, "/console/authorize?target="+url.QueryEscape(target), nil)
 	req.Header.Set("Cookie", sessionCookieName+"="+token)
 	rec := httptest.NewRecorder()
