@@ -16,6 +16,7 @@ type fakeGceComputeClient struct {
 	inserted []*gceInsertInstanceRequest
 	started  []string
 	stopped  []string
+	deleted  []string
 }
 
 func newFakeGceComputeClient() *fakeGceComputeClient {
@@ -63,6 +64,15 @@ func (f *fakeGceComputeClient) StopInstance(_ context.Context, _, _, instance st
 		current.Status = "TERMINATED"
 	}
 	return &gceOperation{Name: "stop-op"}, nil
+}
+
+func (f *fakeGceComputeClient) DeleteInstance(_ context.Context, _, _, instance string) (*gceOperation, error) {
+	f.deleted = append(f.deleted, instance)
+	if _, ok := f.instances[instance]; !ok {
+		return nil, &gceAPIError{StatusCode: 404, Message: "not found"}
+	}
+	delete(f.instances, instance)
+	return &gceOperation{Name: "delete-op"}, nil
 }
 
 func (f *fakeGceComputeClient) WaitZoneOperation(_ context.Context, _, _, operation string) (*gceOperation, error) {
@@ -272,5 +282,55 @@ func TestGceRuntime_NewValidatesRequiredFields(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "requires project") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGceRuntime_EnsureDeletedDeletesInstance(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	fakeClient.instances["instance-a"] = &gceInstance{Name: "instance-a", Status: "TERMINATED"}
+
+	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
+		Project:             "project-a",
+		Zone:                "us-central1-a",
+		Network:             "main",
+		Subnetwork:          "main-subnet",
+		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+		Client:              fakeClient,
+	})
+	if err != nil {
+		t.Fatalf("new runtime: %v", err)
+	}
+
+	if err := runtime.EnsureDeleted(context.Background(), db.Machine{ID: "machine", ContainerID: "instance-a"}); err != nil {
+		t.Fatalf("ensure deleted: %v", err)
+	}
+	if !reflect.DeepEqual(fakeClient.deleted, []string{"instance-a"}) {
+		t.Fatalf("delete calls = %#v", fakeClient.deleted)
+	}
+}
+
+func TestGceRuntime_EnsureDeletedMissingInstanceIsNoop(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
+		Project:             "project-a",
+		Zone:                "us-central1-a",
+		Network:             "main",
+		Subnetwork:          "main-subnet",
+		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+		Client:              fakeClient,
+	})
+	if err != nil {
+		t.Fatalf("new runtime: %v", err)
+	}
+
+	if err := runtime.EnsureDeleted(context.Background(), db.Machine{ID: "machine", ContainerID: "instance-missing"}); err != nil {
+		t.Fatalf("ensure deleted on missing instance: %v", err)
+	}
+	if !reflect.DeepEqual(fakeClient.deleted, []string{"instance-missing"}) {
+		t.Fatalf("delete calls = %#v", fakeClient.deleted)
 	}
 }

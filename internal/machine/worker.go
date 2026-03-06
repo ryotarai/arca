@@ -20,6 +20,7 @@ import (
 type Runtime interface {
 	EnsureRunning(context.Context, db.Machine, RuntimeStartOptions) (string, error)
 	EnsureStopped(context.Context, db.Machine) error
+	EnsureDeleted(context.Context, db.Machine) error
 	IsRunning(context.Context, db.Machine) (bool, string, error)
 	WaitReady(context.Context, db.Machine, string) error
 }
@@ -533,7 +534,7 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID str
 
 	stopCtx, cancel := context.WithTimeout(ctx, w.stopTTL)
 	defer cancel()
-	if err := w.runtime.EnsureStopped(stopCtx, machine); err != nil {
+	if err := w.runtime.EnsureDeleted(stopCtx, machine); err != nil {
 		return err
 	}
 
@@ -550,7 +551,7 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID str
 		return err
 	}
 	if !deleted {
-		return fmt.Errorf("machine %s not found during delete", machine.ID)
+		return nil
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "deleted", "machine deleted")
 	return nil

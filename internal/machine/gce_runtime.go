@@ -76,6 +76,7 @@ type gceComputeClient interface {
 	InsertInstance(context.Context, string, string, *gceInsertInstanceRequest) (*gceOperation, error)
 	StartInstance(context.Context, string, string, string) (*gceOperation, error)
 	StopInstance(context.Context, string, string, string) (*gceOperation, error)
+	DeleteInstance(context.Context, string, string, string) (*gceOperation, error)
 	WaitZoneOperation(context.Context, string, string, string) (*gceOperation, error)
 }
 
@@ -304,6 +305,23 @@ func (r *GceRuntime) EnsureStopped(ctx context.Context, machine db.Machine) erro
 	default:
 		return nil
 	}
+}
+
+func (r *GceRuntime) EnsureDeleted(ctx context.Context, machine db.Machine) error {
+	instanceName := r.instanceName(machine)
+	client, err := r.computeClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	deleteOp, err := client.DeleteInstance(ctx, r.project, r.zone, instanceName)
+	if err != nil {
+		if isGceNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("delete gce instance %q: %w", instanceName, err)
+	}
+	return r.waitOperation(ctx, client, deleteOp, "delete")
 }
 
 func (r *GceRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, string, error) {
@@ -584,6 +602,15 @@ func (c *gceRESTClient) StartInstance(ctx context.Context, project, zone, instan
 func (c *gceRESTClient) StopInstance(ctx context.Context, project, zone, instance string) (*gceOperation, error) {
 	var out gceOperation
 	err := c.doJSON(ctx, http.MethodPost, fmt.Sprintf("/compute/v1/projects/%s/zones/%s/instances/%s/stop", url.PathEscape(project), url.PathEscape(zone), url.PathEscape(instance)), nil, &out)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *gceRESTClient) DeleteInstance(ctx context.Context, project, zone, instance string) (*gceOperation, error) {
+	var out gceOperation
+	err := c.doJSON(ctx, http.MethodDelete, fmt.Sprintf("/compute/v1/projects/%s/zones/%s/instances/%s", url.PathEscape(project), url.PathEscape(zone), url.PathEscape(instance)), nil, &out)
 	if err != nil {
 		return nil, err
 	}

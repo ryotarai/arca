@@ -33,6 +33,10 @@ func (r *fakeRuntime) EnsureStopped(context.Context, db.Machine) error {
 	return nil
 }
 
+func (r *fakeRuntime) EnsureDeleted(context.Context, db.Machine) error {
+	return nil
+}
+
 func (r *fakeRuntime) IsRunning(context.Context, db.Machine) (bool, string, error) {
 	return true, r.name, nil
 }

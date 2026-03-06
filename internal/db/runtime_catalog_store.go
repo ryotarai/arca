@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ type RuntimeCatalog struct {
 }
 
 var ErrRuntimeNameAlreadyExists = errors.New("runtime name already exists")
+var ErrRuntimeInUse = errors.New("runtime is in use")
 
 func (s *Store) ListRuntimes(ctx context.Context) ([]RuntimeCatalog, error) {
 	switch s.driver {
@@ -176,6 +178,14 @@ func (s *Store) DeleteRuntimeByID(ctx context.Context, runtimeID string) (bool, 
 		return false, nil
 	}
 
+	inUseCount, err := s.countMachinesByRuntimeID(ctx, runtimeID)
+	if err != nil {
+		return false, err
+	}
+	if inUseCount > 0 {
+		return false, ErrRuntimeInUse
+	}
+
 	switch s.driver {
 	case DriverSQLite:
 		updated, err := s.sqliteQueries.DeleteRuntimeByID(ctx, runtimeID)
@@ -186,6 +196,27 @@ func (s *Store) DeleteRuntimeByID(ctx context.Context, runtimeID string) (bool, 
 	default:
 		return false, unsupportedDriverError(s.driver)
 	}
+}
+
+func (s *Store) countMachinesByRuntimeID(ctx context.Context, runtimeID string) (int64, error) {
+	var query string
+	switch s.driver {
+	case DriverSQLite:
+		query = "SELECT COUNT(1) FROM machines WHERE runtime_id = ?"
+	case DriverPostgres:
+		query = "SELECT COUNT(1) FROM machines WHERE runtime_id = $1"
+	default:
+		return 0, unsupportedDriverError(s.driver)
+	}
+
+	var count int64
+	if err := s.db.QueryRowContext(ctx, query, runtimeID).Scan(&count); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return count, nil
 }
 
 func (s *Store) GetRuntimeByID(ctx context.Context, runtimeID string) (RuntimeCatalog, error) {

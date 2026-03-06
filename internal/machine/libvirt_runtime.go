@@ -209,6 +209,29 @@ func (r *LibvirtRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 	return nil
 }
 
+func (r *LibvirtRuntime) EnsureDeleted(ctx context.Context, machine db.Machine) error {
+	if err := r.EnsureStopped(ctx, machine); err != nil {
+		return err
+	}
+
+	domainName := r.domainName(machine)
+	defined, err := r.isDomainDefined(ctx, domainName)
+	if err != nil {
+		return err
+	}
+	if defined {
+		if err := r.undefineDomain(ctx, domainName); err != nil {
+			return err
+		}
+	}
+
+	workspace := filepath.Join(r.workspaceDir, machine.ID)
+	if err := os.RemoveAll(workspace); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *LibvirtRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, string, error) {
 	domainName := r.domainName(machine)
 	output, err := r.runVirsh(ctx, "domstate", domainName)
@@ -293,10 +316,42 @@ func (r *LibvirtRuntime) isDomainDefined(ctx context.Context, domainName string)
 	if err == nil {
 		return true, nil
 	}
-	if strings.Contains(strings.ToLower(err.Error()), "failed to get domain") {
+	if isLibvirtDomainNotFoundError(err) {
 		return false, nil
 	}
 	return false, err
+}
+
+func (r *LibvirtRuntime) undefineDomain(ctx context.Context, domainName string) error {
+	commands := [][]string{
+		{"undefine", domainName, "--managed-save", "--snapshots-metadata", "--checkpoints-metadata", "--nvram"},
+		{"undefine", domainName, "--managed-save", "--snapshots-metadata", "--checkpoints-metadata"},
+		{"undefine", domainName},
+	}
+
+	var lastErr error
+	for _, args := range commands {
+		if _, err := r.runVirsh(ctx, args...); err != nil {
+			if isLibvirtDomainNotFoundError(err) {
+				return nil
+			}
+			lastErr = err
+			continue
+		}
+		return nil
+	}
+	if lastErr != nil {
+		return lastErr
+	}
+	return nil
+}
+
+func isLibvirtDomainNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "failed to get domain") || strings.Contains(msg, "domain not found")
 }
 
 func (r *LibvirtRuntime) domainXML(domainName, workspace string) string {

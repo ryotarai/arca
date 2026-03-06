@@ -311,3 +311,45 @@ func TestValidateRuntimeRequest(t *testing.T) {
 		})
 	}
 }
+
+func TestRuntimeConnectService_DeleteRuntimeFailsWhenInUse(t *testing.T) {
+	ctx := context.Background()
+	store, authenticator := newUserServiceForTest(t)
+	service := newRuntimeConnectService(store, authenticator)
+
+	adminID, _, err := authenticator.Register(ctx, "runtime-admin3@example.com", "admin-password")
+	if err != nil {
+		t.Fatalf("register admin: %v", err)
+	}
+	if _, err := store.UpdateUserRoleByID(ctx, adminID, db.UserRoleAdmin); err != nil {
+		t.Fatalf("set admin role: %v", err)
+	}
+	adminToken := loginToken(t, authenticator, "runtime-admin3@example.com", "admin-password")
+
+	createResp, err := service.CreateRuntime(ctx, authRequest(arcav1.CreateRuntimeRequest{
+		Name: "edge-runtime-in-use",
+		Type: arcav1.RuntimeType_RUNTIME_TYPE_LIBVIRT,
+		Config: &arcav1.RuntimeConfig{
+			Provider: &arcav1.RuntimeConfig_Libvirt{
+				Libvirt: &arcav1.LibvirtRuntimeConfig{
+					Uri:         "qemu:///system",
+					Network:     "default",
+					StoragePool: "default",
+				},
+			},
+		},
+	}, adminToken))
+	if err != nil {
+		t.Fatalf("create runtime: %v", err)
+	}
+	runtimeID := createResp.Msg.GetRuntime().GetId()
+
+	if _, err := store.CreateMachineWithOwner(ctx, adminID, "machine-runtime-in-use", runtimeID, currentSetupVersion()); err != nil {
+		t.Fatalf("create machine: %v", err)
+	}
+
+	_, err = service.DeleteRuntime(ctx, authRequest(arcav1.DeleteRuntimeRequest{RuntimeId: runtimeID}, adminToken))
+	if got := connect.CodeOf(err); got != connect.CodeFailedPrecondition {
+		t.Fatalf("delete runtime code = %v, want %v", got, connect.CodeFailedPrecondition)
+	}
+}

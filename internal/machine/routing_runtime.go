@@ -58,6 +58,14 @@ func (r *RoutingRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 	return runtime.EnsureStopped(ctx, machine)
 }
 
+func (r *RoutingRuntime) EnsureDeleted(ctx context.Context, machine db.Machine) error {
+	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
+	if err != nil {
+		return err
+	}
+	return runtime.EnsureDeleted(ctx, machine)
+}
+
 func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, string, error) {
 	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
 	if err != nil {

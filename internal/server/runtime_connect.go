@@ -137,6 +137,9 @@ func (s *runtimeConnectService) DeleteRuntime(ctx context.Context, req *connect.
 
 	deleted, err := s.store.DeleteRuntimeByID(ctx, runtimeID)
 	if err != nil {
+		if errors.Is(err, db.ErrRuntimeInUse) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("runtime is used by existing machines"))
+		}
 		log.Printf("delete runtime failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete runtime"))
 	}

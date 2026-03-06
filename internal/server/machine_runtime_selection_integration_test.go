@@ -91,29 +91,29 @@ func TestMachineRuntimeSelection_InvalidOrDeletedRuntimeIsRejected(t *testing.T)
 		t.Fatalf("create machine before runtime deletion: %v", err)
 	}
 
-	if deleted, err := store.DeleteRuntimeByID(ctx, runtimeEntry.ID); err != nil {
-		t.Fatalf("delete runtime: %v", err)
-	} else if !deleted {
-		t.Fatalf("delete runtime returned false")
+	if deleted, err := store.DeleteRuntimeByID(ctx, runtimeEntry.ID); err == nil {
+		t.Fatalf("expected delete runtime to fail while in use, got deleted=%v", deleted)
+	} else if err != db.ErrRuntimeInUse {
+		t.Fatalf("delete runtime error = %v, want %v", err, db.ErrRuntimeInUse)
 	}
 
-	_, err = service.StartMachine(ctx, authRequest(arcav1.StartMachineRequest{MachineId: machineResp.Msg.GetMachine().GetId()}, ownerToken))
-	if err == nil {
-		t.Fatalf("expected start to fail for deleted runtime")
+	startResp, err := service.StartMachine(ctx, authRequest(arcav1.StartMachineRequest{MachineId: machineResp.Msg.GetMachine().GetId()}, ownerToken))
+	if err != nil {
+		t.Fatalf("start machine with still-configured runtime: %v", err)
 	}
-	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
-		t.Fatalf("start error code = %v, want %v", got, connect.CodeInvalidArgument)
+	if got := startResp.Msg.GetMachine().GetRuntimeId(); got != runtimeEntry.ID {
+		t.Fatalf("runtime id after start = %q, want %q", got, runtimeEntry.ID)
 	}
 
-	_, err = service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
-		Name:      "machine-runtime-deleted-id",
+	createdResp, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
+		Name:      "machine-runtime-still-valid",
 		RuntimeId: runtimeEntry.ID,
 	}, ownerToken))
-	if err == nil {
-		t.Fatalf("expected create to fail with deleted runtime")
+	if err != nil {
+		t.Fatalf("expected create to succeed with runtime still configured: %v", err)
 	}
-	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
-		t.Fatalf("create error code = %v, want %v", got, connect.CodeInvalidArgument)
+	if got := createdResp.Msg.GetMachine().GetRuntimeId(); got != runtimeEntry.ID {
+		t.Fatalf("create runtime id = %q, want %q", got, runtimeEntry.ID)
 	}
 
 	_, err = service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
