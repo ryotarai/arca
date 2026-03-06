@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { execFileSync } from 'node:child_process'
 import {
   bestEffortDeleteMachine,
   cloudflareIntegrationConfig,
@@ -9,6 +10,15 @@ import {
   waitForMachineStatus,
   waitForTTYDAccess,
 } from './helpers'
+
+const e2eDBPath = '/tmp/arca-e2e.db'
+
+function ensureLibvirtRuntimeInDB() {
+  execFileSync('sqlite3', [
+    e2eDBPath,
+    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('libvirt', 'libvirt-default', 'libvirt', '{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
+  ], { stdio: 'pipe' })
+}
 
 test.describe('critical user journey', () => {
   skipCloudflareIntegrationIfMissing()
@@ -22,6 +32,7 @@ test.describe('critical user journey', () => {
 
     await validateCloudflareToken(page, configResult.config)
     await loginAsAdmin(page)
+    ensureLibvirtRuntimeInDB()
 
     const machineName = `critical-${Date.now().toString(36)}`
     let machineID = ''
@@ -30,9 +41,12 @@ test.describe('critical user journey', () => {
       await page.getByRole('link', { name: 'Machines' }).click()
       await expect(page).toHaveURL('/machines')
 
+      await page.getByRole('link', { name: 'Create machine' }).click()
+      await expect(page).toHaveURL('/machines/create')
       await page.getByLabel('Name').fill(machineName)
-      await page.getByRole('button', { name: 'Create' }).click()
-      await expect(page.locator('p.font-medium', { hasText: machineName })).toBeVisible()
+      await page.getByRole('button', { name: 'Create machine' }).click()
+      await expect(page).toHaveURL(/\/machines\/.+/)
+      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
 
       const createdMachine = await waitForMachineByName(page, machineName, {
         timeoutMs: 90_000,
