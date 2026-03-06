@@ -81,6 +81,9 @@ func NewRouter(deps Dependencies) http.Handler {
 	if deps.Authenticator != nil && deps.Store != nil {
 		path, handler := arcav1connect.NewUserServiceHandler(newUserConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
+
+		path, handler = arcav1connect.NewRuntimeServiceHandler(newRuntimeConnectService(deps.Store, deps.Authenticator))
+		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Cloudflare != nil && deps.Authenticator != nil {
 		path, handler := arcav1connect.NewSetupServiceHandler(newSetupConnectService(deps.Store, deps.Authenticator, deps.Cloudflare, deps.ConsoleTunnel))

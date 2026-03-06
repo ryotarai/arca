@@ -185,3 +185,43 @@ test('machine detail shows restart CTA only when update is required and machine 
     await bestEffortDeleteMachine(page, machineID)
   }
 })
+
+test('runtime catalog CRUD enforces typed config form constraints', async ({ page }) => {
+  const runtimeName = `runtime-${Date.now()}`
+
+  await loginAsAdmin(page)
+  await page.getByRole('link', { name: 'Runtimes' }).click()
+  await expect(page).toHaveURL('/runtimes')
+  await expect(page.getByRole('heading', { name: 'Runtimes' })).toBeVisible()
+
+  const submitButton = page.getByRole('button', { name: 'Create runtime' })
+  await expect(submitButton).toBeDisabled()
+
+  await page.getByLabel('Name').fill(runtimeName)
+  await expect(submitButton).toBeDisabled()
+
+  await page.getByLabel('URI').fill('qemu:///system')
+  await page.getByLabel('Network').first().fill('default')
+  await page.getByLabel('Storage pool').fill('default')
+  await expect(submitButton).toBeEnabled()
+  await submitButton.click()
+
+  const row = page.locator('div.rounded-lg', { hasText: runtimeName })
+  await expect(row).toBeVisible()
+
+  await row.getByRole('button', { name: 'Edit' }).click()
+  await page.getByLabel('Type').selectOption('gce')
+  await expect(page.getByRole('button', { name: 'Save runtime' })).toBeDisabled()
+
+  await page.getByLabel('Project').fill('my-project')
+  await page.getByLabel('Zone').fill('us-central1-a')
+  await page.getByLabel('Network').first().fill('vpc-main')
+  await page.getByLabel('Subnetwork').fill('subnet-main')
+  await page.getByLabel('Service account email').fill('svc@example.iam.gserviceaccount.com')
+  await page.getByRole('button', { name: 'Save runtime' }).click()
+  await expect(row.getByText('gce')).toBeVisible()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await row.getByRole('button', { name: 'Delete' }).click()
+  await expect(row).toHaveCount(0)
+})

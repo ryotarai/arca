@@ -21,6 +21,14 @@ import {
   UpdateMachineRequestSchema,
 } from '@/gen/arca/v1/machine_pb'
 import {
+  CreateRuntimeRequestSchema,
+  DeleteRuntimeRequestSchema,
+  ListRuntimesRequestSchema,
+  RuntimeService,
+  RuntimeType,
+  UpdateRuntimeRequestSchema,
+} from '@/gen/arca/v1/runtime_pb'
+import {
   EndpointVisibility,
   ListMachineExposuresRequestSchema,
   TunnelService,
@@ -34,7 +42,17 @@ import {
   UserService,
 } from '@/gen/arca/v1/user_pb'
 import { ApiError, parseApiErrorPayload } from '@/lib/errors'
-import type { Machine, MachineEvent, MachineExposure, ManagedUser, SetupStatus, User } from '@/lib/types'
+import type {
+  Machine,
+  MachineEvent,
+  MachineExposure,
+  ManagedUser,
+  RuntimeCatalogConfig,
+  RuntimeCatalogItem,
+  RuntimeCatalogType,
+  SetupStatus,
+  User,
+} from '@/lib/types'
 
 const connectTransport = createConnectTransport({
   baseUrl: window.location.origin,
@@ -43,6 +61,7 @@ const connectTransport = createConnectTransport({
 
 const authClient = createClient(AuthService, connectTransport)
 const machineClient = createClient(MachineService, connectTransport)
+const runtimeClient = createClient(RuntimeService, connectTransport)
 const tunnelClient = createClient(TunnelService, connectTransport)
 const userClient = createClient(UserService, connectTransport)
 
@@ -314,6 +333,139 @@ export async function listMachineEvents(id: string, limit = 100, options: Pollin
 
 export async function deleteMachine(id: string): Promise<void> {
   await machineClient.deleteMachine(create(DeleteMachineRequestSchema, { machineId: id }))
+}
+
+function runtimeTypeToProto(type: RuntimeCatalogType): RuntimeType {
+  return type === 'gce' ? RuntimeType.GCE : RuntimeType.LIBVIRT
+}
+
+function runtimeTypeFromProto(type: RuntimeType): RuntimeCatalogType {
+  return type === RuntimeType.GCE ? 'gce' : 'libvirt'
+}
+
+function toRuntimeCatalogItem(input: {
+  id: string
+  name: string
+  type: RuntimeType
+  config?: {
+    provider:
+      | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string } }
+      | { case: 'gce'; value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string } }
+      | { case: undefined; value?: undefined }
+  }
+  createdAt: bigint
+  updatedAt: bigint
+}): RuntimeCatalogItem {
+  const runtimeType = runtimeTypeFromProto(input.type)
+  let config: RuntimeCatalogConfig
+  if (runtimeType === 'gce') {
+    const gce = input.config?.provider.case === 'gce' ? input.config.provider.value : undefined
+    config = {
+      type: 'gce',
+      project: gce?.project ?? '',
+      zone: gce?.zone ?? '',
+      network: gce?.network ?? '',
+      subnetwork: gce?.subnetwork ?? '',
+      serviceAccountEmail: gce?.serviceAccountEmail ?? '',
+    }
+  } else {
+    const libvirt = input.config?.provider.case === 'libvirt' ? input.config.provider.value : undefined
+    config = {
+      type: 'libvirt',
+      uri: libvirt?.uri ?? '',
+      network: libvirt?.network ?? '',
+      storagePool: libvirt?.storagePool ?? '',
+    }
+  }
+
+  return {
+    id: input.id,
+    name: input.name,
+    type: runtimeType,
+    config,
+    createdAt: Number(input.createdAt),
+    updatedAt: Number(input.updatedAt),
+  }
+}
+
+function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig) {
+  if (type === 'gce') {
+    if (config.type !== 'gce') {
+      throw new Error('gce config is required')
+    }
+    return {
+      provider: {
+        case: 'gce' as const,
+        value: {
+          project: config.project,
+          zone: config.zone,
+          network: config.network,
+          subnetwork: config.subnetwork,
+          serviceAccountEmail: config.serviceAccountEmail,
+        },
+      },
+    }
+  }
+  if (config.type !== 'libvirt') {
+    throw new Error('libvirt config is required')
+  }
+  return {
+    provider: {
+      case: 'libvirt' as const,
+      value: {
+        uri: config.uri,
+        network: config.network,
+        storagePool: config.storagePool,
+      },
+    },
+  }
+}
+
+export async function listRuntimes(): Promise<RuntimeCatalogItem[]> {
+  const response = await runtimeClient.listRuntimes(create(ListRuntimesRequestSchema))
+  return response.runtimes.map((runtime) => toRuntimeCatalogItem(runtime))
+}
+
+export async function createRuntime(
+  name: string,
+  type: RuntimeCatalogType,
+  config: RuntimeCatalogConfig,
+): Promise<RuntimeCatalogItem> {
+  const response = await runtimeClient.createRuntime(
+    create(CreateRuntimeRequestSchema, {
+      name,
+      type: runtimeTypeToProto(type),
+      config: runtimeConfigPayload(type, config),
+    }),
+  )
+  if (response.runtime == null) {
+    throw new Error('request failed')
+  }
+  return toRuntimeCatalogItem(response.runtime)
+}
+
+export async function updateRuntime(
+  runtimeID: string,
+  name: string,
+  type: RuntimeCatalogType,
+  config: RuntimeCatalogConfig,
+): Promise<RuntimeCatalogItem> {
+  const response = await runtimeClient.updateRuntime(
+    create(UpdateRuntimeRequestSchema, {
+      runtimeId: runtimeID,
+      name,
+      type: runtimeTypeToProto(type),
+      config: runtimeConfigPayload(type, config),
+    }),
+  )
+  if (response.runtime == null) {
+    throw new Error('request failed')
+  }
+  return toRuntimeCatalogItem(response.runtime)
+}
+
+export async function deleteRuntime(runtimeID: string): Promise<void> {
+  await runtimeClient.deleteRuntime(create(DeleteRuntimeRequestSchema, { runtimeId: runtimeID }))
 }
 
 export async function getSetupStatus(): Promise<SetupStatus> {
