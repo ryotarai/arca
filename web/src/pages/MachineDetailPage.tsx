@@ -5,13 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   getMachine,
-  getSetupStatus,
   listMachineEvents,
   listMachineExposures,
   listRuntimes,
   startMachine,
   stopMachine,
-  updateMachineExposureVisibility,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { Machine, MachineEvent, MachineExposure, RuntimeCatalogItem, User } from '@/lib/types'
@@ -92,12 +90,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [error, setError] = useState('')
   const [defaultExposure, setDefaultExposure] = useState<MachineExposure | null>(null)
   const [exposureVisibility, setExposureVisibility] = useState<EndpointVisibility>(EndpointVisibility.OWNER_ONLY)
-  const [selectedUserIDsInput, setSelectedUserIDsInput] = useState('')
-  const [internetPublicExposureDisabled, setInternetPublicExposureDisabled] = useState(false)
-  const [savingExposure, setSavingExposure] = useState(false)
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
-  const internetPublicBlockedByPolicy =
-    internetPublicExposureDisabled && exposureVisibility === EndpointVisibility.INTERNET_PUBLIC
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
@@ -118,11 +111,10 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const [item, eventItems, exposureItems, setupStatus, runtimeItems] = await Promise.all([
+        const [item, eventItems, exposureItems, runtimeItems] = await Promise.all([
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineExposures(machineID),
-          getSetupStatus(),
           listRuntimes(),
         ])
         if (!cancelled) {
@@ -132,8 +124,6 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           const defaultItem = exposureItems.find((item) => item.name === 'default') ?? null
           setDefaultExposure(defaultItem)
           setExposureVisibility(defaultItem?.visibility ?? EndpointVisibility.OWNER_ONLY)
-          setSelectedUserIDsInput((defaultItem?.selectedUserIds ?? []).join(', '))
-          setInternetPublicExposureDisabled(setupStatus.internetPublicExposureDisabled)
           setError('')
         }
       } catch (e) {
@@ -218,38 +208,6 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
     }
   }
 
-  const handleSaveExposure = async () => {
-    if (defaultExposure == null) {
-      setError('default exposure is not provisioned yet')
-      return
-    }
-
-    setSavingExposure(true)
-    setError('')
-    try {
-      const selectedUserIDs =
-        exposureVisibility === EndpointVisibility.SELECTED_USERS
-          ? selectedUserIDsInput
-              .split(',')
-              .map((value) => value.trim())
-              .filter((value) => value !== '')
-          : []
-      const updated = await updateMachineExposureVisibility(
-        machineID,
-        defaultExposure.name,
-        exposureVisibility,
-        selectedUserIDs,
-      )
-      setDefaultExposure(updated)
-      setExposureVisibility(updated.visibility)
-      setSelectedUserIDsInput((updated.selectedUserIds ?? []).join(', '))
-    } catch (e) {
-      setError(messageFromError(e))
-    } finally {
-      setSavingExposure(false)
-    }
-  }
-
   return (
     <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
@@ -323,47 +281,14 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                 )}
                 <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm text-slate-300">Endpoint visibility</p>
-                  <select
-                    id="machine-exposure-visibility"
-                    value={exposureVisibility}
-                    onChange={(event) => setExposureVisibility(Number(event.target.value) as EndpointVisibility)}
-                    className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
-                    disabled={defaultExposure == null}
-                  >
-                    <option value={EndpointVisibility.OWNER_ONLY}>Owner only</option>
-                    <option value={EndpointVisibility.SELECTED_USERS}>Selected Arca users</option>
-                    <option value={EndpointVisibility.ALL_ARCA_USERS}>All Arca users</option>
-                    <option
-                      value={EndpointVisibility.INTERNET_PUBLIC}
-                      disabled={internetPublicExposureDisabled}
-                    >
-                      Internet public
-                    </option>
-                  </select>
-                  {internetPublicExposureDisabled && (
-                    <p className="text-xs text-amber-300">
-                      Internet public visibility is disabled by admin policy. Choose owner-only, selected users, or all Arca users.
-                    </p>
-                  )}
-                  {exposureVisibility === EndpointVisibility.SELECTED_USERS && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-slate-400">Comma-separated user IDs allowed to access this endpoint.</p>
-                      <input
-                        value={selectedUserIDsInput}
-                        onChange={(event) => setSelectedUserIDsInput(event.target.value)}
-                        className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
-                        placeholder="user-id-1, user-id-2"
-                      />
-                    </div>
-                  )}
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-9 px-3"
-                    onClick={() => void handleSaveExposure()}
-                    disabled={savingExposure || defaultExposure == null || internetPublicBlockedByPolicy}
-                  >
-                    {savingExposure ? 'Saving...' : 'Save visibility'}
+                  <p className="text-sm text-slate-100">
+                    {exposureVisibility === EndpointVisibility.OWNER_ONLY && 'Owner only'}
+                    {exposureVisibility === EndpointVisibility.SELECTED_USERS && 'Selected Arca users'}
+                    {exposureVisibility === EndpointVisibility.ALL_ARCA_USERS && 'All Arca users'}
+                    {exposureVisibility === EndpointVisibility.INTERNET_PUBLIC && 'Internet public'}
+                  </p>
+                  <Button asChild type="button" variant="secondary" className="h-9 px-3">
+                    <Link to={`/machines/${machineID}/edit`}>Edit visibility</Link>
                   </Button>
                 </div>
                 {machine.lastError != null && machine.lastError !== '' && (
