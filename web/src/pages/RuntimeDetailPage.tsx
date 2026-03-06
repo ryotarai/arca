@@ -66,16 +66,13 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
-
-      <section className="relative z-10 mx-auto w-full max-w-3xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-3xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Runtime detail</h1>
-            <p className="mt-1 text-xs text-slate-400">{runtimeID}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Runtime detail</h1>
+            <p className="mt-1 text-xs text-muted-foreground">{runtimeID}</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -87,49 +84,49 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
           </div>
         </header>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Runtime metadata</CardTitle>
-            <CardDescription className="text-slate-300">Configuration and timestamps for this runtime entry.</CardDescription>
+            <CardTitle className="text-xl">Runtime metadata</CardTitle>
+            <CardDescription>Configuration and timestamps for this runtime entry.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-slate-300">Loading...</p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             ) : runtime == null ? (
-              <p className="text-sm text-slate-300">Runtime not found.</p>
+              <p className="text-sm text-muted-foreground">Runtime not found.</p>
             ) : (
               <>
-                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Name</p>
-                  <p className="text-lg font-semibold text-white">{runtime.name}</p>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="text-lg font-semibold text-foreground">{runtime.name}</p>
                 </div>
-                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Type</p>
-                  <p className="text-sm text-slate-100">{runtime.type}</p>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <p className="text-sm text-foreground">{runtime.type}</p>
                 </div>
-                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Created</p>
-                  <p className="text-sm text-slate-100">{formatUnix(runtime.createdAt)}</p>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-sm text-foreground">{formatUnix(runtime.createdAt)}</p>
                 </div>
-                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Updated</p>
-                  <p className="text-sm text-slate-100">{formatUnix(runtime.updatedAt)}</p>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Updated</p>
+                  <p className="text-sm text-foreground">{formatUnix(runtime.updatedAt)}</p>
                 </div>
                 {runtime.config.type === 'libvirt' ? (
-                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm text-slate-300">Config</p>
-                    <p className="text-sm text-slate-100">URI: {runtime.config.uri}</p>
-                    <p className="text-sm text-slate-100">Network: {runtime.config.network}</p>
-                    <p className="text-sm text-slate-100">Storage pool: {runtime.config.storagePool}</p>
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">Config</p>
+                    <p className="text-sm text-foreground">URI: {runtime.config.uri}</p>
+                    <p className="text-sm text-foreground">Network: {runtime.config.network}</p>
+                    <p className="text-sm text-foreground">Storage pool: {runtime.config.storagePool}</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm text-slate-300">Config</p>
-                    <p className="text-sm text-slate-100">Project: {runtime.config.project}</p>
-                    <p className="text-sm text-slate-100">Zone: {runtime.config.zone}</p>
-                    <p className="text-sm text-slate-100">Network: {runtime.config.network}</p>
-                    <p className="text-sm text-slate-100">Subnetwork: {runtime.config.subnetwork}</p>
-                    <p className="text-sm text-slate-100">Service account email: {runtime.config.serviceAccountEmail}</p>
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">Config</p>
+                    <p className="text-sm text-foreground">Project: {runtime.config.project}</p>
+                    <p className="text-sm text-foreground">Zone: {runtime.config.zone}</p>
+                    <p className="text-sm text-foreground">Network: {runtime.config.network}</p>
+                    <p className="text-sm text-foreground">Subnetwork: {runtime.config.subnetwork}</p>
+                    <p className="text-sm text-foreground">Service account email: {runtime.config.serviceAccountEmail}</p>
                   </div>
                 )}
               </>

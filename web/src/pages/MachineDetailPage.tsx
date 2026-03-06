@@ -210,16 +210,13 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
-
-      <section className="relative z-10 mx-auto w-full max-w-3xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-3xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Machine detail</h1>
-            <p className="mt-1 text-xs text-slate-400">{machineID}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Machine detail</h1>
+            <p className="mt-1 text-xs text-muted-foreground">{machineID}</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -231,26 +228,26 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           </div>
         </header>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Machine overview</CardTitle>
-            <CardDescription className="text-slate-300">Runtime, state, endpoint, and lifecycle controls.</CardDescription>
+            <CardTitle className="text-xl">Machine overview</CardTitle>
+            <CardDescription>Runtime, state, endpoint, and lifecycle controls.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-slate-300">Loading...</p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             ) : machine == null ? (
-              <p className="text-sm text-slate-300">Machine not found.</p>
+              <p className="text-sm text-muted-foreground">Machine not found.</p>
             ) : (
               <>
-                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Name</p>
-                  <p className="text-lg font-semibold text-white">{machine.name}</p>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="text-lg font-semibold text-foreground">{machine.name}</p>
                 </div>
-                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Runtime</p>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Runtime</p>
                   {machine.runtimeId === '' ? (
-                    <p className="text-sm text-slate-100">Unassigned</p>
+                    <p className="text-sm text-foreground">Unassigned</p>
                   ) : (
                     <Link
                       to={`/runtimes/${machine.runtimeId}`}
@@ -260,15 +257,15 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     </Link>
                   )}
                 </div>
-                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Status</p>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Status</p>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={machine.status} />
                   </div>
                 </div>
                 {endpointURL != null && (
-                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm text-slate-300">Endpoint</p>
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">Endpoint</p>
                     <a
                       href={endpointURL}
                       target="_blank"
@@ -277,12 +274,12 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     >
                       {endpointURL}
                     </a>
-                    <p className="text-xs text-slate-400">Proxied to localhost:8080 inside the machine</p>
+                    <p className="text-xs text-muted-foreground">Proxied to localhost:8080 inside the machine</p>
                   </div>
                 )}
                 {ttydURL != null && (
-                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm text-slate-300">Terminal (ttyd)</p>
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">Terminal (ttyd)</p>
                     <a
                       href={ttydURL}
                       target="_blank"
@@ -293,9 +290,9 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     </a>
                   </div>
                 )}
-                <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-300">Endpoint visibility</p>
-                  <p className="text-sm text-slate-100">
+                <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Endpoint visibility</p>
+                  <p className="text-sm text-foreground">
                     {exposureVisibility === EndpointVisibility.OWNER_ONLY && 'Owner only'}
                     {exposureVisibility === EndpointVisibility.SELECTED_USERS && 'Selected Arca users'}
                     {exposureVisibility === EndpointVisibility.ALL_ARCA_USERS && 'All Arca users'}
@@ -351,29 +348,29 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Machine events</CardTitle>
-            <CardDescription className="text-slate-300">Recent state transitions and worker activities.</CardDescription>
+            <CardTitle className="text-xl">Machine events</CardTitle>
+            <CardDescription>Recent state transitions and worker activities.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-slate-300">Loading events...</p>
+              <p className="text-sm text-muted-foreground">Loading events...</p>
             ) : sortedEvents.length === 0 ? (
-              <p className="text-sm text-slate-300">No events yet.</p>
+              <p className="text-sm text-muted-foreground">No events yet.</p>
             ) : (
               <div className="space-y-2">
                 {sortedEvents.map((event) => (
-                  <div key={event.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <div key={event.id} className="rounded-lg border border-border bg-muted/30 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <EventLevelBadge level={event.level} />
-                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-slate-300">{event.eventType}</span>
+                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">{event.eventType}</span>
                       </div>
-                      <span className="text-xs text-slate-400">{formatEventTimestamp(Number(event.createdAt))}</span>
+                      <span className="text-xs text-muted-foreground">{formatEventTimestamp(Number(event.createdAt))}</span>
                     </div>
-                    <p className="mt-2 text-sm text-slate-100">{event.message}</p>
-                    {event.jobId !== '' && <p className="mt-1 text-xs text-slate-400">job: {event.jobId}</p>}
+                    <p className="mt-2 text-sm text-foreground">{event.message}</p>
+                    {event.jobId !== '' && <p className="mt-1 text-xs text-muted-foreground">job: {event.jobId}</p>}
                   </div>
                 ))}
               </div>

@@ -91,16 +91,13 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
-
-      <section className="relative z-10 mx-auto w-full max-w-3xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-3xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Create machine</h1>
-            <p className="mt-1 text-sm text-slate-300">Create a machine from an existing runtime catalog entry.</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Create machine</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Create a machine from an existing runtime catalog entry.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -112,36 +109,36 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
           </div>
         </header>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Machine settings</CardTitle>
-            <CardDescription className="text-slate-300">Choose runtime and machine name before creation.</CardDescription>
+            <CardTitle className="text-xl">Machine settings</CardTitle>
+            <CardDescription>Choose runtime and machine name before creation.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="create-machine-name" className="text-slate-200">
+                <Label htmlFor="create-machine-name">
                   Name
                 </Label>
                 <Input
                   id="create-machine-name"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                  className="h-10"
                   placeholder="my-machine"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-machine-runtime" className="text-slate-200">
+                <Label htmlFor="create-machine-runtime">
                   Runtime
                 </Label>
                 <select
                   id="create-machine-runtime"
                   value={selectedRuntimeID}
                   onChange={(event) => setSelectedRuntimeID(event.target.value)}
-                  className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                   disabled={loadingRuntimes || runtimes.length === 0}
                 >
                   {runtimes.length === 0 && <option value="">No runtime available</option>}
@@ -159,7 +156,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
 
               <Button
                 type="submit"
-                className="h-10 bg-white px-5 text-slate-900 hover:bg-slate-100"
+                className="h-10 px-5"
                 disabled={creating || loadingRuntimes || runtimes.length === 0}
               >
                 {creating ? 'Creating...' : 'Create machine'}

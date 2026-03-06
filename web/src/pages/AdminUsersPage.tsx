@@ -113,16 +113,13 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
-
-      <section className="relative z-10 mx-auto w-full max-w-4xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-4xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Users</h1>
-            <p className="mt-1 text-sm text-slate-300">Create users and issue one-time setup tokens.</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Users</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Create users and issue one-time setup tokens.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -134,25 +131,25 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
           </div>
         </header>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Provision user</CardTitle>
-            <CardDescription className="text-slate-300">A setup token is generated immediately and can be used once.</CardDescription>
+            <CardTitle className="text-xl">Provision user</CardTitle>
+            <CardDescription>A setup token is generated immediately and can be used once.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             <form className="space-y-4" onSubmit={handleCreateUser}>
               <div className="space-y-2">
-                <Label htmlFor="user-email" className="text-slate-200">Email</Label>
+                <Label htmlFor="user-email">Email</Label>
                 <Input
                   id="user-email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                  className="h-10"
                   placeholder="new-user@example.com"
                   required
                 />
               </div>
-              <Button type="submit" className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100" disabled={saving}>
+              <Button type="submit" className="h-10 w-full" disabled={saving}>
                 {saving ? 'Creating...' : 'Create user'}
               </Button>
             </form>
@@ -160,7 +157,7 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
         </Card>
 
         {tokenResult != null && (
-          <Card className="border-emerald-300/25 bg-emerald-200/10 py-0 backdrop-blur">
+          <Card className="border-emerald-300/25 bg-emerald-200/10 py-0">
             <CardHeader className="space-y-2 p-6 pb-3">
               <CardTitle className="text-base text-emerald-100">One-time setup token</CardTitle>
               <CardDescription className="text-emerald-200/90">
@@ -176,30 +173,30 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
           </Card>
         )}
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Managed users</CardTitle>
-            <CardDescription className="text-slate-300">Setup-required users cannot sign in until they complete password setup.</CardDescription>
+            <CardTitle className="text-xl">Managed users</CardTitle>
+            <CardDescription>Setup-required users cannot sign in until they complete password setup.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-slate-300">Loading users...</p>
+              <p className="text-sm text-muted-foreground">Loading users...</p>
             ) : users.length === 0 ? (
-              <p className="text-sm text-slate-300">No users found.</p>
+              <p className="text-sm text-muted-foreground">No users found.</p>
             ) : (
               <div className="space-y-3">
                 {users.map((managedUser) => (
-                  <div key={managedUser.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                  <div key={managedUser.id} className="rounded-lg border border-border bg-muted/20 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-white">{managedUser.email}</p>
-                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${managedUser.role === 'admin' ? 'bg-sky-500/20 text-sky-300' : 'bg-white/10 text-slate-400'}`}>
+                          <p className="text-sm font-medium text-foreground">{managedUser.email}</p>
+                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${managedUser.role === 'admin' ? 'bg-sky-500/20 text-sky-300' : 'bg-muted text-muted-foreground'}`}>
                             {managedUser.role}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-400">Created {formatUnix(managedUser.createdAt)}</p>
-                        <p className="text-xs text-slate-300">
+                        <p className="text-xs text-muted-foreground">Created {formatUnix(managedUser.createdAt)}</p>
+                        <p className="text-xs text-muted-foreground">
                           {managedUser.setupRequired
                             ? `Setup required, token expires ${formatUnix(managedUser.setupTokenExpiresAt)}`
                             : 'Setup complete'}

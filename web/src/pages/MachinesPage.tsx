@@ -169,19 +169,16 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-slate-950 px-6 py-16 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(56,189,248,0.12),_transparent_38%),radial-gradient(circle_at_80%_0%,_rgba(148,163,184,0.2),_transparent_48%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]" />
-
-      <section className="relative z-10 mx-auto w-full max-w-4xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur md:flex-row md:items-center">
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-4xl space-y-6">
+        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Machines</h1>
-            <p className="mt-1 text-sm text-slate-300">Signed in as {user.email}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Machines</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Signed in as {user.email}</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button asChild type="button" className="bg-white text-slate-900 hover:bg-slate-100">
+            <Button asChild type="button">
               <Link to="/machines/create">Create machine</Link>
             </Button>
             <Button asChild type="button" variant="secondary">
@@ -193,24 +190,24 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
           </div>
         </header>
 
-        <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
+        <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Machine list</CardTitle>
+            <CardTitle className="text-xl">Machine list</CardTitle>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-slate-300">Loading...</p>
+              <p className="text-sm text-muted-foreground">Loading...</p>
             ) : machines.length === 0 ? (
-              <p className="text-sm text-slate-300">No machines yet.</p>
+              <p className="text-sm text-muted-foreground">No machines yet.</p>
             ) : (
               <ul className="space-y-3">
                 {machines.map((machine) => {
                   return (
-                    <li key={machine.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                    <li key={machine.id} className="rounded-lg border border-border bg-muted/30 p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
-                          <p className="font-medium text-white">{machine.name}</p>
-                          <p className="text-xs text-slate-400">runtime: {machine.runtimeId}</p>
+                          <p className="font-medium text-foreground">{machine.name}</p>
+                          <p className="text-xs text-muted-foreground">runtime: {machine.runtimeId}</p>
                           <div className="mt-1 flex items-center gap-2">
                             <StatusBadge status={machine.status} />
                           </div>
@@ -273,3 +270,4 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
     </main>
   )
 }
+
