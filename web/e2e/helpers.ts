@@ -106,7 +106,7 @@ export async function ensureSetupAdmin(page: Page) {
 
   const payload = await parseJSONSafe(response)
   const code = String(payload?.code ?? '').toLowerCase()
-  if (code === 'failed_precondition') {
+  if (code === 'failed_precondition' || code === 'already_exists') {
     return
   }
 

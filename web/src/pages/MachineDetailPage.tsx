@@ -270,8 +270,8 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
 
         <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl text-white">Runtime</CardTitle>
-            <CardDescription className="text-slate-300">Shows current and desired states.</CardDescription>
+            <CardTitle className="text-xl text-white">Machine overview</CardTitle>
+            <CardDescription className="text-slate-300">Runtime, state, endpoint, and lifecycle controls.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-6 pt-3">
             {loading ? (
@@ -283,6 +283,19 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                 <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm text-slate-300">Name</p>
                   <p className="text-lg font-semibold text-white">{machine.name}</p>
+                </div>
+                <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-300">Runtime</p>
+                  {machine.runtimeId === '' ? (
+                    <p className="text-sm text-slate-100">Unassigned</p>
+                  ) : (
+                    <Link
+                      to={`/runtimes/${machine.runtimeId}`}
+                      className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
+                    >
+                      {machine.runtimeId}
+                    </Link>
+                  )}
                 </div>
                 <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm text-slate-300">Status</p>
