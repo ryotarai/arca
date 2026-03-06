@@ -28,8 +28,11 @@ type AppLayoutProps = {
 const navItems = [
   { to: '/', label: 'Overview', icon: Home },
   { to: '/machines', label: 'Machines', icon: Cpu },
-  { to: '/users', label: 'Users', icon: Users },
+]
+
+const adminNavItems = [
   { to: '/runtimes', label: 'Runtimes', icon: Blocks },
+  { to: '/users', label: 'Users', icon: Users },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -55,6 +58,23 @@ export function AppLayout({ user, onLogout }: AppLayoutProps) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {navItems.map((item) => (
+                  <SidebarMenuItem key={item.to}>
+                    <SidebarMenuButton asChild isActive={location.pathname === item.to} tooltip={item.label}>
+                      <NavLink to={item.to}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminNavItems.map((item) => (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton asChild isActive={location.pathname === item.to} tooltip={item.label}>
                       <NavLink to={item.to}>
