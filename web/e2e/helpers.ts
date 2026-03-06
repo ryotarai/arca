@@ -119,7 +119,7 @@ export async function loginAsAdmin(page: Page) {
   await page.getByLabel('Email').fill(adminEmail)
   await page.getByLabel('Password', { exact: true }).fill(adminPassword)
   await page.getByRole('button', { name: 'Login' }).click()
-  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('/machines')
 }
 
 async function sleep(ms: number) {

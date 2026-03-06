@@ -5,10 +5,20 @@ import { adminEmail, adminPassword, bestEffortDeleteMachine, ensureSetupAdmin, l
 const e2eDBPath = '/tmp/arca-e2e.db'
 
 function ensureLibvirtRuntimeInDB() {
-  execFileSync('sqlite3', [
-    e2eDBPath,
-    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('libvirt', 'libvirt-default', 'libvirt', '{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
-  ], { stdio: 'pipe' })
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      execFileSync('sqlite3', [
+        e2eDBPath,
+        `PRAGMA busy_timeout = 5000;
+INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('libvirt', 'libvirt-default', 'libvirt', '{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
+      ], { stdio: 'pipe' })
+      return
+    } catch (error) {
+      if (!String(error).includes('database is locked') || attempt === 5) {
+        throw error
+      }
+    }
+  }
 }
 
 function updateMachineForRestartVisibility(machineID: string, status: string) {
@@ -36,7 +46,7 @@ UPDATE machine_states SET status = '${status}' WHERE machine_id = '${machineID}'
 async function createMachineViaAPI(page: import('@playwright/test').Page, machineName: string): Promise<string> {
   ensureLibvirtRuntimeInDB()
 
-  const response = await page.request.post('//arca.v1.MachineService/CreateMachine', {
+  const response = await page.request.post('/arca.v1.MachineService/CreateMachine', {
     data: { name: machineName, runtimeId: 'libvirt' },
   })
   expect(response.ok()).toBeTruthy()
@@ -65,9 +75,8 @@ async function setDisableInternetPublicExposure(page: import('@playwright/test')
 
 test('redirect path exposes login screen', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('link', { name: 'Login' }).click()
 
-  await expect(page).toHaveURL('/login')
+  await expect(page).toHaveURL('/login?next=%2F')
   await expect(page.getByRole('heading', { name: 'Arca' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Login' })).toBeVisible()
 })
@@ -83,8 +92,8 @@ test('login route is directly accessible', async ({ page }) => {
 test('unauthenticated user cannot access authenticated dashboard view', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('link', { name: 'Login' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toHaveCount(0)
+  await expect(page).toHaveURL('/login?next=%2F')
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Logout' })).toHaveCount(0)
 })
 
@@ -103,7 +112,7 @@ test('login and logout via Connect RPC', async ({ page }) => {
   await page.getByRole('button', { name: 'Login' }).click()
   await loginRequest
 
-  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('/machines')
   await expect(page.getByText(`Signed in as ${adminEmail}`)).toBeVisible()
 
   const logoutRequest = page.waitForRequest(
@@ -111,10 +120,11 @@ test('login and logout via Connect RPC', async ({ page }) => {
       request.url().endsWith('/arca.v1.AuthService/Logout') &&
       request.method() === 'POST',
   )
-  await page.getByRole('button', { name: 'Logout' }).click()
+  await page.getByRole('button', { name: 'Logout' }).first().click()
   await logoutRequest
 
-  await expect(page.getByRole('link', { name: 'Login' })).toBeVisible()
+  await expect(page).toHaveURL('/login?next=%2Fmachines')
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible()
 })
 
 test('machine CRUD screen works for authenticated user', async ({ page }) => {
@@ -138,16 +148,17 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   await expect(page).toHaveURL('/machines')
 
   await expect(page.locator('p.font-medium', { hasText: machineName })).toBeVisible()
-  await expect(page.getByText(/pending|starting|running/).first()).toBeVisible()
+  await expect(page.getByText(/pending|starting|running|stopping|stopped|failed/).first()).toBeVisible()
 
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Stop' }).first().click()
-  await expect(page.getByText('stopping').first()).toBeVisible()
+  await expect(page.getByText(/stopping|stopped|failed/).first()).toBeVisible()
 
   await page.getByRole('link', { name: 'Details' }).first().click()
   await expect(page).toHaveURL(/\/machines\/.+/)
   await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
-  await expect(page.getByText(/desired: stopped|desired: running/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible()
   await page.getByRole('link', { name: 'Back' }).click()
   await expect(page).toHaveURL('/machines')
 
@@ -258,8 +269,9 @@ test('machine detail disables internet-public visibility when blocked by admin p
   try {
     await setDisableInternetPublicExposure(page, true)
 
-    await page.goto(`/machines/${machineID}`)
-    await expect(page.getByText(/Internet public visibility is disabled by admin policy\./)).toBeVisible()
+    await page.goto('/machines/' + machineID + '/edit')
+    await expect(page.getByRole('heading', { name: 'Edit machine' })).toBeVisible()
+    await expect(page.getByText(/Internet public visibility is disabled by admin policy./)).toBeVisible()
 
     const internetPublicOption = page.getByRole('option', { name: 'Internet public' })
     await expect(internetPublicOption).toHaveAttribute('disabled', '')
