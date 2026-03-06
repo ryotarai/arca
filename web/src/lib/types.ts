@@ -6,6 +6,14 @@ export type User = {
   email: string
 }
 
+export type ManagedUser = {
+  id: string
+  email: string
+  setupRequired: boolean
+  setupTokenExpiresAt: number
+  createdAt: number
+}
+
 export type Machine = MachineMessage
 
 export type MachineEvent = import('@/gen/arca/v1/machine_pb').MachineEvent

@@ -247,6 +247,39 @@ func (q *Queries) CreateUserMachine(ctx context.Context, arg CreateUserMachinePa
 	return err
 }
 
+const createUserSetupToken = `-- name: CreateUserSetupToken :exec
+INSERT INTO user_setup_tokens (id, token_hash, user_id, created_by_user_id, expires_at, created_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6
+)
+`
+
+type CreateUserSetupTokenParams struct {
+	ID              string
+	TokenHash       string
+	UserID          string
+	CreatedByUserID sql.NullString
+	ExpiresAt       int64
+	CreatedAt       int64
+}
+
+func (q *Queries) CreateUserSetupToken(ctx context.Context, arg CreateUserSetupTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createUserSetupToken,
+		arg.ID,
+		arg.TokenHash,
+		arg.UserID,
+		arg.CreatedByUserID,
+		arg.ExpiresAt,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const deleteMachineByID = `-- name: DeleteMachineByID :execrows
 DELETE FROM machines
 WHERE id = $1
@@ -338,6 +371,36 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 		arg.NowUnix,
 	)
 	return err
+}
+
+const getActiveUserSetupTokenByUserID = `-- name: GetActiveUserSetupTokenByUserID :one
+SELECT id, token_hash, user_id, created_by_user_id, expires_at, used_at, created_at
+FROM user_setup_tokens
+WHERE user_id = $1
+  AND used_at IS NULL
+  AND expires_at > $2
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetActiveUserSetupTokenByUserIDParams struct {
+	UserID  string
+	NowUnix int64
+}
+
+func (q *Queries) GetActiveUserSetupTokenByUserID(ctx context.Context, arg GetActiveUserSetupTokenByUserIDParams) (UserSetupToken, error) {
+	row := q.db.QueryRowContext(ctx, getActiveUserSetupTokenByUserID, arg.UserID, arg.NowUnix)
+	var i UserSetupToken
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.UserID,
+		&i.CreatedByUserID,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
@@ -557,7 +620,7 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 }
 
 const getUserByActiveSessionTokenHash = `-- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1
@@ -578,13 +641,14 @@ func (q *Queries) GetUserByActiveSessionTokenHash(ctx context.Context, arg GetUs
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
+		&i.PasswordSetupRequired,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, created_at
+SELECT id, email, password_hash, password_setup_required, created_at
 FROM users
 WHERE email = $1
 LIMIT 1
@@ -597,13 +661,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
+		&i.PasswordSetupRequired,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, created_at
+SELECT id, email, password_hash, password_setup_required, created_at
 FROM users
 WHERE id = $1
 LIMIT 1
@@ -616,6 +681,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
+		&i.PasswordSetupRequired,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -659,6 +725,48 @@ func (q *Queries) GetValidAuthTicketByHashAndMachine(ctx context.Context, arg Ge
 	return i, err
 }
 
+const getValidUserSetupTokenByHash = `-- name: GetValidUserSetupTokenByHash :one
+SELECT t.id, t.token_hash, t.user_id, t.created_by_user_id, t.expires_at, t.used_at, t.created_at, u.email
+FROM user_setup_tokens t
+JOIN users u ON u.id = t.user_id
+WHERE t.token_hash = $1
+  AND t.used_at IS NULL
+  AND t.expires_at > $2
+LIMIT 1
+`
+
+type GetValidUserSetupTokenByHashParams struct {
+	TokenHash string
+	NowUnix   int64
+}
+
+type GetValidUserSetupTokenByHashRow struct {
+	ID              string
+	TokenHash       string
+	UserID          string
+	CreatedByUserID sql.NullString
+	ExpiresAt       int64
+	UsedAt          sql.NullInt64
+	CreatedAt       int64
+	Email           string
+}
+
+func (q *Queries) GetValidUserSetupTokenByHash(ctx context.Context, arg GetValidUserSetupTokenByHashParams) (GetValidUserSetupTokenByHashRow, error) {
+	row := q.db.QueryRowContext(ctx, getValidUserSetupTokenByHash, arg.TokenHash, arg.NowUnix)
+	var i GetValidUserSetupTokenByHashRow
+	err := row.Scan(
+		&i.ID,
+		&i.TokenHash,
+		&i.UserID,
+		&i.CreatedByUserID,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+		&i.Email,
+	)
+	return i, err
+}
+
 const insertMachineExposureACLUser = `-- name: InsertMachineExposureACLUser :exec
 INSERT INTO machine_exposure_acl_users (exposure_id, user_id, created_at)
 VALUES ($1, $2, $3)
@@ -673,6 +781,23 @@ type InsertMachineExposureACLUserParams struct {
 
 func (q *Queries) InsertMachineExposureACLUser(ctx context.Context, arg InsertMachineExposureACLUserParams) error {
 	_, err := q.db.ExecContext(ctx, insertMachineExposureACLUser, arg.ExposureID, arg.UserID, arg.CreatedAt)
+	return err
+}
+
+const invalidateUserSetupTokensByUserID = `-- name: InvalidateUserSetupTokensByUserID :exec
+UPDATE user_setup_tokens
+SET used_at = $1
+WHERE user_id = $2
+  AND used_at IS NULL
+`
+
+type InvalidateUserSetupTokensByUserIDParams struct {
+	UsedAt sql.NullInt64
+	UserID string
+}
+
+func (q *Queries) InvalidateUserSetupTokensByUserID(ctx context.Context, arg InvalidateUserSetupTokensByUserIDParams) error {
+	_, err := q.db.ExecContext(ctx, invalidateUserSetupTokensByUserID, arg.UsedAt, arg.UserID)
 	return err
 }
 
@@ -955,6 +1080,41 @@ func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableM
 	return items, nil
 }
 
+const listUsers = `-- name: ListUsers :many
+SELECT id, email, password_hash, password_setup_required, created_at
+FROM users
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.PasswordHash,
+			&i.PasswordSetupRequired,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markAuthTicketUsed = `-- name: MarkAuthTicketUsed :execrows
 UPDATE auth_tickets
 SET used_at = $1
@@ -993,6 +1153,26 @@ type MarkMachineJobSucceededParams struct {
 func (q *Queries) MarkMachineJobSucceeded(ctx context.Context, arg MarkMachineJobSucceededParams) error {
 	_, err := q.db.ExecContext(ctx, markMachineJobSucceeded, arg.UpdatedAt, arg.ID)
 	return err
+}
+
+const markUserSetupTokenUsed = `-- name: MarkUserSetupTokenUsed :execrows
+UPDATE user_setup_tokens
+SET used_at = $1
+WHERE id = $2
+  AND used_at IS NULL
+`
+
+type MarkUserSetupTokenUsedParams struct {
+	UsedAt sql.NullInt64
+	ID     string
+}
+
+func (q *Queries) MarkUserSetupTokenUsed(ctx context.Context, arg MarkUserSetupTokenUsedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markUserSetupTokenUsed, arg.UsedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const recoverExpiredMachineJobs = `-- name: RecoverExpiredMachineJobs :execrows
@@ -1200,6 +1380,44 @@ func (q *Queries) UpdateMachineStateForOwner(ctx context.Context, arg UpdateMach
 		arg.MachineID,
 		arg.UserID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserPasswordHashByID = `-- name: UpdateUserPasswordHashByID :execrows
+UPDATE users
+SET password_hash = $1
+WHERE id = $2
+`
+
+type UpdateUserPasswordHashByIDParams struct {
+	PasswordHash string
+	ID           string
+}
+
+func (q *Queries) UpdateUserPasswordHashByID(ctx context.Context, arg UpdateUserPasswordHashByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserPasswordHashByID, arg.PasswordHash, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserPasswordSetupRequiredByID = `-- name: UpdateUserPasswordSetupRequiredByID :execrows
+UPDATE users
+SET password_setup_required = $1
+WHERE id = $2
+`
+
+type UpdateUserPasswordSetupRequiredByIDParams struct {
+	PasswordSetupRequired bool
+	ID                    string
+}
+
+func (q *Queries) UpdateUserPasswordSetupRequiredByID(ctx context.Context, arg UpdateUserPasswordSetupRequiredByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserPasswordSetupRequiredByID, arg.PasswordSetupRequired, arg.ID)
 	if err != nil {
 		return 0, err
 	}

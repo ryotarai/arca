@@ -14,24 +14,80 @@ SET value = excluded.value;
 INSERT INTO users (id, email, password_hash)
 VALUES (sqlc.arg(id), sqlc.arg(email), sqlc.arg(password_hash));
 
+-- name: ListUsers :many
+SELECT id, email, password_hash, password_setup_required, created_at
+FROM users
+ORDER BY created_at DESC;
+
 -- name: GetUserByEmail :one
-SELECT id, email, password_hash, created_at
+SELECT id, email, password_hash, password_setup_required, created_at
 FROM users
 WHERE email = sqlc.arg(email)
 LIMIT 1;
 
 -- name: GetUserByID :one
-SELECT id, email, password_hash, created_at
+SELECT id, email, password_hash, password_setup_required, created_at
 FROM users
 WHERE id = sqlc.arg(id)
 LIMIT 1;
+
+-- name: UpdateUserPasswordHashByID :execrows
+UPDATE users
+SET password_hash = sqlc.arg(password_hash)
+WHERE id = sqlc.arg(id);
+
+-- name: UpdateUserPasswordSetupRequiredByID :execrows
+UPDATE users
+SET password_setup_required = sqlc.arg(password_setup_required)
+WHERE id = sqlc.arg(id);
+
+-- name: CreateUserSetupToken :exec
+INSERT INTO user_setup_tokens (id, token_hash, user_id, created_by_user_id, expires_at, created_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(token_hash),
+  sqlc.arg(user_id),
+  sqlc.narg(created_by_user_id),
+  sqlc.arg(expires_at),
+  sqlc.arg(created_at)
+);
+
+-- name: InvalidateUserSetupTokensByUserID :exec
+UPDATE user_setup_tokens
+SET used_at = sqlc.arg(used_at)
+WHERE user_id = sqlc.arg(user_id)
+  AND used_at IS NULL;
+
+-- name: GetActiveUserSetupTokenByUserID :one
+SELECT id, token_hash, user_id, created_by_user_id, expires_at, used_at, created_at
+FROM user_setup_tokens
+WHERE user_id = sqlc.arg(user_id)
+  AND used_at IS NULL
+  AND expires_at > sqlc.arg(now_unix)
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: GetValidUserSetupTokenByHash :one
+SELECT t.id, t.token_hash, t.user_id, t.created_by_user_id, t.expires_at, t.used_at, t.created_at, u.email
+FROM user_setup_tokens t
+JOIN users u ON u.id = t.user_id
+WHERE t.token_hash = sqlc.arg(token_hash)
+  AND t.used_at IS NULL
+  AND t.expires_at > sqlc.arg(now_unix)
+LIMIT 1;
+
+-- name: MarkUserSetupTokenUsed :execrows
+UPDATE user_setup_tokens
+SET used_at = sqlc.arg(used_at)
+WHERE id = sqlc.arg(id)
+  AND used_at IS NULL;
 
 -- name: CreateSession :exec
 INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES (sqlc.arg(id), sqlc.arg(user_id), sqlc.arg(token_hash), sqlc.arg(expires_at_unix));
 
 -- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = sqlc.arg(token_hash)
