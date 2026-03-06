@@ -21,7 +21,10 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, parallel-firs
 6. For each `ready` task, create an isolated worktree run unit.
 - Generate branch name: `task/<id>-<short-kebab-summary>`.
 - Check out branch into `.worktrees/<branch-name>` using `git worktree add`.
-- Start execution with `./script/bgcodex.sh "short pane title" "your prompt" "path to the worktree dir"`.
+- Derive pane title from task meaning, not only id.
+- Use about 10 characters that summarize the task title/content (for example `auth-fix`, `ui-login`, `db-migrate`).
+- Avoid id-only titles such as `task-001` unless no meaningful summary can be derived.
+- Start execution with `./script/bgcodex.sh "meaningful-10char-title" "your prompt" "path to the worktree dir"`.
 7. Schedule run units in parallel only when safe.
 - Run concurrently only if there is no dependency edge between tasks.
 - Run concurrently only if scope/file conflict risk is low.
