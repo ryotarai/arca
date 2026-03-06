@@ -22,13 +22,13 @@ import type { User } from '@/lib/types'
 type SetupPageProps = {
   hasAdmin: boolean
   initialCloudflareZoneID: string
-  initialMachineRuntime: 'docker' | 'libvirt'
+  initialMachineRuntime: 'libvirt'
   onAdminReady: (user: User) => void
   onSetupComplete: (
     zoneID: string,
     baseDomain: string,
     domainPrefix: string,
-    machineRuntime: 'docker' | 'libvirt',
+    machineRuntime: 'libvirt',
   ) => void
 }
 
@@ -49,7 +49,7 @@ export function SetupPage({
   const [cloudflareAccountID, setCloudflareAccountID] = useState('')
   const [cloudflareToken, setCloudflareToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(initialCloudflareZoneID)
-  const [machineRuntime, setMachineRuntime] = useState<'docker' | 'libvirt'>(initialMachineRuntime)
+  const [machineRuntime, setMachineRuntime] = useState<'libvirt'>(initialMachineRuntime)
   const [loadingStep, setLoadingStep] = useState(false)
   const [error, setError] = useState('')
 
@@ -184,7 +184,7 @@ export function SetupPage({
         <header className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur">
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca setup</p>
           <h1 className="mt-2 text-2xl font-semibold text-white">Complete initial configuration</h1>
-          <p className="mt-1 text-sm text-slate-300">Admin account, Cloudflare network settings, and Docker provider.</p>
+          <p className="mt-1 text-sm text-slate-300">Admin account, Cloudflare network settings, and runtime configuration.</p>
           <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
             <div className="h-full rounded-full bg-sky-300 transition-all" style={{ width: `${progress}%` }} />
           </div>
@@ -376,17 +376,7 @@ export function SetupPage({
                 <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm text-slate-300">Provider</p>
                   <div className="mt-2 space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-slate-200">
-                      <input
-                        type="radio"
-                        name="setup-machine-runtime"
-                        value="docker"
-                        checked={machineRuntime === 'docker'}
-                        onChange={() => setMachineRuntime('docker')}
-                      />
-                      <span>Docker</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-200">
+                                        <label className="flex items-center gap-2 text-sm text-slate-200">
                       <input
                         type="radio"
                         name="setup-machine-runtime"

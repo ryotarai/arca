@@ -15,5 +15,5 @@ export type SetupStatus = {
   cloudflareZoneID: string
   baseDomain: string
   domainPrefix: string
-  machineRuntime: 'docker' | 'libvirt'
+  machineRuntime: 'libvirt'
 }

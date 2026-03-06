@@ -26,11 +26,12 @@ type AuthTicket struct {
 }
 
 type Machine struct {
-	ID        string
-	Name      string
-	Runtime   string
-	Endpoint  string
-	CreatedAt time.Time
+	ID           string
+	Name         string
+	RuntimeID    string
+	SetupVersion string
+	Endpoint     string
+	CreatedAt    time.Time
 }
 
 type MachineEvent struct {

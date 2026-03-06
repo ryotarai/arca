@@ -88,7 +88,14 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		log.Printf("load setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime configuration"))
 	}
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, setup.MachineRuntime)
+	runtimeID := strings.TrimSpace(req.Msg.GetRuntimeId())
+	if runtimeID == "" {
+		runtimeID = setup.MachineRuntime
+	}
+	if !db.IsSupportedMachineRuntime(runtimeID) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported runtime id"))
+	}
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion())
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
@@ -113,6 +120,21 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	runtimeID := strings.TrimSpace(req.Msg.GetRuntimeId())
+	if runtimeID != "" {
+		if !db.IsSupportedMachineRuntime(runtimeID) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unsupported runtime id"))
+		}
+		runtimeUpdated, updateErr := s.store.UpdateMachineRuntimeByIDForOwner(ctx, userID, machineID, runtimeID, currentSetupVersion())
+		if updateErr != nil {
+			log.Printf("set machine runtime id failed: %v", updateErr)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to select runtime"))
+		}
+		if !runtimeUpdated {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
 	}
 
 	updated, err := s.store.RequestStartMachineByIDForOwner(ctx, userID, machineID)
@@ -239,12 +261,14 @@ func (s *machineConnectService) authenticate(ctx context.Context, header http.He
 
 func toMachineMessage(machine db.Machine) *arcav1.Machine {
 	return &arcav1.Machine{
-		Id:            machine.ID,
-		Name:          machine.Name,
-		Status:        machine.Status,
-		DesiredStatus: machine.DesiredStatus,
-		LastError:     machine.LastError,
-		Endpoint:      machine.Endpoint,
+		Id:             machine.ID,
+		Name:           machine.Name,
+		Status:         machine.Status,
+		DesiredStatus:  machine.DesiredStatus,
+		LastError:      machine.LastError,
+		Endpoint:       machine.Endpoint,
+		RuntimeId:      machine.RuntimeID,
+		UpdateRequired: machineUpdateRequired(machine),
 	}
 }
 

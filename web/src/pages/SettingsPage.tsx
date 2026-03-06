@@ -24,7 +24,7 @@ type SettingsPageProps = {
 export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout }: SettingsPageProps) {
   const [baseDomain, setBaseDomain] = useState(setupStatus.baseDomain)
   const [domainPrefix, setDomainPrefix] = useState(setupStatus.domainPrefix)
-  const [machineRuntime, setMachineRuntime] = useState<'docker' | 'libvirt'>(setupStatus.machineRuntime)
+  const [machineRuntime, setMachineRuntime] = useState<'libvirt'>(setupStatus.machineRuntime)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -135,10 +135,9 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                 <select
                   id="settings-machine-runtime"
                   value={machineRuntime}
-                  onChange={(event) => setMachineRuntime(event.target.value === 'libvirt' ? 'libvirt' : 'docker')}
+                  onChange={(event) => setMachineRuntime(event.target.value === 'libvirt' ? 'libvirt' : 'libvirt')}
                   className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45"
                 >
-                  <option value="docker">Docker</option>
                   <option value="libvirt">Libvirt (Ubuntu 24.04 VM)</option>
                 </select>
               </div>

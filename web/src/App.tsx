@@ -18,7 +18,7 @@ export function App() {
     cloudflareZoneID: '',
     baseDomain: '',
     domainPrefix: '',
-    machineRuntime: 'docker',
+    machineRuntime: 'libvirt',
   })
 
   useEffect(() => {

@@ -92,18 +92,24 @@ func (q *Queries) CreateAuthTicket(ctx context.Context, arg CreateAuthTicketPara
 }
 
 const createMachine = `-- name: CreateMachine :exec
-INSERT INTO machines (id, name, runtime)
-VALUES (?1, ?2, ?3)
+INSERT INTO machines (id, name, runtime_id, setup_version)
+VALUES (?1, ?2, ?3, ?4)
 `
 
 type CreateMachineParams struct {
-	ID      string
-	Name    string
-	Runtime string
+	ID           string
+	Name         string
+	RuntimeID    string
+	SetupVersion string
 }
 
 func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) error {
-	_, err := q.db.ExecContext(ctx, createMachine, arg.ID, arg.Name, arg.Runtime)
+	_, err := q.db.ExecContext(ctx, createMachine,
+		arg.ID,
+		arg.Name,
+		arg.RuntimeID,
+		arg.SetupVersion,
+	)
 	return err
 }
 
@@ -325,7 +331,7 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.id = ?1
@@ -335,7 +341,8 @@ LIMIT 1
 type GetMachineByIDRow struct {
 	ID            string
 	Name          string
-	Runtime       string
+	RuntimeID     string
+	SetupVersion  string
 	Endpoint      string
 	Status        string
 	DesiredStatus string
@@ -349,7 +356,8 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Runtime,
+		&i.RuntimeID,
+		&i.SetupVersion,
 		&i.Endpoint,
 		&i.Status,
 		&i.DesiredStatus,
@@ -360,7 +368,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -377,7 +385,8 @@ type GetMachineByIDForUserParams struct {
 type GetMachineByIDForUserRow struct {
 	ID            string
 	Name          string
-	Runtime       string
+	RuntimeID     string
+	SetupVersion  string
 	Endpoint      string
 	Status        string
 	DesiredStatus string
@@ -391,7 +400,8 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Runtime,
+		&i.RuntimeID,
+		&i.SetupVersion,
 		&i.Endpoint,
 		&i.Status,
 		&i.DesiredStatus,
@@ -726,7 +736,7 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = ?1
@@ -742,7 +752,8 @@ type ListMachinesByDesiredStatusParams struct {
 type ListMachinesByDesiredStatusRow struct {
 	ID            string
 	Name          string
-	Runtime       string
+	RuntimeID     string
+	SetupVersion  string
 	Endpoint      string
 	Status        string
 	DesiredStatus string
@@ -762,7 +773,8 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Runtime,
+			&i.RuntimeID,
+			&i.SetupVersion,
 			&i.Endpoint,
 			&i.Status,
 			&i.DesiredStatus,
@@ -783,7 +795,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 }
 
 const listMachinesByUser = `-- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -794,7 +806,8 @@ ORDER BY m.created_at DESC
 type ListMachinesByUserRow struct {
 	ID            string
 	Name          string
-	Runtime       string
+	RuntimeID     string
+	SetupVersion  string
 	Endpoint      string
 	Status        string
 	DesiredStatus string
@@ -814,7 +827,8 @@ func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]List
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Runtime,
+			&i.RuntimeID,
+			&i.SetupVersion,
 			&i.Endpoint,
 			&i.Status,
 			&i.DesiredStatus,
@@ -1025,6 +1039,40 @@ type UpdateMachineNameByIDForOwnerParams struct {
 
 func (q *Queries) UpdateMachineNameByIDForOwner(ctx context.Context, arg UpdateMachineNameByIDForOwnerParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateMachineNameByIDForOwner, arg.Name, arg.MachineID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateMachineRuntimeByIDForOwner = `-- name: UpdateMachineRuntimeByIDForOwner :execrows
+UPDATE machines
+SET runtime_id = ?1,
+    setup_version = ?2
+WHERE id = ?3
+  AND EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machines.id
+      AND um.user_id = ?4
+      AND um.role = 'owner'
+  )
+`
+
+type UpdateMachineRuntimeByIDForOwnerParams struct {
+	RuntimeID    string
+	SetupVersion string
+	MachineID    string
+	UserID       string
+}
+
+func (q *Queries) UpdateMachineRuntimeByIDForOwner(ctx context.Context, arg UpdateMachineRuntimeByIDForOwnerParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateMachineRuntimeByIDForOwner,
+		arg.RuntimeID,
+		arg.SetupVersion,
+		arg.MachineID,
+		arg.UserID,
+	)
 	if err != nil {
 		return 0, err
 	}

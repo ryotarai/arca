@@ -16,7 +16,7 @@ func NewRoutingRuntime(runtimes map[string]Runtime) *RoutingRuntime {
 }
 
 func (r *RoutingRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts RuntimeStartOptions) (string, error) {
-	runtime, err := r.runtimeFor(machine.Runtime)
+	runtime, err := r.runtimeFor(machine.RuntimeID)
 	if err != nil {
 		return "", err
 	}
@@ -24,7 +24,7 @@ func (r *RoutingRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 }
 
 func (r *RoutingRuntime) EnsureStopped(ctx context.Context, machine db.Machine) error {
-	runtime, err := r.runtimeFor(machine.Runtime)
+	runtime, err := r.runtimeFor(machine.RuntimeID)
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (r *RoutingRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 }
 
 func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, string, error) {
-	runtime, err := r.runtimeFor(machine.Runtime)
+	runtime, err := r.runtimeFor(machine.RuntimeID)
 	if err != nil {
 		return false, "", err
 	}
@@ -40,7 +40,7 @@ func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 }
 
 func (r *RoutingRuntime) WaitReady(ctx context.Context, machine db.Machine, instanceID string) error {
-	runtime, err := r.runtimeFor(machine.Runtime)
+	runtime, err := r.runtimeFor(machine.RuntimeID)
 	if err != nil {
 		return err
 	}

@@ -46,8 +46,8 @@ WHERE token_hash = sqlc.arg(token_hash)
   AND revoked_at IS NULL;
 
 -- name: CreateMachine :exec
-INSERT INTO machines (id, name, runtime)
-VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(runtime));
+INSERT INTO machines (id, name, runtime_id, setup_version)
+VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(runtime_id), sqlc.arg(setup_version));
 
 -- name: UpdateMachineEndpointByID :exec
 UPDATE machines
@@ -61,6 +61,19 @@ VALUES (sqlc.arg(user_id), sqlc.arg(machine_id), sqlc.arg(role));
 -- name: UpdateMachineNameByIDForOwner :execrows
 UPDATE machines
 SET name = sqlc.arg(name)
+WHERE id = sqlc.arg(machine_id)
+  AND EXISTS (
+    SELECT 1
+    FROM user_machines um
+    WHERE um.machine_id = machines.id
+      AND um.user_id = sqlc.arg(user_id)
+      AND um.role = 'owner'
+  );
+
+-- name: UpdateMachineRuntimeByIDForOwner :execrows
+UPDATE machines
+SET runtime_id = sqlc.arg(runtime_id),
+    setup_version = sqlc.arg(setup_version)
 WHERE id = sqlc.arg(machine_id)
   AND EXISTS (
     SELECT 1
@@ -94,7 +107,7 @@ INSERT INTO machine_states (machine_id, status, desired_status, updated_at)
 VALUES (sqlc.arg(machine_id), sqlc.arg(status), sqlc.arg(desired_status), sqlc.arg(updated_at));
 
 -- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -102,14 +115,14 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.id = sqlc.arg(machine_id)
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -225,7 +238,7 @@ WHERE status = 'running'
   AND lease_until < sqlc.arg(now_unix);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)
