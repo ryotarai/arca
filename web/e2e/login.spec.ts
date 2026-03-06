@@ -37,6 +37,24 @@ async function createMachineViaAPI(page: import('@playwright/test').Page, machin
   return machineID
 }
 
+async function setDisableInternetPublicExposure(page: import('@playwright/test').Page, disabled: boolean): Promise<void> {
+  const response = await page.request.post('/arca.v1.SetupService/UpdateDomainSettings', {
+    data: {
+      baseDomain: 'example.com',
+      domainPrefix: 'arca-',
+      machineRuntime: 'libvirt',
+      disableInternetPublicExposure: disabled,
+      oidcEnabled: false,
+      oidcIssuerUrl: '',
+      oidcClientId: '',
+      oidcClientSecret: '',
+      oidcAllowedEmailDomains: [],
+      clearOidcClientSecret: false,
+    },
+  })
+  expect(response.ok()).toBeTruthy()
+}
+
 test('redirect path exposes login screen', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('link', { name: 'Login' }).click()
@@ -182,6 +200,27 @@ test('machine detail shows restart CTA only when update is required and machine 
       await expect(page.getByRole('button', { name: 'Restart to update' })).toHaveCount(0)
     }
   } finally {
+    await bestEffortDeleteMachine(page, machineID)
+  }
+})
+
+test('machine detail disables internet-public visibility when blocked by admin policy', async ({ page }) => {
+  test.setTimeout(90_000)
+  const machineName = `visibility-policy-${Date.now()}`
+
+  await loginAsAdmin(page)
+  const machineID = await createMachineViaAPI(page, machineName)
+
+  try {
+    await setDisableInternetPublicExposure(page, true)
+
+    await page.goto(`/machines/${machineID}`)
+    await expect(page.getByText(/Internet public visibility is disabled by admin policy\./)).toBeVisible()
+
+    const internetPublicOption = page.getByRole('option', { name: 'Internet public' })
+    await expect(internetPublicOption).toHaveAttribute('disabled', '')
+  } finally {
+    await setDisableInternetPublicExposure(page, false)
     await bestEffortDeleteMachine(page, machineID)
   }
 })

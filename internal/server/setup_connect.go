@@ -35,13 +35,20 @@ func newSetupConnectService(store *db.Store, authenticator Authenticator, cf *cl
 
 func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Request[arcav1.GetSetupStatusRequest]) (*connect.Response[arcav1.GetSetupStatusResponse], error) {
 	if shouldSkipSetup() {
+		internetPublicExposureDisabled := false
+		if s.store != nil {
+			state, err := s.store.GetSetupState(ctx)
+			if err == nil {
+				internetPublicExposureDisabled = state.InternetPublicExposureDisabled
+			}
+		}
 		return connect.NewResponse(&arcav1.GetSetupStatusResponse{
 			Status: &arcav1.SetupStatus{
 				Completed:                      true,
 				AdminConfigured:                true,
 				CloudflareConfigured:           true,
 				MachineRuntime:                 db.MachineRuntimeLibvirt,
-				InternetPublicExposureDisabled: false,
+				InternetPublicExposureDisabled: internetPublicExposureDisabled,
 			},
 		}), nil
 	}
