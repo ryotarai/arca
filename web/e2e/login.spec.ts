@@ -1,5 +1,41 @@
 import { expect, test } from '@playwright/test'
-import { adminEmail, adminPassword, ensureSetupAdmin, loginAsAdmin } from './helpers'
+import { execFileSync } from 'node:child_process'
+import { adminEmail, adminPassword, bestEffortDeleteMachine, ensureSetupAdmin, loginAsAdmin, waitForMachineByName } from './helpers'
+
+const e2eDBPath = '/tmp/arca-e2e.db'
+
+function updateMachineForRestartVisibility(machineID: string, status: string) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      execFileSync(
+        'sqlite3',
+        [
+          e2eDBPath,
+          `PRAGMA busy_timeout = 5000;
+UPDATE machines SET setup_version = 'legacy-version' WHERE id = '${machineID}';
+UPDATE machine_states SET status = '${status}' WHERE machine_id = '${machineID}';`,
+        ],
+        { stdio: 'pipe' },
+      )
+      return
+    } catch (error) {
+      if (!String(error).includes('database is locked') || attempt === 5) {
+        throw error
+      }
+    }
+  }
+}
+
+async function createMachineViaAPI(page: import('@playwright/test').Page, machineName: string): Promise<string> {
+  const response = await page.request.post('/arca.v1.MachineService/CreateMachine', {
+    data: { name: machineName },
+  })
+  expect(response.ok()).toBeTruthy()
+  const payload = (await response.json()) as { machine?: { id?: string } }
+  const machineID = payload.machine?.id?.trim() ?? ''
+  expect(machineID).not.toBe('')
+  return machineID
+}
 
 test('redirect path exposes login screen', async ({ page }) => {
   await page.goto('/')
@@ -101,4 +137,51 @@ test('authenticated login route honors nested authorize next parameter', async (
   await expect(page).toHaveURL(
     '/console/authorize?target=https%3A%2F%2Farca-test3.ryotarai.info%2Fcallback%3Fnext%3D%252F',
   )
+})
+
+test('machines list shows restart CTA only when update is required and machine is restartable', async ({ page }) => {
+  const machineName = `restart-list-${Date.now()}`
+
+  await loginAsAdmin(page)
+  const machineID = await createMachineViaAPI(page, machineName)
+  await waitForMachineByName(page, machineName)
+
+  try {
+    updateMachineForRestartVisibility(machineID, 'running')
+
+    await page.goto('/machines')
+    const row = page.locator('li', { hasText: machineName })
+    await expect(row.getByRole('button', { name: 'Restart to update' })).toBeVisible()
+
+    for (const status of ['starting', 'stopping', 'pending', 'deleting']) {
+      updateMachineForRestartVisibility(machineID, status)
+      await page.goto('/machines')
+      await expect(row.getByRole('button', { name: 'Restart to update' })).toHaveCount(0)
+    }
+  } finally {
+    await bestEffortDeleteMachine(page, machineID)
+  }
+})
+
+test('machine detail shows restart CTA only when update is required and machine is restartable', async ({ page }) => {
+  const machineName = `restart-detail-${Date.now()}`
+
+  await loginAsAdmin(page)
+  const machineID = await createMachineViaAPI(page, machineName)
+  await waitForMachineByName(page, machineName)
+
+  try {
+    updateMachineForRestartVisibility(machineID, 'running')
+
+    await page.goto(`/machines/${machineID}`)
+    await expect(page.getByRole('button', { name: 'Restart to update' })).toBeVisible()
+
+    for (const status of ['starting', 'stopping', 'pending', 'deleting']) {
+      updateMachineForRestartVisibility(machineID, status)
+      await page.goto(`/machines/${machineID}`)
+      await expect(page.getByRole('button', { name: 'Restart to update' })).toHaveCount(0)
+    }
+  } finally {
+    await bestEffortDeleteMachine(page, machineID)
+  }
 })
