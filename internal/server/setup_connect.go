@@ -170,7 +170,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 
 	state := db.SetupState{
 		Completed:          true,
-		AdminUserID:        adminUserID,
+		HasAdmin:           true,
 		BaseDomain:         baseDomain,
 		DomainPrefix:       domainPrefix,
 		CloudflareAPIToken: cfToken,
@@ -270,7 +270,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 	return &arcav1.SetupStatus{
 		Completed:                      state.Completed,
-		AdminConfigured:                strings.TrimSpace(state.AdminUserID) != "",
+		AdminConfigured:                state.HasAdmin,
 		CloudflareConfigured:           strings.TrimSpace(state.CloudflareAPIToken) != "",
 		BaseDomain:                     state.BaseDomain,
 		DomainPrefix:                   state.DomainPrefix,

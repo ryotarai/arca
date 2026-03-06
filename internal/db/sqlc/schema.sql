@@ -106,7 +106,6 @@ CREATE INDEX IF NOT EXISTS idx_machine_events_machine_id_created_at
 CREATE TABLE IF NOT EXISTS setup_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   completed BOOLEAN NOT NULL DEFAULT FALSE,
-  admin_user_id TEXT,
   base_domain TEXT NOT NULL DEFAULT '',
   domain_prefix TEXT NOT NULL DEFAULT '',
   cloudflare_api_token TEXT NOT NULL DEFAULT '',
