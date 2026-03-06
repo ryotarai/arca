@@ -13,7 +13,11 @@ LOCK_NAME="${WINDOW_NAME}-window-lock"
 
 tmux set -g pane-border-status top 2>/dev/null
 
-RUN_CMD="echo -ne '\033]2;${PANE_TITLE}\033\\'; codex \"$PROMPT\"; exec bash"
+if [ "${AGENT:-codex}" = "claude" ]; then
+    RUN_CMD="echo -ne '\033]2;${PANE_TITLE}\033\\'; claude \"$PROMPT\"; exec bash"
+else
+    RUN_CMD="echo -ne '\033]2;${PANE_TITLE}\033\\'; codex \"$PROMPT\"; exec bash"
+fi
 
 tmux wait-for -L "$LOCK_NAME"
 cleanup() {
