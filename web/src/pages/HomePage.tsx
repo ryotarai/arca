@@ -34,6 +34,9 @@ export function HomePage({ user, onLogout }: HomePageProps) {
             <Link to="/machines">Machines</Link>
           </Button>
           <Button asChild type="button" variant="secondary">
+            <Link to="/users">Users</Link>
+          </Button>
+          <Button asChild type="button" variant="secondary">
             <Link to="/settings">Settings</Link>
           </Button>
           <Button type="button" variant="secondary" onClick={onLogout}>
