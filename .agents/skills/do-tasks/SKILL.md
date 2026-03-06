@@ -66,6 +66,26 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 - Include task file path and acceptance criteria in each prompt.
 - Require worktree-local scope and disallow unrelated edits.
 - Require explicit report of verification commands and outcomes before marking done.
+- Add an execution pacing instruction: start code edits quickly (avoid prolonged restatement/search loops once relevant files are identified).
+
+## Verification Hygiene Rules
+
+- For repos embedding frontend assets in Go binaries (for example `internal/server/ui/dist`), rebuild frontend assets before Go test runs that compile server packages.
+- After frontend code changes used by server/E2E, run `make build-frontend` before `make test` to avoid stale UI artifacts.
+- If E2E failures look inconsistent with latest source, assume stale built assets first, rebuild, then rerun.
+
+## Conflict Hotspot Rules
+
+- Treat shared high-churn files as merge hotspots and plan for merge-time reconciliation:
+- `web/e2e/login.spec.ts`
+- `internal/server/machine_connect_test.go`
+- When multiple tasks touch a hotspot file, prefer additive edits with clearly separated test blocks and avoid broad rewrites.
+- For interface-expansion fallout in test stubs, add minimal no-op/panic methods only; do not refactor unrelated tests.
+
+## Worktree Cleanup Rules
+
+- If `git worktree remove` fails due permissions in local caches, restore write permission first (for example `.cache` under that worktree) and retry.
+- After forced cleanup, run `git worktree prune` and then delete merged task branches.
 
 ## Completion File Rules
 
