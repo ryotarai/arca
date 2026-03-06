@@ -193,6 +193,39 @@ func (q *Queries) CreateMachineToken(ctx context.Context, arg CreateMachineToken
 	return err
 }
 
+const createRuntime = `-- name: CreateRuntime :exec
+INSERT INTO runtimes (id, name, type, config_json, created_at, updated_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6
+)
+`
+
+type CreateRuntimeParams struct {
+	ID         string
+	Name       string
+	Type       string
+	ConfigJson string
+	CreatedAt  int64
+	UpdatedAt  int64
+}
+
+func (q *Queries) CreateRuntime(ctx context.Context, arg CreateRuntimeParams) error {
+	_, err := q.db.ExecContext(ctx, createRuntime,
+		arg.ID,
+		arg.Name,
+		arg.Type,
+		arg.ConfigJson,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES ($1, $2, $3, $4)
@@ -316,6 +349,19 @@ WHERE id = $1
 func (q *Queries) DeleteMachineIfNoUsers(ctx context.Context, machineID string) error {
 	_, err := q.db.ExecContext(ctx, deleteMachineIfNoUsers, machineID)
 	return err
+}
+
+const deleteRuntimeByID = `-- name: DeleteRuntimeByID :execrows
+DELETE FROM runtimes
+WHERE id = $1
+`
+
+func (q *Queries) DeleteRuntimeByID(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteRuntimeByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteUserMachineByMachineIDForOwner = `-- name: DeleteUserMachineByMachineIDForOwner :execrows
@@ -587,6 +633,27 @@ func (q *Queries) GetMeta(ctx context.Context, key string) (string, error) {
 	var value string
 	err := row.Scan(&value)
 	return value, err
+}
+
+const getRuntimeByID = `-- name: GetRuntimeByID :one
+SELECT id, name, type, config_json, created_at, updated_at
+FROM runtimes
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetRuntimeByID(ctx context.Context, id string) (Runtime, error) {
+	row := q.db.QueryRowContext(ctx, getRuntimeByID, id)
+	var i Runtime
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Type,
+		&i.ConfigJson,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getSetupState = `-- name: GetSetupState :one
@@ -1080,6 +1147,42 @@ func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableM
 	return items, nil
 }
 
+const listRuntimes = `-- name: ListRuntimes :many
+SELECT id, name, type, config_json, created_at, updated_at
+FROM runtimes
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListRuntimes(ctx context.Context) ([]Runtime, error) {
+	rows, err := q.db.QueryContext(ctx, listRuntimes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Runtime
+	for rows.Next() {
+		var i Runtime
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Type,
+			&i.ConfigJson,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id, email, password_hash, password_setup_required, created_at
 FROM users
@@ -1379,6 +1482,37 @@ func (q *Queries) UpdateMachineStateForOwner(ctx context.Context, arg UpdateMach
 		arg.UpdatedAt,
 		arg.MachineID,
 		arg.UserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateRuntimeByID = `-- name: UpdateRuntimeByID :execrows
+UPDATE runtimes
+SET name = $1,
+    type = $2,
+    config_json = $3,
+    updated_at = $4
+WHERE id = $5
+`
+
+type UpdateRuntimeByIDParams struct {
+	Name       string
+	Type       string
+	ConfigJson string
+	UpdatedAt  int64
+	ID         string
+}
+
+func (q *Queries) UpdateRuntimeByID(ctx context.Context, arg UpdateRuntimeByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateRuntimeByID,
+		arg.Name,
+		arg.Type,
+		arg.ConfigJson,
+		arg.UpdatedAt,
+		arg.ID,
 	)
 	if err != nil {
 		return 0, err
