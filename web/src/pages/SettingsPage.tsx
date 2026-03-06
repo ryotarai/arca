@@ -24,7 +24,6 @@ type SettingsPageProps = {
 export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout }: SettingsPageProps) {
   const [baseDomain, setBaseDomain] = useState(setupStatus.baseDomain)
   const [domainPrefix, setDomainPrefix] = useState(setupStatus.domainPrefix)
-  const [machineRuntime, setMachineRuntime] = useState<'libvirt'>(setupStatus.machineRuntime)
   const [disableInternetPublicExposure, setDisableInternetPublicExposure] = useState(setupStatus.internetPublicExposureDisabled)
   const [oidcEnabled, setOidcEnabled] = useState(setupStatus.oidcEnabled)
   const [oidcIssuerURL, setOidcIssuerURL] = useState(setupStatus.oidcIssuerURL)
@@ -61,7 +60,6 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
       await updateDomainSettings(
         normalizedBaseDomain,
         normalizedDomainPrefix,
-        machineRuntime,
         disableInternetPublicExposure,
         oidcEnabled,
         oidcIssuerURL.trim(),
@@ -81,7 +79,6 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
         ...setupStatus,
         baseDomain: normalizedBaseDomain,
         domainPrefix: normalizedDomainPrefix,
-        machineRuntime,
         internetPublicExposureDisabled: disableInternetPublicExposure,
         oidcEnabled,
         oidcIssuerURL: oidcIssuerURL.trim(),
@@ -160,19 +157,6 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                 {domainPrefix !== '' && domainPrefixError != null && (
                   <p className="text-sm text-red-300">{domainPrefixError}</p>
                 )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="settings-machine-runtime" className="text-slate-200">
-                  Machine runtime
-                </Label>
-                <select
-                  id="settings-machine-runtime"
-                  value={machineRuntime}
-                  onChange={(event) => setMachineRuntime(event.target.value === 'libvirt' ? 'libvirt' : 'libvirt')}
-                  className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45"
-                >
-                  <option value="libvirt">Libvirt (Ubuntu 24.04 VM)</option>
-                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="settings-disable-internet-public" className="text-slate-200">

@@ -84,14 +84,6 @@ func (r *RoutingRuntime) runtimeFor(ctx context.Context, runtimeID string) (Runt
 		return runtime, nil
 	}
 
-	if db.IsSupportedMachineRuntime(runtimeID) {
-		legacy := db.NormalizeMachineRuntime(runtimeID)
-		runtime, ok := r.runtimes[legacy]
-		if ok && runtime != nil {
-			return runtime, nil
-		}
-	}
-
 	if r.store == nil {
 		return nil, fmt.Errorf("runtime %q is not configured", runtimeID)
 	}

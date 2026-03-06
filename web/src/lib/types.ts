@@ -27,7 +27,6 @@ export type SetupStatus = {
   cloudflareZoneID: string
   baseDomain: string
   domainPrefix: string
-  machineRuntime: 'libvirt'
   internetPublicExposureDisabled: boolean
   oidcEnabled: boolean
   oidcIssuerURL: string

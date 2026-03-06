@@ -55,7 +55,6 @@ type MachineStore interface {
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByID(context.Context, string) (bool, error)
 	GetMachineTunnelByMachineID(context.Context, string) (db.MachineTunnel, error)
-	GetSetupState(context.Context) (db.SetupState, error)
 	GetRuntimeByID(context.Context, string) (db.RuntimeCatalog, error)
 }
 

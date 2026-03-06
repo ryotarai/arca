@@ -27,8 +27,13 @@ UPDATE machine_states SET status = '${status}' WHERE machine_id = '${machineID}'
 }
 
 async function createMachineViaAPI(page: import('@playwright/test').Page, machineName: string): Promise<string> {
+  execFileSync('sqlite3', [
+    e2eDBPath,
+    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('libvirt', 'libvirt-default', 'libvirt', '{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
+  ], { stdio: 'pipe' })
+
   const response = await page.request.post('/arca.v1.MachineService/CreateMachine', {
-    data: { name: machineName },
+    data: { name: machineName, runtimeId: 'libvirt' },
   })
   expect(response.ok()).toBeTruthy()
   const payload = (await response.json()) as { machine?: { id?: string } }
@@ -42,7 +47,6 @@ async function setDisableInternetPublicExposure(page: import('@playwright/test')
     data: {
       baseDomain: 'example.com',
       domainPrefix: 'arca-',
-      machineRuntime: 'libvirt',
       disableInternetPublicExposure: disabled,
       oidcEnabled: false,
       oidcIssuerUrl: '',

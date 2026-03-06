@@ -155,9 +155,12 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
       return
     }
     setError('')
+    if (selectedRuntimeID.trim() === "") {
+      setError("runtime is required")
+      return
+    }
     try {
-      const runtimeID = selectedRuntimeID === '' ? undefined : selectedRuntimeID
-      const created = await createMachine(trimmed, runtimeID)
+      const created = await createMachine(trimmed, selectedRuntimeID)
       setMachines((prev) => [created, ...prev])
       setName('')
     } catch (e) {
@@ -282,7 +285,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
 				  onChange={(event) => setSelectedRuntimeID(event.target.value)}
 				  className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100"
 				>
-				  {runtimes.length === 0 && <option value="">Use setup default runtime</option>}
+				  {runtimes.length === 0 && <option value="">No runtime available</option>}
 				  {runtimes.map((runtime) => (
 					<option key={runtime.id} value={runtime.id}>
 					  {runtime.name} ({runtime.type})
@@ -290,7 +293,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
 				  ))}
 				</select>
 			  </div>
-              <Button type="submit" className="h-10 self-end bg-white text-slate-900 hover:bg-slate-100">
+              <Button type="submit" className="h-10 self-end bg-white text-slate-900 hover:bg-slate-100" disabled={runtimes.length === 0}>
                 Create
               </Button>
             </form>

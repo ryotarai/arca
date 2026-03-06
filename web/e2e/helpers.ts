@@ -97,7 +97,6 @@ export async function ensureSetupAdmin(page: Page) {
       domainPrefix: setupConfig.domainPrefix,
       cloudflareApiToken: setupConfig.cloudflareToken,
       cloudflareZoneId: setupConfig.cloudflareZoneID,
-      machineRuntime: 'libvirt',
     },
   })
 

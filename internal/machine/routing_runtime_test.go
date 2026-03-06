@@ -51,9 +51,7 @@ func TestRoutingRuntime_ResolvesCatalogRuntimeIDsAcrossTypes(t *testing.T) {
 		},
 	}
 
-	runtime := NewRoutingRuntimeWithCatalog(store, map[string]Runtime{
-		db.MachineRuntimeLibvirt: &fakeRuntime{name: "legacy-libvirt"},
-	})
+	runtime := NewRoutingRuntimeWithCatalog(store, map[string]Runtime{})
 	runtime.factory = map[string]RuntimeFactory{
 		db.RuntimeTypeLibvirt: func(catalog db.RuntimeCatalog) (Runtime, error) {
 			return &fakeRuntime{name: "catalog-libvirt:" + catalog.ID}, nil
@@ -64,14 +62,6 @@ func TestRoutingRuntime_ResolvesCatalogRuntimeIDsAcrossTypes(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	legacyContainer, err := runtime.EnsureRunning(ctx, db.Machine{ID: "machine-legacy", RuntimeID: db.MachineRuntimeLibvirt}, RuntimeStartOptions{})
-	if err != nil {
-		t.Fatalf("ensure running legacy runtime: %v", err)
-	}
-	if legacyContainer != "legacy-libvirt" {
-		t.Fatalf("legacy container id = %q, want %q", legacyContainer, "legacy-libvirt")
-	}
 
 	libvirtContainer, err := runtime.EnsureRunning(ctx, db.Machine{ID: "machine-libvirt", RuntimeID: "rt-libvirt"}, RuntimeStartOptions{})
 	if err != nil {
