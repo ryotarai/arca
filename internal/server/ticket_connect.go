@@ -113,21 +113,6 @@ func (s *ticketConnectService) ExchangeArcadSession(ctx context.Context, req *co
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to exchange arcad session"))
 	}
 
-	hostname := strings.TrimSpace(req.Msg.GetHostname())
-	if hostname != "" {
-		exposure, expErr := s.store.GetMachineExposureByHostname(ctx, hostname)
-		if expErr != nil {
-			if errors.Is(expErr, sql.ErrNoRows) {
-				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid ticket"))
-			}
-			log.Printf("exchange arcad session exposure lookup failed: %v", expErr)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve exposure"))
-		}
-		if exposure.MachineID != machineID || (session.ExposureID != "" && exposure.ID != session.ExposureID) {
-			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid ticket"))
-		}
-	}
-
 	return connect.NewResponse(&arcav1.ExchangeArcadSessionResponse{
 		SessionId:     session.SessionID,
 		ExpiresAtUnix: session.ExpiresAt,
