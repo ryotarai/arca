@@ -74,6 +74,11 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 ## Agent Workflow
 - Prefer root-cause fixes over workaround patches. Do not introduce server-side or temporary fallback behavior as a quick fix when the issue is in another layer unless the user explicitly asks for that tradeoff.
 - For state transitions and destructive operations (for example delete/teardown), prefer idempotent, reconcile-driven designs: persist intent first (desired state), let workers/reconcile loops converge actual state, and make each step retry-safe so progress survives process crashes or restarts.
+- Before using `apply_patch`, verify paths first: run `pwd` and confirm target files with `rg --files | rg '<filename>'`.
+- Use `*** Update File:` only for existing files. If a file does not exist, use `*** Add File:`.
+- When adding a new file in a new directory, create parent directories first (`mkdir -p <dir>`), then apply the patch.
+- Do not switch to "full file output" as a workaround for new files; prefer `apply_patch` with correct `Add File` semantics.
+- If `apply_patch` fails with `NotFound`, re-check path resolution and parent directory existence, then retry once with corrected paths.
 - Before creating a commit, run relevant verification for the changed scope (at minimum build/run checks for runtime changes, and tests when applicable).
 - After completing a clear, self-contained requested change, **always** create a commit proactively without requiring an extra user prompt. Do not forget to commit.
 - Keep each proactive commit focused to the completed task only; do not include unrelated or generated local artifacts (for example `*.db`).
