@@ -281,6 +281,254 @@ func (x *VerifyTicketResponse) GetExposureId() string {
 	return ""
 }
 
+type ExchangeArcadSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Hostname      string                 `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeArcadSessionRequest) Reset() {
+	*x = ExchangeArcadSessionRequest{}
+	mi := &file_arca_v1_ticket_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeArcadSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeArcadSessionRequest) ProtoMessage() {}
+
+func (x *ExchangeArcadSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_ticket_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeArcadSessionRequest.ProtoReflect.Descriptor instead.
+func (*ExchangeArcadSessionRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_ticket_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ExchangeArcadSessionRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *ExchangeArcadSessionRequest) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+type ExchangeArcadSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	ExpiresAtUnix int64                  `protobuf:"varint,2,opt,name=expires_at_unix,json=expiresAtUnix,proto3" json:"expires_at_unix,omitempty"`
+	User          *TicketUser            `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	MachineId     string                 `protobuf:"bytes,4,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	ExposureId    string                 `protobuf:"bytes,5,opt,name=exposure_id,json=exposureId,proto3" json:"exposure_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeArcadSessionResponse) Reset() {
+	*x = ExchangeArcadSessionResponse{}
+	mi := &file_arca_v1_ticket_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeArcadSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeArcadSessionResponse) ProtoMessage() {}
+
+func (x *ExchangeArcadSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_ticket_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeArcadSessionResponse.ProtoReflect.Descriptor instead.
+func (*ExchangeArcadSessionResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_ticket_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ExchangeArcadSessionResponse) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ExchangeArcadSessionResponse) GetExpiresAtUnix() int64 {
+	if x != nil {
+		return x.ExpiresAtUnix
+	}
+	return 0
+}
+
+func (x *ExchangeArcadSessionResponse) GetUser() *TicketUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *ExchangeArcadSessionResponse) GetMachineId() string {
+	if x != nil {
+		return x.MachineId
+	}
+	return ""
+}
+
+func (x *ExchangeArcadSessionResponse) GetExposureId() string {
+	if x != nil {
+		return x.ExposureId
+	}
+	return ""
+}
+
+type ValidateArcadSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Hostname      string                 `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateArcadSessionRequest) Reset() {
+	*x = ValidateArcadSessionRequest{}
+	mi := &file_arca_v1_ticket_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateArcadSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateArcadSessionRequest) ProtoMessage() {}
+
+func (x *ValidateArcadSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_ticket_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateArcadSessionRequest.ProtoReflect.Descriptor instead.
+func (*ValidateArcadSessionRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_ticket_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ValidateArcadSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ValidateArcadSessionRequest) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *ValidateArcadSessionRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+type ValidateArcadSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *TicketUser            `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	MachineId     string                 `protobuf:"bytes,2,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	ExposureId    string                 `protobuf:"bytes,3,opt,name=exposure_id,json=exposureId,proto3" json:"exposure_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateArcadSessionResponse) Reset() {
+	*x = ValidateArcadSessionResponse{}
+	mi := &file_arca_v1_ticket_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateArcadSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateArcadSessionResponse) ProtoMessage() {}
+
+func (x *ValidateArcadSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_ticket_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateArcadSessionResponse.ProtoReflect.Descriptor instead.
+func (*ValidateArcadSessionResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_ticket_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ValidateArcadSessionResponse) GetUser() *TicketUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *ValidateArcadSessionResponse) GetMachineId() string {
+	if x != nil {
+		return x.MachineId
+	}
+	return ""
+}
+
+func (x *ValidateArcadSessionResponse) GetExposureId() string {
+	if x != nil {
+		return x.ExposureId
+	}
+	return ""
+}
+
 var File_arca_v1_ticket_proto protoreflect.FileDescriptor
 
 const file_arca_v1_ticket_proto_rawDesc = "" +
@@ -305,10 +553,35 @@ const file_arca_v1_ticket_proto_rawDesc = "" +
 	"\n" +
 	"machine_id\x18\x02 \x01(\tR\tmachineId\x12\x1f\n" +
 	"\vexposure_id\x18\x03 \x01(\tR\n" +
-	"exposureId2\xa6\x01\n" +
+	"exposureId\"O\n" +
+	"\x1bExchangeArcadSessionRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1a\n" +
+	"\bhostname\x18\x02 \x01(\tR\bhostname\"\xce\x01\n" +
+	"\x1cExchangeArcadSessionResponse\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12&\n" +
+	"\x0fexpires_at_unix\x18\x02 \x01(\x03R\rexpiresAtUnix\x12'\n" +
+	"\x04user\x18\x03 \x01(\v2\x13.arca.v1.TicketUserR\x04user\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x04 \x01(\tR\tmachineId\x12\x1f\n" +
+	"\vexposure_id\x18\x05 \x01(\tR\n" +
+	"exposureId\"l\n" +
+	"\x1bValidateArcadSessionRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1a\n" +
+	"\bhostname\x18\x02 \x01(\tR\bhostname\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\x87\x01\n" +
+	"\x1cValidateArcadSessionResponse\x12'\n" +
+	"\x04user\x18\x01 \x01(\v2\x13.arca.v1.TicketUserR\x04user\x12\x1d\n" +
+	"\n" +
+	"machine_id\x18\x02 \x01(\tR\tmachineId\x12\x1f\n" +
+	"\vexposure_id\x18\x03 \x01(\tR\n" +
+	"exposureId2\xf0\x02\n" +
 	"\rTicketService\x12H\n" +
 	"\vIssueTicket\x12\x1b.arca.v1.IssueTicketRequest\x1a\x1c.arca.v1.IssueTicketResponse\x12K\n" +
-	"\fVerifyTicket\x12\x1c.arca.v1.VerifyTicketRequest\x1a\x1d.arca.v1.VerifyTicketResponseB\x8d\x01\n" +
+	"\fVerifyTicket\x12\x1c.arca.v1.VerifyTicketRequest\x1a\x1d.arca.v1.VerifyTicketResponse\x12c\n" +
+	"\x14ExchangeArcadSession\x12$.arca.v1.ExchangeArcadSessionRequest\x1a%.arca.v1.ExchangeArcadSessionResponse\x12c\n" +
+	"\x14ValidateArcadSession\x12$.arca.v1.ValidateArcadSessionRequest\x1a%.arca.v1.ValidateArcadSessionResponseB\x8d\x01\n" +
 	"\vcom.arca.v1B\vTicketProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -323,25 +596,35 @@ func file_arca_v1_ticket_proto_rawDescGZIP() []byte {
 	return file_arca_v1_ticket_proto_rawDescData
 }
 
-var file_arca_v1_ticket_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_arca_v1_ticket_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_arca_v1_ticket_proto_goTypes = []any{
-	(*TicketUser)(nil),           // 0: arca.v1.TicketUser
-	(*IssueTicketRequest)(nil),   // 1: arca.v1.IssueTicketRequest
-	(*IssueTicketResponse)(nil),  // 2: arca.v1.IssueTicketResponse
-	(*VerifyTicketRequest)(nil),  // 3: arca.v1.VerifyTicketRequest
-	(*VerifyTicketResponse)(nil), // 4: arca.v1.VerifyTicketResponse
+	(*TicketUser)(nil),                   // 0: arca.v1.TicketUser
+	(*IssueTicketRequest)(nil),           // 1: arca.v1.IssueTicketRequest
+	(*IssueTicketResponse)(nil),          // 2: arca.v1.IssueTicketResponse
+	(*VerifyTicketRequest)(nil),          // 3: arca.v1.VerifyTicketRequest
+	(*VerifyTicketResponse)(nil),         // 4: arca.v1.VerifyTicketResponse
+	(*ExchangeArcadSessionRequest)(nil),  // 5: arca.v1.ExchangeArcadSessionRequest
+	(*ExchangeArcadSessionResponse)(nil), // 6: arca.v1.ExchangeArcadSessionResponse
+	(*ValidateArcadSessionRequest)(nil),  // 7: arca.v1.ValidateArcadSessionRequest
+	(*ValidateArcadSessionResponse)(nil), // 8: arca.v1.ValidateArcadSessionResponse
 }
 var file_arca_v1_ticket_proto_depIdxs = []int32{
 	0, // 0: arca.v1.VerifyTicketResponse.user:type_name -> arca.v1.TicketUser
-	1, // 1: arca.v1.TicketService.IssueTicket:input_type -> arca.v1.IssueTicketRequest
-	3, // 2: arca.v1.TicketService.VerifyTicket:input_type -> arca.v1.VerifyTicketRequest
-	2, // 3: arca.v1.TicketService.IssueTicket:output_type -> arca.v1.IssueTicketResponse
-	4, // 4: arca.v1.TicketService.VerifyTicket:output_type -> arca.v1.VerifyTicketResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 1: arca.v1.ExchangeArcadSessionResponse.user:type_name -> arca.v1.TicketUser
+	0, // 2: arca.v1.ValidateArcadSessionResponse.user:type_name -> arca.v1.TicketUser
+	1, // 3: arca.v1.TicketService.IssueTicket:input_type -> arca.v1.IssueTicketRequest
+	3, // 4: arca.v1.TicketService.VerifyTicket:input_type -> arca.v1.VerifyTicketRequest
+	5, // 5: arca.v1.TicketService.ExchangeArcadSession:input_type -> arca.v1.ExchangeArcadSessionRequest
+	7, // 6: arca.v1.TicketService.ValidateArcadSession:input_type -> arca.v1.ValidateArcadSessionRequest
+	2, // 7: arca.v1.TicketService.IssueTicket:output_type -> arca.v1.IssueTicketResponse
+	4, // 8: arca.v1.TicketService.VerifyTicket:output_type -> arca.v1.VerifyTicketResponse
+	6, // 9: arca.v1.TicketService.ExchangeArcadSession:output_type -> arca.v1.ExchangeArcadSessionResponse
+	8, // 10: arca.v1.TicketService.ValidateArcadSession:output_type -> arca.v1.ValidateArcadSessionResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_ticket_proto_init() }
@@ -355,7 +638,7 @@ func file_arca_v1_ticket_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_ticket_proto_rawDesc), len(file_arca_v1_ticket_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

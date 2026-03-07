@@ -87,6 +87,62 @@ SET used_at = sqlc.arg(used_at)
 WHERE id = sqlc.arg(id)
   AND used_at IS NULL;
 
+-- name: CreateArcadExchangeToken :exec
+INSERT INTO arcad_exchange_tokens (id, token_hash, user_id, machine_id, exposure_id, expires_at, created_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(token_hash),
+  sqlc.arg(user_id),
+  sqlc.arg(machine_id),
+  sqlc.arg(exposure_id),
+  sqlc.arg(expires_at),
+  sqlc.arg(created_at)
+);
+
+-- name: GetValidArcadExchangeTokenByHashAndMachine :one
+SELECT t.id, t.user_id, u.email, t.machine_id, t.exposure_id
+FROM arcad_exchange_tokens t
+JOIN users u ON u.id = t.user_id
+WHERE t.token_hash = sqlc.arg(token_hash)
+  AND t.machine_id = sqlc.arg(machine_id)
+  AND t.used_at IS NULL
+  AND t.expires_at > sqlc.arg(now_unix)
+LIMIT 1;
+
+-- name: MarkArcadExchangeTokenUsed :execrows
+UPDATE arcad_exchange_tokens
+SET used_at = sqlc.arg(used_at)
+WHERE id = sqlc.arg(id)
+  AND used_at IS NULL;
+
+-- name: CreateArcadSession :exec
+INSERT INTO arcad_sessions (id, session_hash, user_id, machine_id, exposure_id, expires_at, created_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(session_hash),
+  sqlc.arg(user_id),
+  sqlc.arg(machine_id),
+  sqlc.arg(exposure_id),
+  sqlc.arg(expires_at),
+  sqlc.arg(created_at)
+);
+
+-- name: GetActiveArcadSessionByHashAndMachine :one
+SELECT s.id, s.user_id, u.email, s.machine_id, s.exposure_id, s.expires_at
+FROM arcad_sessions s
+JOIN users u ON u.id = s.user_id
+WHERE s.session_hash = sqlc.arg(session_hash)
+  AND s.machine_id = sqlc.arg(machine_id)
+  AND s.revoked_at IS NULL
+  AND s.expires_at > sqlc.arg(now_unix)
+LIMIT 1;
+
+-- name: RevokeArcadSessionByHash :exec
+UPDATE arcad_sessions
+SET revoked_at = sqlc.arg(revoked_at)
+WHERE session_hash = sqlc.arg(session_hash)
+  AND revoked_at IS NULL;
+
 -- name: CreateSession :exec
 INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES (sqlc.arg(id), sqlc.arg(user_id), sqlc.arg(token_hash), sqlc.arg(expires_at_unix));
@@ -105,6 +161,10 @@ UPDATE sessions
 SET revoked_at = CURRENT_TIMESTAMP
 WHERE token_hash = sqlc.arg(token_hash)
   AND revoked_at IS NULL;
+
+-- name: DeleteArcadSessionsByUserID :exec
+DELETE FROM arcad_sessions
+WHERE user_id = sqlc.arg(user_id);
 
 -- name: CreateMachine :exec
 INSERT INTO machines (id, name, runtime_id, setup_version)

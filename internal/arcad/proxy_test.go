@@ -15,20 +15,31 @@ import (
 )
 
 type proxyStubControlPlane struct {
-	exposure  Exposure
-	claims    TicketClaims
-	verifyErr error
+	exposure       Exposure
+	exchangeClaims ArcadSessionClaims
+	exchangeErr    error
+	validateErr    error
 }
 
 func (s *proxyStubControlPlane) GetExposureByHost(_ context.Context, _ string) (Exposure, error) {
 	return s.exposure, nil
 }
 
-func (s *proxyStubControlPlane) VerifyTicket(_ context.Context, _, _ string) (TicketClaims, error) {
-	if s.verifyErr != nil {
-		return TicketClaims{}, s.verifyErr
+func (s *proxyStubControlPlane) ExchangeArcadSession(_ context.Context, _, _ string) (ArcadSessionClaims, error) {
+	if s.exchangeErr != nil {
+		return ArcadSessionClaims{}, s.exchangeErr
 	}
-	return s.claims, nil
+	return s.exchangeClaims, nil
+}
+
+func (s *proxyStubControlPlane) ValidateArcadSession(_ context.Context, _, _, sessionID string) (ArcadSessionClaims, error) {
+	if s.validateErr != nil {
+		return ArcadSessionClaims{}, s.validateErr
+	}
+	if strings.TrimSpace(sessionID) == "" || sessionID != s.exchangeClaims.SessionID {
+		return ArcadSessionClaims{}, ErrInvalidSession
+	}
+	return ArcadSessionClaims{UserID: s.exchangeClaims.UserID}, nil
 }
 
 func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
@@ -37,7 +48,7 @@ func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
 
 func TestProxyRedirectsUnauthenticatedPrivateExposure(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/path?x=1", nil)
 	rr := httptest.NewRecorder()
@@ -55,9 +66,13 @@ func TestProxyRedirectsUnauthenticatedPrivateExposure(t *testing.T) {
 func TestProxyCallbackSetsSessionCookie(t *testing.T) {
 	cp := &proxyStubControlPlane{
 		exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false},
-		claims:   TicketClaims{UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)},
+		exchangeClaims: ArcadSessionClaims{
+			SessionID: "as_1",
+			UserID:    "u1",
+			ExpiresAt: time.Now().Add(time.Hour),
+		},
 	}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/callback?token=tk_1&next=%2Fworkspace", nil)
 	rr := httptest.NewRecorder()
@@ -73,7 +88,7 @@ func TestProxyCallbackSetsSessionCookie(t *testing.T) {
 	if len(cookies) == 0 {
 		t.Fatalf("expected session cookie")
 	}
-	if cookies[0].Name != "arcad_session" || cookies[0].Value == "" {
+	if cookies[0].Name != "arcad_session" || cookies[0].Value != "as_1" {
 		t.Fatalf("unexpected cookie: %+v", cookies[0])
 	}
 }
@@ -91,14 +106,17 @@ func TestProxyRoutesClaudeCodeUIPathToDedicatedUpstream(t *testing.T) {
 	}))
 	t.Cleanup(claudecodeuiUpstream.Close)
 
-	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), "")
+	cp := &proxyStubControlPlane{
+		exposure:       Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true},
+		exchangeClaims: ArcadSessionClaims{SessionID: "as_valid", UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)},
+	}
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, defaultUpstream.URL), "")
 	proxy.claudecodeui = mustURL(t, claudecodeuiUpstream.URL)
 
 	t.Run("claudecodeui path", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/claudecodeui/", nil)
 		rr := httptest.NewRecorder()
-		addValidSessionCookie(t, req, proxy)
+		addValidSessionCookie(req)
 		proxy.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusOK {
@@ -157,12 +175,15 @@ func TestProxyRoutesTTydPathToDedicatedUnixSocket(t *testing.T) {
 		_ = ttydUpstream.Close()
 	})
 
-	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), socketPath)
+	cp := &proxyStubControlPlane{
+		exposure:       Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true},
+		exchangeClaims: ArcadSessionClaims{SessionID: "as_valid", UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)},
+	}
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, defaultUpstream.URL), socketPath)
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/ttyd/", nil)
 	rr := httptest.NewRecorder()
-	addValidSessionCookie(t, req, proxy)
+	addValidSessionCookie(req)
 	proxy.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -190,13 +211,16 @@ func TestProxyRoutesShelleyPathToDedicatedUpstream(t *testing.T) {
 	}))
 	t.Cleanup(shelleyUpstream.Close)
 
-	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), "")
+	cp := &proxyStubControlPlane{
+		exposure:       Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true},
+		exchangeClaims: ArcadSessionClaims{SessionID: "as_valid", UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)},
+	}
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, defaultUpstream.URL), "")
 	proxy.shelley = mustURL(t, shelleyUpstream.URL)
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/shelley/", nil)
 	rr := httptest.NewRecorder()
-	addValidSessionCookie(t, req, proxy)
+	addValidSessionCookie(req)
 	proxy.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -226,13 +250,16 @@ func TestProxyRewritesShelleyIndexAssetPaths(t *testing.T) {
 	}))
 	t.Cleanup(shelleyUpstream.Close)
 
-	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, defaultUpstream.URL), "")
+	cp := &proxyStubControlPlane{
+		exposure:       Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true},
+		exchangeClaims: ArcadSessionClaims{SessionID: "as_valid", UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)},
+	}
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, defaultUpstream.URL), "")
 	proxy.shelley = mustURL(t, shelleyUpstream.URL)
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/shelley/", nil)
 	rr := httptest.NewRecorder()
-	addValidSessionCookie(t, req, proxy)
+	addValidSessionCookie(req)
 	proxy.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -274,7 +301,7 @@ func TestRewriteShelleyAssetPaths(t *testing.T) {
 
 func TestProxyReadyz(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
 
 	sentinel := filepath.Join(t.TempDir(), "startup.done")
 	proxy.SetReadinessChecker(NewReadinessChecker(sentinel, nil))
@@ -296,18 +323,9 @@ func TestProxyReadyz(t *testing.T) {
 	}
 }
 
-func mustURL(t *testing.T, raw string) *url.URL {
-	t.Helper()
-	u, err := url.Parse(raw)
-	if err != nil {
-		t.Fatalf("parse url: %v", err)
-	}
-	return u
-}
-
 func TestProxyRedirectsUnauthenticatedArcaPathEvenWhenPublicExposure(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, NewSessionManager("secret"), "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/ttyd/", nil)
 	rr := httptest.NewRecorder()
@@ -322,11 +340,15 @@ func TestProxyRedirectsUnauthenticatedArcaPathEvenWhenPublicExposure(t *testing.
 	}
 }
 
-func addValidSessionCookie(t *testing.T, req *http.Request, proxy *Proxy) {
+func mustURL(t *testing.T, raw string) *url.URL {
 	t.Helper()
-	token, err := proxy.sessions.Encode(Session{UserID: "u1", ExpiresAt: time.Now().Add(time.Hour)})
+	u, err := url.Parse(raw)
 	if err != nil {
-		t.Fatalf("encode session: %v", err)
+		t.Fatalf("parse url: %v", err)
 	}
-	req.AddCookie(&http.Cookie{Name: "arcad_session", Value: token})
+	return u
+}
+
+func addValidSessionCookie(req *http.Request) {
+	req.AddCookie(&http.Cookie{Name: "arcad_session", Value: "as_valid"})
 }

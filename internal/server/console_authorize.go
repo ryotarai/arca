@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
@@ -58,42 +57,24 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 			return
 		}
 
-		if !canUserAccessExposure(r, store, exposure, userID, targetURL.Path) {
+		if !canUserAccessExposure(r.Context(), store, exposure, userID, targetURL.Path) {
 			http.NotFound(w, r)
 			return
 		}
 
 		expiresAt := time.Now().Add(authTicketTTL)
-		ticket, err := store.CreateAuthTicket(r.Context(), userID, exposure.MachineID, exposure.ID, expiresAt.Unix())
+		token, err := store.CreateArcadExchangeToken(r.Context(), userID, exposure.MachineID, exposure.ID, expiresAt.Unix())
 		if err != nil {
-			log.Printf("console authorize ticket issue failed: %v", err)
+			log.Printf("console authorize arcad token issue failed: %v", err)
 			http.Error(w, "failed to issue token", http.StatusInternalServerError)
 			return
 		}
 
 		query := targetURL.Query()
-		query.Set("token", ticket)
+		query.Set("token", token)
 		targetURL.RawQuery = query.Encode()
 		http.Redirect(w, r, targetURL.String(), http.StatusFound)
 	}
-}
-
-func canUserAccessExposure(r *http.Request, store *db.Store, exposure db.MachineExposure, userID, targetPath string) bool {
-	if isOwnerOnlyArcaPath(targetPath) {
-		_, err := store.GetMachineByIDForUser(r.Context(), userID, exposure.MachineID)
-		return err == nil
-	}
-
-	if db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilityAllArcaUsers || db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilityInternetPublic {
-		return true
-	}
-	if _, err := store.GetMachineByIDForUser(r.Context(), userID, exposure.MachineID); err == nil {
-		return true
-	}
-	if db.NormalizeEndpointVisibility(exposure.Visibility) == db.EndpointVisibilitySelectedUsers {
-		return slices.Contains(exposure.SelectedUserIDs, userID)
-	}
-	return false
 }
 
 func userIDFromSessionCookie(r *http.Request, authenticator Authenticator) (string, error) {
@@ -114,12 +95,4 @@ func stripPort(host string) string {
 		return h
 	}
 	return host
-}
-
-func isOwnerOnlyArcaPath(path string) bool {
-	path = strings.TrimSpace(path)
-	if path == "" || path == "/__arca/readyz" {
-		return false
-	}
-	return path == "/__arca" || strings.HasPrefix(path, "/__arca/")
 }

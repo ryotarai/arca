@@ -39,12 +39,20 @@ const (
 	// TicketServiceVerifyTicketProcedure is the fully-qualified name of the TicketService's
 	// VerifyTicket RPC.
 	TicketServiceVerifyTicketProcedure = "/arca.v1.TicketService/VerifyTicket"
+	// TicketServiceExchangeArcadSessionProcedure is the fully-qualified name of the TicketService's
+	// ExchangeArcadSession RPC.
+	TicketServiceExchangeArcadSessionProcedure = "/arca.v1.TicketService/ExchangeArcadSession"
+	// TicketServiceValidateArcadSessionProcedure is the fully-qualified name of the TicketService's
+	// ValidateArcadSession RPC.
+	TicketServiceValidateArcadSessionProcedure = "/arca.v1.TicketService/ValidateArcadSession"
 )
 
 // TicketServiceClient is a client for the arca.v1.TicketService service.
 type TicketServiceClient interface {
 	IssueTicket(context.Context, *connect.Request[v1.IssueTicketRequest]) (*connect.Response[v1.IssueTicketResponse], error)
 	VerifyTicket(context.Context, *connect.Request[v1.VerifyTicketRequest]) (*connect.Response[v1.VerifyTicketResponse], error)
+	ExchangeArcadSession(context.Context, *connect.Request[v1.ExchangeArcadSessionRequest]) (*connect.Response[v1.ExchangeArcadSessionResponse], error)
+	ValidateArcadSession(context.Context, *connect.Request[v1.ValidateArcadSessionRequest]) (*connect.Response[v1.ValidateArcadSessionResponse], error)
 }
 
 // NewTicketServiceClient constructs a client for the arca.v1.TicketService service. By default, it
@@ -70,13 +78,27 @@ func NewTicketServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(ticketServiceMethods.ByName("VerifyTicket")),
 			connect.WithClientOptions(opts...),
 		),
+		exchangeArcadSession: connect.NewClient[v1.ExchangeArcadSessionRequest, v1.ExchangeArcadSessionResponse](
+			httpClient,
+			baseURL+TicketServiceExchangeArcadSessionProcedure,
+			connect.WithSchema(ticketServiceMethods.ByName("ExchangeArcadSession")),
+			connect.WithClientOptions(opts...),
+		),
+		validateArcadSession: connect.NewClient[v1.ValidateArcadSessionRequest, v1.ValidateArcadSessionResponse](
+			httpClient,
+			baseURL+TicketServiceValidateArcadSessionProcedure,
+			connect.WithSchema(ticketServiceMethods.ByName("ValidateArcadSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // ticketServiceClient implements TicketServiceClient.
 type ticketServiceClient struct {
-	issueTicket  *connect.Client[v1.IssueTicketRequest, v1.IssueTicketResponse]
-	verifyTicket *connect.Client[v1.VerifyTicketRequest, v1.VerifyTicketResponse]
+	issueTicket          *connect.Client[v1.IssueTicketRequest, v1.IssueTicketResponse]
+	verifyTicket         *connect.Client[v1.VerifyTicketRequest, v1.VerifyTicketResponse]
+	exchangeArcadSession *connect.Client[v1.ExchangeArcadSessionRequest, v1.ExchangeArcadSessionResponse]
+	validateArcadSession *connect.Client[v1.ValidateArcadSessionRequest, v1.ValidateArcadSessionResponse]
 }
 
 // IssueTicket calls arca.v1.TicketService.IssueTicket.
@@ -89,10 +111,22 @@ func (c *ticketServiceClient) VerifyTicket(ctx context.Context, req *connect.Req
 	return c.verifyTicket.CallUnary(ctx, req)
 }
 
+// ExchangeArcadSession calls arca.v1.TicketService.ExchangeArcadSession.
+func (c *ticketServiceClient) ExchangeArcadSession(ctx context.Context, req *connect.Request[v1.ExchangeArcadSessionRequest]) (*connect.Response[v1.ExchangeArcadSessionResponse], error) {
+	return c.exchangeArcadSession.CallUnary(ctx, req)
+}
+
+// ValidateArcadSession calls arca.v1.TicketService.ValidateArcadSession.
+func (c *ticketServiceClient) ValidateArcadSession(ctx context.Context, req *connect.Request[v1.ValidateArcadSessionRequest]) (*connect.Response[v1.ValidateArcadSessionResponse], error) {
+	return c.validateArcadSession.CallUnary(ctx, req)
+}
+
 // TicketServiceHandler is an implementation of the arca.v1.TicketService service.
 type TicketServiceHandler interface {
 	IssueTicket(context.Context, *connect.Request[v1.IssueTicketRequest]) (*connect.Response[v1.IssueTicketResponse], error)
 	VerifyTicket(context.Context, *connect.Request[v1.VerifyTicketRequest]) (*connect.Response[v1.VerifyTicketResponse], error)
+	ExchangeArcadSession(context.Context, *connect.Request[v1.ExchangeArcadSessionRequest]) (*connect.Response[v1.ExchangeArcadSessionResponse], error)
+	ValidateArcadSession(context.Context, *connect.Request[v1.ValidateArcadSessionRequest]) (*connect.Response[v1.ValidateArcadSessionResponse], error)
 }
 
 // NewTicketServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -114,12 +148,28 @@ func NewTicketServiceHandler(svc TicketServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(ticketServiceMethods.ByName("VerifyTicket")),
 		connect.WithHandlerOptions(opts...),
 	)
+	ticketServiceExchangeArcadSessionHandler := connect.NewUnaryHandler(
+		TicketServiceExchangeArcadSessionProcedure,
+		svc.ExchangeArcadSession,
+		connect.WithSchema(ticketServiceMethods.ByName("ExchangeArcadSession")),
+		connect.WithHandlerOptions(opts...),
+	)
+	ticketServiceValidateArcadSessionHandler := connect.NewUnaryHandler(
+		TicketServiceValidateArcadSessionProcedure,
+		svc.ValidateArcadSession,
+		connect.WithSchema(ticketServiceMethods.ByName("ValidateArcadSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.TicketService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TicketServiceIssueTicketProcedure:
 			ticketServiceIssueTicketHandler.ServeHTTP(w, r)
 		case TicketServiceVerifyTicketProcedure:
 			ticketServiceVerifyTicketHandler.ServeHTTP(w, r)
+		case TicketServiceExchangeArcadSessionProcedure:
+			ticketServiceExchangeArcadSessionHandler.ServeHTTP(w, r)
+		case TicketServiceValidateArcadSessionProcedure:
+			ticketServiceValidateArcadSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -135,4 +185,12 @@ func (UnimplementedTicketServiceHandler) IssueTicket(context.Context, *connect.R
 
 func (UnimplementedTicketServiceHandler) VerifyTicket(context.Context, *connect.Request[v1.VerifyTicketRequest]) (*connect.Response[v1.VerifyTicketResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.TicketService.VerifyTicket is not implemented"))
+}
+
+func (UnimplementedTicketServiceHandler) ExchangeArcadSession(context.Context, *connect.Request[v1.ExchangeArcadSessionRequest]) (*connect.Response[v1.ExchangeArcadSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.TicketService.ExchangeArcadSession is not implemented"))
+}
+
+func (UnimplementedTicketServiceHandler) ValidateArcadSession(context.Context, *connect.Request[v1.ValidateArcadSessionRequest]) (*connect.Response[v1.ValidateArcadSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.TicketService.ValidateArcadSession is not implemented"))
 }

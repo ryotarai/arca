@@ -17,8 +17,12 @@ func (s *stubControlPlaneClient) GetExposureByHost(_ context.Context, _ string) 
 	return s.exposure, s.err
 }
 
-func (s *stubControlPlaneClient) VerifyTicket(_ context.Context, _, _ string) (TicketClaims, error) {
-	return TicketClaims{}, nil
+func (s *stubControlPlaneClient) ExchangeArcadSession(_ context.Context, _, _ string) (ArcadSessionClaims, error) {
+	return ArcadSessionClaims{}, nil
+}
+
+func (s *stubControlPlaneClient) ValidateArcadSession(_ context.Context, _, _, _ string) (ArcadSessionClaims, error) {
+	return ArcadSessionClaims{}, nil
 }
 
 func (s *stubControlPlaneClient) AuthorizeURL(_ string) string {

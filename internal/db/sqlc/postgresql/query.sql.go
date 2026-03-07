@@ -55,6 +55,78 @@ func (q *Queries) CountActiveStartOrReconcileJobsByMachineID(ctx context.Context
 	return count, err
 }
 
+const createArcadExchangeToken = `-- name: CreateArcadExchangeToken :exec
+INSERT INTO arcad_exchange_tokens (id, token_hash, user_id, machine_id, exposure_id, expires_at, created_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7
+)
+`
+
+type CreateArcadExchangeTokenParams struct {
+	ID         string
+	TokenHash  string
+	UserID     string
+	MachineID  string
+	ExposureID string
+	ExpiresAt  int64
+	CreatedAt  int64
+}
+
+func (q *Queries) CreateArcadExchangeToken(ctx context.Context, arg CreateArcadExchangeTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createArcadExchangeToken,
+		arg.ID,
+		arg.TokenHash,
+		arg.UserID,
+		arg.MachineID,
+		arg.ExposureID,
+		arg.ExpiresAt,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const createArcadSession = `-- name: CreateArcadSession :exec
+INSERT INTO arcad_sessions (id, session_hash, user_id, machine_id, exposure_id, expires_at, created_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7
+)
+`
+
+type CreateArcadSessionParams struct {
+	ID          string
+	SessionHash string
+	UserID      string
+	MachineID   string
+	ExposureID  string
+	ExpiresAt   int64
+	CreatedAt   int64
+}
+
+func (q *Queries) CreateArcadSession(ctx context.Context, arg CreateArcadSessionParams) error {
+	_, err := q.db.ExecContext(ctx, createArcadSession,
+		arg.ID,
+		arg.SessionHash,
+		arg.UserID,
+		arg.MachineID,
+		arg.ExposureID,
+		arg.ExpiresAt,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const createAuthTicket = `-- name: CreateAuthTicket :exec
 INSERT INTO auth_tickets (id, ticket_hash, user_id, machine_id, exposure_id, expires_at, created_at)
 VALUES (
@@ -313,6 +385,16 @@ func (q *Queries) CreateUserSetupToken(ctx context.Context, arg CreateUserSetupT
 	return err
 }
 
+const deleteArcadSessionsByUserID = `-- name: DeleteArcadSessionsByUserID :exec
+DELETE FROM arcad_sessions
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteArcadSessionsByUserID(ctx context.Context, userID string) error {
+	_, err := q.db.ExecContext(ctx, deleteArcadSessionsByUserID, userID)
+	return err
+}
+
 const deleteMachineByID = `-- name: DeleteMachineByID :execrows
 DELETE FROM machines
 WHERE id = $1
@@ -417,6 +499,46 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 		arg.NowUnix,
 	)
 	return err
+}
+
+const getActiveArcadSessionByHashAndMachine = `-- name: GetActiveArcadSessionByHashAndMachine :one
+SELECT s.id, s.user_id, u.email, s.machine_id, s.exposure_id, s.expires_at
+FROM arcad_sessions s
+JOIN users u ON u.id = s.user_id
+WHERE s.session_hash = $1
+  AND s.machine_id = $2
+  AND s.revoked_at IS NULL
+  AND s.expires_at > $3
+LIMIT 1
+`
+
+type GetActiveArcadSessionByHashAndMachineParams struct {
+	SessionHash string
+	MachineID   string
+	NowUnix     int64
+}
+
+type GetActiveArcadSessionByHashAndMachineRow struct {
+	ID         string
+	UserID     string
+	Email      string
+	MachineID  string
+	ExposureID string
+	ExpiresAt  int64
+}
+
+func (q *Queries) GetActiveArcadSessionByHashAndMachine(ctx context.Context, arg GetActiveArcadSessionByHashAndMachineParams) (GetActiveArcadSessionByHashAndMachineRow, error) {
+	row := q.db.QueryRowContext(ctx, getActiveArcadSessionByHashAndMachine, arg.SessionHash, arg.MachineID, arg.NowUnix)
+	var i GetActiveArcadSessionByHashAndMachineRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Email,
+		&i.MachineID,
+		&i.ExposureID,
+		&i.ExpiresAt,
+	)
+	return i, err
 }
 
 const getActiveUserSetupTokenByUserID = `-- name: GetActiveUserSetupTokenByUserID :one
@@ -751,6 +873,44 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.PasswordSetupRequired,
 		&i.Role,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getValidArcadExchangeTokenByHashAndMachine = `-- name: GetValidArcadExchangeTokenByHashAndMachine :one
+SELECT t.id, t.user_id, u.email, t.machine_id, t.exposure_id
+FROM arcad_exchange_tokens t
+JOIN users u ON u.id = t.user_id
+WHERE t.token_hash = $1
+  AND t.machine_id = $2
+  AND t.used_at IS NULL
+  AND t.expires_at > $3
+LIMIT 1
+`
+
+type GetValidArcadExchangeTokenByHashAndMachineParams struct {
+	TokenHash string
+	MachineID string
+	NowUnix   int64
+}
+
+type GetValidArcadExchangeTokenByHashAndMachineRow struct {
+	ID         string
+	UserID     string
+	Email      string
+	MachineID  string
+	ExposureID string
+}
+
+func (q *Queries) GetValidArcadExchangeTokenByHashAndMachine(ctx context.Context, arg GetValidArcadExchangeTokenByHashAndMachineParams) (GetValidArcadExchangeTokenByHashAndMachineRow, error) {
+	row := q.db.QueryRowContext(ctx, getValidArcadExchangeTokenByHashAndMachine, arg.TokenHash, arg.MachineID, arg.NowUnix)
+	var i GetValidArcadExchangeTokenByHashAndMachineRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Email,
+		&i.MachineID,
+		&i.ExposureID,
 	)
 	return i, err
 }
@@ -1234,6 +1394,26 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const markArcadExchangeTokenUsed = `-- name: MarkArcadExchangeTokenUsed :execrows
+UPDATE arcad_exchange_tokens
+SET used_at = $1
+WHERE id = $2
+  AND used_at IS NULL
+`
+
+type MarkArcadExchangeTokenUsedParams struct {
+	UsedAt sql.NullInt64
+	ID     string
+}
+
+func (q *Queries) MarkArcadExchangeTokenUsed(ctx context.Context, arg MarkArcadExchangeTokenUsedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markArcadExchangeTokenUsed, arg.UsedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const markAuthTicketUsed = `-- name: MarkAuthTicketUsed :execrows
 UPDATE auth_tickets
 SET used_at = $1
@@ -1344,6 +1524,23 @@ func (q *Queries) RequeueMachineJob(ctx context.Context, arg RequeueMachineJobPa
 		arg.UpdatedAt,
 		arg.ID,
 	)
+	return err
+}
+
+const revokeArcadSessionByHash = `-- name: RevokeArcadSessionByHash :exec
+UPDATE arcad_sessions
+SET revoked_at = $1
+WHERE session_hash = $2
+  AND revoked_at IS NULL
+`
+
+type RevokeArcadSessionByHashParams struct {
+	RevokedAt   sql.NullInt64
+	SessionHash string
+}
+
+func (q *Queries) RevokeArcadSessionByHash(ctx context.Context, arg RevokeArcadSessionByHashParams) error {
+	_, err := q.db.ExecContext(ctx, revokeArcadSessionByHash, arg.RevokedAt, arg.SessionHash)
 	return err
 }
 

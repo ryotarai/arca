@@ -276,6 +276,9 @@ func (s *Service) Logout(ctx context.Context, sessionToken string) error {
 		return nil
 	}
 	tokenHash := hashSessionToken(sessionToken)
+	if user, err := s.store.GetUserByActiveSessionTokenHash(ctx, tokenHash, s.now().Unix()); err == nil {
+		_ = s.store.DeleteArcadSessionsByUserID(ctx, user.ID)
+	}
 	return s.store.RevokeSessionByTokenHash(ctx, tokenHash)
 }
 

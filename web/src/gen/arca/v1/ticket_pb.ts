@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/ticket.proto.
  */
 export const file_arca_v1_ticket: GenFile = /*@__PURE__*/
-  fileDesc("ChRhcmNhL3YxL3RpY2tldC5wcm90bxIHYXJjYS52MSInCgpUaWNrZXRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJIj0KEklzc3VlVGlja2V0UmVxdWVzdBISCgptYWNoaW5lX2lkGAEgASgJEhMKC2V4cG9zdXJlX2lkGAIgASgJIj4KE0lzc3VlVGlja2V0UmVzcG9uc2USDgoGdGlja2V0GAEgASgJEhcKD2V4cGlyZXNfYXRfdW5peBgCIAEoAyIlChNWZXJpZnlUaWNrZXRSZXF1ZXN0Eg4KBnRpY2tldBgBIAEoCSJiChRWZXJpZnlUaWNrZXRSZXNwb25zZRIhCgR1c2VyGAEgASgLMhMuYXJjYS52MS5UaWNrZXRVc2VyEhIKCm1hY2hpbmVfaWQYAiABKAkSEwoLZXhwb3N1cmVfaWQYAyABKAkypgEKDVRpY2tldFNlcnZpY2USSAoLSXNzdWVUaWNrZXQSGy5hcmNhLnYxLklzc3VlVGlja2V0UmVxdWVzdBocLmFyY2EudjEuSXNzdWVUaWNrZXRSZXNwb25zZRJLCgxWZXJpZnlUaWNrZXQSHC5hcmNhLnYxLlZlcmlmeVRpY2tldFJlcXVlc3QaHS5hcmNhLnYxLlZlcmlmeVRpY2tldFJlc3BvbnNlQo0BCgtjb20uYXJjYS52MUILVGlja2V0UHJvdG9QAVo0Z2l0aHViLmNvbS9yeW90YXJhaS9hcmNhL2ludGVybmFsL2dlbi9hcmNhL3YxO2FyY2F2MaICA0FYWKoCB0FyY2EuVjHKAgdBcmNhXFYx4gITQXJjYVxWMVxHUEJNZXRhZGF0YeoCCEFyY2E6OlYxYgZwcm90bzM");
+  fileDesc("ChRhcmNhL3YxL3RpY2tldC5wcm90bxIHYXJjYS52MSInCgpUaWNrZXRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJIj0KEklzc3VlVGlja2V0UmVxdWVzdBISCgptYWNoaW5lX2lkGAEgASgJEhMKC2V4cG9zdXJlX2lkGAIgASgJIj4KE0lzc3VlVGlja2V0UmVzcG9uc2USDgoGdGlja2V0GAEgASgJEhcKD2V4cGlyZXNfYXRfdW5peBgCIAEoAyIlChNWZXJpZnlUaWNrZXRSZXF1ZXN0Eg4KBnRpY2tldBgBIAEoCSJiChRWZXJpZnlUaWNrZXRSZXNwb25zZRIhCgR1c2VyGAEgASgLMhMuYXJjYS52MS5UaWNrZXRVc2VyEhIKCm1hY2hpbmVfaWQYAiABKAkSEwoLZXhwb3N1cmVfaWQYAyABKAkiPgobRXhjaGFuZ2VBcmNhZFNlc3Npb25SZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhAKCGhvc3RuYW1lGAIgASgJIpcBChxFeGNoYW5nZUFyY2FkU2Vzc2lvblJlc3BvbnNlEhIKCnNlc3Npb25faWQYASABKAkSFwoPZXhwaXJlc19hdF91bml4GAIgASgDEiEKBHVzZXIYAyABKAsyEy5hcmNhLnYxLlRpY2tldFVzZXISEgoKbWFjaGluZV9pZBgEIAEoCRITCgtleHBvc3VyZV9pZBgFIAEoCSJRChtWYWxpZGF0ZUFyY2FkU2Vzc2lvblJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghob3N0bmFtZRgCIAEoCRIMCgRwYXRoGAMgASgJImoKHFZhbGlkYXRlQXJjYWRTZXNzaW9uUmVzcG9uc2USIQoEdXNlchgBIAEoCzITLmFyY2EudjEuVGlja2V0VXNlchISCgptYWNoaW5lX2lkGAIgASgJEhMKC2V4cG9zdXJlX2lkGAMgASgJMvACCg1UaWNrZXRTZXJ2aWNlEkgKC0lzc3VlVGlja2V0EhsuYXJjYS52MS5Jc3N1ZVRpY2tldFJlcXVlc3QaHC5hcmNhLnYxLklzc3VlVGlja2V0UmVzcG9uc2USSwoMVmVyaWZ5VGlja2V0EhwuYXJjYS52MS5WZXJpZnlUaWNrZXRSZXF1ZXN0Gh0uYXJjYS52MS5WZXJpZnlUaWNrZXRSZXNwb25zZRJjChRFeGNoYW5nZUFyY2FkU2Vzc2lvbhIkLmFyY2EudjEuRXhjaGFuZ2VBcmNhZFNlc3Npb25SZXF1ZXN0GiUuYXJjYS52MS5FeGNoYW5nZUFyY2FkU2Vzc2lvblJlc3BvbnNlEmMKFFZhbGlkYXRlQXJjYWRTZXNzaW9uEiQuYXJjYS52MS5WYWxpZGF0ZUFyY2FkU2Vzc2lvblJlcXVlc3QaJS5hcmNhLnYxLlZhbGlkYXRlQXJjYWRTZXNzaW9uUmVzcG9uc2VCjQEKC2NvbS5hcmNhLnYxQgtUaWNrZXRQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message arca.v1.TicketUser
@@ -123,6 +123,119 @@ export const VerifyTicketResponseSchema: GenMessage<VerifyTicketResponse> = /*@_
   messageDesc(file_arca_v1_ticket, 4);
 
 /**
+ * @generated from message arca.v1.ExchangeArcadSessionRequest
+ */
+export type ExchangeArcadSessionRequest = Message<"arca.v1.ExchangeArcadSessionRequest"> & {
+  /**
+   * @generated from field: string token = 1;
+   */
+  token: string;
+
+  /**
+   * @generated from field: string hostname = 2;
+   */
+  hostname: string;
+};
+
+/**
+ * Describes the message arca.v1.ExchangeArcadSessionRequest.
+ * Use `create(ExchangeArcadSessionRequestSchema)` to create a new message.
+ */
+export const ExchangeArcadSessionRequestSchema: GenMessage<ExchangeArcadSessionRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_ticket, 5);
+
+/**
+ * @generated from message arca.v1.ExchangeArcadSessionResponse
+ */
+export type ExchangeArcadSessionResponse = Message<"arca.v1.ExchangeArcadSessionResponse"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: int64 expires_at_unix = 2;
+   */
+  expiresAtUnix: bigint;
+
+  /**
+   * @generated from field: arca.v1.TicketUser user = 3;
+   */
+  user?: TicketUser;
+
+  /**
+   * @generated from field: string machine_id = 4;
+   */
+  machineId: string;
+
+  /**
+   * @generated from field: string exposure_id = 5;
+   */
+  exposureId: string;
+};
+
+/**
+ * Describes the message arca.v1.ExchangeArcadSessionResponse.
+ * Use `create(ExchangeArcadSessionResponseSchema)` to create a new message.
+ */
+export const ExchangeArcadSessionResponseSchema: GenMessage<ExchangeArcadSessionResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_ticket, 6);
+
+/**
+ * @generated from message arca.v1.ValidateArcadSessionRequest
+ */
+export type ValidateArcadSessionRequest = Message<"arca.v1.ValidateArcadSessionRequest"> & {
+  /**
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: string hostname = 2;
+   */
+  hostname: string;
+
+  /**
+   * @generated from field: string path = 3;
+   */
+  path: string;
+};
+
+/**
+ * Describes the message arca.v1.ValidateArcadSessionRequest.
+ * Use `create(ValidateArcadSessionRequestSchema)` to create a new message.
+ */
+export const ValidateArcadSessionRequestSchema: GenMessage<ValidateArcadSessionRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_ticket, 7);
+
+/**
+ * @generated from message arca.v1.ValidateArcadSessionResponse
+ */
+export type ValidateArcadSessionResponse = Message<"arca.v1.ValidateArcadSessionResponse"> & {
+  /**
+   * @generated from field: arca.v1.TicketUser user = 1;
+   */
+  user?: TicketUser;
+
+  /**
+   * @generated from field: string machine_id = 2;
+   */
+  machineId: string;
+
+  /**
+   * @generated from field: string exposure_id = 3;
+   */
+  exposureId: string;
+};
+
+/**
+ * Describes the message arca.v1.ValidateArcadSessionResponse.
+ * Use `create(ValidateArcadSessionResponseSchema)` to create a new message.
+ */
+export const ValidateArcadSessionResponseSchema: GenMessage<ValidateArcadSessionResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_ticket, 8);
+
+/**
  * @generated from service arca.v1.TicketService
  */
 export const TicketService: GenService<{
@@ -141,6 +254,22 @@ export const TicketService: GenService<{
     methodKind: "unary";
     input: typeof VerifyTicketRequestSchema;
     output: typeof VerifyTicketResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.TicketService.ExchangeArcadSession
+   */
+  exchangeArcadSession: {
+    methodKind: "unary";
+    input: typeof ExchangeArcadSessionRequestSchema;
+    output: typeof ExchangeArcadSessionResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.TicketService.ValidateArcadSession
+   */
+  validateArcadSession: {
+    methodKind: "unary";
+    input: typeof ValidateArcadSessionRequestSchema;
+    output: typeof ValidateArcadSessionResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_arca_v1_ticket, 0);

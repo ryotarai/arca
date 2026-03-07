@@ -13,7 +13,8 @@ import (
 
 const (
 	getExposureByHostnameEndpoint = "/arca.v1.TunnelService/GetMachineExposureByHostname"
-	verifyTicketEndpoint          = "/arca.v1.TicketService/VerifyTicket"
+	exchangeArcadSessionEndpoint  = "/arca.v1.TicketService/ExchangeArcadSession"
+	validateArcadSessionEndpoint  = "/arca.v1.TicketService/ValidateArcadSession"
 )
 
 // Exposure describes host routing and visibility.
@@ -41,14 +42,16 @@ func (e Exposure) targetURL() (*url.URL, error) {
 	return u, nil
 }
 
-type TicketClaims struct {
-	UserID    string    `json:"user_id"`
-	ExpiresAt time.Time `json:"expires_at"`
+type ArcadSessionClaims struct {
+	SessionID string
+	UserID    string
+	ExpiresAt time.Time
 }
 
 type ControlPlaneClient interface {
 	GetExposureByHost(context.Context, string) (Exposure, error)
-	VerifyTicket(context.Context, string, string) (TicketClaims, error)
+	ExchangeArcadSession(context.Context, string, string) (ArcadSessionClaims, error)
+	ValidateArcadSession(context.Context, string, string, string) (ArcadSessionClaims, error)
 	AuthorizeURL(string) string
 }
 
@@ -128,18 +131,18 @@ func (c *HTTPControlPlaneClient) GetExposureByHost(ctx context.Context, host str
 	return exposure, nil
 }
 
-func (c *HTTPControlPlaneClient) VerifyTicket(ctx context.Context, host, ticket string) (TicketClaims, error) {
-	_ = host
+func (c *HTTPControlPlaneClient) ExchangeArcadSession(ctx context.Context, host, token string) (ArcadSessionClaims, error) {
 	payload := map[string]string{
-		"ticket": ticket,
+		"token":    strings.TrimSpace(token),
+		"hostname": strings.TrimSpace(host),
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return TicketClaims{}, err
+		return ArcadSessionClaims{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+verifyTicketEndpoint, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+exchangeArcadSessionEndpoint, bytes.NewReader(body))
 	if err != nil {
-		return TicketClaims{}, err
+		return ArcadSessionClaims{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Arca-Machine-ID", c.machineID)
@@ -148,14 +151,64 @@ func (c *HTTPControlPlaneClient) VerifyTicket(ctx context.Context, host, ticket 
 	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return TicketClaims{}, err
+		return ArcadSessionClaims{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest {
-		return TicketClaims{}, ErrInvalidTicket
+		return ArcadSessionClaims{}, ErrInvalidTicket
 	}
 	if resp.StatusCode != http.StatusOK {
-		return TicketClaims{}, fmt.Errorf("ticket verification failed: status %d", resp.StatusCode)
+		return ArcadSessionClaims{}, fmt.Errorf("arcad session exchange failed: status %d", resp.StatusCode)
+	}
+	var decoded struct {
+		SessionID     string `json:"session_id"`
+		ExpiresAtUnix int64  `json:"expires_at_unix"`
+		User          *struct {
+			ID string `json:"id"`
+		} `json:"user"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return ArcadSessionClaims{}, fmt.Errorf("decode arcad session exchange: %w", err)
+	}
+	if strings.TrimSpace(decoded.SessionID) == "" || decoded.User == nil || strings.TrimSpace(decoded.User.ID) == "" {
+		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session exchange response")
+	}
+	expiresAt := time.Unix(decoded.ExpiresAtUnix, 0).UTC()
+	if decoded.ExpiresAtUnix <= 0 {
+		expiresAt = time.Now().Add(8 * time.Hour)
+	}
+	return ArcadSessionClaims{SessionID: strings.TrimSpace(decoded.SessionID), UserID: strings.TrimSpace(decoded.User.ID), ExpiresAt: expiresAt}, nil
+}
+
+func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host, path, sessionID string) (ArcadSessionClaims, error) {
+	payload := map[string]string{
+		"session_id": strings.TrimSpace(sessionID),
+		"hostname":   strings.TrimSpace(host),
+		"path":       strings.TrimSpace(path),
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return ArcadSessionClaims{}, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+validateArcadSessionEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return ArcadSessionClaims{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Arca-Machine-ID", c.machineID)
+	if strings.TrimSpace(c.machineToken) != "" {
+		req.Header.Set("Authorization", "Bearer "+c.machineToken)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return ArcadSessionClaims{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusNotFound {
+		return ArcadSessionClaims{}, ErrInvalidSession
+	}
+	if resp.StatusCode != http.StatusOK {
+		return ArcadSessionClaims{}, fmt.Errorf("arcad session validation failed: status %d", resp.StatusCode)
 	}
 	var decoded struct {
 		User *struct {
@@ -163,19 +216,12 @@ func (c *HTTPControlPlaneClient) VerifyTicket(ctx context.Context, host, ticket 
 		} `json:"user"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return TicketClaims{}, fmt.Errorf("decode ticket claims: %w", err)
+		return ArcadSessionClaims{}, fmt.Errorf("decode arcad session validation: %w", err)
 	}
 	if decoded.User == nil || strings.TrimSpace(decoded.User.ID) == "" {
-		return TicketClaims{}, fmt.Errorf("invalid ticket response")
+		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session validation response")
 	}
-	claims := TicketClaims{
-		UserID:    strings.TrimSpace(decoded.User.ID),
-		ExpiresAt: time.Now().Add(8 * time.Hour),
-	}
-	if claims.ExpiresAt.IsZero() {
-		claims.ExpiresAt = time.Now().Add(8 * time.Hour)
-	}
-	return claims, nil
+	return ArcadSessionClaims{UserID: strings.TrimSpace(decoded.User.ID)}, nil
 }
 
 func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {

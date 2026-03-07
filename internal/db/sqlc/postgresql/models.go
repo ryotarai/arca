@@ -14,6 +14,28 @@ type AppMetum struct {
 	Value string
 }
 
+type ArcadExchangeToken struct {
+	ID         string
+	TokenHash  string
+	UserID     string
+	MachineID  string
+	ExposureID string
+	ExpiresAt  int64
+	UsedAt     sql.NullInt64
+	CreatedAt  int64
+}
+
+type ArcadSession struct {
+	ID          string
+	SessionHash string
+	UserID      string
+	MachineID   string
+	ExposureID  string
+	ExpiresAt   int64
+	RevokedAt   sql.NullInt64
+	CreatedAt   int64
+}
+
 type AuthTicket struct {
 	ID         string
 	TicketHash string

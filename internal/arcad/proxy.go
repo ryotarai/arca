@@ -23,7 +23,6 @@ const readyPath = "/__arca/readyz"
 type Proxy struct {
 	cache         *ExposureCache
 	controlPlane  ControlPlaneClient
-	sessions      *SessionManager
 	upstream      *url.URL
 	claudecodeui  *url.URL
 	ttyd          *url.URL
@@ -31,10 +30,11 @@ type Proxy struct {
 	ttydSocket    string
 	sessionCookie string
 	sessionMaxAge time.Duration
+	sessionCache  *SessionValidationCache
 	readiness     *ReadinessChecker
 }
 
-func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *SessionManager, sessionCookie string, upstream *url.URL, ttydSocket string) *Proxy {
+func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessionCookie string, upstream *url.URL, ttydSocket string) *Proxy {
 	if upstream == nil {
 		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:8080"}
 	}
@@ -44,7 +44,6 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 	return &Proxy{
 		cache:         cache,
 		controlPlane:  controlPlane,
-		sessions:      sessions,
 		upstream:      upstream,
 		claudecodeui:  claudecodeui,
 		ttyd:          ttyd,
@@ -52,6 +51,7 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessions *S
 		ttydSocket:    ttydSocket,
 		sessionCookie: sessionCookie,
 		sessionMaxAge: 8 * time.Hour,
+		sessionCache:  NewSessionValidationCache(time.Minute),
 	}
 }
 
@@ -78,7 +78,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			p.handleTicketCallback(w, r, host)
 			return
 		}
-		if !p.isAuthenticated(r) {
+		if !p.isAuthenticated(r.Context(), r, host) {
 			redirectTarget := callbackTargetURL(r)
 			http.Redirect(w, r, p.controlPlane.AuthorizeURL(redirectTarget), http.StatusFound)
 			return
@@ -149,31 +149,25 @@ func (p *Proxy) handleTicketCallback(w http.ResponseWriter, r *http.Request, hos
 		http.Error(w, "missing ticket", http.StatusBadRequest)
 		return
 	}
-	claims, err := p.controlPlane.VerifyTicket(r.Context(), host, ticket)
+	claims, err := p.controlPlane.ExchangeArcadSession(r.Context(), host, ticket)
 	if err != nil {
 		if errors.Is(err, ErrInvalidTicket) {
 			http.Error(w, "invalid ticket", http.StatusUnauthorized)
 			return
 		}
-		log.Printf("ticket verification failed for host %q: %v", host, err)
-		http.Error(w, "ticket verification failed", http.StatusBadGateway)
+		log.Printf("session exchange failed for host %q: %v", host, err)
+		http.Error(w, "session exchange failed", http.StatusBadGateway)
 		return
 	}
 	expiresAt := claims.ExpiresAt
 	if expiresAt.IsZero() {
 		expiresAt = time.Now().Add(p.sessionMaxAge)
 	}
-	token, err := p.sessions.Encode(Session{UserID: claims.UserID, ExpiresAt: expiresAt})
-	if err != nil {
-		log.Printf("session encode failed for host %q: %v", host, err)
-		http.Error(w, "failed to set session", http.StatusInternalServerError)
-		return
-	}
 
 	nextPath := sanitizeNext(r.URL.Query().Get("next"))
 	http.SetCookie(w, &http.Cookie{
 		Name:     p.sessionCookie,
-		Value:    token,
+		Value:    claims.SessionID,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   isSecureRequest(r),
@@ -183,13 +177,29 @@ func (p *Proxy) handleTicketCallback(w http.ResponseWriter, r *http.Request, hos
 	http.Redirect(w, r, nextPath, http.StatusFound)
 }
 
-func (p *Proxy) isAuthenticated(r *http.Request) bool {
+func (p *Proxy) isAuthenticated(ctx context.Context, r *http.Request, host string) bool {
 	cookie, err := r.Cookie(p.sessionCookie)
 	if err != nil {
 		return false
 	}
-	_, err = p.sessions.Decode(cookie.Value)
-	return err == nil
+	sessionID := strings.TrimSpace(cookie.Value)
+	if sessionID == "" {
+		return false
+	}
+	ownerOnlyArca := isOwnerOnlyArcaPath(r.URL.Path)
+	if p.sessionCache.IsValid(sessionID, host, ownerOnlyArca) {
+		return true
+	}
+	if _, err := p.controlPlane.ValidateArcadSession(ctx, host, r.URL.Path, sessionID); err != nil {
+		if errors.Is(err, ErrInvalidSession) {
+			p.sessionCache.Invalidate(sessionID, host)
+			return false
+		}
+		log.Printf("session validation failed for host %q: %v", host, err)
+		return false
+	}
+	p.sessionCache.MarkValid(sessionID, host, ownerOnlyArca)
+	return true
 }
 
 func callbackTargetURL(r *http.Request) string {
