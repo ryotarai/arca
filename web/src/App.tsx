@@ -11,6 +11,7 @@ import { OidcCallbackPage } from '@/pages/OidcCallbackPage'
 import { RuntimeCatalogPage } from '@/pages/RuntimeCatalogPage'
 import { RuntimeDetailPage } from '@/pages/RuntimeDetailPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { AdminSettingsPage } from '@/pages/AdminSettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { UserSetupPage } from '@/pages/UserSetupPage'
@@ -124,6 +125,15 @@ export function App() {
           path="/settings"
           element={
             <SettingsPage
+              user={user}
+              onLogout={handleLogout}
+            />
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <AdminSettingsPage
               user={user}
               setupStatus={setupStatus}
               onSetupStatusChange={(next) => setSetupStatus(next)}

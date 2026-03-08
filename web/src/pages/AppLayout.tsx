@@ -27,12 +27,13 @@ type AppLayoutProps = {
 
 const navItems = [
   { to: '/machines', label: 'Machines', icon: Cpu },
+  { to: '/settings', label: 'User settings', icon: Settings },
 ]
 
 const adminNavItems = [
   { to: '/runtimes', label: 'Runtimes', icon: Blocks },
   { to: '/users', label: 'Users', icon: Users },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/admin/settings', label: 'Admin settings', icon: Settings },
 ]
 
 export function AppLayout({ user, onLogout }: AppLayoutProps) {
