@@ -188,8 +188,50 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 			if _, err := store.GetMachineByID(ctx, created.ID); !errors.Is(err, sql.ErrNoRows) {
 				t.Fatalf("expected deleted machine lookup to fail with sql.ErrNoRows, got %v", err)
 			}
+
+			beforeCount, err := countMachineEventsByMachineID(ctx, dbConn, backend.driver, created.ID)
+			if err != nil {
+				t.Fatalf("count events before insert after delete: %v", err)
+			}
+			if beforeCount == 0 {
+				t.Fatal("expected machine events to remain after machine deletion")
+			}
+			if err := store.CreateMachineEvent(ctx, MachineEventInput{
+				MachineID: created.ID,
+				JobID:     "job-after-delete",
+				Level:     "info",
+				EventType: "post_delete_event",
+				Message:   "event recorded after machine deletion",
+			}); err != nil {
+				t.Fatalf("create machine event after machine deletion: %v", err)
+			}
+			afterCount, err := countMachineEventsByMachineID(ctx, dbConn, backend.driver, created.ID)
+			if err != nil {
+				t.Fatalf("count events after insert after delete: %v", err)
+			}
+			if afterCount != beforeCount+1 {
+				t.Fatalf("expected event count to increase after insert: before=%d after=%d", beforeCount, afterCount)
+			}
 		})
 	}
+}
+
+func countMachineEventsByMachineID(ctx context.Context, dbConn *sql.DB, driver, machineID string) (int, error) {
+	var row *sql.Row
+	switch driver {
+	case DriverSQLite:
+		row = dbConn.QueryRowContext(ctx, "SELECT COUNT(*) FROM machine_events WHERE machine_id = ?", machineID)
+	case DriverPostgres:
+		row = dbConn.QueryRowContext(ctx, "SELECT COUNT(*) FROM machine_events WHERE machine_id = $1", machineID)
+	default:
+		return 0, fmt.Errorf("unsupported driver %q", driver)
+	}
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func parityBackends(t *testing.T) []parityBackend {
