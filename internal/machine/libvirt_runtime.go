@@ -635,7 +635,7 @@ write_files:
     encoding: b64
     content: %s
   - path: /usr/local/bin/arca-user-startup.sh
-    permissions: "0755"
+    permissions: "0600"
     owner: root:root
     encoding: b64
     content: %s
