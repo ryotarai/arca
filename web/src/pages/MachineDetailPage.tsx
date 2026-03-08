@@ -95,6 +95,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [exposureVisibility, setExposureVisibility] = useState<EndpointVisibility>(EndpointVisibility.OWNER_ONLY)
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
+  const isRunning = machine?.status === 'running'
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
@@ -282,7 +283,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     <StatusBadge status={machine.status} />
                   </div>
                 </div>
-                {endpointURL != null && (
+                {isRunning && endpointURL != null && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Endpoint</p>
                     <a
@@ -296,7 +297,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     <p className="text-xs text-muted-foreground">Proxied to localhost:8080 inside the machine</p>
                   </div>
                 )}
-                {ttydURL != null && (
+                {isRunning && ttydURL != null && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Terminal (ttyd)</p>
                     <a
