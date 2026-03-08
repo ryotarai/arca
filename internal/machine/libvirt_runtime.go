@@ -474,7 +474,7 @@ func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinary
 	const (
 		daemonUser      = "arcad"
 		interactiveUser = "arcauser"
-		agentEndpoint   = "http://localhost:8080"
+		agentEndpoint   = "http://localhost:11030"
 	)
 	startupScript := opts.StartupScript
 	if strings.TrimSpace(startupScript) == "" {

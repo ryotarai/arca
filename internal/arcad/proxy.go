@@ -36,7 +36,7 @@ type Proxy struct {
 
 func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessionCookie string, upstream *url.URL, ttydSocket string) *Proxy {
 	if upstream == nil {
-		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:8080"}
+		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:11030"}
 	}
 	claudecodeui := &url.URL{Scheme: "http", Host: "127.0.0.1:21031"}
 	ttyd := &url.URL{Scheme: "http", Host: "unix"}

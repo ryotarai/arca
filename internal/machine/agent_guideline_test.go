@@ -8,19 +8,19 @@ import (
 func TestReplaceOrAppendMarkedSection_InitialGeneration(t *testing.T) {
 	t.Parallel()
 
-	managed := agentGuidelineSection("http://localhost:8080")
+	managed := agentGuidelineSection("http://localhost:11030")
 	got := replaceOrAppendMarkedSection("", managed)
 	if got != managed {
 		t.Fatalf("initial generation mismatch")
 	}
-	if !strings.Contains(got, "Run your application HTTP server on `:8080`.") {
+	if !strings.Contains(got, "Run your application HTTP server on `:11030`.") {
 		t.Fatalf("managed section must include listen requirement")
 	}
-	if !strings.Contains(got, "Endpoint URL inside this machine: `http://localhost:8080`.") {
+	if !strings.Contains(got, "Endpoint URL inside this machine: `http://localhost:11030`.") {
 		t.Fatalf("managed section must include endpoint URL")
 	}
-	if !strings.Contains(got, "Requests to the endpoint URL are delivered to port `8080` on this machine.") {
-		t.Fatalf("managed section must mention endpoint requests reach port 8080")
+	if !strings.Contains(got, "Requests to the endpoint URL are delivered to port `11030` on this machine.") {
+		t.Fatalf("managed section must mention endpoint requests reach port 11030")
 	}
 	if !strings.Contains(got, "supervised by `systemd`") {
 		t.Fatalf("managed section must include systemd note")
@@ -33,7 +33,7 @@ func TestReplaceOrAppendMarkedSection_InitialGeneration(t *testing.T) {
 func TestReplaceOrAppendMarkedSection_Regeneration(t *testing.T) {
 	t.Parallel()
 
-	old := agentGuidelineSection("http://localhost:8080")
+	old := agentGuidelineSection("http://localhost:11030")
 	existing := "prefix\n\n" + old + "\nuser notes\n"
 	newSection := agentGuidelineSection("http://localhost:8081")
 
@@ -45,7 +45,7 @@ func TestReplaceOrAppendMarkedSection_Regeneration(t *testing.T) {
 	if !strings.Contains(got, "\nuser notes\n") {
 		t.Fatalf("suffix content was not preserved")
 	}
-	if strings.Contains(got, "`http://localhost:8080`") {
+	if strings.Contains(got, "`http://localhost:11030`") {
 		t.Fatalf("old managed section remained")
 	}
 	if !strings.Contains(got, "`http://localhost:8081`") {
@@ -62,7 +62,7 @@ func TestReplaceOrAppendMarkedSection_Regeneration(t *testing.T) {
 func TestReplaceOrAppendMarkedSection_RegenerationAfterManualEditOutsideMarkers(t *testing.T) {
 	t.Parallel()
 
-	managed := agentGuidelineSection("http://localhost:8080")
+	managed := agentGuidelineSection("http://localhost:11030")
 	existing := "my custom intro\n" + managed + "my custom footer\n"
 	newSection := agentGuidelineSection("http://localhost:18080")
 
@@ -82,7 +82,7 @@ func TestReplaceOrAppendMarkedSection_RegenerationAfterManualEditOutsideMarkers(
 func TestReplaceOrAppendMarkedSection_AppendsWhenMarkersMissing(t *testing.T) {
 	t.Parallel()
 
-	newSection := agentGuidelineSection("http://localhost:8080")
+	newSection := agentGuidelineSection("http://localhost:11030")
 	existing := "legacy content without markers"
 
 	got := replaceOrAppendMarkedSection(existing, newSection)

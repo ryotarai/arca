@@ -294,7 +294,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     >
                       {endpointURL}
                     </a>
-                    <p className="text-xs text-muted-foreground">Proxied to localhost:8080 inside the machine</p>
+                    <p className="text-xs text-muted-foreground">Proxied to localhost:11030 inside the machine</p>
                   </div>
                 )}
                 {isRunning && ttydURL != null && (

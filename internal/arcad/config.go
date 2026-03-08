@@ -38,7 +38,7 @@ func ConfigFromEnv() (Config, error) {
 		cfg.ListenAddr = ":21030"
 	}
 	if cfg.UpstreamURL == "" {
-		cfg.UpstreamURL = "http://127.0.0.1:8080"
+		cfg.UpstreamURL = "http://127.0.0.1:11030"
 	}
 	if cfg.TTydSocket == "" {
 		cfg.TTydSocket = "/run/arca/ttyd.sock"

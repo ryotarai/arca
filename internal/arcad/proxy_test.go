@@ -48,7 +48,7 @@ func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
 
 func TestProxyRedirectsUnauthenticatedPrivateExposure(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false}}
-	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:11030"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/path?x=1", nil)
 	rr := httptest.NewRecorder()
@@ -72,7 +72,7 @@ func TestProxyCallbackSetsSessionCookie(t *testing.T) {
 			ExpiresAt: time.Now().Add(time.Hour),
 		},
 	}
-	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:11030"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/callback?token=tk_1&next=%2Fworkspace", nil)
 	rr := httptest.NewRecorder()
@@ -301,7 +301,7 @@ func TestRewriteShelleyAssetPaths(t *testing.T) {
 
 func TestProxyReadyz(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:11030"), "")
 
 	sentinel := filepath.Join(t.TempDir(), "startup.done")
 	proxy.SetReadinessChecker(NewReadinessChecker(sentinel, nil))
@@ -325,7 +325,7 @@ func TestProxyReadyz(t *testing.T) {
 
 func TestProxyRedirectsUnauthenticatedArcaPathEvenWhenPublicExposure(t *testing.T) {
 	cp := &proxyStubControlPlane{exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true}}
-	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:8080"), "")
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, "http://127.0.0.1:11030"), "")
 
 	req := httptest.NewRequest(http.MethodGet, "http://app.example/__arca/ttyd/", nil)
 	rr := httptest.NewRecorder()
