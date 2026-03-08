@@ -1,6 +1,6 @@
 ---
 name: ideas-to-tasks
-description: Convert product ideas in `tmp/ideas.md` into concrete implementation task files under `tmp/tasks/NNN-TASK_NAME.md`. Use when asked to operationalize rough idea backlogs, build the best overall implementation plan across related ideas, merge or split tasks when appropriate, ask humans clarification questions when details are missing, and mark each fully processed idea as completed in `tmp/ideas.md`.
+description: Convert product ideas in `tmp/ideas.md` into concrete implementation task files under `tmp/tasks/NNN-TASK_NAME.md` and write task file content in Japanese. Use when asked to operationalize rough idea backlogs, build the best overall implementation plan across related ideas, merge or split tasks when appropriate, ask humans clarification questions when details are missing, and mark each fully processed idea as completed in `tmp/ideas.md`.
 ---
 
 # Ideas To Tasks
@@ -34,25 +34,25 @@ Convert unchecked idea items in `tmp/ideas.md` into standalone task specs in `tm
 Use this structure for every generated task file:
 
 ```markdown
-# NNN Task Title
+# NNN タスクタイトル
 
-## Goal
-<One clear outcome sentence>
+## 目的
+<達成すべき成果を1文で記述>
 
-## Scope
-- <In scope item 1>
-- <In scope item 2>
+## スコープ
+- <対象範囲 1>
+- <対象範囲 2>
 
-## Tasks
-1. <Concrete implementation step>
-2. <Concrete implementation step>
-3. <Concrete implementation step>
+## タスク
+1. <具体的な実装ステップ>
+2. <具体的な実装ステップ>
+3. <具体的な実装ステップ>
 
-## Notes
-- <Constraints, assumptions, or safety requirements>
+## 補足
+- <制約、前提、安全性要件など>
 
-## Open Questions
-- None
+## 未解決事項
+- なし
 ```
 
 ## Quality Rules
@@ -62,6 +62,8 @@ Use this structure for every generated task file:
 - Reference relevant repo areas (for example `proto/`, `internal/`, `web/`) when useful.
 - Keep each task focused; split oversized work into multiple task files when it improves parallelism or reduces risk.
 - Preserve original intent from `tmp/ideas.md`; do not silently redefine the idea.
+- Write all task file body content in Japanese.
+- Keep code identifiers, paths, and command names as-is when Japanese translation would reduce precision.
 
 ## Planning Rules
 

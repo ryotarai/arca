@@ -1,4 +1,4 @@
 interface:
   display_name: "Ideas to Tasks"
-  short_description: "Convert tmp/ideas.md into task files"
-  default_prompt: "Read tmp/ideas.md, create the best overall plan across unchecked ideas, merge related ideas or split oversized ones into concrete task specs in tmp/tasks/NNN-TASK_NAME.md, assign NNN from the max across tmp/tasks/ and tmp/tasks-done/, ask humans concise clarification questions when needed, and check only ideas fully covered by written task files."
+  short_description: "Convert tmp/ideas.md into Japanese task files"
+  default_prompt: "Read tmp/ideas.md, create the best overall plan across unchecked ideas, merge related ideas or split oversized ones into concrete task specs in tmp/tasks/NNN-TASK_NAME.md, write all task file body content in Japanese, assign NNN from the max across tmp/tasks/ and tmp/tasks-done/, ask humans concise clarification questions when needed, and check only ideas fully covered by written task files."
