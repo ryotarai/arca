@@ -51,6 +51,7 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Keep tests near code as `*_test.go`; prefer table-driven tests for handlers and DB logic.
 - Add/update E2E or browser checks for UI/routing behavior; prefer `chrome-headless-shell` for browser verification.
 - During debugging or investigation, proactively use the `sqlite3` command to inspect database data, verify state, and isolate issues quickly.
+- When debugging machines or runtimes, prefer SSH access to the target machine and collect logs/runtime state directly; discover IP with `sudo virsh list` and `sudo virsh domifaddr arca-machine-xxx`, then connect via `ssh arcauser@IPADDR`.
 - If tests fail, automatically attempt a fix and re-run tests without waiting for an extra user prompt.
 - When a failing test indicates a product bug, fix implementation first; only adjust tests when the expected behavior is incorrect or the test is flaky.
 
