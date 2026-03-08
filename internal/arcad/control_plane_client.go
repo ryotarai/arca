@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -160,24 +161,27 @@ func (c *HTTPControlPlaneClient) ExchangeArcadSession(ctx context.Context, host,
 	if resp.StatusCode != http.StatusOK {
 		return ArcadSessionClaims{}, fmt.Errorf("arcad session exchange failed: status %d", resp.StatusCode)
 	}
-	var decoded struct {
-		SessionID     string `json:"session_id"`
-		ExpiresAtUnix int64  `json:"expires_at_unix"`
-		User          *struct {
-			ID string `json:"id"`
-		} `json:"user"`
-	}
+	var decoded map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
 		return ArcadSessionClaims{}, fmt.Errorf("decode arcad session exchange: %w", err)
 	}
-	if strings.TrimSpace(decoded.SessionID) == "" || decoded.User == nil || strings.TrimSpace(decoded.User.ID) == "" {
+	sessionID := firstNonEmptyString(
+		stringValue(decoded["sessionId"]),
+		stringValue(decoded["session_id"]),
+	)
+	userID := userIDFromPayload(decoded)
+	if sessionID == "" || userID == "" {
 		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session exchange response")
 	}
-	expiresAt := time.Unix(decoded.ExpiresAtUnix, 0).UTC()
-	if decoded.ExpiresAtUnix <= 0 {
+	expiresAtUnix, _ := firstInt64Value(
+		decoded["expiresAtUnix"],
+		decoded["expires_at_unix"],
+	)
+	expiresAt := time.Unix(expiresAtUnix, 0).UTC()
+	if expiresAtUnix <= 0 {
 		expiresAt = time.Now().Add(8 * time.Hour)
 	}
-	return ArcadSessionClaims{SessionID: strings.TrimSpace(decoded.SessionID), UserID: strings.TrimSpace(decoded.User.ID), ExpiresAt: expiresAt}, nil
+	return ArcadSessionClaims{SessionID: sessionID, UserID: userID, ExpiresAt: expiresAt}, nil
 }
 
 func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host, path, sessionID string) (ArcadSessionClaims, error) {
@@ -210,20 +214,71 @@ func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host,
 	if resp.StatusCode != http.StatusOK {
 		return ArcadSessionClaims{}, fmt.Errorf("arcad session validation failed: status %d", resp.StatusCode)
 	}
-	var decoded struct {
-		User *struct {
-			ID string `json:"id"`
-		} `json:"user"`
-	}
+	var decoded map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
 		return ArcadSessionClaims{}, fmt.Errorf("decode arcad session validation: %w", err)
 	}
-	if decoded.User == nil || strings.TrimSpace(decoded.User.ID) == "" {
+	userID := userIDFromPayload(decoded)
+	if userID == "" {
 		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session validation response")
 	}
-	return ArcadSessionClaims{UserID: strings.TrimSpace(decoded.User.ID)}, nil
+	return ArcadSessionClaims{UserID: userID}, nil
 }
 
 func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {
 	return c.authorizeURL + "?target=" + url.QueryEscape(target)
+}
+
+func userIDFromPayload(payload map[string]any) string {
+	user, ok := payload["user"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	return stringValue(user["id"])
+}
+
+func stringValue(v any) string {
+	s, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(s)
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func firstInt64Value(values ...any) (int64, bool) {
+	for _, value := range values {
+		if parsed, ok := int64Value(value); ok {
+			return parsed, true
+		}
+	}
+	return 0, false
+}
+
+func int64Value(v any) (int64, bool) {
+	switch value := v.(type) {
+	case float64:
+		return int64(value), true
+	case int64:
+		return value, true
+	case int:
+		return int64(value), true
+	case string:
+		parsed, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return parsed, true
+	default:
+		return 0, false
+	}
 }
