@@ -20,14 +20,17 @@ type RuntimeFormState = {
   libvirtURI: string
   libvirtNetwork: string
   libvirtStoragePool: string
+  libvirtStartupScript: string
   gceProject: string
   gceZone: string
   gceNetwork: string
   gceSubnetwork: string
   gceServiceAccountEmail: string
+  gceStartupScript: string
 }
 
 const runtimeNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+const maxStartupScriptBytes = 8 * 1024
 
 function emptyRuntimeForm(): RuntimeFormState {
   return {
@@ -37,12 +40,18 @@ function emptyRuntimeForm(): RuntimeFormState {
     libvirtURI: '',
     libvirtNetwork: '',
     libvirtStoragePool: '',
+    libvirtStartupScript: '',
     gceProject: '',
     gceZone: '',
     gceNetwork: '',
     gceSubnetwork: '',
     gceServiceAccountEmail: '',
+    gceStartupScript: '',
   }
+}
+
+function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).length
 }
 
 function validateRuntimeForm(form: RuntimeFormState): string | null {
@@ -61,6 +70,9 @@ function validateRuntimeForm(form: RuntimeFormState): string | null {
   }
 
   if (form.type === 'gce') {
+    if (utf8ByteLength(form.gceStartupScript) > maxStartupScriptBytes) {
+      return 'GCE startup script must be 8KB or less.'
+    }
     if (
       form.gceProject.trim() === '' ||
       form.gceZone.trim() === '' ||
@@ -73,6 +85,9 @@ function validateRuntimeForm(form: RuntimeFormState): string | null {
     return null
   }
 
+  if (utf8ByteLength(form.libvirtStartupScript) > maxStartupScriptBytes) {
+    return 'Libvirt startup script must be 8KB or less.'
+  }
   if (form.libvirtURI.trim() === '' || form.libvirtNetwork.trim() === '' || form.libvirtStoragePool.trim() === '') {
     return 'Libvirt config requires URI, network, and storage pool.'
   }
@@ -88,6 +103,7 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
       network: form.gceNetwork.trim(),
       subnetwork: form.gceSubnetwork.trim(),
       serviceAccountEmail: form.gceServiceAccountEmail.trim(),
+      startupScript: form.gceStartupScript,
     }
   }
   return {
@@ -95,6 +111,7 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
     uri: form.libvirtURI.trim(),
     network: form.libvirtNetwork.trim(),
     storagePool: form.libvirtStoragePool.trim(),
+    startupScript: form.libvirtStartupScript,
   }
 }
 
@@ -110,6 +127,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
       gceNetwork: runtime.config.network,
       gceSubnetwork: runtime.config.subnetwork,
       gceServiceAccountEmail: runtime.config.serviceAccountEmail,
+      gceStartupScript: runtime.config.startupScript,
     }
   }
   return {
@@ -120,6 +138,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
     libvirtURI: runtime.config.uri,
     libvirtNetwork: runtime.config.network,
     libvirtStoragePool: runtime.config.storagePool,
+    libvirtStartupScript: runtime.config.startupScript,
   }
 }
 
@@ -294,6 +313,17 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                     <Label htmlFor="runtime-gce-service-account-email">Service account email</Label>
                     <Input id="runtime-gce-service-account-email" value={form.gceServiceAccountEmail} onChange={(event) => setForm((current) => ({ ...current, gceServiceAccountEmail: event.target.value }))} className="h-10" />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-gce-startup-script">Startup script (Bash, optional)</Label>
+                    <textarea
+                      id="runtime-gce-startup-script"
+                      value={form.gceStartupScript}
+                      onChange={(event) => setForm((current) => ({ ...current, gceStartupScript: event.target.value }))}
+                      className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      placeholder="#!/usr/bin/env bash"
+                    />
+                    <p className="text-xs text-muted-foreground">{utf8ByteLength(form.gceStartupScript)} / {maxStartupScriptBytes} bytes</p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
@@ -308,6 +338,17 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                   <div className="space-y-2">
                     <Label htmlFor="runtime-libvirt-storage-pool">Storage pool</Label>
                     <Input id="runtime-libvirt-storage-pool" value={form.libvirtStoragePool} onChange={(event) => setForm((current) => ({ ...current, libvirtStoragePool: event.target.value }))} className="h-10" placeholder="default" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-libvirt-startup-script">Startup script (Bash, optional)</Label>
+                    <textarea
+                      id="runtime-libvirt-startup-script"
+                      value={form.libvirtStartupScript}
+                      onChange={(event) => setForm((current) => ({ ...current, libvirtStartupScript: event.target.value }))}
+                      className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      placeholder="#!/usr/bin/env bash"
+                    />
+                    <p className="text-xs text-muted-foreground">{utf8ByteLength(form.libvirtStartupScript)} / {maxStartupScriptBytes} bytes</p>
                   </div>
                 </div>
               )}

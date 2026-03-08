@@ -132,9 +132,10 @@ func runtimeFromLibvirtCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error
 	}
 
 	return NewLibvirtRuntimeWithOptions(LibvirtRuntimeOptions{
-		URI:         strings.TrimSpace(libvirt.GetUri()),
-		Network:     strings.TrimSpace(libvirt.GetNetwork()),
-		StoragePool: strings.TrimSpace(libvirt.GetStoragePool()),
+		URI:           strings.TrimSpace(libvirt.GetUri()),
+		Network:       strings.TrimSpace(libvirt.GetNetwork()),
+		StoragePool:   strings.TrimSpace(libvirt.GetStoragePool()),
+		StartupScript: libvirt.GetStartupScript(),
 	}), nil
 }
 
@@ -155,6 +156,7 @@ func runtimeFromGceCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error) {
 		Network:             strings.TrimSpace(gce.GetNetwork()),
 		Subnetwork:          strings.TrimSpace(gce.GetSubnetwork()),
 		ServiceAccountEmail: strings.TrimSpace(gce.GetServiceAccountEmail()),
+		StartupScript:       gce.GetStartupScript(),
 	})
 	if err != nil {
 		return nil, err

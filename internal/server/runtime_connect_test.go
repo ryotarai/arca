@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -33,9 +34,10 @@ func TestRuntimeConnectService_AdminOnlyOperations(t *testing.T) {
 		Config: &arcav1.RuntimeConfig{
 			Provider: &arcav1.RuntimeConfig_Libvirt{
 				Libvirt: &arcav1.LibvirtRuntimeConfig{
-					Uri:         "qemu:///system",
-					Network:     "default",
-					StoragePool: "default",
+					Uri:           "qemu:///system",
+					Network:       "default",
+					StoragePool:   "default",
+					StartupScript: "echo libvirt startup",
 				},
 			},
 		},
@@ -145,9 +147,10 @@ func TestRuntimeConnectService_CRUD(t *testing.T) {
 		Config: &arcav1.RuntimeConfig{
 			Provider: &arcav1.RuntimeConfig_Libvirt{
 				Libvirt: &arcav1.LibvirtRuntimeConfig{
-					Uri:         "qemu:///system",
-					Network:     "default",
-					StoragePool: "default",
+					Uri:           "qemu:///system",
+					Network:       "default",
+					StoragePool:   "default",
+					StartupScript: "echo libvirt startup",
 				},
 			},
 		},
@@ -160,6 +163,9 @@ func TestRuntimeConnectService_CRUD(t *testing.T) {
 	}
 	if createResp.Msg.GetRuntime().GetConfig().GetLibvirt() == nil {
 		t.Fatalf("expected libvirt config")
+	}
+	if got := createResp.Msg.GetRuntime().GetConfig().GetLibvirt().GetStartupScript(); got != "echo libvirt startup" {
+		t.Fatalf("libvirt startup script = %q", got)
 	}
 	runtimeID := createResp.Msg.GetRuntime().GetId()
 
@@ -183,6 +189,7 @@ func TestRuntimeConnectService_CRUD(t *testing.T) {
 					Network:             "vpc-main",
 					Subnetwork:          "subnet-main",
 					ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+					StartupScript:       "echo gce startup",
 				},
 			},
 		},
@@ -195,6 +202,9 @@ func TestRuntimeConnectService_CRUD(t *testing.T) {
 	}
 	if updateResp.Msg.GetRuntime().GetConfig().GetGce() == nil {
 		t.Fatalf("expected gce config")
+	}
+	if got := updateResp.Msg.GetRuntime().GetConfig().GetGce().GetStartupScript(); got != "echo gce startup" {
+		t.Fatalf("gce startup script = %q", got)
 	}
 
 	if _, err := service.DeleteRuntime(ctx, authRequest(arcav1.DeleteRuntimeRequest{RuntimeId: runtimeID}, adminToken)); err != nil {
@@ -288,6 +298,44 @@ func TestValidateRuntimeRequest(t *testing.T) {
 				},
 			},
 			wantErr: "gce config requires project, zone, network, subnetwork, and service account email",
+		},
+		{
+			name: "reject oversized libvirt startup script",
+			req: &arcav1.CreateRuntimeRequest{
+				Name: "libvirt-large-script",
+				Type: arcav1.RuntimeType_RUNTIME_TYPE_LIBVIRT,
+				Config: &arcav1.RuntimeConfig{
+					Provider: &arcav1.RuntimeConfig_Libvirt{
+						Libvirt: &arcav1.LibvirtRuntimeConfig{
+							Uri:           "qemu:///system",
+							Network:       "default",
+							StoragePool:   "default",
+							StartupScript: strings.Repeat("a", 8*1024+1),
+						},
+					},
+				},
+			},
+			wantErr: "libvirt startup script must be 8KB or less",
+		},
+		{
+			name: "reject oversized gce startup script",
+			req: &arcav1.CreateRuntimeRequest{
+				Name: "gce-large-script",
+				Type: arcav1.RuntimeType_RUNTIME_TYPE_GCE,
+				Config: &arcav1.RuntimeConfig{
+					Provider: &arcav1.RuntimeConfig_Gce{
+						Gce: &arcav1.GceRuntimeConfig{
+							Project:             "my-project",
+							Zone:                "us-central1-a",
+							Network:             "vpc-main",
+							Subnetwork:          "subnet-main",
+							ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+							StartupScript:       strings.Repeat("b", 8*1024+1),
+						},
+					},
+				},
+			},
+			wantErr: "gce startup script must be 8KB or less",
 		},
 	}
 

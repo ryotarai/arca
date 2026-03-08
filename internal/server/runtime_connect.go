@@ -22,6 +22,8 @@ type runtimeConnectService struct {
 
 var runtimeNamePattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 
+const maxRuntimeStartupScriptBytes = 8 * 1024
+
 func newRuntimeConnectService(store *db.Store, authenticator Authenticator) *runtimeConnectService {
 	return &runtimeConnectService{store: store, authenticator: authenticator}
 }
@@ -201,6 +203,10 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 		uri := strings.TrimSpace(libvirt.GetUri())
 		network := strings.TrimSpace(libvirt.GetNetwork())
 		storagePool := strings.TrimSpace(libvirt.GetStoragePool())
+		startupScript, err := normalizeRuntimeStartupScript(libvirt.GetStartupScript(), "libvirt startup script")
+		if err != nil {
+			return validatedRuntimeRequest{}, err
+		}
 		if uri == "" || network == "" || storagePool == "" {
 			return validatedRuntimeRequest{}, errors.New("libvirt config requires uri, network, and storage pool")
 		}
@@ -210,9 +216,10 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 			config: &arcav1.RuntimeConfig{
 				Provider: &arcav1.RuntimeConfig_Libvirt{
 					Libvirt: &arcav1.LibvirtRuntimeConfig{
-						Uri:         uri,
-						Network:     network,
-						StoragePool: storagePool,
+						Uri:           uri,
+						Network:       network,
+						StoragePool:   storagePool,
+						StartupScript: startupScript,
 					},
 				},
 			},
@@ -227,6 +234,10 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 		network := strings.TrimSpace(gce.GetNetwork())
 		subnetwork := strings.TrimSpace(gce.GetSubnetwork())
 		serviceAccountEmail := strings.TrimSpace(gce.GetServiceAccountEmail())
+		startupScript, err := normalizeRuntimeStartupScript(gce.GetStartupScript(), "gce startup script")
+		if err != nil {
+			return validatedRuntimeRequest{}, err
+		}
 		if project == "" || zone == "" || network == "" || subnetwork == "" || serviceAccountEmail == "" {
 			return validatedRuntimeRequest{}, errors.New("gce config requires project, zone, network, subnetwork, and service account email")
 		}
@@ -241,6 +252,7 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						Network:             network,
 						Subnetwork:          subnetwork,
 						ServiceAccountEmail: serviceAccountEmail,
+						StartupScript:       startupScript,
 					},
 				},
 			},
@@ -248,6 +260,16 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 	default:
 		return validatedRuntimeRequest{}, errors.New("runtime type is unsupported")
 	}
+}
+
+func normalizeRuntimeStartupScript(startupScript string, label string) (string, error) {
+	if strings.TrimSpace(startupScript) == "" {
+		return "", nil
+	}
+	if len([]byte(startupScript)) > maxRuntimeStartupScriptBytes {
+		return "", errors.New(label + " must be 8KB or less")
+	}
+	return startupScript, nil
 }
 
 func marshalRuntimeConfigJSON(config *arcav1.RuntimeConfig) (string, error) {

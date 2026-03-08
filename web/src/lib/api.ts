@@ -362,8 +362,11 @@ function toRuntimeCatalogItem(input: {
   type: RuntimeType
   config?: {
     provider:
-      | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string } }
-      | { case: 'gce'; value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string } }
+      | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string; startupScript: string } }
+      | {
+          case: 'gce'
+          value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string }
+        }
       | { case: undefined; value?: undefined }
   }
   createdAt: bigint
@@ -380,6 +383,7 @@ function toRuntimeCatalogItem(input: {
       network: gce?.network ?? '',
       subnetwork: gce?.subnetwork ?? '',
       serviceAccountEmail: gce?.serviceAccountEmail ?? '',
+      startupScript: gce?.startupScript ?? '',
     }
   } else {
     const libvirt = input.config?.provider.case === 'libvirt' ? input.config.provider.value : undefined
@@ -388,6 +392,7 @@ function toRuntimeCatalogItem(input: {
       uri: libvirt?.uri ?? '',
       network: libvirt?.network ?? '',
       storagePool: libvirt?.storagePool ?? '',
+      startupScript: libvirt?.startupScript ?? '',
     }
   }
 
@@ -415,6 +420,7 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
           network: config.network,
           subnetwork: config.subnetwork,
           serviceAccountEmail: config.serviceAccountEmail,
+          startupScript: config.startupScript,
         },
       },
     }
@@ -429,6 +435,7 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
         uri: config.uri,
         network: config.network,
         storagePool: config.storagePool,
+        startupScript: config.startupScript,
       },
     },
   }

@@ -26,25 +26,27 @@ const (
 )
 
 type LibvirtRuntime struct {
-	workspaceDir string
-	baseImage    string
-	diskSize     string
-	uri          string
-	network      string
-	storagePool  string
-	arcadGOOS    string
-	arcadGOARCH  string
+	workspaceDir  string
+	baseImage     string
+	diskSize      string
+	uri           string
+	network       string
+	storagePool   string
+	startupScript string
+	arcadGOOS     string
+	arcadGOARCH   string
 }
 
 type LibvirtRuntimeOptions struct {
-	WorkspaceDir string
-	BaseImage    string
-	DiskSize     string
-	URI          string
-	Network      string
-	StoragePool  string
-	ArcadGOOS    string
-	ArcadGOARCH  string
+	WorkspaceDir  string
+	BaseImage     string
+	DiskSize      string
+	URI           string
+	Network       string
+	StoragePool   string
+	StartupScript string
+	ArcadGOOS     string
+	ArcadGOARCH   string
 }
 
 func NewLibvirtRuntime() *LibvirtRuntime {
@@ -93,6 +95,10 @@ func NewLibvirtRuntimeWithOptions(options LibvirtRuntimeOptions) *LibvirtRuntime
 	if storagePool == "" {
 		storagePool = defaultLibvirtStoragePool
 	}
+	startupScript := options.StartupScript
+	if strings.TrimSpace(startupScript) == "" {
+		startupScript = ""
+	}
 
 	arcadGOOS := strings.TrimSpace(options.ArcadGOOS)
 	if arcadGOOS == "" {
@@ -111,14 +117,15 @@ func NewLibvirtRuntimeWithOptions(options LibvirtRuntimeOptions) *LibvirtRuntime
 	}
 
 	return &LibvirtRuntime{
-		workspaceDir: workspaceDir,
-		baseImage:    baseImage,
-		diskSize:     diskSize,
-		uri:          uri,
-		network:      network,
-		storagePool:  storagePool,
-		arcadGOOS:    arcadGOOS,
-		arcadGOARCH:  arcadGOARCH,
+		workspaceDir:  workspaceDir,
+		baseImage:     baseImage,
+		diskSize:      diskSize,
+		uri:           uri,
+		network:       network,
+		storagePool:   storagePool,
+		startupScript: startupScript,
+		arcadGOOS:     arcadGOOS,
+		arcadGOARCH:   arcadGOARCH,
 	}
 }
 
@@ -140,6 +147,7 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 	if err != nil {
 		return "", err
 	}
+	opts.StartupScript = r.startupScript
 	startupNonce := time.Now().UTC().Format("20060102T150405")
 	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts, arcadBinaryBase64, startupNonce); err != nil {
 		return "", err
@@ -463,6 +471,12 @@ func (r *LibvirtRuntime) domainIPv4(ctx context.Context, domainName string) (str
 }
 
 func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinaryBase64 string) string {
+	startupScript := opts.StartupScript
+	if strings.TrimSpace(startupScript) == "" {
+		startupScript = "exit 0\n"
+	}
+	startupScript = "#!/usr/bin/env bash\nset -euo pipefail\n" + startupScript
+
 	envFile := fmt.Sprintf(`ARCAD_TUNNEL_TOKEN=%s
 ARCAD_CONTROL_PLANE_URL=%s
 ARCAD_MACHINE_ID=%s
@@ -555,6 +569,8 @@ chown -R arca:arca /var/lib/arca/shelley
 chown -R arca:arca /home/arca
 chmod +x /usr/local/bin/arcad
 
+/usr/bin/env bash /usr/local/bin/arca-user-startup.sh
+
 
 systemctl daemon-reload
 systemctl enable arca-arcad.service arca-ttyd.service arca-shelley.service
@@ -614,6 +630,11 @@ write_files:
     content: %s
 
   - path: /usr/local/bin/arca-bootstrap.sh
+    permissions: "0755"
+    owner: root:root
+    encoding: b64
+    content: %s
+  - path: /usr/local/bin/arca-user-startup.sh
     permissions: "0755"
     owner: root:root
     encoding: b64
@@ -693,7 +714,7 @@ write_files:
       WantedBy=multi-user.target
 runcmd:
   - ["/usr/local/bin/arca-machine-install.sh"]
-`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(installScript)), base64.StdEncoding.EncodeToString([]byte(bootstrapScript)), arcadBinaryBase64)
+`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(installScript)), base64.StdEncoding.EncodeToString([]byte(bootstrapScript)), base64.StdEncoding.EncodeToString([]byte(startupScript)), arcadBinaryBase64)
 }
 
 func shellEscape(value string) string {

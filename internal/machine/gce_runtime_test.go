@@ -92,6 +92,7 @@ func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
 		Network:             "main",
 		Subnetwork:          "main-subnet",
 		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+		StartupScript:       "echo startup from gce",
 		Client:              fakeClient,
 		BuildArcadBinaryBase: func(context.Context) (string, error) {
 			return "YXJjYWQ=", nil
@@ -122,6 +123,14 @@ func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
 	}
 	if len(inserted.Metadata.Items) == 0 || inserted.Metadata.Items[0].Key != "user-data" {
 		t.Fatalf("user-data metadata item is missing")
+	}
+	userData := inserted.Metadata.Items[0].Value
+	startupScript, ok := cloudInitFileContent(userData, "/usr/local/bin/arca-user-startup.sh")
+	if !ok {
+		t.Fatalf("user-data metadata does not include startup script file")
+	}
+	if !strings.Contains(startupScript, "echo startup from gce") {
+		t.Fatalf("startup script content is not propagated in user-data")
 	}
 }
 

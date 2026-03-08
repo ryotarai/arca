@@ -45,6 +45,7 @@ export type RuntimeCatalogConfig =
       uri: string
       network: string
       storagePool: string
+      startupScript: string
     }
   | {
       type: 'gce'
@@ -53,6 +54,7 @@ export type RuntimeCatalogConfig =
       network: string
       subnetwork: string
       serviceAccountEmail: string
+      startupScript: string
     }
 
 export type RuntimeCatalogItem = {

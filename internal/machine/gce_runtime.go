@@ -37,6 +37,7 @@ type GceRuntime struct {
 	network             string
 	subnetwork          string
 	serviceAccountEmail string
+	startupScript       string
 	machineType         string
 	diskSizeGB          int64
 	imageProject        string
@@ -58,6 +59,7 @@ type GceRuntimeOptions struct {
 	Network             string
 	Subnetwork          string
 	ServiceAccountEmail string
+	StartupScript       string
 	MachineType         string
 	DiskSizeGB          int64
 	ImageProject        string
@@ -155,6 +157,10 @@ func NewGceRuntimeWithOptions(options GceRuntimeOptions) (*GceRuntime, error) {
 	if project == "" || zone == "" || network == "" || subnetwork == "" || serviceAccountEmail == "" {
 		return nil, fmt.Errorf("gce runtime config requires project, zone, network, subnetwork, and service account email")
 	}
+	startupScript := options.StartupScript
+	if strings.TrimSpace(startupScript) == "" {
+		startupScript = ""
+	}
 
 	machineType := strings.TrimSpace(options.MachineType)
 	if machineType == "" {
@@ -193,6 +199,7 @@ func NewGceRuntimeWithOptions(options GceRuntimeOptions) (*GceRuntime, error) {
 		network:              network,
 		subnetwork:           subnetwork,
 		serviceAccountEmail:  serviceAccountEmail,
+		startupScript:        startupScript,
 		machineType:          machineType,
 		diskSizeGB:           diskSizeGB,
 		imageProject:         imageProject,
@@ -242,6 +249,7 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 		if err != nil {
 			return "", err
 		}
+		opts.StartupScript = r.startupScript
 		cloudInit := cloudInitUserData(machine, opts, arcadBinaryBase64)
 		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit))
 		if err != nil {

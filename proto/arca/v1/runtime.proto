@@ -21,6 +21,7 @@ message LibvirtRuntimeConfig {
   string uri = 1;
   string network = 2;
   string storage_pool = 3;
+  string startup_script = 4;
 }
 
 message GceRuntimeConfig {
@@ -29,6 +30,7 @@ message GceRuntimeConfig {
   string network = 3;
   string subnetwork = 4;
   string service_account_email = 5;
+  string startup_script = 6;
 }
 
 message RuntimeConfig {

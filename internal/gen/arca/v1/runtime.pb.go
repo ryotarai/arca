@@ -75,6 +75,7 @@ type LibvirtRuntimeConfig struct {
 	Uri           string                 `protobuf:"bytes,1,opt,name=uri,proto3" json:"uri,omitempty"`
 	Network       string                 `protobuf:"bytes,2,opt,name=network,proto3" json:"network,omitempty"`
 	StoragePool   string                 `protobuf:"bytes,3,opt,name=storage_pool,json=storagePool,proto3" json:"storage_pool,omitempty"`
+	StartupScript string                 `protobuf:"bytes,4,opt,name=startup_script,json=startupScript,proto3" json:"startup_script,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -130,6 +131,13 @@ func (x *LibvirtRuntimeConfig) GetStoragePool() string {
 	return ""
 }
 
+func (x *LibvirtRuntimeConfig) GetStartupScript() string {
+	if x != nil {
+		return x.StartupScript
+	}
+	return ""
+}
+
 type GceRuntimeConfig struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Project             string                 `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
@@ -137,6 +145,7 @@ type GceRuntimeConfig struct {
 	Network             string                 `protobuf:"bytes,3,opt,name=network,proto3" json:"network,omitempty"`
 	Subnetwork          string                 `protobuf:"bytes,4,opt,name=subnetwork,proto3" json:"subnetwork,omitempty"`
 	ServiceAccountEmail string                 `protobuf:"bytes,5,opt,name=service_account_email,json=serviceAccountEmail,proto3" json:"service_account_email,omitempty"`
+	StartupScript       string                 `protobuf:"bytes,6,opt,name=startup_script,json=startupScript,proto3" json:"startup_script,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -202,6 +211,13 @@ func (x *GceRuntimeConfig) GetSubnetwork() string {
 func (x *GceRuntimeConfig) GetServiceAccountEmail() string {
 	if x != nil {
 		return x.ServiceAccountEmail
+	}
+	return ""
+}
+
+func (x *GceRuntimeConfig) GetStartupScript() string {
+	if x != nil {
+		return x.StartupScript
 	}
 	return ""
 }
@@ -752,11 +768,12 @@ var File_arca_v1_runtime_proto protoreflect.FileDescriptor
 
 const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\n" +
-	"\x15arca/v1/runtime.proto\x12\aarca.v1\"e\n" +
+	"\x15arca/v1/runtime.proto\x12\aarca.v1\"\x8c\x01\n" +
 	"\x14LibvirtRuntimeConfig\x12\x10\n" +
 	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x18\n" +
 	"\anetwork\x18\x02 \x01(\tR\anetwork\x12!\n" +
-	"\fstorage_pool\x18\x03 \x01(\tR\vstoragePool\"\xae\x01\n" +
+	"\fstorage_pool\x18\x03 \x01(\tR\vstoragePool\x12%\n" +
+	"\x0estartup_script\x18\x04 \x01(\tR\rstartupScript\"\xd5\x01\n" +
 	"\x10GceRuntimeConfig\x12\x18\n" +
 	"\aproject\x18\x01 \x01(\tR\aproject\x12\x12\n" +
 	"\x04zone\x18\x02 \x01(\tR\x04zone\x12\x18\n" +
@@ -764,7 +781,8 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\n" +
 	"subnetwork\x18\x04 \x01(\tR\n" +
 	"subnetwork\x122\n" +
-	"\x15service_account_email\x18\x05 \x01(\tR\x13serviceAccountEmail\"\x85\x01\n" +
+	"\x15service_account_email\x18\x05 \x01(\tR\x13serviceAccountEmail\x12%\n" +
+	"\x0estartup_script\x18\x06 \x01(\tR\rstartupScript\"\x85\x01\n" +
 	"\rRuntimeConfig\x129\n" +
 	"\alibvirt\x18\x01 \x01(\v2\x1d.arca.v1.LibvirtRuntimeConfigH\x00R\alibvirt\x12-\n" +
 	"\x03gce\x18\x02 \x01(\v2\x19.arca.v1.GceRuntimeConfigH\x00R\x03gceB\n" +

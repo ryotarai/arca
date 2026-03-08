@@ -50,8 +50,8 @@ func TestRoutingRuntime_ResolvesCatalogRuntimeIDsAcrossTypes(t *testing.T) {
 
 	store := &routingRuntimeStoreStub{
 		entries: map[string]db.RuntimeCatalog{
-			"rt-libvirt": {ID: "rt-libvirt", Type: db.RuntimeTypeLibvirt, ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool"}}`},
-			"rt-gce":     {ID: "rt-gce", Type: db.RuntimeTypeGCE, ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com"}}`},
+			"rt-libvirt": {ID: "rt-libvirt", Type: db.RuntimeTypeLibvirt, ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt"}}`},
+			"rt-gce":     {ID: "rt-gce", Type: db.RuntimeTypeGCE, ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce"}}`},
 		},
 	}
 
@@ -94,5 +94,41 @@ func TestRoutingRuntime_MissingCatalogRuntimeFails(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not found") {
 		t.Fatalf("error = %q, want runtime not found", err.Error())
+	}
+}
+
+func TestRuntimeFromCatalog_StartupScriptIsPropagated(t *testing.T) {
+	t.Parallel()
+
+	libvirtRuntime, err := runtimeFromLibvirtCatalog(db.RuntimeCatalog{
+		ID:         "rt-libvirt",
+		Type:       db.RuntimeTypeLibvirt,
+		ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt startup"}}`,
+	})
+	if err != nil {
+		t.Fatalf("runtimeFromLibvirtCatalog: %v", err)
+	}
+	libvirtImpl, ok := libvirtRuntime.(*LibvirtRuntime)
+	if !ok {
+		t.Fatalf("runtime type = %T, want *LibvirtRuntime", libvirtRuntime)
+	}
+	if libvirtImpl.startupScript != "echo libvirt startup" {
+		t.Fatalf("libvirt startup script = %q", libvirtImpl.startupScript)
+	}
+
+	gceRuntime, err := runtimeFromGceCatalog(db.RuntimeCatalog{
+		ID:         "rt-gce",
+		Type:       db.RuntimeTypeGCE,
+		ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce startup"}}`,
+	})
+	if err != nil {
+		t.Fatalf("runtimeFromGceCatalog: %v", err)
+	}
+	gceImpl, ok := gceRuntime.(*GceRuntime)
+	if !ok {
+		t.Fatalf("runtime type = %T, want *GceRuntime", gceRuntime)
+	}
+	if gceImpl.startupScript != "echo gce startup" {
+		t.Fatalf("gce startup script = %q", gceImpl.startupScript)
 	}
 }

@@ -30,6 +30,7 @@ type RuntimeStartOptions struct {
 	ControlPlaneURL string
 	MachineID       string
 	MachineToken    string
+	StartupScript   string
 }
 
 type Worker struct {
