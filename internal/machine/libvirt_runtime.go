@@ -590,7 +590,7 @@ if [ ! -x /usr/local/bin/shelley ]; then
 fi
 
 mkdir -p /var/lib/arca/shelley
-chown -R "$daemon_user":arca /var/lib/arca/shelley
+chown -R "$interactive_user":arca /var/lib/arca/shelley
 chown root:arca /etc/arca/arcad.env
 chmod 0640 /etc/arca/arcad.env
 mkdir -p "$interactive_ssh_dir"
@@ -745,7 +745,7 @@ write_files:
       EnvironmentFile=/etc/arca/arcad.env
       ExecStart=/usr/local/bin/shelley -db ${SHELLEY_DB_PATH} serve -port ${SHELLEY_PORT} -base-path ${SHELLEY_BASE_PATH}
       Restart=always
-      User=arcad
+      User=arcauser
       Group=arca
       [Install]
       WantedBy=multi-user.target
