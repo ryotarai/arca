@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   getMachine,
-  deleteMachine,
   listMachines,
   startMachine,
   stopMachine,
@@ -103,44 +102,6 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
     return <Navigate to="/login" replace />
   }
 
-  const submitStart = async (machineID: string) => {
-    setError('')
-    try {
-      const updated = await startMachine(machineID)
-      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
-  const submitStop = async (machineID: string) => {
-    if (!window.confirm('Stop this machine?')) {
-      return
-    }
-
-    setError('')
-    try {
-      const updated = await stopMachine(machineID)
-      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
-  const submitDelete = async (machineID: string) => {
-    if (!window.confirm('Delete this machine? This action cannot be undone.')) {
-      return
-    }
-
-    setError('')
-    try {
-      await deleteMachine(machineID)
-      setMachines((prev) => prev.filter((machine) => machine.id !== machineID))
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
   const submitRestart = async (machineID: string) => {
     if (!window.confirm('Restart this machine?')) {
       return
@@ -214,37 +175,11 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                         </div>
 
                         <div className="flex flex-wrap items-center justify-end gap-2 sm:max-w-md">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="h-9 px-3"
-                            onClick={() => void submitStart(machine.id)}
-                            disabled={machine.desiredStatus === 'running' && machine.status !== 'failed'}
-                          >
-                            Start
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="h-9 px-3"
-                            onClick={() => void submitStop(machine.id)}
-                            disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
-                          >
-                            Stop
-                          </Button>
                           {machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' && (
                             <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
                               Restart to update
                             </Button>
                           )}
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="h-9 px-3"
-                            onClick={() => void submitDelete(machine.id)}
-                          >
-                            Delete
-                          </Button>
                           <Button asChild type="button" variant="secondary" className="h-9 px-3">
                             <Link to={`/machines/${machine.id}`}>Details</Link>
                           </Button>
@@ -267,4 +202,3 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
     </main>
   )
 }
-

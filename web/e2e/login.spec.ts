@@ -149,21 +149,23 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
 
   await expect(page.locator('p.font-medium', { hasText: machineName })).toBeVisible()
   await expect(page.getByText(/pending|starting|running|stopping|stopped|failed/).first()).toBeVisible()
-
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('button', { name: 'Stop' }).first().click()
-  await expect(page.getByText(/stopping|stopped|failed/).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
 
   await page.getByRole('link', { name: 'Details' }).first().click()
   await expect(page).toHaveURL(/\/machines\/.+/)
   await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible()
-  await page.getByRole('link', { name: 'Back' }).click()
-  await expect(page).toHaveURL('/machines')
 
   page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('button', { name: 'Delete' }).first().click()
+  await page.getByRole('button', { name: 'Stop' }).click()
+  await expect(page.getByText(/stopping|stopped|failed/).first()).toBeVisible()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Delete' }).click()
+  await expect(page).toHaveURL('/machines')
   await expect(page.getByText('No machines yet.')).toBeVisible()
 })
 

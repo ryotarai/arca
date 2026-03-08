@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { EndpointVisibility } from '@/gen/arca/v1/tunnel_pb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   getMachine,
+  deleteMachine,
   listMachineEvents,
   listMachineExposures,
   listRuntimes,
@@ -83,10 +84,12 @@ function EventLevelBadge({ level }: { level: string }) {
 
 export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const { machineID } = useParams()
+  const navigate = useNavigate()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [events, setEvents] = useState<MachineEvent[]>([])
   const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [defaultExposure, setDefaultExposure] = useState<MachineExposure | null>(null)
   const [exposureVisibility, setExposureVisibility] = useState<EndpointVisibility>(EndpointVisibility.OWNER_ONLY)
@@ -206,6 +209,22 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       setMachine(updated)
     } catch (e) {
       setError(messageFromError(e))
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this machine? This action cannot be undone.')) {
+      return
+    }
+
+    setError('')
+    setDeleting(true)
+    try {
+      await deleteMachine(machineID)
+      await navigate('/machines')
+    } catch (e) {
+      setError(messageFromError(e))
+      setDeleting(false)
     }
   }
 
@@ -335,6 +354,15 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     disabled={machine.status === 'starting' || machine.status === 'stopping' || machine.status === 'pending' || machine.status === 'deleting'}
                   >
                     {machine.updateRequired ? 'Restart to update' : 'Restart'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-9 px-3"
+                    onClick={() => void handleDelete()}
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
                   </Button>
                 </div>
               </>

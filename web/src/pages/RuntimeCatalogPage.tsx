@@ -272,7 +272,7 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                   className="h-10"
-                  placeholder="edge-libvirt"
+                  placeholder="main-libvirt"
                   required
                 />
               </div>

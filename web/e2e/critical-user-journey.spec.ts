@@ -61,9 +61,27 @@ test.describe('critical user journey', () => {
 
       expect(runningMachine.endpoint?.trim() ?? '').not.toEqual('')
 
+      await page.goto('/machines')
+      await expect(page).toHaveURL('/machines')
+      const machineRow = page.locator('li', { hasText: machineName })
+      await expect(machineRow.getByRole('button', { name: 'Start' })).toHaveCount(0)
+      await expect(machineRow.getByRole('button', { name: 'Stop' })).toHaveCount(0)
+      await expect(machineRow.getByRole('button', { name: 'Delete' })).toHaveCount(0)
+      await machineRow.getByRole('link', { name: 'Details' }).click()
+
       await page.goto(`/machines/${machineID}`)
       await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
       await expect(page.getByText('running', { exact: false })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible()
+
+      await page.getByRole('link', { name: 'Runtimes' }).click()
+      await expect(page).toHaveURL('/runtimes')
+      await expect(page.getByPlaceholder('edge-libvirt')).toHaveCount(0)
+      await expect(page.getByPlaceholder('main-libvirt')).toBeVisible()
+
+      await page.getByRole('link', { name: 'Settings' }).click()
+      await expect(page).toHaveURL('/settings')
+      await expect(page.getByText('Clear stored client secret on save')).toHaveCount(0)
 
       const endpoint = runningMachine.endpoint?.trim() ?? ''
       const ttydStatus = await waitForTTYDAccess(page, endpoint, {

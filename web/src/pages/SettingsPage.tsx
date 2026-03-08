@@ -29,7 +29,6 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
   const [oidcIssuerURL, setOidcIssuerURL] = useState(setupStatus.oidcIssuerURL)
   const [oidcClientID, setOidcClientID] = useState(setupStatus.oidcClientID)
   const [oidcClientSecret, setOidcClientSecret] = useState('')
-  const [clearOidcClientSecret, setClearOidcClientSecret] = useState(false)
   const [oidcAllowedEmailDomainsText, setOidcAllowedEmailDomainsText] = useState(setupStatus.oidcAllowedEmailDomains.join('\n'))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -69,7 +68,7 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
           .split(/\r?\n/)
           .map((value) => value.trim().toLowerCase())
           .filter((value) => value !== ''),
-        clearOidcClientSecret,
+        false,
       )
       const normalizedOidcAllowedEmailDomains = oidcAllowedEmailDomainsText
         .split(/\r?\n/)
@@ -83,11 +82,10 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
         oidcEnabled,
         oidcIssuerURL: oidcIssuerURL.trim(),
         oidcClientID: oidcClientID.trim(),
-        oidcClientSecretConfigured: clearOidcClientSecret ? false : setupStatus.oidcClientSecretConfigured || oidcClientSecret !== '',
+        oidcClientSecretConfigured: setupStatus.oidcClientSecretConfigured || oidcClientSecret !== '',
         oidcAllowedEmailDomains: normalizedOidcAllowedEmailDomains,
       })
       setOidcClientSecret('')
-      setClearOidcClientSecret(false)
       setSaved(true)
     } catch (e) {
       setError(messageFromError(e))
@@ -221,14 +219,6 @@ export function SettingsPage({ user, setupStatus, onSetupStatusChange, onLogout 
                     className="h-10"
                     placeholder={setupStatus.oidcClientSecretConfigured ? 'Leave empty to keep current secret' : 'Enter client secret'}
                   />
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={clearOidcClientSecret}
-                      onChange={(event) => setClearOidcClientSecret(event.target.checked)}
-                    />
-                    Clear stored client secret on save
-                  </label>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="settings-oidc-domains">
