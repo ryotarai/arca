@@ -26,11 +26,12 @@ type Runtime interface {
 }
 
 type RuntimeStartOptions struct {
-	TunnelToken     string
-	ControlPlaneURL string
-	MachineID       string
-	MachineToken    string
-	StartupScript   string
+	TunnelToken           string
+	ControlPlaneURL       string
+	MachineID             string
+	MachineToken          string
+	StartupScript         string
+	InteractiveSSHPubKeys []string
 }
 
 type Worker struct {
@@ -254,12 +255,21 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	if err != nil {
 		return err
 	}
+	ownerUserID, err := w.store.GetMachineOwnerUserID(ctx, machine.ID)
+	if err != nil {
+		return fmt.Errorf("load machine owner: %w", err)
+	}
+	userSettings, err := w.store.GetUserSettingsByUserID(ctx, ownerUserID)
+	if err != nil {
+		return fmt.Errorf("load user settings: %w", err)
+	}
 
 	containerID, err := w.runtime.EnsureRunning(ctx, machine, RuntimeStartOptions{
-		TunnelToken:     tunnelToken,
-		ControlPlaneURL: controlPlaneURL,
-		MachineID:       machine.ID,
-		MachineToken:    machine.MachineToken,
+		TunnelToken:           tunnelToken,
+		ControlPlaneURL:       controlPlaneURL,
+		MachineID:             machine.ID,
+		MachineToken:          machine.MachineToken,
+		InteractiveSSHPubKeys: userSettings.SSHPublicKeys,
 	})
 	if err != nil {
 		return err

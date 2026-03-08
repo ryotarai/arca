@@ -12,6 +12,8 @@ service UserService {
   rpc IssueUserSetupToken(IssueUserSetupTokenRequest) returns (IssueUserSetupTokenResponse);
   rpc CompleteUserSetup(CompleteUserSetupRequest) returns (CompleteUserSetupResponse);
   rpc UpdateUserRole(UpdateUserRoleRequest) returns (UpdateUserRoleResponse);
+  rpc GetUserSettings(GetUserSettingsRequest) returns (GetUserSettingsResponse);
+  rpc UpdateUserSettings(UpdateUserSettingsRequest) returns (UpdateUserSettingsResponse);
 }
 
 message ManagedUser {
@@ -65,4 +67,22 @@ message UpdateUserRoleRequest {
 
 message UpdateUserRoleResponse {
   ManagedUser user = 1;
+}
+
+message UserSettings {
+  repeated string ssh_public_keys = 1;
+}
+
+message GetUserSettingsRequest {}
+
+message GetUserSettingsResponse {
+  UserSettings settings = 1;
+}
+
+message UpdateUserSettingsRequest {
+  UserSettings settings = 1;
+}
+
+message UpdateUserSettingsResponse {
+  UserSettings settings = 1;
 }

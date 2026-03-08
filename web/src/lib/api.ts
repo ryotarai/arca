@@ -37,8 +37,10 @@ import {
 import {
   CompleteUserSetupRequestSchema,
   CreateUserRequestSchema,
+  GetUserSettingsRequestSchema,
   IssueUserSetupTokenRequestSchema,
   ListUsersRequestSchema as ListManagedUsersRequestSchema,
+  UpdateUserSettingsRequestSchema,
   UpdateUserRoleRequestSchema,
   UserService,
 } from '@/gen/arca/v1/user_pb'
@@ -53,6 +55,7 @@ import type {
   RuntimeCatalogType,
   SetupStatus,
   User,
+  UserSettings,
 } from '@/lib/types'
 
 const connectTransport = createConnectTransport({
@@ -278,6 +281,26 @@ export async function completeUserSetup(setupToken: string, password: string): P
     }),
   )
   return toUser(response.user)
+}
+
+export async function getUserSettings(): Promise<UserSettings> {
+  const response = await userClient.getUserSettings(create(GetUserSettingsRequestSchema))
+  return {
+    sshPublicKeys: response.settings?.sshPublicKeys ?? [],
+  }
+}
+
+export async function updateUserSettings(sshPublicKeys: string[]): Promise<UserSettings> {
+  const response = await userClient.updateUserSettings(
+    create(UpdateUserSettingsRequestSchema, {
+      settings: {
+        sshPublicKeys,
+      },
+    }),
+  )
+  return {
+    sshPublicKeys: response.settings?.sshPublicKeys ?? [],
+  }
 }
 
 export async function listMachines(options: PollingOptions = {}): Promise<Machine[]> {
