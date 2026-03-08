@@ -541,6 +541,17 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 	}
 }
 
+func (s *Store) GetMachineOwnerUserID(ctx context.Context, machineID string) (string, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.GetMachineOwnerUserID(ctx, machineID)
+	case DriverPostgres:
+		return s.pgQueries.GetMachineOwnerUserID(ctx, machineID)
+	default:
+		return "", unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) UpdateMachineRuntimeStateByMachineID(ctx context.Context, machineID, status, desiredStatus, containerID, lastError string) error {
 	nowUnix := time.Now().Unix()
 	switch s.driver {

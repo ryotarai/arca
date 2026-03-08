@@ -46,6 +46,12 @@ const (
 	// UserServiceUpdateUserRoleProcedure is the fully-qualified name of the UserService's
 	// UpdateUserRole RPC.
 	UserServiceUpdateUserRoleProcedure = "/arca.v1.UserService/UpdateUserRole"
+	// UserServiceGetUserSettingsProcedure is the fully-qualified name of the UserService's
+	// GetUserSettings RPC.
+	UserServiceGetUserSettingsProcedure = "/arca.v1.UserService/GetUserSettings"
+	// UserServiceUpdateUserSettingsProcedure is the fully-qualified name of the UserService's
+	// UpdateUserSettings RPC.
+	UserServiceUpdateUserSettingsProcedure = "/arca.v1.UserService/UpdateUserSettings"
 )
 
 // UserServiceClient is a client for the arca.v1.UserService service.
@@ -55,6 +61,8 @@ type UserServiceClient interface {
 	IssueUserSetupToken(context.Context, *connect.Request[v1.IssueUserSetupTokenRequest]) (*connect.Response[v1.IssueUserSetupTokenResponse], error)
 	CompleteUserSetup(context.Context, *connect.Request[v1.CompleteUserSetupRequest]) (*connect.Response[v1.CompleteUserSetupResponse], error)
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)
+	GetUserSettings(context.Context, *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error)
+	UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error)
 }
 
 // NewUserServiceClient constructs a client for the arca.v1.UserService service. By default, it uses
@@ -98,6 +106,18 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("UpdateUserRole")),
 			connect.WithClientOptions(opts...),
 		),
+		getUserSettings: connect.NewClient[v1.GetUserSettingsRequest, v1.GetUserSettingsResponse](
+			httpClient,
+			baseURL+UserServiceGetUserSettingsProcedure,
+			connect.WithSchema(userServiceMethods.ByName("GetUserSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		updateUserSettings: connect.NewClient[v1.UpdateUserSettingsRequest, v1.UpdateUserSettingsResponse](
+			httpClient,
+			baseURL+UserServiceUpdateUserSettingsProcedure,
+			connect.WithSchema(userServiceMethods.ByName("UpdateUserSettings")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -108,6 +128,8 @@ type userServiceClient struct {
 	issueUserSetupToken *connect.Client[v1.IssueUserSetupTokenRequest, v1.IssueUserSetupTokenResponse]
 	completeUserSetup   *connect.Client[v1.CompleteUserSetupRequest, v1.CompleteUserSetupResponse]
 	updateUserRole      *connect.Client[v1.UpdateUserRoleRequest, v1.UpdateUserRoleResponse]
+	getUserSettings     *connect.Client[v1.GetUserSettingsRequest, v1.GetUserSettingsResponse]
+	updateUserSettings  *connect.Client[v1.UpdateUserSettingsRequest, v1.UpdateUserSettingsResponse]
 }
 
 // ListUsers calls arca.v1.UserService.ListUsers.
@@ -135,6 +157,16 @@ func (c *userServiceClient) UpdateUserRole(ctx context.Context, req *connect.Req
 	return c.updateUserRole.CallUnary(ctx, req)
 }
 
+// GetUserSettings calls arca.v1.UserService.GetUserSettings.
+func (c *userServiceClient) GetUserSettings(ctx context.Context, req *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error) {
+	return c.getUserSettings.CallUnary(ctx, req)
+}
+
+// UpdateUserSettings calls arca.v1.UserService.UpdateUserSettings.
+func (c *userServiceClient) UpdateUserSettings(ctx context.Context, req *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error) {
+	return c.updateUserSettings.CallUnary(ctx, req)
+}
+
 // UserServiceHandler is an implementation of the arca.v1.UserService service.
 type UserServiceHandler interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
@@ -142,6 +174,8 @@ type UserServiceHandler interface {
 	IssueUserSetupToken(context.Context, *connect.Request[v1.IssueUserSetupTokenRequest]) (*connect.Response[v1.IssueUserSetupTokenResponse], error)
 	CompleteUserSetup(context.Context, *connect.Request[v1.CompleteUserSetupRequest]) (*connect.Response[v1.CompleteUserSetupResponse], error)
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)
+	GetUserSettings(context.Context, *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error)
+	UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -181,6 +215,18 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("UpdateUserRole")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceGetUserSettingsHandler := connect.NewUnaryHandler(
+		UserServiceGetUserSettingsProcedure,
+		svc.GetUserSettings,
+		connect.WithSchema(userServiceMethods.ByName("GetUserSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceUpdateUserSettingsHandler := connect.NewUnaryHandler(
+		UserServiceUpdateUserSettingsProcedure,
+		svc.UpdateUserSettings,
+		connect.WithSchema(userServiceMethods.ByName("UpdateUserSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceListUsersProcedure:
@@ -193,6 +239,10 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceCompleteUserSetupHandler.ServeHTTP(w, r)
 		case UserServiceUpdateUserRoleProcedure:
 			userServiceUpdateUserRoleHandler.ServeHTTP(w, r)
+		case UserServiceGetUserSettingsProcedure:
+			userServiceGetUserSettingsHandler.ServeHTTP(w, r)
+		case UserServiceUpdateUserSettingsProcedure:
+			userServiceUpdateUserSettingsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -220,4 +270,12 @@ func (UnimplementedUserServiceHandler) CompleteUserSetup(context.Context, *conne
 
 func (UnimplementedUserServiceHandler) UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.UpdateUserRole is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) GetUserSettings(context.Context, *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.GetUserSettings is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.UpdateUserSettings is not implemented"))
 }

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/user.proto.
  */
 export const file_arca_v1_user: GenFile = /*@__PURE__*/
-  fileDesc("ChJhcmNhL3YxL3VzZXIucHJvdG8SB2FyY2EudjEiggEKC01hbmFnZWRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJEhYKDnNldHVwX3JlcXVpcmVkGAMgASgIEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYBCABKAMSEgoKY3JlYXRlZF9hdBgFIAEoAxIMCgRyb2xlGAYgASgJIhIKEExpc3RVc2Vyc1JlcXVlc3QiOAoRTGlzdFVzZXJzUmVzcG9uc2USIwoFdXNlcnMYASADKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyIiIKEUNyZWF0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIm0KEkNyZWF0ZVVzZXJSZXNwb25zZRIiCgR1c2VyGAEgASgLMhQuYXJjYS52MS5NYW5hZ2VkVXNlchITCgtzZXR1cF90b2tlbhgCIAEoCRIeChZzZXR1cF90b2tlbl9leHBpcmVzX2F0GAMgASgDIi0KGklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkidgobSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEiIKBHVzZXIYASABKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyEhMKC3NldHVwX3Rva2VuGAIgASgJEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMiQQoYQ29tcGxldGVVc2VyU2V0dXBSZXF1ZXN0EhMKC3NldHVwX3Rva2VuGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjgKGUNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLmFyY2EudjEuVXNlciI2ChVVcGRhdGVVc2VyUm9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjwKFlVwZGF0ZVVzZXJSb2xlUmVzcG9uc2USIgoEdXNlchgBIAEoCzIULmFyY2EudjEuTWFuYWdlZFVzZXIyqQMKC1VzZXJTZXJ2aWNlEkIKCUxpc3RVc2VycxIZLmFyY2EudjEuTGlzdFVzZXJzUmVxdWVzdBoaLmFyY2EudjEuTGlzdFVzZXJzUmVzcG9uc2USRQoKQ3JlYXRlVXNlchIaLmFyY2EudjEuQ3JlYXRlVXNlclJlcXVlc3QaGy5hcmNhLnYxLkNyZWF0ZVVzZXJSZXNwb25zZRJgChNJc3N1ZVVzZXJTZXR1cFRva2VuEiMuYXJjYS52MS5Jc3N1ZVVzZXJTZXR1cFRva2VuUmVxdWVzdBokLmFyY2EudjEuSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEloKEUNvbXBsZXRlVXNlclNldHVwEiEuYXJjYS52MS5Db21wbGV0ZVVzZXJTZXR1cFJlcXVlc3QaIi5hcmNhLnYxLkNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USUQoOVXBkYXRlVXNlclJvbGUSHi5hcmNhLnYxLlVwZGF0ZVVzZXJSb2xlUmVxdWVzdBofLmFyY2EudjEuVXBkYXRlVXNlclJvbGVSZXNwb25zZUKLAQoLY29tLmFyY2EudjFCCVVzZXJQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw", [file_arca_v1_auth]);
+  fileDesc("ChJhcmNhL3YxL3VzZXIucHJvdG8SB2FyY2EudjEiggEKC01hbmFnZWRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJEhYKDnNldHVwX3JlcXVpcmVkGAMgASgIEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYBCABKAMSEgoKY3JlYXRlZF9hdBgFIAEoAxIMCgRyb2xlGAYgASgJIhIKEExpc3RVc2Vyc1JlcXVlc3QiOAoRTGlzdFVzZXJzUmVzcG9uc2USIwoFdXNlcnMYASADKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyIiIKEUNyZWF0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIm0KEkNyZWF0ZVVzZXJSZXNwb25zZRIiCgR1c2VyGAEgASgLMhQuYXJjYS52MS5NYW5hZ2VkVXNlchITCgtzZXR1cF90b2tlbhgCIAEoCRIeChZzZXR1cF90b2tlbl9leHBpcmVzX2F0GAMgASgDIi0KGklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkidgobSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEiIKBHVzZXIYASABKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyEhMKC3NldHVwX3Rva2VuGAIgASgJEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMiQQoYQ29tcGxldGVVc2VyU2V0dXBSZXF1ZXN0EhMKC3NldHVwX3Rva2VuGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjgKGUNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLmFyY2EudjEuVXNlciI2ChVVcGRhdGVVc2VyUm9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjwKFlVwZGF0ZVVzZXJSb2xlUmVzcG9uc2USIgoEdXNlchgBIAEoCzIULmFyY2EudjEuTWFuYWdlZFVzZXIiJwoMVXNlclNldHRpbmdzEhcKD3NzaF9wdWJsaWNfa2V5cxgBIAMoCSIYChZHZXRVc2VyU2V0dGluZ3NSZXF1ZXN0IkIKF0dldFVzZXJTZXR0aW5nc1Jlc3BvbnNlEicKCHNldHRpbmdzGAEgASgLMhUuYXJjYS52MS5Vc2VyU2V0dGluZ3MiRAoZVXBkYXRlVXNlclNldHRpbmdzUmVxdWVzdBInCghzZXR0aW5ncxgBIAEoCzIVLmFyY2EudjEuVXNlclNldHRpbmdzIkUKGlVwZGF0ZVVzZXJTZXR0aW5nc1Jlc3BvbnNlEicKCHNldHRpbmdzGAEgASgLMhUuYXJjYS52MS5Vc2VyU2V0dGluZ3My3gQKC1VzZXJTZXJ2aWNlEkIKCUxpc3RVc2VycxIZLmFyY2EudjEuTGlzdFVzZXJzUmVxdWVzdBoaLmFyY2EudjEuTGlzdFVzZXJzUmVzcG9uc2USRQoKQ3JlYXRlVXNlchIaLmFyY2EudjEuQ3JlYXRlVXNlclJlcXVlc3QaGy5hcmNhLnYxLkNyZWF0ZVVzZXJSZXNwb25zZRJgChNJc3N1ZVVzZXJTZXR1cFRva2VuEiMuYXJjYS52MS5Jc3N1ZVVzZXJTZXR1cFRva2VuUmVxdWVzdBokLmFyY2EudjEuSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEloKEUNvbXBsZXRlVXNlclNldHVwEiEuYXJjYS52MS5Db21wbGV0ZVVzZXJTZXR1cFJlcXVlc3QaIi5hcmNhLnYxLkNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USUQoOVXBkYXRlVXNlclJvbGUSHi5hcmNhLnYxLlVwZGF0ZVVzZXJSb2xlUmVxdWVzdBofLmFyY2EudjEuVXBkYXRlVXNlclJvbGVSZXNwb25zZRJUCg9HZXRVc2VyU2V0dGluZ3MSHy5hcmNhLnYxLkdldFVzZXJTZXR0aW5nc1JlcXVlc3QaIC5hcmNhLnYxLkdldFVzZXJTZXR0aW5nc1Jlc3BvbnNlEl0KElVwZGF0ZVVzZXJTZXR0aW5ncxIiLmFyY2EudjEuVXBkYXRlVXNlclNldHRpbmdzUmVxdWVzdBojLmFyY2EudjEuVXBkYXRlVXNlclNldHRpbmdzUmVzcG9uc2VCiwEKC2NvbS5hcmNhLnYxQglVc2VyUHJvdG9QAVo0Z2l0aHViLmNvbS9yeW90YXJhaS9hcmNhL2ludGVybmFsL2dlbi9hcmNhL3YxO2FyY2F2MaICA0FYWKoCB0FyY2EuVjHKAgdBcmNhXFYx4gITQXJjYVxWMVxHUEJNZXRhZGF0YeoCCEFyY2E6OlYxYgZwcm90bzM", [file_arca_v1_auth]);
 
 /**
  * @generated from message arca.v1.ManagedUser
@@ -253,6 +253,87 @@ export const UpdateUserRoleResponseSchema: GenMessage<UpdateUserRoleResponse> = 
   messageDesc(file_arca_v1_user, 10);
 
 /**
+ * @generated from message arca.v1.UserSettings
+ */
+export type UserSettings = Message<"arca.v1.UserSettings"> & {
+  /**
+   * @generated from field: repeated string ssh_public_keys = 1;
+   */
+  sshPublicKeys: string[];
+};
+
+/**
+ * Describes the message arca.v1.UserSettings.
+ * Use `create(UserSettingsSchema)` to create a new message.
+ */
+export const UserSettingsSchema: GenMessage<UserSettings> = /*@__PURE__*/
+  messageDesc(file_arca_v1_user, 11);
+
+/**
+ * @generated from message arca.v1.GetUserSettingsRequest
+ */
+export type GetUserSettingsRequest = Message<"arca.v1.GetUserSettingsRequest"> & {
+};
+
+/**
+ * Describes the message arca.v1.GetUserSettingsRequest.
+ * Use `create(GetUserSettingsRequestSchema)` to create a new message.
+ */
+export const GetUserSettingsRequestSchema: GenMessage<GetUserSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_user, 12);
+
+/**
+ * @generated from message arca.v1.GetUserSettingsResponse
+ */
+export type GetUserSettingsResponse = Message<"arca.v1.GetUserSettingsResponse"> & {
+  /**
+   * @generated from field: arca.v1.UserSettings settings = 1;
+   */
+  settings?: UserSettings;
+};
+
+/**
+ * Describes the message arca.v1.GetUserSettingsResponse.
+ * Use `create(GetUserSettingsResponseSchema)` to create a new message.
+ */
+export const GetUserSettingsResponseSchema: GenMessage<GetUserSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_user, 13);
+
+/**
+ * @generated from message arca.v1.UpdateUserSettingsRequest
+ */
+export type UpdateUserSettingsRequest = Message<"arca.v1.UpdateUserSettingsRequest"> & {
+  /**
+   * @generated from field: arca.v1.UserSettings settings = 1;
+   */
+  settings?: UserSettings;
+};
+
+/**
+ * Describes the message arca.v1.UpdateUserSettingsRequest.
+ * Use `create(UpdateUserSettingsRequestSchema)` to create a new message.
+ */
+export const UpdateUserSettingsRequestSchema: GenMessage<UpdateUserSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_user, 14);
+
+/**
+ * @generated from message arca.v1.UpdateUserSettingsResponse
+ */
+export type UpdateUserSettingsResponse = Message<"arca.v1.UpdateUserSettingsResponse"> & {
+  /**
+   * @generated from field: arca.v1.UserSettings settings = 1;
+   */
+  settings?: UserSettings;
+};
+
+/**
+ * Describes the message arca.v1.UpdateUserSettingsResponse.
+ * Use `create(UpdateUserSettingsResponseSchema)` to create a new message.
+ */
+export const UpdateUserSettingsResponseSchema: GenMessage<UpdateUserSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_user, 15);
+
+/**
  * @generated from service arca.v1.UserService
  */
 export const UserService: GenService<{
@@ -295,6 +376,22 @@ export const UserService: GenService<{
     methodKind: "unary";
     input: typeof UpdateUserRoleRequestSchema;
     output: typeof UpdateUserRoleResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.UserService.GetUserSettings
+   */
+  getUserSettings: {
+    methodKind: "unary";
+    input: typeof GetUserSettingsRequestSchema;
+    output: typeof GetUserSettingsResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.UserService.UpdateUserSettings
+   */
+  updateUserSettings: {
+    methodKind: "unary";
+    input: typeof UpdateUserSettingsRequestSchema;
+    output: typeof UpdateUserSettingsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_arca_v1_user, 0);

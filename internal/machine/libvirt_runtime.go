@@ -471,11 +471,20 @@ func (r *LibvirtRuntime) domainIPv4(ctx context.Context, domainName string) (str
 }
 
 func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinaryBase64 string) string {
+	const (
+		daemonUser      = "arcad"
+		interactiveUser = "arcauser"
+	)
 	startupScript := opts.StartupScript
 	if strings.TrimSpace(startupScript) == "" {
 		startupScript = "exit 0\n"
 	}
 	startupScript = "#!/usr/bin/env bash\nset -euo pipefail\n" + startupScript
+	authorizedKeys := strings.TrimSpace(strings.Join(opts.InteractiveSSHPubKeys, "\n"))
+	if authorizedKeys != "" {
+		authorizedKeys += "\n"
+	}
+	authorizedKeysBase64 := base64.StdEncoding.EncodeToString([]byte(authorizedKeys))
 
 	envFile := fmt.Sprintf(`ARCAD_TUNNEL_TOKEN=%s
 ARCAD_CONTROL_PLANE_URL=%s
@@ -484,40 +493,49 @@ ARCAD_MACHINE_TOKEN=%s
 ARCAD_STARTUP_SENTINEL=/var/lib/arca/startup.done
 ARCAD_TTYD_SOCKET=/run/arca/ttyd.sock
 ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:21032
+ARCA_DAEMON_USER=%s
+ARCA_INTERACTIVE_USER=%s
+ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64=%s
 TTYD_SOCKET=/run/arca/ttyd.sock
 TTYD_BASE_PATH=/__arca/ttyd
 SHELLEY_BINARY_URL=https://github.com/ryotarai/shelley/releases/download/v0.321.967457453-ryotarai/shelley_linux_amd64
 SHELLEY_BASE_PATH=/__arca/shelley
 SHELLEY_PORT=21032
 SHELLEY_DB_PATH=/var/lib/arca/shelley/shelley.db
-`, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken))
+`, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken), daemonUser, interactiveUser, shellEscape(authorizedKeysBase64))
 
 	installScript := `#!/usr/bin/env bash
 set -euxo pipefail
 export DEBIAN_FRONTEND=noninteractive
 provision_marker="/var/lib/arca/provisioned"
+daemon_user="${ARCA_DAEMON_USER:-arcad}"
+interactive_user="${ARCA_INTERACTIVE_USER:-arcauser}"
+interactive_home="/home/${interactive_user}"
 
-mkdir -p /var/lib/arca
+mkdir -p /var/lib/arca /etc/arca /opt/arca /workspace
 if [ ! -f "$provision_marker" ]; then
   apt-get update
   apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential sudo
   touch "$provision_marker"
 fi
 
-id -u arca >/dev/null 2>&1 || useradd --create-home --home-dir /home/arca --shell /bin/bash arca
-cat > /etc/sudoers.d/90-arca <<'EOF'
-arca ALL=(ALL) NOPASSWD:ALL
+getent group arca >/dev/null 2>&1 || groupadd --system arca
+id -u "$daemon_user" >/dev/null 2>&1 || useradd --system --gid arca --home-dir /nonexistent --shell /usr/sbin/nologin "$daemon_user"
+id -u "$interactive_user" >/dev/null 2>&1 || useradd --create-home --home-dir "$interactive_home" --shell /bin/bash --gid arca "$interactive_user"
+cat > /etc/sudoers.d/90-arcauser <<EOF
+${interactive_user} ALL=(ALL) NOPASSWD:ALL
 EOF
-chmod 0440 /etc/sudoers.d/90-arca
-mkdir -p /workspace /etc/arca /opt/arca
-chown arca:arca /workspace
+chmod 0440 /etc/sudoers.d/90-arcauser
+chown "$interactive_user":arca /workspace
 chmod 700 /workspace
 if [ ! -x /usr/local/bin/cloudflared ]; then
   arch="$(dpkg --print-architecture)"
   curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${arch}" -o /usr/local/bin/cloudflared
   chmod +x /usr/local/bin/cloudflared
 fi
-chown -R arca:arca /home/arca
+chown root:arca /etc/arca/arcad.env
+chmod 0640 /etc/arca/arcad.env
+chown -R "$interactive_user":arca "$interactive_home"
 chmod +x /usr/local/bin/arca-bootstrap.sh
 systemctl daemon-reload
 systemctl enable --now arca-bootstrap.service
@@ -529,11 +547,18 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 sentinel="${ARCAD_STARTUP_SENTINEL:-/var/lib/arca/startup.done}"
 provision_marker="/var/lib/arca/provisioned"
+daemon_user="${ARCA_DAEMON_USER:-arcad}"
+interactive_user="${ARCA_INTERACTIVE_USER:-arcauser}"
+interactive_home="/home/${interactive_user}"
+interactive_ssh_dir="${interactive_home}/.ssh"
+authorized_keys_path="${interactive_ssh_dir}/authorized_keys"
 rm -f "$sentinel"
 
-id -u arca >/dev/null 2>&1 || useradd --create-home --home-dir /home/arca --shell /bin/bash arca
 mkdir -p /workspace /etc/arca /opt/arca /var/lib/arca
-chown arca:arca /workspace
+getent group arca >/dev/null 2>&1 || groupadd --system arca
+id -u "$daemon_user" >/dev/null 2>&1 || useradd --system --gid arca --home-dir /nonexistent --shell /usr/sbin/nologin "$daemon_user"
+id -u "$interactive_user" >/dev/null 2>&1 || useradd --create-home --home-dir "$interactive_home" --shell /bin/bash --gid arca "$interactive_user"
+chown "$interactive_user":arca /workspace
 chmod 700 /workspace
 
 need_packages=0
@@ -548,10 +573,10 @@ if [ ! -f "$provision_marker" ] || [ "$need_packages" -eq 1 ]; then
   apt-get install -y --no-install-recommends bash ca-certificates curl git jq python3 tmux ttyd build-essential sudo
   touch "$provision_marker"
 fi
-cat > /etc/sudoers.d/90-arca <<'EOF'
-arca ALL=(ALL) NOPASSWD:ALL
+cat > /etc/sudoers.d/90-arcauser <<EOF
+${interactive_user} ALL=(ALL) NOPASSWD:ALL
 EOF
-chmod 0440 /etc/sudoers.d/90-arca
+chmod 0440 /etc/sudoers.d/90-arcauser
 
 if [ ! -x /usr/local/bin/cloudflared ]; then
   arch="$(dpkg --print-architecture)"
@@ -565,8 +590,20 @@ if [ ! -x /usr/local/bin/shelley ]; then
 fi
 
 mkdir -p /var/lib/arca/shelley
-chown -R arca:arca /var/lib/arca/shelley
-chown -R arca:arca /home/arca
+chown -R "$daemon_user":arca /var/lib/arca/shelley
+chown root:arca /etc/arca/arcad.env
+chmod 0640 /etc/arca/arcad.env
+mkdir -p "$interactive_ssh_dir"
+chown -R "$interactive_user":arca "$interactive_home"
+chmod 700 "$interactive_ssh_dir"
+keys_tmp="$(mktemp)"
+if [ -n "${ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64:-}" ]; then
+  printf '%s' "${ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64}" | base64 -d > "$keys_tmp"
+else
+  : > "$keys_tmp"
+fi
+install -o "$interactive_user" -g arca -m 0600 "$keys_tmp" "$authorized_keys_path"
+rm -f "$keys_tmp"
 chmod +x /usr/local/bin/arcad
 
 /usr/bin/env bash /usr/local/bin/arca-user-startup.sh
@@ -590,25 +627,25 @@ touch "$sentinel"
 # Optional developer tooling should never block readiness.
 set +e
 if [ ! -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  su - arca -c 'CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+  su - "$interactive_user" -c 'CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
 fi
 
 if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
   brew_shellenv_line='eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
-  touch /home/arca/.bashrc
-  if ! grep -Fqx "$brew_shellenv_line" /home/arca/.bashrc; then
-    printf '\n# Homebrew\n%s\n' "$brew_shellenv_line" >> /home/arca/.bashrc
+  touch "${interactive_home}/.bashrc"
+  if ! grep -Fqx "$brew_shellenv_line" "${interactive_home}/.bashrc"; then
+    printf '\n# Homebrew\n%s\n' "$brew_shellenv_line" >> "${interactive_home}/.bashrc"
   fi
-  chown arca:arca /home/arca/.bashrc
+  chown "$interactive_user":arca "${interactive_home}/.bashrc"
 
-  if ! su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --formula codex >/dev/null 2>&1'; then
-    su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install codex'
+  if ! su - "$interactive_user" -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --formula codex >/dev/null 2>&1'; then
+    su - "$interactive_user" -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install codex'
   fi
-  if ! su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --formula gemini-cli >/dev/null 2>&1'; then
-    su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install gemini-cli'
+  if ! su - "$interactive_user" -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --formula gemini-cli >/dev/null 2>&1'; then
+    su - "$interactive_user" -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install gemini-cli'
   fi
-  if ! su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --cask claude-code >/dev/null 2>&1'; then
-    su - arca -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install --cask claude-code'
+  if ! su - "$interactive_user" -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --cask claude-code >/dev/null 2>&1'; then
+    su - "$interactive_user" -c 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew install --cask claude-code'
   fi
 fi
 set -e
@@ -619,8 +656,8 @@ set -e
 package_update: false
 write_files:
   - path: /etc/arca/arcad.env
-    permissions: "0600"
-    owner: root:root
+    permissions: "0640"
+    owner: root:arca
     encoding: b64
     content: %s
   - path: /usr/local/bin/arca-machine-install.sh
@@ -657,8 +694,8 @@ write_files:
       EnvironmentFile=/etc/arca/arcad.env
       ExecStart=/usr/local/bin/arcad
       Restart=always
-      User=root
-      Group=root
+      User=arcad
+      Group=arca
       [Install]
       WantedBy=multi-user.target
   - path: /etc/systemd/system/arca-ttyd.service
@@ -674,9 +711,9 @@ write_files:
       EnvironmentFile=/etc/arca/arcad.env
       RuntimeDirectory=arca
       ExecStartPre=/usr/bin/rm -f ${TTYD_SOCKET}
-      ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arca:arca -b ${TTYD_BASE_PATH} tmux new-session -A -s arca
+      ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arcauser:arcauser -b ${TTYD_BASE_PATH} tmux new-session -A -s arca
       Restart=always
-      User=arca
+      User=arcauser
       Group=arca
       [Install]
       WantedBy=multi-user.target
@@ -708,7 +745,7 @@ write_files:
       EnvironmentFile=/etc/arca/arcad.env
       ExecStart=/usr/local/bin/shelley -db ${SHELLEY_DB_PATH} serve -port ${SHELLEY_PORT} -base-path ${SHELLEY_BASE_PATH}
       Restart=always
-      User=arca
+      User=arcad
       Group=arca
       [Install]
       WantedBy=multi-user.target

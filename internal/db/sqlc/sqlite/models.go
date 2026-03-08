@@ -168,6 +168,13 @@ type UserMachine struct {
 	CreatedAt time.Time
 }
 
+type UserSetting struct {
+	UserID            string
+	SshPublicKeysJson string
+	CreatedAt         int64
+	UpdatedAt         int64
+}
+
 type UserSetupToken struct {
 	ID              string
 	TokenHash       string
