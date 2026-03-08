@@ -713,7 +713,7 @@ write_files:
       RuntimeDirectoryMode=0770
       UMask=0007
       ExecStartPre=/usr/bin/rm -f ${TTYD_SOCKET}
-      ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arcauser:arcauser -b ${TTYD_BASE_PATH} tmux new-session -A -s arca
+      ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arcauser:arca -b ${TTYD_BASE_PATH} tmux new-session -A -s arca
       Restart=always
       User=arcauser
       Group=arca

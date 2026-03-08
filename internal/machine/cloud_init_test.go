@@ -47,8 +47,8 @@ func TestCloudInitUserData_IncludesAndExecutesStartupScript(t *testing.T) {
 	if !strings.Contains(cloudInit, "User=arcauser") {
 		t.Fatalf("ttyd service must run as interactive user")
 	}
-	if !strings.Contains(cloudInit, "-U arcauser:arcauser") {
-		t.Fatalf("ttyd auth user must be interactive user")
+	if !strings.Contains(cloudInit, "-U arcauser:arca") {
+		t.Fatalf("ttyd auth user/group must match provisioned account and group")
 	}
 }
 
