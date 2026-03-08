@@ -710,6 +710,8 @@ write_files:
       Type=simple
       EnvironmentFile=/etc/arca/arcad.env
       RuntimeDirectory=arca
+      RuntimeDirectoryMode=0770
+      UMask=0007
       ExecStartPre=/usr/bin/rm -f ${TTYD_SOCKET}
       ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arcauser:arcauser -b ${TTYD_BASE_PATH} tmux new-session -A -s arca
       Restart=always
