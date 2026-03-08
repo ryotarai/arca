@@ -474,6 +474,7 @@ func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinary
 	const (
 		daemonUser      = "arcad"
 		interactiveUser = "arcauser"
+		agentEndpoint   = "http://localhost:8080"
 	)
 	startupScript := opts.StartupScript
 	if strings.TrimSpace(startupScript) == "" {
@@ -485,6 +486,7 @@ func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinary
 		authorizedKeys += "\n"
 	}
 	authorizedKeysBase64 := base64.StdEncoding.EncodeToString([]byte(authorizedKeys))
+	agentGuidelineSectionBase64 := base64.StdEncoding.EncodeToString([]byte(agentGuidelineSection(agentEndpoint)))
 
 	envFile := fmt.Sprintf(`ARCAD_TUNNEL_TOKEN=%s
 ARCAD_CONTROL_PLANE_URL=%s
@@ -496,13 +498,14 @@ ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:21032
 ARCA_DAEMON_USER=%s
 ARCA_INTERACTIVE_USER=%s
 ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64=%s
+ARCA_AGENT_ENDPOINT_URL=%s
 TTYD_SOCKET=/run/arca/ttyd.sock
 TTYD_BASE_PATH=/__arca/ttyd
 SHELLEY_BINARY_URL=https://github.com/ryotarai/shelley/releases/download/v0.321.967457453-ryotarai/shelley_linux_amd64
 SHELLEY_BASE_PATH=/__arca/shelley
 SHELLEY_PORT=21032
 SHELLEY_DB_PATH=/var/lib/arca/shelley/shelley.db
-`, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken), daemonUser, interactiveUser, shellEscape(authorizedKeysBase64))
+`, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken), daemonUser, interactiveUser, shellEscape(authorizedKeysBase64), shellEscape(agentEndpoint))
 
 	installScript := `#!/usr/bin/env bash
 set -euxo pipefail
@@ -607,6 +610,51 @@ rm -f "$keys_tmp"
 chmod +x /usr/local/bin/arcad
 
 /usr/bin/env bash /usr/local/bin/arca-user-startup.sh
+
+write_agent_guideline_file() {
+  local target_path="$1"
+  local managed_section_b64="$2"
+  python3 - "$target_path" "$managed_section_b64" <<'PY'
+import base64
+import pathlib
+import sys
+
+target_path = pathlib.Path(sys.argv[1])
+managed_section = base64.b64decode(sys.argv[2]).decode("utf-8")
+start_marker = "` + agentGuidelineMarkerStart + `"
+end_marker = "` + agentGuidelineMarkerEnd + `"
+
+if target_path.exists():
+    current = target_path.read_text(encoding="utf-8")
+else:
+    current = ""
+
+start = current.find(start_marker)
+if start >= 0:
+    end = current.find(end_marker, start + len(start_marker))
+else:
+    end = -1
+
+if start >= 0 and end >= 0:
+    end += len(end_marker)
+    updated = current[:start] + managed_section + current[end:]
+else:
+    if current and not current.endswith("\n"):
+        current += "\n"
+    if current and not current.endswith("\n\n"):
+        current += "\n"
+    updated = current + managed_section
+
+target_path.parent.mkdir(parents=True, exist_ok=True)
+target_path.write_text(updated, encoding="utf-8")
+PY
+}
+
+guideline_section_b64="` + agentGuidelineSectionBase64 + `"
+write_agent_guideline_file "${interactive_home}/.claude/CLAUDE.md" "${guideline_section_b64}"
+write_agent_guideline_file "${interactive_home}/.codex/AGENTS.md" "${guideline_section_b64}"
+write_agent_guideline_file "${interactive_home}/.gemini/GEMINI.md" "${guideline_section_b64}"
+chown -R "$interactive_user":arca "${interactive_home}/.claude" "${interactive_home}/.codex" "${interactive_home}/.gemini"
 
 
 systemctl daemon-reload

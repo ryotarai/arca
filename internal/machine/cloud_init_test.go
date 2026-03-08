@@ -41,6 +41,15 @@ func TestCloudInitUserData_IncludesAndExecutesStartupScript(t *testing.T) {
 	if !strings.Contains(bootstrapScript, "authorized_keys") {
 		t.Fatalf("bootstrap script does not provision authorized_keys")
 	}
+	for _, path := range []string{
+		"${interactive_home}/.claude/CLAUDE.md",
+		"${interactive_home}/.codex/AGENTS.md",
+		"${interactive_home}/.gemini/GEMINI.md",
+	} {
+		if !strings.Contains(bootstrapScript, path) {
+			t.Fatalf("bootstrap script does not provision guideline file %s", path)
+		}
+	}
 	if !strings.Contains(cloudInit, "User=arcad") {
 		t.Fatalf("arcad service must run as daemon user")
 	}
