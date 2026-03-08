@@ -19,8 +19,14 @@ func TestReplaceOrAppendMarkedSection_InitialGeneration(t *testing.T) {
 	if !strings.Contains(got, "Endpoint URL inside this machine: `http://localhost:8080`.") {
 		t.Fatalf("managed section must include endpoint URL")
 	}
+	if !strings.Contains(got, "Requests to the endpoint URL are delivered to port `8080` on this machine.") {
+		t.Fatalf("managed section must mention endpoint requests reach port 8080")
+	}
 	if !strings.Contains(got, "supervised by `systemd`") {
 		t.Fatalf("managed section must include systemd note")
+	}
+	if !strings.Contains(got, "Visibility scope (`owner only`, `specific users`, `all arca users`, `internet public`) is configured in the arca app (server).") {
+		t.Fatalf("managed section must include visibility scope configuration note")
 	}
 }
 
