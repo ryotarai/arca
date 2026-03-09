@@ -13,10 +13,10 @@ import {
 
 const e2eDBPath = '/tmp/arca-e2e.db'
 
-function ensureLibvirtRuntimeInDB() {
+function ensureLxdRuntimeInDB() {
   execFileSync('sqlite3', [
     e2eDBPath,
-    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('libvirt', 'libvirt-default', 'libvirt', '{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
+    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('lxd', 'lxd-default', 'lxd', '{"lxd":{"endpoint":"https://localhost:8443"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
   ], { stdio: 'pipe' })
 }
 
@@ -32,7 +32,7 @@ test.describe('critical user journey', () => {
 
     await validateCloudflareToken(page, configResult.config)
     await loginAsAdmin(page)
-    ensureLibvirtRuntimeInDB()
+    ensureLxdRuntimeInDB()
 
     const machineName = `critical-${Date.now().toString(36)}`
     let machineID = ''

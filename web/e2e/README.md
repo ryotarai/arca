@@ -1,5 +1,32 @@
 # E2E test guide
 
+## Prerequisites
+
+The critical user journey test requires **LXD** for container-based machine management.
+
+### LXD setup
+
+1. Install and initialize LXD:
+
+```bash
+sudo snap install lxd
+sudo lxd init --auto
+```
+
+2. Add your user to the `lxd` group (log out and back in after):
+
+```bash
+sudo usermod -aG lxd $USER
+```
+
+3. Verify LXD is working:
+
+```bash
+lxc list
+```
+
+The E2E test inserts an LXD runtime record into the test database with the default endpoint (`https://localhost:8443`). The `lxc` CLI uses the local unix socket by default, so no TLS configuration is needed.
+
 ## Default local run
 
 Run UI E2E tests without real Cloudflare credentials:
