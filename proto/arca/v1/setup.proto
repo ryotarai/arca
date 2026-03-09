@@ -6,6 +6,7 @@ option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
 
 service SetupService {
   rpc GetSetupStatus(GetSetupStatusRequest) returns (GetSetupStatusResponse);
+  rpc VerifySetupPassword(VerifySetupPasswordRequest) returns (VerifySetupPasswordResponse);
   rpc ValidateCloudflareToken(ValidateCloudflareTokenRequest) returns (ValidateCloudflareTokenResponse);
   rpc CompleteSetup(CompleteSetupRequest) returns (CompleteSetupResponse);
   rpc UpdateDomainSettings(UpdateDomainSettingsRequest) returns (UpdateDomainSettingsResponse);
@@ -40,6 +41,14 @@ message GetSetupStatusRequest {}
 
 message GetSetupStatusResponse {
   SetupStatus status = 1;
+}
+
+message VerifySetupPasswordRequest {
+  string setup_password = 1;
+}
+
+message VerifySetupPasswordResponse {
+  bool valid = 1;
 }
 
 message ValidateCloudflareTokenRequest {

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/setup.proto.
  */
 export const file_arca_v1_setup: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxItMDCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEikKIWludGVybmV0X3B1YmxpY19leHBvc3VyZV9kaXNhYmxlZBgJIAEoCBIUCgxvaWRjX2VuYWJsZWQYCiABKAgSFwoPb2lkY19pc3N1ZXJfdXJsGAsgASgJEhYKDm9pZGNfY2xpZW50X2lkGAwgASgJEiUKHW9pZGNfY2xpZW50X3NlY3JldF9jb25maWd1cmVkGA0gASgIEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGA4gAygJEj0KFnNlcnZlcl9leHBvc3VyZV9tZXRob2QYDyABKA4yHS5hcmNhLnYxLlNlcnZlckV4cG9zdXJlTWV0aG9kEhUKDXNlcnZlcl9kb21haW4YECABKAlKBAgFEAYiFwoVR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Ij4KFkdldFNldHVwU3RhdHVzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyJHCh5WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlcXVlc3QSEQoJYXBpX3Rva2VuGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiQQofVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRINCgV2YWxpZBgBIAEoCBIPCgdtZXNzYWdlGAIgASgJIrYCChRDb21wbGV0ZVNldHVwUmVxdWVzdBITCgthZG1pbl9lbWFpbBgBIAEoCRIWCg5hZG1pbl9wYXNzd29yZBgCIAEoCRITCgtiYXNlX2RvbWFpbhgDIAEoCRIcChRjbG91ZGZsYXJlX2FwaV90b2tlbhgEIAEoCRIaChJjbG91ZGZsYXJlX3pvbmVfaWQYBiABKAkSFQoNZG9tYWluX3ByZWZpeBgHIAEoCRIXCg9tYWNoaW5lX3J1bnRpbWUYCCABKAkSPQoWc2VydmVyX2V4cG9zdXJlX21ldGhvZBgJIAEoDjIdLmFyY2EudjEuU2VydmVyRXhwb3N1cmVNZXRob2QSFQoNc2VydmVyX2RvbWFpbhgKIAEoCRIWCg5zZXR1cF9wYXNzd29yZBgLIAEoCUoECAUQBiI9ChVDb21wbGV0ZVNldHVwUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyLFAwobVXBkYXRlRG9tYWluU2V0dGluZ3NSZXF1ZXN0EhMKC2Jhc2VfZG9tYWluGAEgASgJEhUKDWRvbWFpbl9wcmVmaXgYAiABKAkSFwoPbWFjaGluZV9ydW50aW1lGAMgASgJEigKIGRpc2FibGVfaW50ZXJuZXRfcHVibGljX2V4cG9zdXJlGAQgASgIEhQKDG9pZGNfZW5hYmxlZBgFIAEoCBIXCg9vaWRjX2lzc3Vlcl91cmwYBiABKAkSFgoOb2lkY19jbGllbnRfaWQYByABKAkSGgoSb2lkY19jbGllbnRfc2VjcmV0GAggASgJEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGAkgAygJEiAKGGNsZWFyX29pZGNfY2xpZW50X3NlY3JldBgKIAEoCBI9ChZzZXJ2ZXJfZXhwb3N1cmVfbWV0aG9kGAsgASgOMh0uYXJjYS52MS5TZXJ2ZXJFeHBvc3VyZU1ldGhvZBIVCg1zZXJ2ZXJfZG9tYWluGAwgASgJEhwKFGNsb3VkZmxhcmVfYXBpX3Rva2VuGA0gASgJEhoKEmNsb3VkZmxhcmVfem9uZV9pZBgOIAEoCSJEChxVcGRhdGVEb21haW5TZXR0aW5nc1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMqjwEKFFNlcnZlckV4cG9zdXJlTWV0aG9kEiYKIlNFUlZFUl9FWFBPU1VSRV9NRVRIT0RfVU5TUEVDSUZJRUQQABIsCihTRVJWRVJfRVhQT1NVUkVfTUVUSE9EX0NMT1VERkxBUkVfVFVOTkVMEAESIQodU0VSVkVSX0VYUE9TVVJFX01FVEhPRF9NQU5VQUwQAjKEAwoMU2V0dXBTZXJ2aWNlElEKDkdldFNldHVwU3RhdHVzEh4uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1JlcXVlc3QaHy5hcmNhLnYxLkdldFNldHVwU3RhdHVzUmVzcG9uc2USbAoXVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW4SJy5hcmNhLnYxLlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVxdWVzdBooLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRJOCg1Db21wbGV0ZVNldHVwEh0uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVxdWVzdBoeLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlc3BvbnNlEmMKFFVwZGF0ZURvbWFpblNldHRpbmdzEiQuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpTZXR1cFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
+  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxItMDCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEikKIWludGVybmV0X3B1YmxpY19leHBvc3VyZV9kaXNhYmxlZBgJIAEoCBIUCgxvaWRjX2VuYWJsZWQYCiABKAgSFwoPb2lkY19pc3N1ZXJfdXJsGAsgASgJEhYKDm9pZGNfY2xpZW50X2lkGAwgASgJEiUKHW9pZGNfY2xpZW50X3NlY3JldF9jb25maWd1cmVkGA0gASgIEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGA4gAygJEj0KFnNlcnZlcl9leHBvc3VyZV9tZXRob2QYDyABKA4yHS5hcmNhLnYxLlNlcnZlckV4cG9zdXJlTWV0aG9kEhUKDXNlcnZlcl9kb21haW4YECABKAlKBAgFEAYiFwoVR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Ij4KFkdldFNldHVwU3RhdHVzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyI0ChpWZXJpZnlTZXR1cFBhc3N3b3JkUmVxdWVzdBIWCg5zZXR1cF9wYXNzd29yZBgBIAEoCSIsChtWZXJpZnlTZXR1cFBhc3N3b3JkUmVzcG9uc2USDQoFdmFsaWQYASABKAgiRwoeVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXF1ZXN0EhEKCWFwaV90b2tlbhgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJIkEKH1ZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDwoHbWVzc2FnZRgCIAEoCSK2AgoUQ29tcGxldGVTZXR1cFJlcXVlc3QSEwoLYWRtaW5fZW1haWwYASABKAkSFgoOYWRtaW5fcGFzc3dvcmQYAiABKAkSEwoLYmFzZV9kb21haW4YAyABKAkSHAoUY2xvdWRmbGFyZV9hcGlfdG9rZW4YBCABKAkSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEj0KFnNlcnZlcl9leHBvc3VyZV9tZXRob2QYCSABKA4yHS5hcmNhLnYxLlNlcnZlckV4cG9zdXJlTWV0aG9kEhUKDXNlcnZlcl9kb21haW4YCiABKAkSFgoOc2V0dXBfcGFzc3dvcmQYCyABKAlKBAgFEAYiPQoVQ29tcGxldGVTZXR1cFJlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMixQMKG1VwZGF0ZURvbWFpblNldHRpbmdzUmVxdWVzdBITCgtiYXNlX2RvbWFpbhgBIAEoCRIVCg1kb21haW5fcHJlZml4GAIgASgJEhcKD21hY2hpbmVfcnVudGltZRgDIAEoCRIoCiBkaXNhYmxlX2ludGVybmV0X3B1YmxpY19leHBvc3VyZRgEIAEoCBIUCgxvaWRjX2VuYWJsZWQYBSABKAgSFwoPb2lkY19pc3N1ZXJfdXJsGAYgASgJEhYKDm9pZGNfY2xpZW50X2lkGAcgASgJEhoKEm9pZGNfY2xpZW50X3NlY3JldBgIIAEoCRIiChpvaWRjX2FsbG93ZWRfZW1haWxfZG9tYWlucxgJIAMoCRIgChhjbGVhcl9vaWRjX2NsaWVudF9zZWNyZXQYCiABKAgSPQoWc2VydmVyX2V4cG9zdXJlX21ldGhvZBgLIAEoDjIdLmFyY2EudjEuU2VydmVyRXhwb3N1cmVNZXRob2QSFQoNc2VydmVyX2RvbWFpbhgMIAEoCRIcChRjbG91ZGZsYXJlX2FwaV90b2tlbhgNIAEoCRIaChJjbG91ZGZsYXJlX3pvbmVfaWQYDiABKAkiRAocVXBkYXRlRG9tYWluU2V0dGluZ3NSZXNwb25zZRIkCgZzdGF0dXMYASABKAsyFC5hcmNhLnYxLlNldHVwU3RhdHVzKo8BChRTZXJ2ZXJFeHBvc3VyZU1ldGhvZBImCiJTRVJWRVJfRVhQT1NVUkVfTUVUSE9EX1VOU1BFQ0lGSUVEEAASLAooU0VSVkVSX0VYUE9TVVJFX01FVEhPRF9DTE9VREZMQVJFX1RVTk5FTBABEiEKHVNFUlZFUl9FWFBPU1VSRV9NRVRIT0RfTUFOVUFMEAIy5gMKDFNldHVwU2VydmljZRJRCg5HZXRTZXR1cFN0YXR1cxIeLmFyY2EudjEuR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Gh8uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1Jlc3BvbnNlEmAKE1ZlcmlmeVNldHVwUGFzc3dvcmQSIy5hcmNhLnYxLlZlcmlmeVNldHVwUGFzc3dvcmRSZXF1ZXN0GiQuYXJjYS52MS5WZXJpZnlTZXR1cFBhc3N3b3JkUmVzcG9uc2USbAoXVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW4SJy5hcmNhLnYxLlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVxdWVzdBooLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRJOCg1Db21wbGV0ZVNldHVwEh0uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVxdWVzdBoeLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlc3BvbnNlEmMKFFVwZGF0ZURvbWFpblNldHRpbmdzEiQuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpTZXR1cFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message arca.v1.SetupStatus
@@ -130,6 +130,40 @@ export const GetSetupStatusResponseSchema: GenMessage<GetSetupStatusResponse> = 
   messageDesc(file_arca_v1_setup, 2);
 
 /**
+ * @generated from message arca.v1.VerifySetupPasswordRequest
+ */
+export type VerifySetupPasswordRequest = Message<"arca.v1.VerifySetupPasswordRequest"> & {
+  /**
+   * @generated from field: string setup_password = 1;
+   */
+  setupPassword: string;
+};
+
+/**
+ * Describes the message arca.v1.VerifySetupPasswordRequest.
+ * Use `create(VerifySetupPasswordRequestSchema)` to create a new message.
+ */
+export const VerifySetupPasswordRequestSchema: GenMessage<VerifySetupPasswordRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_setup, 3);
+
+/**
+ * @generated from message arca.v1.VerifySetupPasswordResponse
+ */
+export type VerifySetupPasswordResponse = Message<"arca.v1.VerifySetupPasswordResponse"> & {
+  /**
+   * @generated from field: bool valid = 1;
+   */
+  valid: boolean;
+};
+
+/**
+ * Describes the message arca.v1.VerifySetupPasswordResponse.
+ * Use `create(VerifySetupPasswordResponseSchema)` to create a new message.
+ */
+export const VerifySetupPasswordResponseSchema: GenMessage<VerifySetupPasswordResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_setup, 4);
+
+/**
  * @generated from message arca.v1.ValidateCloudflareTokenRequest
  */
 export type ValidateCloudflareTokenRequest = Message<"arca.v1.ValidateCloudflareTokenRequest"> & {
@@ -149,7 +183,7 @@ export type ValidateCloudflareTokenRequest = Message<"arca.v1.ValidateCloudflare
  * Use `create(ValidateCloudflareTokenRequestSchema)` to create a new message.
  */
 export const ValidateCloudflareTokenRequestSchema: GenMessage<ValidateCloudflareTokenRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 3);
+  messageDesc(file_arca_v1_setup, 5);
 
 /**
  * @generated from message arca.v1.ValidateCloudflareTokenResponse
@@ -171,7 +205,7 @@ export type ValidateCloudflareTokenResponse = Message<"arca.v1.ValidateCloudflar
  * Use `create(ValidateCloudflareTokenResponseSchema)` to create a new message.
  */
 export const ValidateCloudflareTokenResponseSchema: GenMessage<ValidateCloudflareTokenResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 4);
+  messageDesc(file_arca_v1_setup, 6);
 
 /**
  * @generated from message arca.v1.CompleteSetupRequest
@@ -233,7 +267,7 @@ export type CompleteSetupRequest = Message<"arca.v1.CompleteSetupRequest"> & {
  * Use `create(CompleteSetupRequestSchema)` to create a new message.
  */
 export const CompleteSetupRequestSchema: GenMessage<CompleteSetupRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 5);
+  messageDesc(file_arca_v1_setup, 7);
 
 /**
  * @generated from message arca.v1.CompleteSetupResponse
@@ -250,7 +284,7 @@ export type CompleteSetupResponse = Message<"arca.v1.CompleteSetupResponse"> & {
  * Use `create(CompleteSetupResponseSchema)` to create a new message.
  */
 export const CompleteSetupResponseSchema: GenMessage<CompleteSetupResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 6);
+  messageDesc(file_arca_v1_setup, 8);
 
 /**
  * @generated from message arca.v1.UpdateDomainSettingsRequest
@@ -332,7 +366,7 @@ export type UpdateDomainSettingsRequest = Message<"arca.v1.UpdateDomainSettingsR
  * Use `create(UpdateDomainSettingsRequestSchema)` to create a new message.
  */
 export const UpdateDomainSettingsRequestSchema: GenMessage<UpdateDomainSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 7);
+  messageDesc(file_arca_v1_setup, 9);
 
 /**
  * @generated from message arca.v1.UpdateDomainSettingsResponse
@@ -349,7 +383,7 @@ export type UpdateDomainSettingsResponse = Message<"arca.v1.UpdateDomainSettings
  * Use `create(UpdateDomainSettingsResponseSchema)` to create a new message.
  */
 export const UpdateDomainSettingsResponseSchema: GenMessage<UpdateDomainSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 8);
+  messageDesc(file_arca_v1_setup, 10);
 
 /**
  * @generated from enum arca.v1.ServerExposureMethod
@@ -388,6 +422,14 @@ export const SetupService: GenService<{
     methodKind: "unary";
     input: typeof GetSetupStatusRequestSchema;
     output: typeof GetSetupStatusResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.SetupService.VerifySetupPassword
+   */
+  verifySetupPassword: {
+    methodKind: "unary";
+    input: typeof VerifySetupPasswordRequestSchema;
+    output: typeof VerifySetupPasswordResponseSchema;
   },
   /**
    * @generated from rpc arca.v1.SetupService.ValidateCloudflareToken

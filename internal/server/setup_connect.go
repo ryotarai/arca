@@ -66,6 +66,34 @@ func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Req
 	return connect.NewResponse(&arcav1.GetSetupStatusResponse{Status: setupStatusMessage(state)}), nil
 }
 
+func (s *setupConnectService) VerifySetupPassword(ctx context.Context, req *connect.Request[arcav1.VerifySetupPasswordRequest]) (*connect.Response[arcav1.VerifySetupPasswordResponse], error) {
+	if shouldSkipSetup() {
+		return connect.NewResponse(&arcav1.VerifySetupPasswordResponse{Valid: true}), nil
+	}
+
+	if s.store == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("setup store unavailable"))
+	}
+
+	state, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		log.Printf("get setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
+	}
+	if state.Completed {
+		return connect.NewResponse(&arcav1.VerifySetupPasswordResponse{Valid: true}), nil
+	}
+
+	storedPassword, err := s.store.GetSetupPassword(ctx)
+	if err != nil {
+		log.Printf("get setup password failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to verify setup password"))
+	}
+
+	valid := storedPassword == "" || req.Msg.GetSetupPassword() == storedPassword
+	return connect.NewResponse(&arcav1.VerifySetupPasswordResponse{Valid: valid}), nil
+}
+
 func (s *setupConnectService) ValidateCloudflareToken(ctx context.Context, req *connect.Request[arcav1.ValidateCloudflareTokenRequest]) (*connect.Response[arcav1.ValidateCloudflareTokenResponse], error) {
 	if s.cf == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("cloudflare client unavailable"))
