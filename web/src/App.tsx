@@ -82,13 +82,13 @@ export function App() {
               hasAdmin={setupStatus.hasAdmin}
               initialCloudflareZoneID={setupStatus.cloudflareZoneID}
               onAdminReady={setUser}
-              onSetupComplete={(zoneID, baseDomain, domainPrefix) =>
+              onSetupComplete={(zoneID) =>
                 setSetupStatus({
                   isConfigured: true,
                   hasAdmin: true,
                   cloudflareZoneID: zoneID,
-                  baseDomain,
-                  domainPrefix,
+                  baseDomain: '',
+                  domainPrefix: '',
                   internetPublicExposureDisabled: false,
                   oidcEnabled: false,
                   oidcIssuerURL: '',

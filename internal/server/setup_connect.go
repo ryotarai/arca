@@ -236,10 +236,6 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		}
 	}
 
-	// Keep base_domain/domain_prefix for backward compat (they're now mainly per-runtime)
-	baseDomain := strings.ToLower(strings.TrimSpace(req.Msg.GetBaseDomain()))
-	domainPrefix := strings.ToLower(strings.TrimSpace(req.Msg.GetDomainPrefix()))
-
 	adminUserID, _, err := s.authenticator.Register(ctx, email, password)
 	if err != nil {
 		switch {
@@ -261,8 +257,6 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	state := db.SetupState{
 		Completed:            true,
 		HasAdmin:             true,
-		BaseDomain:           baseDomain,
-		DomainPrefix:         domainPrefix,
 		CloudflareAPIToken:   cfToken,
 		MachineRuntime:       normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
 		CloudflareZoneID:     zoneID,
@@ -308,17 +302,6 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("setup is not completed yet"))
 	}
 
-	baseDomain, err := validateBaseDomain(req.Msg.GetBaseDomain())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-	domainPrefix, err := validateDomainPrefix(req.Msg.GetDomainPrefix())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	current.BaseDomain = baseDomain
-	current.DomainPrefix = domainPrefix
 	if strings.TrimSpace(req.Msg.GetMachineRuntime()) != "" {
 		current.MachineRuntime = normalizeMachineRuntime(req.Msg.GetMachineRuntime())
 	}
@@ -383,8 +366,6 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		Completed:                      state.Completed,
 		AdminConfigured:                state.HasAdmin,
 		CloudflareConfigured:           strings.TrimSpace(state.CloudflareAPIToken) != "",
-		BaseDomain:                     state.BaseDomain,
-		DomainPrefix:                   state.DomainPrefix,
 		CloudflareZoneId:               state.CloudflareZoneID,
 		MachineRuntime:                 normalizeMachineRuntime(state.MachineRuntime),
 		InternetPublicExposureDisabled: state.InternetPublicExposureDisabled,

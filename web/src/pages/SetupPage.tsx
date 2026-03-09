@@ -10,12 +10,6 @@ import {
   setupValidateCloudflare,
   verifySetupPassword,
 } from '@/lib/api'
-import {
-  normalizeBaseDomainInput,
-  normalizeDomainPrefixInput,
-  validateBaseDomainInput,
-  validateDomainPrefixInput,
-} from '@/lib/domainValidation'
 import { messageFromError } from '@/lib/errors'
 import type { ServerExposureMethod, User } from '@/lib/types'
 
@@ -23,11 +17,7 @@ type SetupPageProps = {
   hasAdmin: boolean
   initialCloudflareZoneID: string
   onAdminReady: (user: User) => void
-  onSetupComplete: (
-    zoneID: string,
-    baseDomain: string,
-    domainPrefix: string,
-  ) => void
+  onSetupComplete: (zoneID: string) => void
 }
 
 export function SetupPage({
@@ -44,8 +34,6 @@ export function SetupPage({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [serverExposureMethod, setServerExposureMethod] = useState<ServerExposureMethod>('cloudflare_tunnel')
   const [serverDomain, setServerDomain] = useState('')
-  const [baseDomain, setBaseDomain] = useState('')
-  const [domainPrefix, setDomainPrefix] = useState('')
   const [cloudflareAccountID, setCloudflareAccountID] = useState('')
   const [cloudflareToken, setCloudflareToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(initialCloudflareZoneID)
@@ -58,30 +46,6 @@ export function SetupPage({
     }
     return 100
   }, [step])
-
-  const baseDomainError = useMemo(() => validateBaseDomainInput(baseDomain), [baseDomain])
-  const domainPrefixError = useMemo(() => validateDomainPrefixInput(domainPrefix), [domainPrefix])
-
-  const consoleEndpoint = useMemo(() => {
-    if (baseDomainError != null || domainPrefixError != null) {
-      return ''
-    }
-    const normalizedDomain = normalizeBaseDomainInput(baseDomain)
-    if (normalizedDomain === '') {
-      return ''
-    }
-    const normalizedPrefix = normalizeDomainPrefixInput(domainPrefix)
-    const label = `${normalizedPrefix}app`.replace(/^-+|-+$/g, '') || 'app'
-    return `https://${label}.${normalizedDomain}`
-  }, [baseDomain, baseDomainError, domainPrefix, domainPrefixError])
-
-  const machineEndpointPreview = useMemo(() => {
-    const normalizedDomain = normalizeBaseDomainInput(baseDomain)
-    const base = normalizedDomain === '' ? 'your-domain.example.com' : normalizedDomain
-    const normalizedPrefix = normalizeDomainPrefixInput(domainPrefix)
-    const prefix = normalizedPrefix === '' ? 'your-prefix-' : normalizedPrefix
-    return `${prefix}machine-name.${base}`
-  }, [baseDomain, domainPrefix])
 
   const submitAdmin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -115,17 +79,6 @@ export function SetupPage({
     setError('')
     setLoadingStep(true)
     try {
-      const normalizedBaseDomain = normalizeBaseDomainInput(baseDomain)
-      const normalizedDomainPrefix = normalizeDomainPrefixInput(domainPrefix)
-      const nextBaseDomainError = validateBaseDomainInput(normalizedBaseDomain)
-      if (nextBaseDomainError != null) {
-        throw new Error(nextBaseDomainError)
-      }
-      const nextDomainPrefixError = validateDomainPrefixInput(normalizedDomainPrefix)
-      if (nextDomainPrefixError != null) {
-        throw new Error(nextDomainPrefixError)
-      }
-
       if (serverExposureMethod === 'cloudflare_tunnel') {
         if (cloudflareZoneID.trim() === '') {
           throw new Error('cloudflare zone id is required')
@@ -133,7 +86,7 @@ export function SetupPage({
         if (cloudflareAccountID.trim() === '') {
           throw new Error('cloudflare account id is required')
         }
-        await setupValidateCloudflare(cloudflareToken, cloudflareAccountID, normalizedBaseDomain)
+        await setupValidateCloudflare(cloudflareToken, cloudflareAccountID, '')
       } else {
         if (serverDomain.trim() === '') {
           throw new Error('server domain is required for manual exposure')
@@ -143,15 +96,13 @@ export function SetupPage({
       await setupComplete(
         email,
         password,
-        normalizedBaseDomain,
-        normalizedDomainPrefix,
         cloudflareToken,
         cloudflareZoneID,
         serverExposureMethod,
         serverDomain.trim(),
         setupPassword,
       )
-      onSetupComplete(cloudflareZoneID, normalizedBaseDomain, normalizedDomainPrefix)
+      onSetupComplete(cloudflareZoneID)
       window.setTimeout(() => {
         void navigate('/', { replace: true })
       }, 350)
@@ -255,7 +206,7 @@ export function SetupPage({
             <CardHeader className="space-y-2 p-6 pb-3">
               <CardTitle className="text-xl text-white">2. Configure server exposure</CardTitle>
               <CardDescription className="text-slate-300">
-                Choose how the Arca console is exposed and configure domain settings.
+                Choose how the Arca console is exposed to the network.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-3">
@@ -296,35 +247,6 @@ export function SetupPage({
                     <p className="text-xs text-slate-400">The domain where machines will reach this server.</p>
                   </div>
                 )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="setup-base-domain" className="text-slate-200">
-                    Base domain
-                  </Label>
-                  <Input
-                    id="setup-base-domain"
-                    value={baseDomain}
-                    onChange={(event) => setBaseDomain(event.target.value)}
-                    required
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                    placeholder="example.com"
-                  />
-                  {baseDomain !== '' && baseDomainError != null && <p className="text-sm text-red-300">{baseDomainError}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="setup-domain-prefix" className="text-slate-200">
-                    Domain prefix
-                  </Label>
-                  <Input
-                    id="setup-domain-prefix"
-                    value={domainPrefix}
-                    onChange={(event) => setDomainPrefix(event.target.value)}
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                    placeholder="arca-"
-                  />
-                  {domainPrefix !== '' && domainPrefixError != null && <p className="text-sm text-red-300">{domainPrefixError}</p>}
-                  <p className="text-xs text-slate-400">Machine endpoint preview: {machineEndpointPreview}</p>
-                </div>
 
                 {serverExposureMethod === 'cloudflare_tunnel' && (
                   <div className="space-y-4 rounded-lg border border-white/10 bg-white/[0.02] p-4">
@@ -372,15 +294,9 @@ export function SetupPage({
                   </div>
                 )}
 
-                {serverExposureMethod === 'cloudflare_tunnel' && consoleEndpoint !== '' && (
-                  <div className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-4">
-                    <p className="text-sm text-slate-200">Console endpoint after setup</p>
-                    <p className="mt-1 break-all text-sm font-medium text-sky-200">{consoleEndpoint}</p>
-                  </div>
-                )}
                 <Button
                   type="submit"
-                  disabled={loadingStep || baseDomainError != null || domainPrefixError != null}
+                  disabled={loadingStep}
                   className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100"
                 >
                   {loadingStep ? 'Completing setup...' : 'Finish setup'}
