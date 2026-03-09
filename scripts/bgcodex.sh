@@ -20,4 +20,5 @@ else
     RUN_CMD="echo -ne '\033]2;${PANE_TITLE}\033\\'; codex \"$PROMPT\"; exec bash"
 fi
 
-tmux split-window -d -h -c "$WORKING_DIR" "$RUN_CMD"
+PANE_ID=$(tmux split-window -d -h -c "$WORKING_DIR" -P -F '#{pane_id}' "$RUN_CMD")
+tmux set-option -t "$PANE_ID" allow-rename off
