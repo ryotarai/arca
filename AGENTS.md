@@ -45,7 +45,7 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Baseline style: dark neutral base, subtle gradient/grid background texture, restrained accent colors, high-contrast typography, soft borders, and glass-like card surfaces.
 - Reuse existing spacing, radius, and density patterns from the login page to keep visual consistency across new screens.
 - Prefer composition with existing `shadcn/ui` primitives and shared utility classes; avoid introducing a competing visual language per page.
-- Design for early feedback: validate user input as early as possible (for example, verify credentials or passwords at the step where they are entered, not after a multi-step wizard completes). Avoid deferring error reporting to the end of a flow when the error is detectable earlier.
+- Always consider UX from the end-user's perspective. Design flows that are intuitive and user-friendly; avoid patterns that frustrate or confuse users.
 
 ## Testing Guidelines
 - Run tests with `make test` before pushing.
