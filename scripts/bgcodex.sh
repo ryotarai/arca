@@ -12,13 +12,16 @@ WORKING_DIR="${3:-$(pwd)}"
 tmux set -g pane-border-status top 2>/dev/null
 
 # Set the caller's pane title to "manager"
-printf '\033]2;manager\033\\'
+tmux select-pane -t "$TMUX_PANE" -T "manager"
 
 if [ "${AGENT:-codex}" = "claude" ]; then
-    RUN_CMD="echo -ne '\033]2;${PANE_TITLE}\033\\'; claude \"$PROMPT\"; exec bash"
+    RUN_CMD="claude \"$PROMPT\"; exec bash"
 else
-    RUN_CMD="echo -ne '\033]2;${PANE_TITLE}\033\\'; codex \"$PROMPT\"; exec bash"
+    RUN_CMD="codex \"$PROMPT\"; exec bash"
 fi
 
-PANE_ID=$(tmux split-window -d -h -c "$WORKING_DIR" -P -F '#{pane_id}' "$RUN_CMD")
+# Split targeting the caller's pane so it always lands in the right window
+PANE_ID=$(tmux split-window -d -h -t "$TMUX_PANE" -c "$WORKING_DIR" -P -F '#{pane_id}' "$RUN_CMD")
+# Prevent the spawned process from overwriting the pane title
 tmux set-option -t "$PANE_ID" allow-rename off
+tmux select-pane -t "$PANE_ID" -T "$PANE_TITLE"
