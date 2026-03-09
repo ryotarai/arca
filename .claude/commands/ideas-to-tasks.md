@@ -1,0 +1,1 @@
+../../.agents/skills/ideas-to-tasks/SKILL.md
