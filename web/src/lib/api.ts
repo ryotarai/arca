@@ -657,6 +657,14 @@ export async function getSetupStatus(): Promise<SetupStatus> {
   }
 }
 
+export async function verifySetupPassword(password: string): Promise<boolean> {
+  const response = await connectJSON<{ valid?: boolean }>(
+    '/arca.v1.SetupService/VerifySetupPassword',
+    { setupPassword: password },
+  )
+  return response.valid === true
+}
+
 export async function setupCreateAdmin(email: string, password: string): Promise<User | null> {
   if (email.trim() === '' || password.trim() === '') {
     throw new Error('email and password are required')

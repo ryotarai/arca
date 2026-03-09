@@ -8,6 +8,7 @@ import {
   setupComplete,
   setupCreateAdmin,
   setupValidateCloudflare,
+  verifySetupPassword,
 } from '@/lib/api'
 import {
   normalizeBaseDomainInput,
@@ -92,6 +93,11 @@ export function SetupPage({
     setError('')
     setLoadingStep(true)
     try {
+      const valid = await verifySetupPassword(setupPassword)
+      if (!valid) {
+        setError('Invalid setup password')
+        return
+      }
       const user = await setupCreateAdmin(email, password)
       if (user != null) {
         onAdminReady(user)

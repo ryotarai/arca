@@ -36,6 +36,9 @@ const (
 	// SetupServiceGetSetupStatusProcedure is the fully-qualified name of the SetupService's
 	// GetSetupStatus RPC.
 	SetupServiceGetSetupStatusProcedure = "/arca.v1.SetupService/GetSetupStatus"
+	// SetupServiceVerifySetupPasswordProcedure is the fully-qualified name of the SetupService's
+	// VerifySetupPassword RPC.
+	SetupServiceVerifySetupPasswordProcedure = "/arca.v1.SetupService/VerifySetupPassword"
 	// SetupServiceValidateCloudflareTokenProcedure is the fully-qualified name of the SetupService's
 	// ValidateCloudflareToken RPC.
 	SetupServiceValidateCloudflareTokenProcedure = "/arca.v1.SetupService/ValidateCloudflareToken"
@@ -50,6 +53,7 @@ const (
 // SetupServiceClient is a client for the arca.v1.SetupService service.
 type SetupServiceClient interface {
 	GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error)
+	VerifySetupPassword(context.Context, *connect.Request[v1.VerifySetupPasswordRequest]) (*connect.Response[v1.VerifySetupPasswordResponse], error)
 	ValidateCloudflareToken(context.Context, *connect.Request[v1.ValidateCloudflareTokenRequest]) (*connect.Response[v1.ValidateCloudflareTokenResponse], error)
 	CompleteSetup(context.Context, *connect.Request[v1.CompleteSetupRequest]) (*connect.Response[v1.CompleteSetupResponse], error)
 	UpdateDomainSettings(context.Context, *connect.Request[v1.UpdateDomainSettingsRequest]) (*connect.Response[v1.UpdateDomainSettingsResponse], error)
@@ -70,6 +74,12 @@ func NewSetupServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+SetupServiceGetSetupStatusProcedure,
 			connect.WithSchema(setupServiceMethods.ByName("GetSetupStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		verifySetupPassword: connect.NewClient[v1.VerifySetupPasswordRequest, v1.VerifySetupPasswordResponse](
+			httpClient,
+			baseURL+SetupServiceVerifySetupPasswordProcedure,
+			connect.WithSchema(setupServiceMethods.ByName("VerifySetupPassword")),
 			connect.WithClientOptions(opts...),
 		),
 		validateCloudflareToken: connect.NewClient[v1.ValidateCloudflareTokenRequest, v1.ValidateCloudflareTokenResponse](
@@ -96,6 +106,7 @@ func NewSetupServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 // setupServiceClient implements SetupServiceClient.
 type setupServiceClient struct {
 	getSetupStatus          *connect.Client[v1.GetSetupStatusRequest, v1.GetSetupStatusResponse]
+	verifySetupPassword     *connect.Client[v1.VerifySetupPasswordRequest, v1.VerifySetupPasswordResponse]
 	validateCloudflareToken *connect.Client[v1.ValidateCloudflareTokenRequest, v1.ValidateCloudflareTokenResponse]
 	completeSetup           *connect.Client[v1.CompleteSetupRequest, v1.CompleteSetupResponse]
 	updateDomainSettings    *connect.Client[v1.UpdateDomainSettingsRequest, v1.UpdateDomainSettingsResponse]
@@ -104,6 +115,11 @@ type setupServiceClient struct {
 // GetSetupStatus calls arca.v1.SetupService.GetSetupStatus.
 func (c *setupServiceClient) GetSetupStatus(ctx context.Context, req *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error) {
 	return c.getSetupStatus.CallUnary(ctx, req)
+}
+
+// VerifySetupPassword calls arca.v1.SetupService.VerifySetupPassword.
+func (c *setupServiceClient) VerifySetupPassword(ctx context.Context, req *connect.Request[v1.VerifySetupPasswordRequest]) (*connect.Response[v1.VerifySetupPasswordResponse], error) {
+	return c.verifySetupPassword.CallUnary(ctx, req)
 }
 
 // ValidateCloudflareToken calls arca.v1.SetupService.ValidateCloudflareToken.
@@ -124,6 +140,7 @@ func (c *setupServiceClient) UpdateDomainSettings(ctx context.Context, req *conn
 // SetupServiceHandler is an implementation of the arca.v1.SetupService service.
 type SetupServiceHandler interface {
 	GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error)
+	VerifySetupPassword(context.Context, *connect.Request[v1.VerifySetupPasswordRequest]) (*connect.Response[v1.VerifySetupPasswordResponse], error)
 	ValidateCloudflareToken(context.Context, *connect.Request[v1.ValidateCloudflareTokenRequest]) (*connect.Response[v1.ValidateCloudflareTokenResponse], error)
 	CompleteSetup(context.Context, *connect.Request[v1.CompleteSetupRequest]) (*connect.Response[v1.CompleteSetupResponse], error)
 	UpdateDomainSettings(context.Context, *connect.Request[v1.UpdateDomainSettingsRequest]) (*connect.Response[v1.UpdateDomainSettingsResponse], error)
@@ -140,6 +157,12 @@ func NewSetupServiceHandler(svc SetupServiceHandler, opts ...connect.HandlerOpti
 		SetupServiceGetSetupStatusProcedure,
 		svc.GetSetupStatus,
 		connect.WithSchema(setupServiceMethods.ByName("GetSetupStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	setupServiceVerifySetupPasswordHandler := connect.NewUnaryHandler(
+		SetupServiceVerifySetupPasswordProcedure,
+		svc.VerifySetupPassword,
+		connect.WithSchema(setupServiceMethods.ByName("VerifySetupPassword")),
 		connect.WithHandlerOptions(opts...),
 	)
 	setupServiceValidateCloudflareTokenHandler := connect.NewUnaryHandler(
@@ -164,6 +187,8 @@ func NewSetupServiceHandler(svc SetupServiceHandler, opts ...connect.HandlerOpti
 		switch r.URL.Path {
 		case SetupServiceGetSetupStatusProcedure:
 			setupServiceGetSetupStatusHandler.ServeHTTP(w, r)
+		case SetupServiceVerifySetupPasswordProcedure:
+			setupServiceVerifySetupPasswordHandler.ServeHTTP(w, r)
 		case SetupServiceValidateCloudflareTokenProcedure:
 			setupServiceValidateCloudflareTokenHandler.ServeHTTP(w, r)
 		case SetupServiceCompleteSetupProcedure:
@@ -181,6 +206,10 @@ type UnimplementedSetupServiceHandler struct{}
 
 func (UnimplementedSetupServiceHandler) GetSetupStatus(context.Context, *connect.Request[v1.GetSetupStatusRequest]) (*connect.Response[v1.GetSetupStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SetupService.GetSetupStatus is not implemented"))
+}
+
+func (UnimplementedSetupServiceHandler) VerifySetupPassword(context.Context, *connect.Request[v1.VerifySetupPasswordRequest]) (*connect.Response[v1.VerifySetupPasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SetupService.VerifySetupPassword is not implemented"))
 }
 
 func (UnimplementedSetupServiceHandler) ValidateCloudflareToken(context.Context, *connect.Request[v1.ValidateCloudflareTokenRequest]) (*connect.Response[v1.ValidateCloudflareTokenResponse], error) {
