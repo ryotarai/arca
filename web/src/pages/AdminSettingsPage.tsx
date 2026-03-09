@@ -5,12 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { updateDomainSettings } from '@/lib/api'
-import {
-  normalizeBaseDomainInput,
-  normalizeDomainPrefixInput,
-  validateBaseDomainInput,
-  validateDomainPrefixInput,
-} from '@/lib/domainValidation'
 import { messageFromError } from '@/lib/errors'
 import type { ServerExposureMethod, SetupStatus, User } from '@/lib/types'
 
@@ -24,8 +18,6 @@ type AdminSettingsPageProps = {
 export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLogout }: AdminSettingsPageProps) {
   const [serverExposureMethod, setServerExposureMethod] = useState<ServerExposureMethod>(setupStatus.serverExposureMethod)
   const [serverDomain, setServerDomain] = useState(setupStatus.serverDomain)
-  const [baseDomain, setBaseDomain] = useState(setupStatus.baseDomain)
-  const [domainPrefix, setDomainPrefix] = useState(setupStatus.domainPrefix)
   const [disableInternetPublicExposure, setDisableInternetPublicExposure] = useState(setupStatus.internetPublicExposureDisabled)
   const [cloudflareApiToken, setCloudflareApiToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(setupStatus.cloudflareZoneID)
@@ -37,8 +29,6 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
-  const baseDomainError = validateBaseDomainInput(baseDomain)
-  const domainPrefixError = validateDomainPrefixInput(domainPrefix)
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -54,19 +44,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
     setSaved(false)
     setLoading(true)
     try {
-      const normalizedBaseDomain = normalizeBaseDomainInput(baseDomain)
-      const normalizedDomainPrefix = normalizeDomainPrefixInput(domainPrefix)
-      const nextBaseDomainError = validateBaseDomainInput(normalizedBaseDomain)
-      if (nextBaseDomainError != null) {
-        throw new Error(nextBaseDomainError)
-      }
-      const nextDomainPrefixError = validateDomainPrefixInput(normalizedDomainPrefix)
-      if (nextDomainPrefixError != null) {
-        throw new Error(nextDomainPrefixError)
-      }
       await updateDomainSettings(
-        normalizedBaseDomain,
-        normalizedDomainPrefix,
         disableInternetPublicExposure,
         oidcEnabled,
         oidcIssuerURL.trim(),
@@ -88,8 +66,6 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         .filter((value) => value !== '')
       onSetupStatusChange({
         ...setupStatus,
-        baseDomain: normalizedBaseDomain,
-        domainPrefix: normalizedDomainPrefix,
         internetPublicExposureDisabled: disableInternetPublicExposure,
         oidcEnabled,
         oidcIssuerURL: oidcIssuerURL.trim(),
@@ -205,37 +181,6 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="settings-base-domain">
-                  Base domain
-                </Label>
-                <Input
-                  id="settings-base-domain"
-                  value={baseDomain}
-                  onChange={(event) => setBaseDomain(event.target.value)}
-                  required
-                  className="h-10"
-                  placeholder="ryotarai.info"
-                />
-                {baseDomain !== '' && baseDomainError != null && (
-                  <p className="text-sm text-red-300">{baseDomainError}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="settings-domain-prefix">
-                  Domain prefix
-                </Label>
-                <Input
-                  id="settings-domain-prefix"
-                  value={domainPrefix}
-                  onChange={(event) => setDomainPrefix(event.target.value)}
-                  className="h-10"
-                  placeholder="arca-"
-                />
-                {domainPrefix !== '' && domainPrefixError != null && (
-                  <p className="text-sm text-red-300">{domainPrefixError}</p>
-                )}
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="settings-disable-internet-public">
                   Internet public exposure
                 </Label>
@@ -322,7 +267,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
               <Button
                 type="submit"
                 className="h-10 w-full"
-                disabled={loading || baseDomainError != null || domainPrefixError != null}
+                disabled={loading}
               >
                 {loading ? 'Saving...' : 'Save settings'}
               </Button>

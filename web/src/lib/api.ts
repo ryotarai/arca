@@ -565,8 +565,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         completed?: boolean
         adminConfigured?: boolean
         cloudflareZoneId?: string
-        baseDomain?: string
-        domainPrefix?: string
         machineRuntime?: string
         internetPublicExposureDisabled?: boolean
         oidcEnabled?: boolean
@@ -583,8 +581,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       hasAdmin?: boolean
       adminConfigured?: boolean
       cloudflareZoneId?: string
-      baseDomain?: string
-      domainPrefix?: string
       machineRuntime?: string
       internetPublicExposureDisabled?: boolean
       oidcEnabled?: boolean
@@ -603,8 +599,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       response.status?.completed ?? response.isConfigured ?? response.configured ?? response.setupCompleted ?? false
     const hasAdmin = response.status?.adminConfigured ?? response.hasAdmin ?? response.adminConfigured ?? false
     const cloudflareZoneID = response.status?.cloudflareZoneId ?? response.cloudflareZoneId ?? ''
-    const baseDomain = response.status?.baseDomain ?? response.baseDomain ?? ''
-    const domainPrefix = response.status?.domainPrefix ?? response.domainPrefix ?? ''
     const internetPublicExposureDisabled =
       response.status?.internetPublicExposureDisabled ?? response.internetPublicExposureDisabled ?? false
     const oidcEnabled = response.status?.oidcEnabled ?? response.oidcEnabled ?? false
@@ -624,8 +618,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       isConfigured,
       hasAdmin,
       cloudflareZoneID,
-      baseDomain,
-      domainPrefix,
+      baseDomain: '',
+      domainPrefix: '',
       internetPublicExposureDisabled,
       oidcEnabled,
       oidcIssuerURL,
@@ -689,8 +683,6 @@ export async function setupValidateCloudflare(
 export async function setupComplete(
   adminEmail: string,
   adminPassword: string,
-  baseDomain: string,
-  domainPrefix: string,
   cloudflareApiToken: string,
   cloudflareZoneID: string,
   serverExposureMethod: ServerExposureMethod = 'cloudflare_tunnel',
@@ -707,8 +699,6 @@ export async function setupComplete(
     }>(['/arca.v1.SetupService/CompleteSetup'], {
       adminEmail,
       adminPassword,
-      baseDomain,
-      domainPrefix,
       cloudflareApiToken,
       cloudflareZoneId: cloudflareZoneID,
       serverExposureMethod: serverExposureMethodNum,
@@ -727,8 +717,6 @@ export async function setupComplete(
 }
 
 export async function updateDomainSettings(
-  baseDomain: string,
-  domainPrefix: string,
   disableInternetPublicExposure: boolean,
   oidcEnabled: boolean,
   oidcIssuerURL: string,
@@ -744,13 +732,11 @@ export async function updateDomainSettings(
   const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
   const response = await callConnectJSONCandidates<{
     status?: {
-      baseDomain?: string
+      completed?: boolean
       serverDomain?: string
     }
     message?: string
   }>(['/arca.v1.SetupService/UpdateDomainSettings'], {
-    baseDomain,
-    domainPrefix,
     disableInternetPublicExposure,
     oidcEnabled,
     oidcIssuerUrl: oidcIssuerURL,
@@ -763,7 +749,7 @@ export async function updateDomainSettings(
     cloudflareApiToken,
     cloudflareZoneId: cloudflareZoneID,
   })
-  if ((response.status?.baseDomain ?? response.status?.serverDomain ?? '').trim() === '') {
+  if (response.status?.completed !== true) {
     throw new Error(response.message ?? 'failed to update domain settings')
   }
 }

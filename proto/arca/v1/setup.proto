@@ -22,10 +22,8 @@ message SetupStatus {
   bool completed = 1;
   bool admin_configured = 2;
   bool cloudflare_configured = 3;
-  string base_domain = 4;
-  reserved 5;
+  reserved 4, 5, 7;
   string cloudflare_zone_id = 6;
-  string domain_prefix = 7;
   string machine_runtime = 8;
   bool internet_public_exposure_disabled = 9;
   bool oidc_enabled = 10;
@@ -64,11 +62,9 @@ message ValidateCloudflareTokenResponse {
 message CompleteSetupRequest {
   string admin_email = 1;
   string admin_password = 2;
-  string base_domain = 3;
+  reserved 3, 5, 7;
   string cloudflare_api_token = 4;
-  reserved 5;
   string cloudflare_zone_id = 6;
-  string domain_prefix = 7;
   string machine_runtime = 8;
   ServerExposureMethod server_exposure_method = 9;
   string server_domain = 10;
@@ -80,8 +76,7 @@ message CompleteSetupResponse {
 }
 
 message UpdateDomainSettingsRequest {
-  string base_domain = 1;
-  string domain_prefix = 2;
+  reserved 1, 2;
   string machine_runtime = 3;
   bool disable_internet_public_exposure = 4;
   bool oidc_enabled = 5;

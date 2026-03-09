@@ -373,27 +373,45 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		"machine_name", machine.Name,
 	)
 
+	runtimeCatalog, err := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
+	if err != nil {
+		return "", fmt.Errorf("load runtime config: %w", err)
+	}
+	exposureCfg := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON)
+
 	setup, err := w.store.GetSetupState(ctx)
 	if err != nil {
 		return "", fmt.Errorf("load setup state: %w", err)
 	}
-	if strings.TrimSpace(setup.CloudflareAPIToken) == "" {
+
+	// Resolve Cloudflare credentials: prefer runtime config, fallback to setup state
+	cfAPIToken := strings.TrimSpace(exposureCfg.CloudflareAPIToken)
+	if cfAPIToken == "" {
+		cfAPIToken = strings.TrimSpace(setup.CloudflareAPIToken)
+	}
+	cfZoneID := strings.TrimSpace(exposureCfg.CloudflareZoneID)
+	if cfZoneID == "" {
+		cfZoneID = strings.TrimSpace(setup.CloudflareZoneID)
+	}
+	baseDomain := strings.TrimSpace(exposureCfg.BaseDomain)
+
+	if cfAPIToken == "" {
 		return "", fmt.Errorf("cloudflare api token is not configured")
 	}
-	if strings.TrimSpace(setup.CloudflareZoneID) == "" {
+	if cfZoneID == "" {
 		return "", fmt.Errorf("cloudflare zone id is not configured")
 	}
-	if strings.TrimSpace(setup.BaseDomain) == "" {
-		return "", fmt.Errorf("base domain is not configured")
+	if baseDomain == "" {
+		return "", fmt.Errorf("base domain is not configured in runtime exposure config")
 	}
 
-	zone, err := w.cfClient.GetZone(ctx, setup.CloudflareAPIToken, setup.CloudflareZoneID)
+	zone, err := w.cfClient.GetZone(ctx, cfAPIToken, cfZoneID)
 	if err != nil {
 		return "", fmt.Errorf("fetch cloudflare zone: %w", err)
 	}
 	accountID := strings.TrimSpace(zone.Account.ID)
 	if accountID == "" {
-		return "", fmt.Errorf("cloudflare zone %q does not include account id", setup.CloudflareZoneID)
+		return "", fmt.Errorf("cloudflare zone %q does not include account id", cfZoneID)
 	}
 
 	tunnel, err := w.store.GetMachineTunnelByMachineID(ctx, machine.ID)
@@ -409,7 +427,7 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 			"account_id", accountID,
 			"tunnel_name", tunnelName,
 		)
-		created, createErr := w.cfClient.CreateTunnel(ctx, setup.CloudflareAPIToken, accountID, tunnelName)
+		created, createErr := w.cfClient.CreateTunnel(ctx, cfAPIToken, accountID, tunnelName)
 		if createErr != nil {
 			var apiErr cloudflare.APIError
 			if errors.As(createErr, &apiErr) && apiErr.Code == 1013 {
@@ -419,7 +437,7 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 					"account_id", accountID,
 					"tunnel_name", tunnelName,
 				)
-				existing, findErr := w.cfClient.GetTunnelByName(ctx, setup.CloudflareAPIToken, accountID, tunnelName)
+				existing, findErr := w.cfClient.GetTunnelByName(ctx, cfAPIToken, accountID, tunnelName)
 				if findErr != nil {
 					return "", fmt.Errorf("find existing cloudflare tunnel: %w", findErr)
 				}
@@ -428,7 +446,7 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 				return "", fmt.Errorf("create cloudflare tunnel: %w", createErr)
 			}
 		}
-		tunnelToken, tokenErr := w.cfClient.CreateTunnelToken(ctx, setup.CloudflareAPIToken, accountID, created.ID)
+		tunnelToken, tokenErr := w.cfClient.CreateTunnelToken(ctx, cfAPIToken, accountID, created.ID)
 		if tokenErr != nil {
 			return "", fmt.Errorf("create cloudflare tunnel token: %w", tokenErr)
 		}
@@ -450,19 +468,19 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		)
 	}
 
-	hostname, err := w.resolveMachineHostname(ctx, machine, setup)
+	hostname, err := w.resolveMachineHostname(ctx, machine, exposureCfg.DomainPrefix, baseDomain)
 	if err != nil {
 		return "", err
 	}
 	target := tunnel.TunnelID + ".cfargotunnel.com"
-	if err := w.cfClient.UpsertDNSCNAME(ctx, setup.CloudflareAPIToken, setup.CloudflareZoneID, hostname, target, true); err != nil {
+	if err := w.cfClient.UpsertDNSCNAME(ctx, cfAPIToken, cfZoneID, hostname, target, true); err != nil {
 		return "", fmt.Errorf("upsert machine cname: %w", err)
 	}
 
 	ingressRules := []cloudflare.IngressRule{
 		{Hostname: hostname, Service: "http://localhost:21030"},
 	}
-	if err := w.cfClient.UpdateTunnelIngress(ctx, setup.CloudflareAPIToken, tunnel.AccountID, tunnel.TunnelID, ingressRules); err != nil {
+	if err := w.cfClient.UpdateTunnelIngress(ctx, cfAPIToken, tunnel.AccountID, tunnel.TunnelID, ingressRules); err != nil {
 		return "", fmt.Errorf("update tunnel ingress: %w", err)
 	}
 
@@ -482,7 +500,7 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 	return tunnel.TunnelToken, nil
 }
 
-func (w *Worker) resolveMachineHostname(ctx context.Context, machine db.Machine, setup db.SetupState) (string, error) {
+func (w *Worker) resolveMachineHostname(ctx context.Context, machine db.Machine, domainPrefix, baseDomain string) (string, error) {
 	exposures, err := w.store.ListMachineExposuresByMachineID(ctx, machine.ID)
 	if err != nil {
 		return "", fmt.Errorf("list machine exposures: %w", err)
@@ -493,8 +511,8 @@ func (w *Worker) resolveMachineHostname(ctx context.Context, machine db.Machine,
 		}
 	}
 
-	hostname := machineSubdomain(setup.DomainPrefix, machine.Name)
-	hostname = hostname + "." + strings.TrimSpace(setup.BaseDomain)
+	hostname := machineSubdomain(domainPrefix, machine.Name)
+	hostname = hostname + "." + strings.TrimSpace(baseDomain)
 	return hostname, nil
 }
 
@@ -544,21 +562,10 @@ func sanitizeSubdomainPart(value string) string {
 }
 
 func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
-	// Prefer explicit server domain
 	if serverDomain := strings.TrimSpace(setup.ServerDomain); serverDomain != "" {
 		return "https://" + serverDomain, nil
 	}
-	// Fallback: derive from base_domain + domain_prefix (backward compat)
-	baseDomain := strings.TrimSpace(setup.BaseDomain)
-	if baseDomain == "" {
-		return "", fmt.Errorf("server domain or base domain is not configured")
-	}
-	prefix := sanitizeSubdomainPart(setup.DomainPrefix)
-	label := strings.Trim(prefix+"app", "-")
-	if label == "" {
-		label = "app"
-	}
-	return "https://" + label + "." + baseDomain, nil
+	return "", fmt.Errorf("server domain is not configured")
 }
 
 func (w *Worker) getMachineExposureMethod(ctx context.Context, machine db.Machine) string {
@@ -575,22 +582,11 @@ func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machin
 		return fmt.Errorf("load runtime config: %w", err)
 	}
 	exposureCfg := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON)
-	setup, err := w.store.GetSetupState(ctx)
-	if err != nil {
-		return fmt.Errorf("load setup state: %w", err)
-	}
 
-	baseDomain := exposureCfg.BaseDomain
-	domainPrefix := exposureCfg.DomainPrefix
-	// Fallback to setup_state values for backward compat
+	baseDomain := strings.TrimSpace(exposureCfg.BaseDomain)
+	domainPrefix := strings.TrimSpace(exposureCfg.DomainPrefix)
 	if baseDomain == "" {
-		baseDomain = strings.TrimSpace(setup.BaseDomain)
-	}
-	if domainPrefix == "" {
-		domainPrefix = strings.TrimSpace(setup.DomainPrefix)
-	}
-	if baseDomain == "" {
-		return fmt.Errorf("machine exposure base domain is not configured")
+		return fmt.Errorf("machine exposure base domain is not configured in runtime exposure config")
 	}
 
 	hostname := machineSubdomain(domainPrefix, machine.Name) + "." + baseDomain
