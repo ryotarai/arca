@@ -109,8 +109,40 @@ func (s *setupConnectService) ValidateCloudflareToken(ctx context.Context, req *
 	return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{Valid: valid, Message: message}), nil
 }
 
+func serverExposureMethodFromProto(method arcav1.ServerExposureMethod) string {
+	switch method {
+	case arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_MANUAL:
+		return db.ServerExposureMethodManual
+	default:
+		return db.ServerExposureMethodCloudflareTunnel
+	}
+}
+
+func serverExposureMethodToProto(method string) arcav1.ServerExposureMethod {
+	switch db.NormalizeServerExposureMethod(method) {
+	case db.ServerExposureMethodManual:
+		return arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_MANUAL
+	default:
+		return arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL
+	}
+}
+
+func validateServerDomain(domain string) (string, error) {
+	value := strings.ToLower(strings.TrimSpace(domain))
+	if value == "" {
+		return "", errors.New("server domain is required")
+	}
+	if len(value) > 253 {
+		return "", errors.New("server domain is too long")
+	}
+	if !baseDomainPattern.MatchString(value) {
+		return "", errors.New("server domain must be a valid domain name")
+	}
+	return value, nil
+}
+
 func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Request[arcav1.CompleteSetupRequest]) (*connect.Response[arcav1.CompleteSetupResponse], error) {
-	if s.store == nil || s.authenticator == nil || s.cf == nil {
+	if s.store == nil || s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("setup dependencies unavailable"))
 	}
 
@@ -125,30 +157,49 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 
 	email := strings.TrimSpace(req.Msg.GetAdminEmail())
 	password := req.Msg.GetAdminPassword()
-	baseDomain, err := validateBaseDomain(req.Msg.GetBaseDomain())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-	domainPrefix, err := validateDomainPrefix(req.Msg.GetDomainPrefix())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-	cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken())
-	zoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId())
-	if email == "" || password == "" || cfToken == "" || zoneID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("admin email, password, base domain, cloudflare token, and cloudflare zone id are required"))
+	if email == "" || password == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("admin email and password are required"))
 	}
 
-	if !shouldSkipCloudflareValidation() {
-		verification, verifyErr := s.cf.VerifyToken(ctx, cfToken)
-		if verifyErr == nil {
-			if !strings.EqualFold(verification.Status, "active") {
-				return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token is not active"))
+	serverExposureMethod := serverExposureMethodFromProto(req.Msg.GetServerExposureMethod())
+
+	cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken())
+	zoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId())
+
+	// Server domain: required for manual, optional for cloudflare_tunnel (derived from tunnel)
+	var serverDomain string
+	if serverExposureMethod == db.ServerExposureMethodManual {
+		var domainErr error
+		serverDomain, domainErr = validateServerDomain(req.Msg.GetServerDomain())
+		if domainErr != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, domainErr)
+		}
+	} else {
+		serverDomain = strings.ToLower(strings.TrimSpace(req.Msg.GetServerDomain()))
+	}
+
+	if serverExposureMethod == db.ServerExposureMethodCloudflareTunnel {
+		if s.cf == nil {
+			return nil, connect.NewError(connect.CodeUnavailable, errors.New("cloudflare client unavailable"))
+		}
+		if cfToken == "" || zoneID == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token and zone id are required for cloudflare tunnel exposure"))
+		}
+		if !shouldSkipCloudflareValidation() {
+			verification, verifyErr := s.cf.VerifyToken(ctx, cfToken)
+			if verifyErr == nil {
+				if !strings.EqualFold(verification.Status, "active") {
+					return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token is not active"))
+				}
+			} else if err := s.cf.VerifyZoneAccess(ctx, cfToken, zoneID); err != nil {
+				return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token verification failed"))
 			}
-		} else if err := s.cf.VerifyZoneAccess(ctx, cfToken, zoneID); err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token verification failed"))
 		}
 	}
+
+	// Keep base_domain/domain_prefix for backward compat (they're now mainly per-runtime)
+	baseDomain := strings.ToLower(strings.TrimSpace(req.Msg.GetBaseDomain()))
+	domainPrefix := strings.ToLower(strings.TrimSpace(req.Msg.GetDomainPrefix()))
 
 	adminUserID, _, err := s.authenticator.Register(ctx, email, password)
 	if err != nil {
@@ -169,17 +220,19 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	}
 
 	state := db.SetupState{
-		Completed:          true,
-		HasAdmin:           true,
-		BaseDomain:         baseDomain,
-		DomainPrefix:       domainPrefix,
-		CloudflareAPIToken: cfToken,
-		MachineRuntime:     normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
-		CloudflareZoneID:   zoneID,
-		OIDCEnabled:        current.OIDCEnabled,
-		OIDCIssuerURL:      current.OIDCIssuerURL,
-		OIDCClientID:       current.OIDCClientID,
-		OIDCClientSecret:   current.OIDCClientSecret,
+		Completed:            true,
+		HasAdmin:             true,
+		BaseDomain:           baseDomain,
+		DomainPrefix:         domainPrefix,
+		CloudflareAPIToken:   cfToken,
+		MachineRuntime:       normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
+		CloudflareZoneID:     zoneID,
+		ServerExposureMethod: serverExposureMethod,
+		ServerDomain:         serverDomain,
+		OIDCEnabled:          current.OIDCEnabled,
+		OIDCIssuerURL:        current.OIDCIssuerURL,
+		OIDCClientID:         current.OIDCClientID,
+		OIDCClientSecret:     current.OIDCClientSecret,
 		OIDCAllowedEmailDomains: append([]string(nil),
 			current.OIDCAllowedEmailDomains...,
 		),
@@ -189,7 +242,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
-	if s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
+	if serverExposureMethod == db.ServerExposureMethodCloudflareTunnel && s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
 		if _, err := s.consoleTunnel.EnsureExposed(ctx, state); err != nil {
 			log.Printf("ensure console tunnel failed: %v", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
@@ -231,6 +284,25 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		current.MachineRuntime = normalizeMachineRuntime(req.Msg.GetMachineRuntime())
 	}
 	current.InternetPublicExposureDisabled = req.Msg.GetDisableInternetPublicExposure()
+
+	// Server exposure settings
+	if req.Msg.GetServerExposureMethod() != arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_UNSPECIFIED {
+		current.ServerExposureMethod = serverExposureMethodFromProto(req.Msg.GetServerExposureMethod())
+	}
+	if serverDomain := strings.TrimSpace(req.Msg.GetServerDomain()); serverDomain != "" {
+		validated, domErr := validateServerDomain(serverDomain)
+		if domErr != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, domErr)
+		}
+		current.ServerDomain = validated
+	}
+	if cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken()); cfToken != "" {
+		current.CloudflareAPIToken = cfToken
+	}
+	if cfZoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId()); cfZoneID != "" {
+		current.CloudflareZoneID = cfZoneID
+	}
+
 	oidcIssuerURL, err := validateOIDCIssuerURL(req.Msg.GetOidcIssuerUrl())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -257,7 +329,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
-	if s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
+	if current.ServerExposureMethod == db.ServerExposureMethodCloudflareTunnel && s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
 		if _, err := s.consoleTunnel.EnsureExposed(ctx, current); err != nil {
 			log.Printf("ensure console tunnel failed: %v", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
@@ -282,6 +354,8 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		OidcClientId:                   state.OIDCClientID,
 		OidcClientSecretConfigured:     strings.TrimSpace(state.OIDCClientSecret) != "",
 		OidcAllowedEmailDomains:        append([]string(nil), state.OIDCAllowedEmailDomains...),
+		ServerExposureMethod:           serverExposureMethodToProto(state.ServerExposureMethod),
+		ServerDomain:                   state.ServerDomain,
 	}
 }
 

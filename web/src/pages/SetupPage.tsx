@@ -16,7 +16,7 @@ import {
   validateDomainPrefixInput,
 } from '@/lib/domainValidation'
 import { messageFromError } from '@/lib/errors'
-import type { User } from '@/lib/types'
+import type { ServerExposureMethod, User } from '@/lib/types'
 
 type SetupPageProps = {
   hasAdmin: boolean
@@ -40,6 +40,8 @@ export function SetupPage({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [serverExposureMethod, setServerExposureMethod] = useState<ServerExposureMethod>('cloudflare_tunnel')
+  const [serverDomain, setServerDomain] = useState('')
   const [baseDomain, setBaseDomain] = useState('')
   const [domainPrefix, setDomainPrefix] = useState('')
   const [cloudflareAccountID, setCloudflareAccountID] = useState('')
@@ -101,7 +103,7 @@ export function SetupPage({
     }
   }
 
-  const submitCloudflare = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitServerConfig = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
     setLoadingStep(true)
@@ -116,14 +118,21 @@ export function SetupPage({
       if (nextDomainPrefixError != null) {
         throw new Error(nextDomainPrefixError)
       }
-      if (cloudflareZoneID.trim() === '') {
-        throw new Error('cloudflare zone id is required')
-      }
-      if (cloudflareAccountID.trim() === '') {
-        throw new Error('cloudflare account id is required')
+
+      if (serverExposureMethod === 'cloudflare_tunnel') {
+        if (cloudflareZoneID.trim() === '') {
+          throw new Error('cloudflare zone id is required')
+        }
+        if (cloudflareAccountID.trim() === '') {
+          throw new Error('cloudflare account id is required')
+        }
+        await setupValidateCloudflare(cloudflareToken, cloudflareAccountID, normalizedBaseDomain)
+      } else {
+        if (serverDomain.trim() === '') {
+          throw new Error('server domain is required for manual exposure')
+        }
       }
 
-      await setupValidateCloudflare(cloudflareToken, cloudflareAccountID, normalizedBaseDomain)
       await setupComplete(
         email,
         password,
@@ -131,6 +140,8 @@ export function SetupPage({
         normalizedDomainPrefix,
         cloudflareToken,
         cloudflareZoneID,
+        serverExposureMethod,
+        serverDomain.trim(),
       )
       onSetupComplete(cloudflareZoneID, normalizedBaseDomain, normalizedDomainPrefix)
       window.setTimeout(() => {
@@ -219,13 +230,50 @@ export function SetupPage({
         {step >= 2 && (
           <Card className="border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl">
             <CardHeader className="space-y-2 p-6 pb-3">
-              <CardTitle className="text-xl text-white">2. Configure Cloudflare</CardTitle>
+              <CardTitle className="text-xl text-white">2. Configure server exposure</CardTitle>
               <CardDescription className="text-slate-300">
-                Configure DNS and endpoint base values used by machine exposures.
+                Choose how the Arca console is exposed and configure domain settings.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-3">
-              <form className="space-y-4" onSubmit={submitCloudflare}>
+              <form className="space-y-4" onSubmit={submitServerConfig}>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-server-exposure-method" className="text-slate-200">
+                    Server exposure method
+                  </Label>
+                  <select
+                    id="setup-server-exposure-method"
+                    value={serverExposureMethod}
+                    onChange={(event) => setServerExposureMethod(event.target.value as ServerExposureMethod)}
+                    className="h-10 w-full rounded-md border border-white/20 bg-white/10 px-3 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45"
+                  >
+                    <option value="cloudflare_tunnel">Cloudflare Tunnel</option>
+                    <option value="manual">Manual (own domain / reverse proxy)</option>
+                  </select>
+                  <p className="text-xs text-slate-400">
+                    {serverExposureMethod === 'cloudflare_tunnel'
+                      ? 'A Cloudflare Tunnel will be created automatically to expose the console.'
+                      : 'You manage DNS and TLS yourself. Provide the domain where the console is reachable.'}
+                  </p>
+                </div>
+
+                {serverExposureMethod === 'manual' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="setup-server-domain" className="text-slate-200">
+                      Server domain
+                    </Label>
+                    <Input
+                      id="setup-server-domain"
+                      value={serverDomain}
+                      onChange={(event) => setServerDomain(event.target.value)}
+                      required
+                      className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                      placeholder="arca.example.com"
+                    />
+                    <p className="text-xs text-slate-400">The domain where machines will reach this server.</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="setup-base-domain" className="text-slate-200">
                     Base domain
@@ -254,47 +302,54 @@ export function SetupPage({
                   {domainPrefix !== '' && domainPrefixError != null && <p className="text-sm text-red-300">{domainPrefixError}</p>}
                   <p className="text-xs text-slate-400">Machine endpoint preview: {machineEndpointPreview}</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="setup-account-id" className="text-slate-200">
-                    Cloudflare account ID
-                  </Label>
-                  <Input
-                    id="setup-account-id"
-                    value={cloudflareAccountID}
-                    onChange={(event) => setCloudflareAccountID(event.target.value)}
-                    required
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                    placeholder="account id for your Cloudflare account"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="setup-zone-id" className="text-slate-200">
-                    Cloudflare zone ID
-                  </Label>
-                  <Input
-                    id="setup-zone-id"
-                    value={cloudflareZoneID}
-                    onChange={(event) => setCloudflareZoneID(event.target.value)}
-                    required
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                    placeholder="zone id for your base domain"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="setup-cloudflare-token" className="text-slate-200">
-                    Cloudflare API token
-                  </Label>
-                  <Input
-                    id="setup-cloudflare-token"
-                    type="password"
-                    value={cloudflareToken}
-                    onChange={(event) => setCloudflareToken(event.target.value)}
-                    required
-                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                    placeholder="token with DNS and tunnel permissions"
-                  />
-                </div>
-                {consoleEndpoint !== '' && (
+
+                {serverExposureMethod === 'cloudflare_tunnel' && (
+                  <div className="space-y-4 rounded-lg border border-white/10 bg-white/[0.02] p-4">
+                    <p className="text-sm font-medium text-slate-200">Cloudflare credentials (server)</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="setup-account-id" className="text-slate-200">
+                        Cloudflare account ID
+                      </Label>
+                      <Input
+                        id="setup-account-id"
+                        value={cloudflareAccountID}
+                        onChange={(event) => setCloudflareAccountID(event.target.value)}
+                        required
+                        className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                        placeholder="account id for your Cloudflare account"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="setup-zone-id" className="text-slate-200">
+                        Cloudflare zone ID
+                      </Label>
+                      <Input
+                        id="setup-zone-id"
+                        value={cloudflareZoneID}
+                        onChange={(event) => setCloudflareZoneID(event.target.value)}
+                        required
+                        className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                        placeholder="zone id for your base domain"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="setup-cloudflare-token" className="text-slate-200">
+                        Cloudflare API token
+                      </Label>
+                      <Input
+                        id="setup-cloudflare-token"
+                        type="password"
+                        value={cloudflareToken}
+                        onChange={(event) => setCloudflareToken(event.target.value)}
+                        required
+                        className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                        placeholder="token with DNS and tunnel permissions"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {serverExposureMethod === 'cloudflare_tunnel' && consoleEndpoint !== '' && (
                   <div className="rounded-lg border border-sky-400/25 bg-sky-500/10 p-4">
                     <p className="text-sm text-slate-200">Console endpoint after setup</p>
                     <p className="mt-1 break-all text-sm font-medium text-sky-200">{consoleEndpoint}</p>

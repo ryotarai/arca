@@ -17,6 +17,28 @@ enum RuntimeType {
   RUNTIME_TYPE_GCE = 2;
 }
 
+enum MachineExposureMethod {
+  MACHINE_EXPOSURE_METHOD_UNSPECIFIED = 0;
+  MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL = 1;
+  MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER = 2;
+}
+
+enum MachineConnectivity {
+  MACHINE_CONNECTIVITY_UNSPECIFIED = 0;
+  MACHINE_CONNECTIVITY_PRIVATE_IP = 1;
+  MACHINE_CONNECTIVITY_PUBLIC_IP = 2;
+}
+
+message MachineExposureConfig {
+  MachineExposureMethod method = 1;
+  string domain_prefix = 2;
+  string base_domain = 3;
+  string cloudflare_api_token = 4;
+  string cloudflare_account_id = 5;
+  string cloudflare_zone_id = 6;
+  MachineConnectivity connectivity = 7;
+}
+
 message LibvirtRuntimeConfig {
   string uri = 1;
   string network = 2;
@@ -38,6 +60,7 @@ message RuntimeConfig {
     LibvirtRuntimeConfig libvirt = 1;
     GceRuntimeConfig gce = 2;
   }
+  MachineExposureConfig exposure = 3;
 }
 
 message Runtime {

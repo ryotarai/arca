@@ -244,11 +244,22 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "runtime_starting", "starting machine runtime")
 
-	tunnelToken, err := w.ensureMachineTunnel(ctx, machine)
-	if err != nil {
-		return err
+	exposureMethod := w.getMachineExposureMethod(ctx, machine)
+	var tunnelToken string
+	if exposureMethod == db.MachineExposureMethodCloudflareTunnel {
+		var tunnelErr error
+		tunnelToken, tunnelErr = w.ensureMachineTunnel(ctx, machine)
+		if tunnelErr != nil {
+			return tunnelErr
+		}
+		w.emitEvent(ctx, machine.ID, jobID, "info", "tunnel_ready", "machine tunnel is ready")
+	} else {
+		// proxy-via-server: register exposure without Cloudflare tunnel
+		if err := w.ensureMachineExposureProxyViaServer(ctx, machine); err != nil {
+			return err
+		}
+		w.emitEvent(ctx, machine.ID, jobID, "info", "exposure_ready", "machine exposure registered (proxy via server)")
 	}
-	w.emitEvent(ctx, machine.ID, jobID, "info", "tunnel_ready", "machine tunnel is ready")
 
 	setup, err := w.store.GetSetupState(ctx)
 	if err != nil {
@@ -533,9 +544,14 @@ func sanitizeSubdomainPart(value string) string {
 }
 
 func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
+	// Prefer explicit server domain
+	if serverDomain := strings.TrimSpace(setup.ServerDomain); serverDomain != "" {
+		return "https://" + serverDomain, nil
+	}
+	// Fallback: derive from base_domain + domain_prefix (backward compat)
 	baseDomain := strings.TrimSpace(setup.BaseDomain)
 	if baseDomain == "" {
-		return "", fmt.Errorf("base domain is not configured")
+		return "", fmt.Errorf("server domain or base domain is not configured")
 	}
 	prefix := sanitizeSubdomainPart(setup.DomainPrefix)
 	label := strings.Trim(prefix+"app", "-")
@@ -543,6 +559,54 @@ func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
 		label = "app"
 	}
 	return "https://" + label + "." + baseDomain, nil
+}
+
+func (w *Worker) getMachineExposureMethod(ctx context.Context, machine db.Machine) string {
+	runtimeCatalog, err := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
+	if err != nil {
+		return db.MachineExposureMethodCloudflareTunnel // default fallback
+	}
+	return db.GetRuntimeExposureMethod(runtimeCatalog.ConfigJSON)
+}
+
+func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machine db.Machine) error {
+	runtimeCatalog, err := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
+	if err != nil {
+		return fmt.Errorf("load runtime config: %w", err)
+	}
+	exposureCfg := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON)
+	setup, err := w.store.GetSetupState(ctx)
+	if err != nil {
+		return fmt.Errorf("load setup state: %w", err)
+	}
+
+	baseDomain := exposureCfg.BaseDomain
+	domainPrefix := exposureCfg.DomainPrefix
+	// Fallback to setup_state values for backward compat
+	if baseDomain == "" {
+		baseDomain = strings.TrimSpace(setup.BaseDomain)
+	}
+	if domainPrefix == "" {
+		domainPrefix = strings.TrimSpace(setup.DomainPrefix)
+	}
+	if baseDomain == "" {
+		return fmt.Errorf("machine exposure base domain is not configured")
+	}
+
+	hostname := machineSubdomain(domainPrefix, machine.Name) + "." + baseDomain
+
+	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:11030", db.EndpointVisibilityOwnerOnly, nil); err != nil {
+		return fmt.Errorf("upsert machine exposure: %w", err)
+	}
+	if err := w.store.UpdateMachineEndpointByID(ctx, machine.ID, hostname); err != nil {
+		return fmt.Errorf("update machine endpoint: %w", err)
+	}
+	slog.Info(
+		"machine exposure registered (proxy via server)",
+		"machine_id", machine.ID,
+		"hostname", hostname,
+	)
+	return nil
 }
 
 func (w *Worker) handleStop(ctx context.Context, machine db.Machine, jobID string) error {
@@ -601,12 +665,14 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID str
 		return err
 	}
 
-	if err := w.deleteMachineDNSRecords(ctx, machine.ID); err != nil {
-		return err
-	}
-
-	if err := w.deleteMachineTunnel(ctx, machine.ID); err != nil {
-		return err
+	exposureMethod := w.getMachineExposureMethod(ctx, machine)
+	if exposureMethod == db.MachineExposureMethodCloudflareTunnel {
+		if err := w.deleteMachineDNSRecords(ctx, machine.ID); err != nil {
+			return err
+		}
+		if err := w.deleteMachineTunnel(ctx, machine.ID); err != nil {
+			return err
+		}
 	}
 
 	deleted, err := w.store.DeleteMachineByID(ctx, machine.ID)

@@ -47,10 +47,13 @@ func (m *ConsoleTunnelManager) EnsureExposed(ctx context.Context, setup db.Setup
 	if strings.TrimSpace(m.originURL) == "" {
 		return "", errors.New("console origin url is not configured")
 	}
+	if setup.ServerExposureMethod != db.ServerExposureMethodCloudflareTunnel {
+		return "", errors.New("server exposure method is not cloudflare tunnel")
+	}
 	token := strings.TrimSpace(setup.CloudflareAPIToken)
 	zoneID := strings.TrimSpace(setup.CloudflareZoneID)
-	baseDomain := strings.TrimSpace(setup.BaseDomain)
-	if token == "" || zoneID == "" || baseDomain == "" {
+	serverDomain := strings.TrimSpace(setup.ServerDomain)
+	if token == "" || zoneID == "" || serverDomain == "" {
 		return "", errors.New("cloudflare setup is incomplete")
 	}
 
@@ -79,7 +82,7 @@ func (m *ConsoleTunnelManager) EnsureExposed(ctx context.Context, setup db.Setup
 		return "", fmt.Errorf("create console tunnel token: %w", err)
 	}
 
-	hostname := consoleHostname(setup.DomainPrefix, baseDomain)
+	hostname := serverDomain
 	target := tunnel.ID + ".cfargotunnel.com"
 	if err := m.cfClient.UpsertDNSCNAME(ctx, token, zoneID, hostname, target, true); err != nil {
 		return "", fmt.Errorf("upsert console cname: %w", err)

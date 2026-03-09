@@ -11,6 +11,12 @@ service SetupService {
   rpc UpdateDomainSettings(UpdateDomainSettingsRequest) returns (UpdateDomainSettingsResponse);
 }
 
+enum ServerExposureMethod {
+  SERVER_EXPOSURE_METHOD_UNSPECIFIED = 0;
+  SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL = 1;
+  SERVER_EXPOSURE_METHOD_MANUAL = 2;
+}
+
 message SetupStatus {
   bool completed = 1;
   bool admin_configured = 2;
@@ -26,6 +32,8 @@ message SetupStatus {
   string oidc_client_id = 12;
   bool oidc_client_secret_configured = 13;
   repeated string oidc_allowed_email_domains = 14;
+  ServerExposureMethod server_exposure_method = 15;
+  string server_domain = 16;
 }
 
 message GetSetupStatusRequest {}
@@ -53,6 +61,8 @@ message CompleteSetupRequest {
   string cloudflare_zone_id = 6;
   string domain_prefix = 7;
   string machine_runtime = 8;
+  ServerExposureMethod server_exposure_method = 9;
+  string server_domain = 10;
 }
 
 message CompleteSetupResponse {
@@ -70,6 +80,10 @@ message UpdateDomainSettingsRequest {
   string oidc_client_secret = 8;
   repeated string oidc_allowed_email_domains = 9;
   bool clear_oidc_client_secret = 10;
+  ServerExposureMethod server_exposure_method = 11;
+  string server_domain = 12;
+  string cloudflare_api_token = 13;
+  string cloudflare_zone_id = 14;
 }
 
 message UpdateDomainSettingsResponse {

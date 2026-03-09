@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createRuntime, deleteRuntime, listRuntimes, updateRuntime } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { RuntimeCatalogConfig, RuntimeCatalogItem, RuntimeCatalogType, User } from '@/lib/types'
+import type { MachineExposureConfig, MachineExposureMethodType, RuntimeCatalogConfig, RuntimeCatalogItem, RuntimeCatalogType, User } from '@/lib/types'
 
 type RuntimeCatalogPageProps = {
   user: User | null
@@ -27,6 +27,13 @@ type RuntimeFormState = {
   gceSubnetwork: string
   gceServiceAccountEmail: string
   gceStartupScript: string
+  exposureMethod: MachineExposureMethodType
+  exposureDomainPrefix: string
+  exposureBaseDomain: string
+  exposureCloudflareApiToken: string
+  exposureCloudflareAccountId: string
+  exposureCloudflareZoneId: string
+  exposureConnectivity: 'private_ip' | 'public_ip' | ''
 }
 
 const runtimeNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
@@ -47,6 +54,13 @@ function emptyRuntimeForm(): RuntimeFormState {
     gceSubnetwork: '',
     gceServiceAccountEmail: '',
     gceStartupScript: '',
+    exposureMethod: 'cloudflare_tunnel',
+    exposureDomainPrefix: '',
+    exposureBaseDomain: '',
+    exposureCloudflareApiToken: '',
+    exposureCloudflareAccountId: '',
+    exposureCloudflareZoneId: '',
+    exposureConnectivity: '',
   }
 }
 
@@ -115,7 +129,28 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
   }
 }
 
+function toExposureConfig(form: RuntimeFormState): MachineExposureConfig {
+  return {
+    method: form.exposureMethod,
+    domainPrefix: form.exposureDomainPrefix.trim(),
+    baseDomain: form.exposureBaseDomain.trim(),
+    cloudflareApiToken: form.exposureCloudflareApiToken,
+    cloudflareAccountId: form.exposureCloudflareAccountId.trim(),
+    cloudflareZoneId: form.exposureCloudflareZoneId.trim(),
+    connectivity: form.exposureConnectivity,
+  }
+}
+
 function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
+  const exposureFields = {
+    exposureMethod: runtime.exposure.method,
+    exposureDomainPrefix: runtime.exposure.domainPrefix,
+    exposureBaseDomain: runtime.exposure.baseDomain,
+    exposureCloudflareApiToken: '',
+    exposureCloudflareAccountId: runtime.exposure.cloudflareAccountId,
+    exposureCloudflareZoneId: runtime.exposure.cloudflareZoneId,
+    exposureConnectivity: runtime.exposure.connectivity,
+  } as const
   if (runtime.type === 'gce') {
     return {
       ...emptyRuntimeForm(),
@@ -128,6 +163,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
       gceSubnetwork: runtime.config.subnetwork,
       gceServiceAccountEmail: runtime.config.serviceAccountEmail,
       gceStartupScript: runtime.config.startupScript,
+      ...exposureFields,
     }
   }
   return {
@@ -139,6 +175,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
     libvirtNetwork: runtime.config.network,
     libvirtStoragePool: runtime.config.storagePool,
     libvirtStartupScript: runtime.config.startupScript,
+    ...exposureFields,
   }
 }
 
@@ -200,11 +237,12 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
     try {
       const runtimeName = form.name.trim().toLowerCase()
       const config = toConfig(form)
+      const exposure = toExposureConfig(form)
       if (form.id === '') {
-        await createRuntime(runtimeName, form.type, config)
+        await createRuntime(runtimeName, form.type, config, exposure)
         setSuccess('Runtime created.')
       } else {
-        await updateRuntime(form.id, runtimeName, form.type, config)
+        await updateRuntime(form.id, runtimeName, form.type, config, exposure)
         setSuccess('Runtime updated.')
       }
       resetForm()
@@ -353,6 +391,71 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                 </div>
               )}
 
+              <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
+                <p className="text-sm font-medium text-foreground">Machine exposure</p>
+                <div className="space-y-2">
+                  <Label htmlFor="runtime-exposure-method">Method</Label>
+                  <select
+                    id="runtime-exposure-method"
+                    value={form.exposureMethod}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, exposureMethod: event.target.value as MachineExposureMethodType }))
+                    }
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="cloudflare_tunnel">Cloudflare Tunnel</option>
+                    <option value="proxy_via_server">Proxy via server</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    {form.exposureMethod === 'cloudflare_tunnel'
+                      ? 'Each machine gets a Cloudflare Tunnel for direct access.'
+                      : 'Machine traffic is reverse-proxied through the Arca server.'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="runtime-exposure-domain-prefix">Domain prefix</Label>
+                  <Input id="runtime-exposure-domain-prefix" value={form.exposureDomainPrefix} onChange={(event) => setForm((current) => ({ ...current, exposureDomainPrefix: event.target.value }))} className="h-10" placeholder="arca-" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="runtime-exposure-base-domain">Base domain</Label>
+                  <Input id="runtime-exposure-base-domain" value={form.exposureBaseDomain} onChange={(event) => setForm((current) => ({ ...current, exposureBaseDomain: event.target.value }))} className="h-10" placeholder="example.com" />
+                </div>
+                {form.exposureMethod === 'proxy_via_server' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-exposure-connectivity">Connectivity</Label>
+                    <select
+                      id="runtime-exposure-connectivity"
+                      value={form.exposureConnectivity}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, exposureConnectivity: event.target.value as 'private_ip' | 'public_ip' | '' }))
+                      }
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">Not set</option>
+                      <option value="private_ip">Private IP</option>
+                      <option value="public_ip">Public IP</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground">How the server reaches machine IPs for reverse proxying.</p>
+                  </div>
+                )}
+                {form.exposureMethod === 'cloudflare_tunnel' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="runtime-exposure-cf-account-id">Cloudflare account ID</Label>
+                      <Input id="runtime-exposure-cf-account-id" value={form.exposureCloudflareAccountId} onChange={(event) => setForm((current) => ({ ...current, exposureCloudflareAccountId: event.target.value }))} className="h-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="runtime-exposure-cf-zone-id">Cloudflare zone ID</Label>
+                      <Input id="runtime-exposure-cf-zone-id" value={form.exposureCloudflareZoneId} onChange={(event) => setForm((current) => ({ ...current, exposureCloudflareZoneId: event.target.value }))} className="h-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="runtime-exposure-cf-api-token">Cloudflare API token</Label>
+                      <Input id="runtime-exposure-cf-api-token" type="password" value={form.exposureCloudflareApiToken} onChange={(event) => setForm((current) => ({ ...current, exposureCloudflareApiToken: event.target.value }))} className="h-10" placeholder={form.id !== '' ? 'Leave empty to keep current token' : ''} />
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="flex items-center gap-3">
                 <Button type="submit" className="h-10 px-5" disabled={saving || validationError != null}>
                   {saving ? 'Saving...' : form.id === '' ? 'Create runtime' : 'Save runtime'}
@@ -385,6 +488,9 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-foreground">{runtime.name}</p>
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">{runtime.type}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Exposure: {runtime.exposure.method === 'proxy_via_server' ? 'proxy via server' : 'cloudflare tunnel'}
+                        </p>
                         <p className="text-xs text-muted-foreground">Created {formatUnix(runtime.createdAt)}</p>
                         <p className="text-xs text-muted-foreground">Updated {formatUnix(runtime.updatedAt)}</p>
                       </div>

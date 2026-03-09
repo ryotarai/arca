@@ -49,7 +49,7 @@ func main() {
 	consoleTunnel := server.NewConsoleTunnelManager(ctx, cfClient, consoleOriginURL(addr))
 	if setupState, setupErr := store.GetSetupState(ctx); setupErr != nil {
 		log.Printf("load setup state for console tunnel failed: %v", setupErr)
-	} else if setupState.Completed {
+	} else if setupState.Completed && setupState.ServerExposureMethod == db.ServerExposureMethodCloudflareTunnel {
 		if hostname, ensureErr := consoleTunnel.EnsureExposed(ctx, setupState); ensureErr != nil {
 			log.Printf("ensure console tunnel failed: %v", ensureErr)
 		} else {
@@ -60,9 +60,10 @@ func main() {
 	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))
 	go machineWorker.Run(ctx)
 
+	machineProxy := server.NewMachineProxyHandler(store, authService)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

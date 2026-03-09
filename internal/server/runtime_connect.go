@@ -194,6 +194,20 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 		return validatedRuntimeRequest{}, errors.New("runtime config is required")
 	}
 
+	// Validate and normalize the exposure config if present
+	var exposureConfig *arcav1.MachineExposureConfig
+	if exp := config.GetExposure(); exp != nil {
+		exposureConfig = &arcav1.MachineExposureConfig{
+			Method:              exp.GetMethod(),
+			DomainPrefix:        strings.ToLower(strings.TrimSpace(exp.GetDomainPrefix())),
+			BaseDomain:          strings.ToLower(strings.TrimSpace(exp.GetBaseDomain())),
+			CloudflareApiToken:  strings.TrimSpace(exp.GetCloudflareApiToken()),
+			CloudflareAccountId: strings.TrimSpace(exp.GetCloudflareAccountId()),
+			CloudflareZoneId:    strings.TrimSpace(exp.GetCloudflareZoneId()),
+			Connectivity:        exp.GetConnectivity(),
+		}
+	}
+
 	switch runtimeType {
 	case arcav1.RuntimeType_RUNTIME_TYPE_LIBVIRT:
 		libvirt := config.GetLibvirt()
@@ -222,6 +236,7 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						StartupScript: startupScript,
 					},
 				},
+				Exposure: exposureConfig,
 			},
 		}, nil
 	case arcav1.RuntimeType_RUNTIME_TYPE_GCE:
@@ -255,6 +270,7 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						StartupScript:       startupScript,
 					},
 				},
+				Exposure: exposureConfig,
 			},
 		}, nil
 	default:

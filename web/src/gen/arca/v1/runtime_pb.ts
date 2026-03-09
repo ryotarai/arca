@@ -10,7 +10,54 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/runtime.proto.
  */
 export const file_arca_v1_runtime: GenFile = /*@__PURE__*/
-  fileDesc("ChVhcmNhL3YxL3J1bnRpbWUucHJvdG8SB2FyY2EudjEiYgoUTGlidmlydFJ1bnRpbWVDb25maWcSCwoDdXJpGAEgASgJEg8KB25ldHdvcmsYAiABKAkSFAoMc3RvcmFnZV9wb29sGAMgASgJEhYKDnN0YXJ0dXBfc2NyaXB0GAQgASgJIo0BChBHY2VSdW50aW1lQ29uZmlnEg8KB3Byb2plY3QYASABKAkSDAoEem9uZRgCIAEoCRIPCgduZXR3b3JrGAMgASgJEhIKCnN1Ym5ldHdvcmsYBCABKAkSHQoVc2VydmljZV9hY2NvdW50X2VtYWlsGAUgASgJEhYKDnN0YXJ0dXBfc2NyaXB0GAYgASgJIncKDVJ1bnRpbWVDb25maWcSMAoHbGlidmlydBgBIAEoCzIdLmFyY2EudjEuTGlidmlydFJ1bnRpbWVDb25maWdIABIoCgNnY2UYAiABKAsyGS5hcmNhLnYxLkdjZVJ1bnRpbWVDb25maWdIAEIKCghwcm92aWRlciKXAQoHUnVudGltZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiIKBHR5cGUYAyABKA4yFC5hcmNhLnYxLlJ1bnRpbWVUeXBlEiYKBmNvbmZpZxgEIAEoCzIWLmFyY2EudjEuUnVudGltZUNvbmZpZxISCgpjcmVhdGVkX2F0GAUgASgDEhIKCnVwZGF0ZWRfYXQYBiABKAMiFQoTTGlzdFJ1bnRpbWVzUmVxdWVzdCI6ChRMaXN0UnVudGltZXNSZXNwb25zZRIiCghydW50aW1lcxgBIAMoCzIQLmFyY2EudjEuUnVudGltZSJwChRDcmVhdGVSdW50aW1lUmVxdWVzdBIMCgRuYW1lGAEgASgJEiIKBHR5cGUYAiABKA4yFC5hcmNhLnYxLlJ1bnRpbWVUeXBlEiYKBmNvbmZpZxgDIAEoCzIWLmFyY2EudjEuUnVudGltZUNvbmZpZyI6ChVDcmVhdGVSdW50aW1lUmVzcG9uc2USIQoHcnVudGltZRgBIAEoCzIQLmFyY2EudjEuUnVudGltZSKEAQoUVXBkYXRlUnVudGltZVJlcXVlc3QSEgoKcnVudGltZV9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEiIKBHR5cGUYAyABKA4yFC5hcmNhLnYxLlJ1bnRpbWVUeXBlEiYKBmNvbmZpZxgEIAEoCzIWLmFyY2EudjEuUnVudGltZUNvbmZpZyI6ChVVcGRhdGVSdW50aW1lUmVzcG9uc2USIQoHcnVudGltZRgBIAEoCzIQLmFyY2EudjEuUnVudGltZSIqChREZWxldGVSdW50aW1lUmVxdWVzdBISCgpydW50aW1lX2lkGAEgASgJIhcKFURlbGV0ZVJ1bnRpbWVSZXNwb25zZSpbCgtSdW50aW1lVHlwZRIcChhSVU5USU1FX1RZUEVfVU5TUEVDSUZJRUQQABIYChRSVU5USU1FX1RZUEVfTElCVklSVBABEhQKEFJVTlRJTUVfVFlQRV9HQ0UQAjLNAgoOUnVudGltZVNlcnZpY2USSwoMTGlzdFJ1bnRpbWVzEhwuYXJjYS52MS5MaXN0UnVudGltZXNSZXF1ZXN0Gh0uYXJjYS52MS5MaXN0UnVudGltZXNSZXNwb25zZRJOCg1DcmVhdGVSdW50aW1lEh0uYXJjYS52MS5DcmVhdGVSdW50aW1lUmVxdWVzdBoeLmFyY2EudjEuQ3JlYXRlUnVudGltZVJlc3BvbnNlEk4KDVVwZGF0ZVJ1bnRpbWUSHS5hcmNhLnYxLlVwZGF0ZVJ1bnRpbWVSZXF1ZXN0Gh4uYXJjYS52MS5VcGRhdGVSdW50aW1lUmVzcG9uc2USTgoNRGVsZXRlUnVudGltZRIdLmFyY2EudjEuRGVsZXRlUnVudGltZVJlcXVlc3QaHi5hcmNhLnYxLkRlbGV0ZVJ1bnRpbWVSZXNwb25zZUKOAQoLY29tLmFyY2EudjFCDFJ1bnRpbWVQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
+  fileDesc("ChVhcmNhL3YxL3J1bnRpbWUucHJvdG8SB2FyY2EudjEigAIKFU1hY2hpbmVFeHBvc3VyZUNvbmZpZxIuCgZtZXRob2QYASABKA4yHi5hcmNhLnYxLk1hY2hpbmVFeHBvc3VyZU1ldGhvZBIVCg1kb21haW5fcHJlZml4GAIgASgJEhMKC2Jhc2VfZG9tYWluGAMgASgJEhwKFGNsb3VkZmxhcmVfYXBpX3Rva2VuGAQgASgJEh0KFWNsb3VkZmxhcmVfYWNjb3VudF9pZBgFIAEoCRIaChJjbG91ZGZsYXJlX3pvbmVfaWQYBiABKAkSMgoMY29ubmVjdGl2aXR5GAcgASgOMhwuYXJjYS52MS5NYWNoaW5lQ29ubmVjdGl2aXR5ImIKFExpYnZpcnRSdW50aW1lQ29uZmlnEgsKA3VyaRgBIAEoCRIPCgduZXR3b3JrGAIgASgJEhQKDHN0b3JhZ2VfcG9vbBgDIAEoCRIWCg5zdGFydHVwX3NjcmlwdBgEIAEoCSKNAQoQR2NlUnVudGltZUNvbmZpZxIPCgdwcm9qZWN0GAEgASgJEgwKBHpvbmUYAiABKAkSDwoHbmV0d29yaxgDIAEoCRISCgpzdWJuZXR3b3JrGAQgASgJEh0KFXNlcnZpY2VfYWNjb3VudF9lbWFpbBgFIAEoCRIWCg5zdGFydHVwX3NjcmlwdBgGIAEoCSKpAQoNUnVudGltZUNvbmZpZxIwCgdsaWJ2aXJ0GAEgASgLMh0uYXJjYS52MS5MaWJ2aXJ0UnVudGltZUNvbmZpZ0gAEigKA2djZRgCIAEoCzIZLmFyY2EudjEuR2NlUnVudGltZUNvbmZpZ0gAEjAKCGV4cG9zdXJlGAMgASgLMh4uYXJjYS52MS5NYWNoaW5lRXhwb3N1cmVDb25maWdCCgoIcHJvdmlkZXIilwEKB1J1bnRpbWUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIiCgR0eXBlGAMgASgOMhQuYXJjYS52MS5SdW50aW1lVHlwZRImCgZjb25maWcYBCABKAsyFi5hcmNhLnYxLlJ1bnRpbWVDb25maWcSEgoKY3JlYXRlZF9hdBgFIAEoAxISCgp1cGRhdGVkX2F0GAYgASgDIhUKE0xpc3RSdW50aW1lc1JlcXVlc3QiOgoUTGlzdFJ1bnRpbWVzUmVzcG9uc2USIgoIcnVudGltZXMYASADKAsyEC5hcmNhLnYxLlJ1bnRpbWUicAoUQ3JlYXRlUnVudGltZVJlcXVlc3QSDAoEbmFtZRgBIAEoCRIiCgR0eXBlGAIgASgOMhQuYXJjYS52MS5SdW50aW1lVHlwZRImCgZjb25maWcYAyABKAsyFi5hcmNhLnYxLlJ1bnRpbWVDb25maWciOgoVQ3JlYXRlUnVudGltZVJlc3BvbnNlEiEKB3J1bnRpbWUYASABKAsyEC5hcmNhLnYxLlJ1bnRpbWUihAEKFFVwZGF0ZVJ1bnRpbWVSZXF1ZXN0EhIKCnJ1bnRpbWVfaWQYASABKAkSDAoEbmFtZRgCIAEoCRIiCgR0eXBlGAMgASgOMhQuYXJjYS52MS5SdW50aW1lVHlwZRImCgZjb25maWcYBCABKAsyFi5hcmNhLnYxLlJ1bnRpbWVDb25maWciOgoVVXBkYXRlUnVudGltZVJlc3BvbnNlEiEKB3J1bnRpbWUYASABKAsyEC5hcmNhLnYxLlJ1bnRpbWUiKgoURGVsZXRlUnVudGltZVJlcXVlc3QSEgoKcnVudGltZV9pZBgBIAEoCSIXChVEZWxldGVSdW50aW1lUmVzcG9uc2UqWwoLUnVudGltZVR5cGUSHAoYUlVOVElNRV9UWVBFX1VOU1BFQ0lGSUVEEAASGAoUUlVOVElNRV9UWVBFX0xJQlZJUlQQARIUChBSVU5USU1FX1RZUEVfR0NFEAIqnQEKFU1hY2hpbmVFeHBvc3VyZU1ldGhvZBInCiNNQUNISU5FX0VYUE9TVVJFX01FVEhPRF9VTlNQRUNJRklFRBAAEi0KKU1BQ0hJTkVfRVhQT1NVUkVfTUVUSE9EX0NMT1VERkxBUkVfVFVOTkVMEAESLAooTUFDSElORV9FWFBPU1VSRV9NRVRIT0RfUFJPWFlfVklBX1NFUlZFUhACKoQBChNNYWNoaW5lQ29ubmVjdGl2aXR5EiQKIE1BQ0hJTkVfQ09OTkVDVElWSVRZX1VOU1BFQ0lGSUVEEAASIwofTUFDSElORV9DT05ORUNUSVZJVFlfUFJJVkFURV9JUBABEiIKHk1BQ0hJTkVfQ09OTkVDVElWSVRZX1BVQkxJQ19JUBACMs0CCg5SdW50aW1lU2VydmljZRJLCgxMaXN0UnVudGltZXMSHC5hcmNhLnYxLkxpc3RSdW50aW1lc1JlcXVlc3QaHS5hcmNhLnYxLkxpc3RSdW50aW1lc1Jlc3BvbnNlEk4KDUNyZWF0ZVJ1bnRpbWUSHS5hcmNhLnYxLkNyZWF0ZVJ1bnRpbWVSZXF1ZXN0Gh4uYXJjYS52MS5DcmVhdGVSdW50aW1lUmVzcG9uc2USTgoNVXBkYXRlUnVudGltZRIdLmFyY2EudjEuVXBkYXRlUnVudGltZVJlcXVlc3QaHi5hcmNhLnYxLlVwZGF0ZVJ1bnRpbWVSZXNwb25zZRJOCg1EZWxldGVSdW50aW1lEh0uYXJjYS52MS5EZWxldGVSdW50aW1lUmVxdWVzdBoeLmFyY2EudjEuRGVsZXRlUnVudGltZVJlc3BvbnNlQo4BCgtjb20uYXJjYS52MUIMUnVudGltZVByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
+
+/**
+ * @generated from message arca.v1.MachineExposureConfig
+ */
+export type MachineExposureConfig = Message<"arca.v1.MachineExposureConfig"> & {
+  /**
+   * @generated from field: arca.v1.MachineExposureMethod method = 1;
+   */
+  method: MachineExposureMethod;
+
+  /**
+   * @generated from field: string domain_prefix = 2;
+   */
+  domainPrefix: string;
+
+  /**
+   * @generated from field: string base_domain = 3;
+   */
+  baseDomain: string;
+
+  /**
+   * @generated from field: string cloudflare_api_token = 4;
+   */
+  cloudflareApiToken: string;
+
+  /**
+   * @generated from field: string cloudflare_account_id = 5;
+   */
+  cloudflareAccountId: string;
+
+  /**
+   * @generated from field: string cloudflare_zone_id = 6;
+   */
+  cloudflareZoneId: string;
+
+  /**
+   * @generated from field: arca.v1.MachineConnectivity connectivity = 7;
+   */
+  connectivity: MachineConnectivity;
+};
+
+/**
+ * Describes the message arca.v1.MachineExposureConfig.
+ * Use `create(MachineExposureConfigSchema)` to create a new message.
+ */
+export const MachineExposureConfigSchema: GenMessage<MachineExposureConfig> = /*@__PURE__*/
+  messageDesc(file_arca_v1_runtime, 0);
 
 /**
  * @generated from message arca.v1.LibvirtRuntimeConfig
@@ -42,7 +89,7 @@ export type LibvirtRuntimeConfig = Message<"arca.v1.LibvirtRuntimeConfig"> & {
  * Use `create(LibvirtRuntimeConfigSchema)` to create a new message.
  */
 export const LibvirtRuntimeConfigSchema: GenMessage<LibvirtRuntimeConfig> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 0);
+  messageDesc(file_arca_v1_runtime, 1);
 
 /**
  * @generated from message arca.v1.GceRuntimeConfig
@@ -84,7 +131,7 @@ export type GceRuntimeConfig = Message<"arca.v1.GceRuntimeConfig"> & {
  * Use `create(GceRuntimeConfigSchema)` to create a new message.
  */
 export const GceRuntimeConfigSchema: GenMessage<GceRuntimeConfig> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 1);
+  messageDesc(file_arca_v1_runtime, 2);
 
 /**
  * @generated from message arca.v1.RuntimeConfig
@@ -106,6 +153,11 @@ export type RuntimeConfig = Message<"arca.v1.RuntimeConfig"> & {
     value: GceRuntimeConfig;
     case: "gce";
   } | { case: undefined; value?: undefined };
+
+  /**
+   * @generated from field: arca.v1.MachineExposureConfig exposure = 3;
+   */
+  exposure?: MachineExposureConfig;
 };
 
 /**
@@ -113,7 +165,7 @@ export type RuntimeConfig = Message<"arca.v1.RuntimeConfig"> & {
  * Use `create(RuntimeConfigSchema)` to create a new message.
  */
 export const RuntimeConfigSchema: GenMessage<RuntimeConfig> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 2);
+  messageDesc(file_arca_v1_runtime, 3);
 
 /**
  * @generated from message arca.v1.Runtime
@@ -155,7 +207,7 @@ export type Runtime = Message<"arca.v1.Runtime"> & {
  * Use `create(RuntimeSchema)` to create a new message.
  */
 export const RuntimeSchema: GenMessage<Runtime> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 3);
+  messageDesc(file_arca_v1_runtime, 4);
 
 /**
  * @generated from message arca.v1.ListRuntimesRequest
@@ -168,7 +220,7 @@ export type ListRuntimesRequest = Message<"arca.v1.ListRuntimesRequest"> & {
  * Use `create(ListRuntimesRequestSchema)` to create a new message.
  */
 export const ListRuntimesRequestSchema: GenMessage<ListRuntimesRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 4);
+  messageDesc(file_arca_v1_runtime, 5);
 
 /**
  * @generated from message arca.v1.ListRuntimesResponse
@@ -185,7 +237,7 @@ export type ListRuntimesResponse = Message<"arca.v1.ListRuntimesResponse"> & {
  * Use `create(ListRuntimesResponseSchema)` to create a new message.
  */
 export const ListRuntimesResponseSchema: GenMessage<ListRuntimesResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 5);
+  messageDesc(file_arca_v1_runtime, 6);
 
 /**
  * @generated from message arca.v1.CreateRuntimeRequest
@@ -212,7 +264,7 @@ export type CreateRuntimeRequest = Message<"arca.v1.CreateRuntimeRequest"> & {
  * Use `create(CreateRuntimeRequestSchema)` to create a new message.
  */
 export const CreateRuntimeRequestSchema: GenMessage<CreateRuntimeRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 6);
+  messageDesc(file_arca_v1_runtime, 7);
 
 /**
  * @generated from message arca.v1.CreateRuntimeResponse
@@ -229,7 +281,7 @@ export type CreateRuntimeResponse = Message<"arca.v1.CreateRuntimeResponse"> & {
  * Use `create(CreateRuntimeResponseSchema)` to create a new message.
  */
 export const CreateRuntimeResponseSchema: GenMessage<CreateRuntimeResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 7);
+  messageDesc(file_arca_v1_runtime, 8);
 
 /**
  * @generated from message arca.v1.UpdateRuntimeRequest
@@ -261,7 +313,7 @@ export type UpdateRuntimeRequest = Message<"arca.v1.UpdateRuntimeRequest"> & {
  * Use `create(UpdateRuntimeRequestSchema)` to create a new message.
  */
 export const UpdateRuntimeRequestSchema: GenMessage<UpdateRuntimeRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 8);
+  messageDesc(file_arca_v1_runtime, 9);
 
 /**
  * @generated from message arca.v1.UpdateRuntimeResponse
@@ -278,7 +330,7 @@ export type UpdateRuntimeResponse = Message<"arca.v1.UpdateRuntimeResponse"> & {
  * Use `create(UpdateRuntimeResponseSchema)` to create a new message.
  */
 export const UpdateRuntimeResponseSchema: GenMessage<UpdateRuntimeResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 9);
+  messageDesc(file_arca_v1_runtime, 10);
 
 /**
  * @generated from message arca.v1.DeleteRuntimeRequest
@@ -295,7 +347,7 @@ export type DeleteRuntimeRequest = Message<"arca.v1.DeleteRuntimeRequest"> & {
  * Use `create(DeleteRuntimeRequestSchema)` to create a new message.
  */
 export const DeleteRuntimeRequestSchema: GenMessage<DeleteRuntimeRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 10);
+  messageDesc(file_arca_v1_runtime, 11);
 
 /**
  * @generated from message arca.v1.DeleteRuntimeResponse
@@ -308,7 +360,7 @@ export type DeleteRuntimeResponse = Message<"arca.v1.DeleteRuntimeResponse"> & {
  * Use `create(DeleteRuntimeResponseSchema)` to create a new message.
  */
 export const DeleteRuntimeResponseSchema: GenMessage<DeleteRuntimeResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_runtime, 11);
+  messageDesc(file_arca_v1_runtime, 12);
 
 /**
  * @generated from enum arca.v1.RuntimeType
@@ -335,6 +387,58 @@ export enum RuntimeType {
  */
 export const RuntimeTypeSchema: GenEnum<RuntimeType> = /*@__PURE__*/
   enumDesc(file_arca_v1_runtime, 0);
+
+/**
+ * @generated from enum arca.v1.MachineExposureMethod
+ */
+export enum MachineExposureMethod {
+  /**
+   * @generated from enum value: MACHINE_EXPOSURE_METHOD_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL = 1;
+   */
+  CLOUDFLARE_TUNNEL = 1,
+
+  /**
+   * @generated from enum value: MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER = 2;
+   */
+  PROXY_VIA_SERVER = 2,
+}
+
+/**
+ * Describes the enum arca.v1.MachineExposureMethod.
+ */
+export const MachineExposureMethodSchema: GenEnum<MachineExposureMethod> = /*@__PURE__*/
+  enumDesc(file_arca_v1_runtime, 1);
+
+/**
+ * @generated from enum arca.v1.MachineConnectivity
+ */
+export enum MachineConnectivity {
+  /**
+   * @generated from enum value: MACHINE_CONNECTIVITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: MACHINE_CONNECTIVITY_PRIVATE_IP = 1;
+   */
+  PRIVATE_IP = 1,
+
+  /**
+   * @generated from enum value: MACHINE_CONNECTIVITY_PUBLIC_IP = 2;
+   */
+  PUBLIC_IP = 2,
+}
+
+/**
+ * Describes the enum arca.v1.MachineConnectivity.
+ */
+export const MachineConnectivitySchema: GenEnum<MachineConnectivity> = /*@__PURE__*/
+  enumDesc(file_arca_v1_runtime, 2);
 
 /**
  * @generated from service arca.v1.RuntimeService

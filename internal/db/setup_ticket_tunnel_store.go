@@ -11,6 +11,20 @@ import (
 	sqlitesqlc "github.com/ryotarai/arca/internal/db/sqlc/sqlite"
 )
 
+const (
+	ServerExposureMethodCloudflareTunnel = "cloudflare_tunnel"
+	ServerExposureMethodManual           = "manual"
+)
+
+func NormalizeServerExposureMethod(method string) string {
+	switch strings.ToLower(strings.TrimSpace(method)) {
+	case ServerExposureMethodManual:
+		return ServerExposureMethodManual
+	default:
+		return ServerExposureMethodCloudflareTunnel
+	}
+}
+
 type SetupState struct {
 	Completed                      bool
 	HasAdmin                       bool
@@ -25,6 +39,8 @@ type SetupState struct {
 	OIDCClientID                   string
 	OIDCClientSecret               string
 	OIDCAllowedEmailDomains        []string
+	ServerExposureMethod           string
+	ServerDomain                   string
 	UpdatedAtUnix                  int64
 }
 
@@ -95,6 +111,15 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		return SetupState{}, err
 	}
 	oidcAllowedDomains := parseCSVMetaValue(oidcAllowedDomainsRaw)
+	serverExposureMethod, err := s.getMetaValue(ctx, setupMetaServerExposureMethod)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	serverExposureMethod = NormalizeServerExposureMethod(serverExposureMethod)
+	serverDomain, err := s.getMetaValue(ctx, setupMetaServerDomain)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
 
 	hasAdmin, err := s.HasAdminUser(ctx)
 	if err != nil {
@@ -124,6 +149,8 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			OIDCClientID:                   strings.TrimSpace(oidcClientID),
 			OIDCClientSecret:               oidcClientSecret,
 			OIDCAllowedEmailDomains:        oidcAllowedDomains,
+			ServerExposureMethod:           serverExposureMethod,
+			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	case DriverPostgres:
@@ -148,6 +175,8 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			OIDCClientID:                   strings.TrimSpace(oidcClientID),
 			OIDCClientSecret:               oidcClientSecret,
 			OIDCAllowedEmailDomains:        oidcAllowedDomains,
+			ServerExposureMethod:           serverExposureMethod,
+			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	default:
@@ -217,7 +246,13 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaOIDCClientSecret, state.OIDCClientSecret); err != nil {
 		return err
 	}
-	return s.upsertMetaValue(ctx, setupMetaOIDCAllowedEmailDomains, csvMetaValue(state.OIDCAllowedEmailDomains))
+	if err := s.upsertMetaValue(ctx, setupMetaOIDCAllowedEmailDomains, csvMetaValue(state.OIDCAllowedEmailDomains)); err != nil {
+		return err
+	}
+	if err := s.upsertMetaValue(ctx, setupMetaServerExposureMethod, NormalizeServerExposureMethod(state.ServerExposureMethod)); err != nil {
+		return err
+	}
+	return s.upsertMetaValue(ctx, setupMetaServerDomain, strings.TrimSpace(state.ServerDomain))
 }
 
 const setupMetaCloudflareZoneID = "setup.cloudflare_zone_id"
@@ -228,6 +263,8 @@ const setupMetaOIDCIssuerURL = "setup.oidc.issuer_url"
 const setupMetaOIDCClientID = "setup.oidc.client_id"
 const setupMetaOIDCClientSecret = "setup.oidc.client_secret"
 const setupMetaOIDCAllowedEmailDomains = "setup.oidc.allowed_email_domains"
+const setupMetaServerExposureMethod = "setup.server_exposure_method"
+const setupMetaServerDomain = "setup.server_domain"
 
 func parseBoolMetaValue(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))

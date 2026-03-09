@@ -49,10 +49,13 @@ import type {
   Machine,
   MachineEvent,
   MachineExposure,
+  MachineExposureConfig,
+  MachineExposureMethodType,
   ManagedUser,
   RuntimeCatalogConfig,
   RuntimeCatalogItem,
   RuntimeCatalogType,
+  ServerExposureMethod,
   SetupStatus,
   User,
   UserSettings,
@@ -379,6 +382,14 @@ function runtimeTypeFromProto(type: RuntimeType): RuntimeCatalogType {
   return type === RuntimeType.GCE ? 'gce' : 'libvirt'
 }
 
+function machineExposureMethodFromProto(method: number): MachineExposureMethodType {
+  return method === 2 ? 'proxy_via_server' : 'cloudflare_tunnel'
+}
+
+function machineExposureMethodToProto(method: MachineExposureMethodType): number {
+  return method === 'proxy_via_server' ? 2 : 1
+}
+
 function toRuntimeCatalogItem(input: {
   id: string
   name: string
@@ -391,6 +402,15 @@ function toRuntimeCatalogItem(input: {
           value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string }
         }
       | { case: undefined; value?: undefined }
+    exposure?: {
+      method?: number
+      domainPrefix?: string
+      baseDomain?: string
+      cloudflareApiToken?: string
+      cloudflareAccountId?: string
+      cloudflareZoneId?: string
+      connectivity?: number
+    }
   }
   createdAt: bigint
   updatedAt: bigint
@@ -419,40 +439,51 @@ function toRuntimeCatalogItem(input: {
     }
   }
 
+  const exposureInput = input.config?.exposure
+  const connectivityNum = exposureInput?.connectivity ?? 0
+  const exposure: MachineExposureConfig = {
+    method: machineExposureMethodFromProto(exposureInput?.method ?? 0),
+    domainPrefix: exposureInput?.domainPrefix ?? '',
+    baseDomain: exposureInput?.baseDomain ?? '',
+    cloudflareApiToken: exposureInput?.cloudflareApiToken ?? '',
+    cloudflareAccountId: exposureInput?.cloudflareAccountId ?? '',
+    cloudflareZoneId: exposureInput?.cloudflareZoneId ?? '',
+    connectivity: connectivityNum === 1 ? 'private_ip' : connectivityNum === 2 ? 'public_ip' : '',
+  }
+
   return {
     id: input.id,
     name: input.name,
     type: runtimeType,
     config,
+    exposure,
     createdAt: Number(input.createdAt),
     updatedAt: Number(input.updatedAt),
   }
 }
 
-function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig) {
+function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig, exposure?: MachineExposureConfig) {
+  let provider
   if (type === 'gce') {
     if (config.type !== 'gce') {
       throw new Error('gce config is required')
     }
-    return {
-      provider: {
-        case: 'gce' as const,
-        value: {
-          project: config.project,
-          zone: config.zone,
-          network: config.network,
-          subnetwork: config.subnetwork,
-          serviceAccountEmail: config.serviceAccountEmail,
-          startupScript: config.startupScript,
-        },
+    provider = {
+      case: 'gce' as const,
+      value: {
+        project: config.project,
+        zone: config.zone,
+        network: config.network,
+        subnetwork: config.subnetwork,
+        serviceAccountEmail: config.serviceAccountEmail,
+        startupScript: config.startupScript,
       },
     }
-  }
-  if (config.type !== 'libvirt') {
-    throw new Error('libvirt config is required')
-  }
-  return {
-    provider: {
+  } else {
+    if (config.type !== 'libvirt') {
+      throw new Error('libvirt config is required')
+    }
+    provider = {
       case: 'libvirt' as const,
       value: {
         uri: config.uri,
@@ -460,8 +491,22 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
         storagePool: config.storagePool,
         startupScript: config.startupScript,
       },
-    },
+    }
   }
+
+  const result: Record<string, unknown> = { provider }
+  if (exposure) {
+    result.exposure = {
+      method: machineExposureMethodToProto(exposure.method),
+      domainPrefix: exposure.domainPrefix,
+      baseDomain: exposure.baseDomain,
+      cloudflareApiToken: exposure.cloudflareApiToken,
+      cloudflareAccountId: exposure.cloudflareAccountId,
+      cloudflareZoneId: exposure.cloudflareZoneId,
+      connectivity: exposure.connectivity === 'private_ip' ? 1 : exposure.connectivity === 'public_ip' ? 2 : 0,
+    }
+  }
+  return result
 }
 
 export async function listRuntimes(): Promise<RuntimeCatalogItem[]> {
@@ -473,12 +518,13 @@ export async function createRuntime(
   name: string,
   type: RuntimeCatalogType,
   config: RuntimeCatalogConfig,
+  exposure?: MachineExposureConfig,
 ): Promise<RuntimeCatalogItem> {
   const response = await runtimeClient.createRuntime(
     create(CreateRuntimeRequestSchema, {
       name,
       type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config),
+      config: runtimeConfigPayload(type, config, exposure),
     }),
   )
   if (response.runtime == null) {
@@ -492,13 +538,14 @@ export async function updateRuntime(
   name: string,
   type: RuntimeCatalogType,
   config: RuntimeCatalogConfig,
+  exposure?: MachineExposureConfig,
 ): Promise<RuntimeCatalogItem> {
   const response = await runtimeClient.updateRuntime(
     create(UpdateRuntimeRequestSchema, {
       runtimeId: runtimeID,
       name,
       type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config),
+      config: runtimeConfigPayload(type, config, exposure),
     }),
   )
   if (response.runtime == null) {
@@ -527,6 +574,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         oidcClientId?: string
         oidcClientSecretConfigured?: boolean
         oidcAllowedEmailDomains?: string[]
+        serverExposureMethod?: number
+        serverDomain?: string
       }
       isConfigured?: boolean
       configured?: boolean
@@ -543,6 +592,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       oidcClientId?: string
       oidcClientSecretConfigured?: boolean
       oidcAllowedEmailDomains?: string[]
+      serverExposureMethod?: number
+      serverDomain?: string
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -563,6 +614,11 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       response.status?.oidcClientSecretConfigured ?? response.oidcClientSecretConfigured ?? false
     const oidcAllowedEmailDomains =
       response.status?.oidcAllowedEmailDomains ?? response.oidcAllowedEmailDomains ?? []
+    const serverExposureMethodNum =
+      response.status?.serverExposureMethod ?? response.serverExposureMethod ?? 0
+    const serverExposureMethod: ServerExposureMethod =
+      serverExposureMethodNum === 2 ? 'manual' : 'cloudflare_tunnel'
+    const serverDomain = response.status?.serverDomain ?? response.serverDomain ?? ''
 
     return {
       isConfigured,
@@ -576,6 +632,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       oidcClientID,
       oidcClientSecretConfigured,
       oidcAllowedEmailDomains,
+      serverExposureMethod,
+      serverDomain,
     }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
@@ -591,6 +649,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         oidcClientID: '',
         oidcClientSecretConfigured: false,
         oidcAllowedEmailDomains: [],
+        serverExposureMethod: 'cloudflare_tunnel',
+        serverDomain: '',
       }
     }
     throw error
@@ -625,8 +685,11 @@ export async function setupComplete(
   domainPrefix: string,
   cloudflareApiToken: string,
   cloudflareZoneID: string,
+  serverExposureMethod: ServerExposureMethod = 'cloudflare_tunnel',
+  serverDomain: string = '',
 ): Promise<void> {
   try {
+    const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
     const response = await callConnectJSONCandidates<{
       status?: {
         completed?: boolean
@@ -639,6 +702,8 @@ export async function setupComplete(
       domainPrefix,
       cloudflareApiToken,
       cloudflareZoneId: cloudflareZoneID,
+      serverExposureMethod: serverExposureMethodNum,
+      serverDomain,
     })
     if (response.status?.completed !== true) {
       throw new Error(response.message ?? 'setup completion failed')
@@ -661,10 +726,16 @@ export async function updateDomainSettings(
   oidcClientSecret: string,
   oidcAllowedEmailDomains: string[],
   clearOidcClientSecret: boolean,
+  serverExposureMethod: ServerExposureMethod = 'cloudflare_tunnel',
+  serverDomain: string = '',
+  cloudflareApiToken: string = '',
+  cloudflareZoneID: string = '',
 ): Promise<void> {
+  const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
   const response = await callConnectJSONCandidates<{
     status?: {
       baseDomain?: string
+      serverDomain?: string
     }
     message?: string
   }>(['/arca.v1.SetupService/UpdateDomainSettings'], {
@@ -677,8 +748,12 @@ export async function updateDomainSettings(
     oidcClientSecret,
     oidcAllowedEmailDomains,
     clearOidcClientSecret,
+    serverExposureMethod: serverExposureMethodNum,
+    serverDomain,
+    cloudflareApiToken,
+    cloudflareZoneId: cloudflareZoneID,
   })
-  if ((response.status?.baseDomain ?? '').trim() === '') {
+  if ((response.status?.baseDomain ?? response.status?.serverDomain ?? '').trim() === '') {
     throw new Error(response.message ?? 'failed to update domain settings')
   }
 }

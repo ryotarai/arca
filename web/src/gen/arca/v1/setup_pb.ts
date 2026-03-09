@@ -2,15 +2,15 @@
 // @generated from file arca/v1/setup.proto (package arca.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file arca/v1/setup.proto.
  */
 export const file_arca_v1_setup: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxIv0CCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEikKIWludGVybmV0X3B1YmxpY19leHBvc3VyZV9kaXNhYmxlZBgJIAEoCBIUCgxvaWRjX2VuYWJsZWQYCiABKAgSFwoPb2lkY19pc3N1ZXJfdXJsGAsgASgJEhYKDm9pZGNfY2xpZW50X2lkGAwgASgJEiUKHW9pZGNfY2xpZW50X3NlY3JldF9jb25maWd1cmVkGA0gASgIEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGA4gAygJSgQIBRAGIhcKFUdldFNldHVwU3RhdHVzUmVxdWVzdCI+ChZHZXRTZXR1cFN0YXR1c1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMiRwoeVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXF1ZXN0EhEKCWFwaV90b2tlbhgBIAEoCRISCgphY2NvdW50X2lkGAIgASgJIkEKH1ZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVzcG9uc2USDQoFdmFsaWQYASABKAgSDwoHbWVzc2FnZRgCIAEoCSLIAQoUQ29tcGxldGVTZXR1cFJlcXVlc3QSEwoLYWRtaW5fZW1haWwYASABKAkSFgoOYWRtaW5fcGFzc3dvcmQYAiABKAkSEwoLYmFzZV9kb21haW4YAyABKAkSHAoUY2xvdWRmbGFyZV9hcGlfdG9rZW4YBCABKAkSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJSgQIBRAGIj0KFUNvbXBsZXRlU2V0dXBSZXNwb25zZRIkCgZzdGF0dXMYASABKAsyFC5hcmNhLnYxLlNldHVwU3RhdHVzIrUCChtVcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QSEwoLYmFzZV9kb21haW4YASABKAkSFQoNZG9tYWluX3ByZWZpeBgCIAEoCRIXCg9tYWNoaW5lX3J1bnRpbWUYAyABKAkSKAogZGlzYWJsZV9pbnRlcm5ldF9wdWJsaWNfZXhwb3N1cmUYBCABKAgSFAoMb2lkY19lbmFibGVkGAUgASgIEhcKD29pZGNfaXNzdWVyX3VybBgGIAEoCRIWCg5vaWRjX2NsaWVudF9pZBgHIAEoCRIaChJvaWRjX2NsaWVudF9zZWNyZXQYCCABKAkSIgoab2lkY19hbGxvd2VkX2VtYWlsX2RvbWFpbnMYCSADKAkSIAoYY2xlYXJfb2lkY19jbGllbnRfc2VjcmV0GAogASgIIkQKHFVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1czKEAwoMU2V0dXBTZXJ2aWNlElEKDkdldFNldHVwU3RhdHVzEh4uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1JlcXVlc3QaHy5hcmNhLnYxLkdldFNldHVwU3RhdHVzUmVzcG9uc2USbAoXVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW4SJy5hcmNhLnYxLlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVxdWVzdBooLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRJOCg1Db21wbGV0ZVNldHVwEh0uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVxdWVzdBoeLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlc3BvbnNlEmMKFFVwZGF0ZURvbWFpblNldHRpbmdzEiQuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpTZXR1cFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
+  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxItMDCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSEwoLYmFzZV9kb21haW4YBCABKAkSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhUKDWRvbWFpbl9wcmVmaXgYByABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEikKIWludGVybmV0X3B1YmxpY19leHBvc3VyZV9kaXNhYmxlZBgJIAEoCBIUCgxvaWRjX2VuYWJsZWQYCiABKAgSFwoPb2lkY19pc3N1ZXJfdXJsGAsgASgJEhYKDm9pZGNfY2xpZW50X2lkGAwgASgJEiUKHW9pZGNfY2xpZW50X3NlY3JldF9jb25maWd1cmVkGA0gASgIEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGA4gAygJEj0KFnNlcnZlcl9leHBvc3VyZV9tZXRob2QYDyABKA4yHS5hcmNhLnYxLlNlcnZlckV4cG9zdXJlTWV0aG9kEhUKDXNlcnZlcl9kb21haW4YECABKAlKBAgFEAYiFwoVR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Ij4KFkdldFNldHVwU3RhdHVzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyJHCh5WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlcXVlc3QSEQoJYXBpX3Rva2VuGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiQQofVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRINCgV2YWxpZBgBIAEoCBIPCgdtZXNzYWdlGAIgASgJIp4CChRDb21wbGV0ZVNldHVwUmVxdWVzdBITCgthZG1pbl9lbWFpbBgBIAEoCRIWCg5hZG1pbl9wYXNzd29yZBgCIAEoCRITCgtiYXNlX2RvbWFpbhgDIAEoCRIcChRjbG91ZGZsYXJlX2FwaV90b2tlbhgEIAEoCRIaChJjbG91ZGZsYXJlX3pvbmVfaWQYBiABKAkSFQoNZG9tYWluX3ByZWZpeBgHIAEoCRIXCg9tYWNoaW5lX3J1bnRpbWUYCCABKAkSPQoWc2VydmVyX2V4cG9zdXJlX21ldGhvZBgJIAEoDjIdLmFyY2EudjEuU2VydmVyRXhwb3N1cmVNZXRob2QSFQoNc2VydmVyX2RvbWFpbhgKIAEoCUoECAUQBiI9ChVDb21wbGV0ZVNldHVwUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyLFAwobVXBkYXRlRG9tYWluU2V0dGluZ3NSZXF1ZXN0EhMKC2Jhc2VfZG9tYWluGAEgASgJEhUKDWRvbWFpbl9wcmVmaXgYAiABKAkSFwoPbWFjaGluZV9ydW50aW1lGAMgASgJEigKIGRpc2FibGVfaW50ZXJuZXRfcHVibGljX2V4cG9zdXJlGAQgASgIEhQKDG9pZGNfZW5hYmxlZBgFIAEoCBIXCg9vaWRjX2lzc3Vlcl91cmwYBiABKAkSFgoOb2lkY19jbGllbnRfaWQYByABKAkSGgoSb2lkY19jbGllbnRfc2VjcmV0GAggASgJEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGAkgAygJEiAKGGNsZWFyX29pZGNfY2xpZW50X3NlY3JldBgKIAEoCBI9ChZzZXJ2ZXJfZXhwb3N1cmVfbWV0aG9kGAsgASgOMh0uYXJjYS52MS5TZXJ2ZXJFeHBvc3VyZU1ldGhvZBIVCg1zZXJ2ZXJfZG9tYWluGAwgASgJEhwKFGNsb3VkZmxhcmVfYXBpX3Rva2VuGA0gASgJEhoKEmNsb3VkZmxhcmVfem9uZV9pZBgOIAEoCSJEChxVcGRhdGVEb21haW5TZXR0aW5nc1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMqjwEKFFNlcnZlckV4cG9zdXJlTWV0aG9kEiYKIlNFUlZFUl9FWFBPU1VSRV9NRVRIT0RfVU5TUEVDSUZJRUQQABIsCihTRVJWRVJfRVhQT1NVUkVfTUVUSE9EX0NMT1VERkxBUkVfVFVOTkVMEAESIQodU0VSVkVSX0VYUE9TVVJFX01FVEhPRF9NQU5VQUwQAjKEAwoMU2V0dXBTZXJ2aWNlElEKDkdldFNldHVwU3RhdHVzEh4uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1JlcXVlc3QaHy5hcmNhLnYxLkdldFNldHVwU3RhdHVzUmVzcG9uc2USbAoXVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW4SJy5hcmNhLnYxLlZhbGlkYXRlQ2xvdWRmbGFyZVRva2VuUmVxdWVzdBooLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRJOCg1Db21wbGV0ZVNldHVwEh0uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVxdWVzdBoeLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlc3BvbnNlEmMKFFVwZGF0ZURvbWFpblNldHRpbmdzEiQuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZURvbWFpblNldHRpbmdzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpTZXR1cFByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message arca.v1.SetupStatus
@@ -80,6 +80,16 @@ export type SetupStatus = Message<"arca.v1.SetupStatus"> & {
    * @generated from field: repeated string oidc_allowed_email_domains = 14;
    */
   oidcAllowedEmailDomains: string[];
+
+  /**
+   * @generated from field: arca.v1.ServerExposureMethod server_exposure_method = 15;
+   */
+  serverExposureMethod: ServerExposureMethod;
+
+  /**
+   * @generated from field: string server_domain = 16;
+   */
+  serverDomain: string;
 };
 
 /**
@@ -201,6 +211,16 @@ export type CompleteSetupRequest = Message<"arca.v1.CompleteSetupRequest"> & {
    * @generated from field: string machine_runtime = 8;
    */
   machineRuntime: string;
+
+  /**
+   * @generated from field: arca.v1.ServerExposureMethod server_exposure_method = 9;
+   */
+  serverExposureMethod: ServerExposureMethod;
+
+  /**
+   * @generated from field: string server_domain = 10;
+   */
+  serverDomain: string;
 };
 
 /**
@@ -280,6 +300,26 @@ export type UpdateDomainSettingsRequest = Message<"arca.v1.UpdateDomainSettingsR
    * @generated from field: bool clear_oidc_client_secret = 10;
    */
   clearOidcClientSecret: boolean;
+
+  /**
+   * @generated from field: arca.v1.ServerExposureMethod server_exposure_method = 11;
+   */
+  serverExposureMethod: ServerExposureMethod;
+
+  /**
+   * @generated from field: string server_domain = 12;
+   */
+  serverDomain: string;
+
+  /**
+   * @generated from field: string cloudflare_api_token = 13;
+   */
+  cloudflareApiToken: string;
+
+  /**
+   * @generated from field: string cloudflare_zone_id = 14;
+   */
+  cloudflareZoneId: string;
 };
 
 /**
@@ -305,6 +345,32 @@ export type UpdateDomainSettingsResponse = Message<"arca.v1.UpdateDomainSettings
  */
 export const UpdateDomainSettingsResponseSchema: GenMessage<UpdateDomainSettingsResponse> = /*@__PURE__*/
   messageDesc(file_arca_v1_setup, 8);
+
+/**
+ * @generated from enum arca.v1.ServerExposureMethod
+ */
+export enum ServerExposureMethod {
+  /**
+   * @generated from enum value: SERVER_EXPOSURE_METHOD_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL = 1;
+   */
+  CLOUDFLARE_TUNNEL = 1,
+
+  /**
+   * @generated from enum value: SERVER_EXPOSURE_METHOD_MANUAL = 2;
+   */
+  MANUAL = 2,
+}
+
+/**
+ * Describes the enum arca.v1.ServerExposureMethod.
+ */
+export const ServerExposureMethodSchema: GenEnum<ServerExposureMethod> = /*@__PURE__*/
+  enumDesc(file_arca_v1_setup, 0);
 
 /**
  * @generated from service arca.v1.SetupService

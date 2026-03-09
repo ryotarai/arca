@@ -27,6 +27,8 @@ export type MachineEvent = import('@/gen/arca/v1/machine_pb').MachineEvent
 export type MachineExposure = MachineExposureMessage
 export type MachineExposureVisibility = EndpointVisibility
 
+export type ServerExposureMethod = 'cloudflare_tunnel' | 'manual'
+
 export type SetupStatus = {
   isConfigured: boolean
   hasAdmin: boolean
@@ -39,6 +41,20 @@ export type SetupStatus = {
   oidcClientID: string
   oidcClientSecretConfigured: boolean
   oidcAllowedEmailDomains: string[]
+  serverExposureMethod: ServerExposureMethod
+  serverDomain: string
+}
+
+export type MachineExposureMethodType = 'cloudflare_tunnel' | 'proxy_via_server'
+
+export type MachineExposureConfig = {
+  method: MachineExposureMethodType
+  domainPrefix: string
+  baseDomain: string
+  cloudflareApiToken: string
+  cloudflareAccountId: string
+  cloudflareZoneId: string
+  connectivity: 'private_ip' | 'public_ip' | ''
 }
 
 export type RuntimeCatalogType = 'libvirt' | 'gce'
@@ -66,6 +82,7 @@ export type RuntimeCatalogItem = {
   name: string
   type: RuntimeCatalogType
   config: RuntimeCatalogConfig
+  exposure: MachineExposureConfig
   createdAt: number
   updatedAt: number
 }

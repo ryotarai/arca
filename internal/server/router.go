@@ -23,6 +23,7 @@ type Dependencies struct {
 	Store         *db.Store
 	Cloudflare    *cloudflare.Client
 	ConsoleTunnel *ConsoleTunnelManager
+	MachineProxy  *MachineProxyHandler
 }
 
 type HealthChecker interface {
@@ -103,7 +104,16 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Get("/auth/authorize", authorizeHandler)
 	}
 
-	r.NotFound(spaHandler())
+	// Machine proxy middleware: intercept requests with Host headers matching
+	// machine exposures in proxy-via-server mode before the SPA handler.
+	spa := spaHandler()
+	machineProxy := deps.MachineProxy
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		if machineProxy != nil && machineProxy.TryServeHTTP(w, req) {
+			return
+		}
+		spa(w, req)
+	})
 	return r
 }
 
