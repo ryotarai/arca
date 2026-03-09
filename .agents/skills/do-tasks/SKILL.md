@@ -16,7 +16,12 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 4. Classify tasks:
 - `ready`: dependencies already completed.
 - `blocked`: waiting for dependency or missing external input.
-5. For each `ready` task, create an isolated worktree run unit.
+5. **Pre-execution clarification gate** — Before launching any run unit, review all `ready` tasks for ambiguities, missing details, or decisions that could derail implementation. If questions exist:
+- Ask the user **before** starting execution, not mid-flight.
+- Present each question with **concrete options** (A / B / C style or short descriptions) so the user can answer quickly without needing to research or write long responses.
+- Group questions by task when multiple tasks have issues.
+- If no ambiguities exist, skip this step silently and proceed.
+6. For each `ready` task, create an isolated worktree run unit.
 - Generate branch name: `task/<id>-<short-kebab-summary>`.
 - Check out branch into `.worktrees/<branch-name>` using `git worktree add`.
 - After creating the worktree, create a `tmp` symlink in that worktree that points to the repository root `tmp/` (for example: `ln -s "$(pwd)/tmp" ".worktrees/<branch-name>/tmp"` from repo root).
@@ -26,23 +31,23 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 - Avoid id-only titles such as `task-001` unless no meaningful summary can be derived.
 - Start execution with `./scripts/bgcodex.sh "meaningful-20char-title" "your prompt" "path to the worktree dir"`.
 - If the user explicitly instructs to use Claude, set `AGENT=claude` for that run (for example `AGENT=claude ./scripts/bgcodex.sh "meaningful-20char-title" "your prompt" "path to the worktree dir"`).
-6. Schedule run units with **parallel-by-default** policy.
+7. Schedule run units with **parallel-by-default** policy.
 - Launch all `ready` tasks immediately unless a hard dependency or high-confidence file conflict exists.
 - If 2+ tasks are `ready`, keep at least 2 concurrent run units active whenever possible.
 - Do not serialize preemptively for caution; serialize only when dependency/conflict evidence is explicit.
 - When conflict risk is uncertain, start tasks in parallel and resolve collisions during merge.
-7. Refill parallel capacity continuously.
+8. Refill parallel capacity continuously.
 - Each time a run unit completes, recompute DAG and launch newly `ready` tasks immediately.
 - Keep the worker pool saturated until no executable tasks remain.
-8. Monitor running sessions and capture logs when needed.
+9. Monitor running sessions and capture logs when needed.
 - Use tmux capture for active panes, for example: `tmux capture-pane -p -S - -t :codex-agents.0`.
-9. On confirmed completion of each task run unit:
+10. On confirmed completion of each task run unit:
 - Verify task-scoped checks/tests completed in that worktree.
 - Merge branch into `main`.
 - Delete branch and remove `.worktrees/<branch-name>`.
 - Move completed task file from `tmp/tasks/` to `tmp/tasks-done/`.
-10. Recompute DAG state after every completion and continue until no `ready` tasks remain.
-11. Ask one consolidated question set for unresolved blockers only after all executable work is exhausted.
+11. Recompute DAG state after every completion and continue until no `ready` tasks remain.
+12. Ask one consolidated question set for unresolved blockers only after all executable work is exhausted.
 
 ## Worktree And Merge Rules
 
