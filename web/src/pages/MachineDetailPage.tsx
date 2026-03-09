@@ -354,7 +354,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     onClick={() => void handleRestart()}
                     disabled={machine.status === 'starting' || machine.status === 'stopping' || machine.status === 'pending' || machine.status === 'deleting'}
                   >
-                    {machine.updateRequired ? 'Restart to update' : 'Restart'}
+                    {machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' ? 'Restart to update' : 'Restart'}
                   </Button>
                   <Button
                     type="button"
