@@ -63,6 +63,7 @@ message CompleteSetupRequest {
   string machine_runtime = 8;
   ServerExposureMethod server_exposure_method = 9;
   string server_domain = 10;
+  string setup_password = 11;
 }
 
 message CompleteSetupResponse {

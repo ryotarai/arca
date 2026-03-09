@@ -421,6 +421,7 @@ type CompleteSetupRequest struct {
 	MachineRuntime       string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
 	ServerExposureMethod ServerExposureMethod   `protobuf:"varint,9,opt,name=server_exposure_method,json=serverExposureMethod,proto3,enum=arca.v1.ServerExposureMethod" json:"server_exposure_method,omitempty"`
 	ServerDomain         string                 `protobuf:"bytes,10,opt,name=server_domain,json=serverDomain,proto3" json:"server_domain,omitempty"`
+	SetupPassword        string                 `protobuf:"bytes,11,opt,name=setup_password,json=setupPassword,proto3" json:"setup_password,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -514,6 +515,13 @@ func (x *CompleteSetupRequest) GetServerExposureMethod() ServerExposureMethod {
 func (x *CompleteSetupRequest) GetServerDomain() string {
 	if x != nil {
 		return x.ServerDomain
+	}
+	return ""
+}
+
+func (x *CompleteSetupRequest) GetSetupPassword() string {
+	if x != nil {
+		return x.SetupPassword
 	}
 	return ""
 }
@@ -786,7 +794,7 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"account_id\x18\x02 \x01(\tR\taccountId\"Q\n" +
 	"\x1fValidateCloudflareTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xad\x03\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xd4\x03\n" +
 	"\x14CompleteSetupRequest\x12\x1f\n" +
 	"\vadmin_email\x18\x01 \x01(\tR\n" +
 	"adminEmail\x12%\n" +
@@ -799,7 +807,8 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\x12S\n" +
 	"\x16server_exposure_method\x18\t \x01(\x0e2\x1d.arca.v1.ServerExposureMethodR\x14serverExposureMethod\x12#\n" +
 	"\rserver_domain\x18\n" +
-	" \x01(\tR\fserverDomainJ\x04\b\x05\x10\x06\"E\n" +
+	" \x01(\tR\fserverDomain\x12%\n" +
+	"\x0esetup_password\x18\v \x01(\tR\rsetupPasswordJ\x04\b\x05\x10\x06\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xc4\x05\n" +
 	"\x1bUpdateDomainSettingsRequest\x12\x1f\n" +

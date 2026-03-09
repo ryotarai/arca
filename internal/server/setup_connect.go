@@ -155,6 +155,17 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("setup already completed"))
 	}
 
+	if !shouldSkipSetup() {
+		storedPassword, pwErr := s.store.GetSetupPassword(ctx)
+		if pwErr != nil {
+			log.Printf("get setup password failed: %v", pwErr)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to verify setup password"))
+		}
+		if storedPassword != "" && req.Msg.GetSetupPassword() != storedPassword {
+			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("invalid setup password"))
+		}
+	}
+
 	email := strings.TrimSpace(req.Msg.GetAdminEmail())
 	password := req.Msg.GetAdminPassword()
 	if email == "" || password == "" {

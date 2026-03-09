@@ -687,6 +687,7 @@ export async function setupComplete(
   cloudflareZoneID: string,
   serverExposureMethod: ServerExposureMethod = 'cloudflare_tunnel',
   serverDomain: string = '',
+  setupPassword: string = '',
 ): Promise<void> {
   try {
     const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
@@ -704,6 +705,7 @@ export async function setupComplete(
       cloudflareZoneId: cloudflareZoneID,
       serverExposureMethod: serverExposureMethodNum,
       serverDomain,
+      setupPassword,
     })
     if (response.status?.completed !== true) {
       throw new Error(response.message ?? 'setup completion failed')
