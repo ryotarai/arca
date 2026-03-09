@@ -37,6 +37,7 @@ export function SetupPage({
 }: SetupPageProps) {
   const navigate = useNavigate()
   const [step, setStep] = useState(hasAdmin ? 2 : 1)
+  const [setupPassword, setSetupPassword] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -142,6 +143,7 @@ export function SetupPage({
         cloudflareZoneID,
         serverExposureMethod,
         serverDomain.trim(),
+        setupPassword,
       )
       onSetupComplete(cloudflareZoneID, normalizedBaseDomain, normalizedDomainPrefix)
       window.setTimeout(() => {
@@ -178,6 +180,21 @@ export function SetupPage({
             </CardHeader>
             <CardContent className="p-6 pt-3">
               <form className="space-y-4" onSubmit={submitAdmin}>
+                <div className="space-y-2">
+                  <Label htmlFor="setup-setup-password" className="text-slate-200">
+                    Setup password
+                  </Label>
+                  <Input
+                    id="setup-setup-password"
+                    type="password"
+                    value={setupPassword}
+                    onChange={(event) => setSetupPassword(event.target.value)}
+                    required
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="shown in the server console output"
+                  />
+                  <p className="text-xs text-slate-400">Enter the setup password displayed in the server&apos;s standard output.</p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="setup-email" className="text-slate-200">
                     Email

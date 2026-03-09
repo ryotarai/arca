@@ -255,6 +255,22 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	return s.upsertMetaValue(ctx, setupMetaServerDomain, strings.TrimSpace(state.ServerDomain))
 }
 
+func (s *Store) GetSetupPassword(ctx context.Context) (string, error) {
+	v, err := s.getMetaValue(ctx, setupMetaSetupPassword)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return v, nil
+}
+
+func (s *Store) SetSetupPassword(ctx context.Context, password string) error {
+	return s.upsertMetaValue(ctx, setupMetaSetupPassword, password)
+}
+
+const setupMetaSetupPassword = "setup.password"
 const setupMetaCloudflareZoneID = "setup.cloudflare_zone_id"
 const setupMetaMachineRuntime = "setup.machine_runtime"
 const setupMetaDisableInternetPublicExposure = "setup.disable_internet_public_exposure"

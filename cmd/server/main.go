@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"log"
+	"math/big"
 	"net"
 	"net/http"
 	"net/netip"
@@ -43,6 +45,9 @@ func main() {
 
 	if err := db.ApplyMigrations(ctx, sqlDB, dbConfig.Driver); err != nil {
 		log.Fatalf("db migration failed: %v", err)
+	}
+	if err := ensureSetupPassword(ctx, store); err != nil {
+		log.Fatalf("setup password init failed: %v", err)
 	}
 	authService := auth.NewService(store)
 	cfClient := cloudflare.NewClient(http.DefaultClient)
@@ -86,6 +91,46 @@ func main() {
 	case err := <-errCh:
 		log.Fatalf("server failed: %v", err)
 	}
+}
+
+func ensureSetupPassword(ctx context.Context, store *db.Store) error {
+	state, err := store.GetSetupState(ctx)
+	if err != nil {
+		return err
+	}
+	if state.Completed {
+		return nil
+	}
+	existing, err := store.GetSetupPassword(ctx)
+	if err != nil {
+		return err
+	}
+	if existing != "" {
+		log.Printf("Setup password: %s", existing)
+		return nil
+	}
+	pw, err := generateSetupPassword(16)
+	if err != nil {
+		return err
+	}
+	if err := store.SetSetupPassword(ctx, pw); err != nil {
+		return err
+	}
+	log.Printf("Setup password: %s", pw)
+	return nil
+}
+
+func generateSetupPassword(length int) (string, error) {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		b[i] = charset[n.Int64()]
+	}
+	return string(b), nil
 }
 
 func consoleOriginURL(listenAddr string) string {
