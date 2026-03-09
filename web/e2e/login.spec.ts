@@ -166,7 +166,7 @@ test('machine CRUD screen works for authenticated user', async ({ page }) => {
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Delete' }).click()
   await expect(page).toHaveURL('/machines')
-  await expect(page.getByText('No machines yet.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
 })
 
 test('machine detail runtime links to runtime detail route', async ({ page }) => {
