@@ -375,11 +375,15 @@ export async function deleteMachine(id: string): Promise<void> {
 }
 
 function runtimeTypeToProto(type: RuntimeCatalogType): RuntimeType {
-  return type === 'gce' ? RuntimeType.GCE : RuntimeType.LIBVIRT
+  if (type === 'gce') return RuntimeType.GCE
+  if (type === 'lxd') return RuntimeType.LXD
+  return RuntimeType.LIBVIRT
 }
 
 function runtimeTypeFromProto(type: RuntimeType): RuntimeCatalogType {
-  return type === RuntimeType.GCE ? 'gce' : 'libvirt'
+  if (type === RuntimeType.GCE) return 'gce'
+  if (type === RuntimeType.LXD) return 'lxd'
+  return 'libvirt'
 }
 
 function machineExposureMethodFromProto(method: number): MachineExposureMethodType {
@@ -401,6 +405,7 @@ function toRuntimeCatalogItem(input: {
           case: 'gce'
           value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string }
         }
+      | { case: 'lxd'; value: { endpoint: string; startupScript: string } }
       | { case: undefined; value?: undefined }
     exposure?: {
       method?: number
@@ -427,6 +432,13 @@ function toRuntimeCatalogItem(input: {
       subnetwork: gce?.subnetwork ?? '',
       serviceAccountEmail: gce?.serviceAccountEmail ?? '',
       startupScript: gce?.startupScript ?? '',
+    }
+  } else if (runtimeType === 'lxd') {
+    const lxd = input.config?.provider.case === 'lxd' ? input.config.provider.value : undefined
+    config = {
+      type: 'lxd',
+      endpoint: lxd?.endpoint ?? '',
+      startupScript: lxd?.startupScript ?? '',
     }
   } else {
     const libvirt = input.config?.provider.case === 'libvirt' ? input.config.provider.value : undefined
@@ -476,6 +488,17 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
         network: config.network,
         subnetwork: config.subnetwork,
         serviceAccountEmail: config.serviceAccountEmail,
+        startupScript: config.startupScript,
+      },
+    }
+  } else if (type === 'lxd') {
+    if (config.type !== 'lxd') {
+      throw new Error('lxd config is required')
+    }
+    provider = {
+      case: 'lxd' as const,
+      value: {
+        endpoint: config.endpoint,
         startupScript: config.startupScript,
       },
     }

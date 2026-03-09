@@ -38,6 +38,7 @@ func NewRoutingRuntimeWithCatalog(store RuntimeCatalogStore, runtimes map[string
 		factory: map[string]RuntimeFactory{
 			db.RuntimeTypeLibvirt: runtimeFromLibvirtCatalog,
 			db.RuntimeTypeGCE:     runtimeFromGceCatalog,
+			db.RuntimeTypeLXD:     runtimeFromLxdCatalog,
 		},
 	}
 }
@@ -154,4 +155,21 @@ func runtimeFromGceCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error) {
 		return nil, err
 	}
 	return runtime, nil
+}
+
+func runtimeFromLxdCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error) {
+	config := &arcav1.RuntimeConfig{}
+	if err := protojson.Unmarshal([]byte(catalogRuntime.ConfigJSON), config); err != nil {
+		return nil, fmt.Errorf("decode runtime config: %w", err)
+	}
+
+	lxd := config.GetLxd()
+	if lxd == nil {
+		return nil, fmt.Errorf("lxd runtime config is missing")
+	}
+
+	return NewLxdRuntimeWithOptions(LxdRuntimeOptions{
+		Endpoint:      strings.TrimSpace(lxd.GetEndpoint()),
+		StartupScript: lxd.GetStartupScript(),
+	}), nil
 }

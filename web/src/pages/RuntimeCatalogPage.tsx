@@ -27,6 +27,8 @@ type RuntimeFormState = {
   gceSubnetwork: string
   gceServiceAccountEmail: string
   gceStartupScript: string
+  lxdEndpoint: string
+  lxdStartupScript: string
   exposureMethod: MachineExposureMethodType
   exposureDomainPrefix: string
   exposureBaseDomain: string
@@ -54,6 +56,8 @@ function emptyRuntimeForm(): RuntimeFormState {
     gceSubnetwork: '',
     gceServiceAccountEmail: '',
     gceStartupScript: '',
+    lxdEndpoint: '',
+    lxdStartupScript: '',
     exposureMethod: 'cloudflare_tunnel',
     exposureDomainPrefix: '',
     exposureBaseDomain: '',
@@ -99,6 +103,16 @@ function validateRuntimeForm(form: RuntimeFormState): string | null {
     return null
   }
 
+  if (form.type === 'lxd') {
+    if (utf8ByteLength(form.lxdStartupScript) > maxStartupScriptBytes) {
+      return 'LXD startup script must be 8KB or less.'
+    }
+    if (form.lxdEndpoint.trim() === '') {
+      return 'LXD config requires endpoint.'
+    }
+    return null
+  }
+
   if (utf8ByteLength(form.libvirtStartupScript) > maxStartupScriptBytes) {
     return 'Libvirt startup script must be 8KB or less.'
   }
@@ -118,6 +132,13 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
       subnetwork: form.gceSubnetwork.trim(),
       serviceAccountEmail: form.gceServiceAccountEmail.trim(),
       startupScript: form.gceStartupScript,
+    }
+  }
+  if (form.type === 'lxd') {
+    return {
+      type: 'lxd',
+      endpoint: form.lxdEndpoint.trim(),
+      startupScript: form.lxdStartupScript,
     }
   }
   return {
@@ -163,6 +184,17 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
       gceSubnetwork: runtime.config.subnetwork,
       gceServiceAccountEmail: runtime.config.serviceAccountEmail,
       gceStartupScript: runtime.config.startupScript,
+      ...exposureFields,
+    }
+  }
+  if (runtime.type === 'lxd') {
+    return {
+      ...emptyRuntimeForm(),
+      id: runtime.id,
+      name: runtime.name,
+      type: 'lxd',
+      lxdEndpoint: runtime.config.endpoint,
+      lxdStartupScript: runtime.config.startupScript,
       ...exposureFields,
     }
   }
@@ -319,13 +351,16 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                 <select
                   id="runtime-type"
                   value={form.type}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, type: event.target.value === 'gce' ? 'gce' : 'libvirt' }))
-                  }
+                  onChange={(event) => {
+                    const val = event.target.value
+                    const t: RuntimeCatalogType = val === 'gce' ? 'gce' : val === 'lxd' ? 'lxd' : 'libvirt'
+                    setForm((current) => ({ ...current, type: t }))
+                  }}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="libvirt">Libvirt</option>
                   <option value="gce">Google Compute Engine (GCE)</option>
+                  <option value="lxd">LXD</option>
                 </select>
               </div>
 
@@ -361,6 +396,24 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                       placeholder="#!/usr/bin/env bash"
                     />
                     <p className="text-xs text-muted-foreground">{utf8ByteLength(form.gceStartupScript)} / {maxStartupScriptBytes} bytes</p>
+                  </div>
+                </div>
+              ) : form.type === 'lxd' ? (
+                <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-lxd-endpoint">Endpoint</Label>
+                    <Input id="runtime-lxd-endpoint" value={form.lxdEndpoint} onChange={(event) => setForm((current) => ({ ...current, lxdEndpoint: event.target.value }))} className="h-10" placeholder="https://localhost:8443" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-lxd-startup-script">Startup script (Bash, optional)</Label>
+                    <textarea
+                      id="runtime-lxd-startup-script"
+                      value={form.lxdStartupScript}
+                      onChange={(event) => setForm((current) => ({ ...current, lxdStartupScript: event.target.value }))}
+                      className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      placeholder="#!/usr/bin/env bash"
+                    />
+                    <p className="text-xs text-muted-foreground">{utf8ByteLength(form.lxdStartupScript)} / {maxStartupScriptBytes} bytes</p>
                   </div>
                 </div>
               ) : (

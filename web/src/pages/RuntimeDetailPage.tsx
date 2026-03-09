@@ -126,6 +126,11 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
                     <p className="text-sm text-foreground">Network: {runtime.config.network}</p>
                     <p className="text-sm text-foreground">Storage pool: {runtime.config.storagePool}</p>
                   </div>
+                ) : runtime.config.type === 'lxd' ? (
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">Config</p>
+                    <p className="text-sm text-foreground">Endpoint: {runtime.config.endpoint}</p>
+                  </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Config</p>

@@ -15,6 +15,7 @@ enum RuntimeType {
   RUNTIME_TYPE_UNSPECIFIED = 0;
   RUNTIME_TYPE_LIBVIRT = 1;
   RUNTIME_TYPE_GCE = 2;
+  RUNTIME_TYPE_LXD = 3;
 }
 
 enum MachineExposureMethod {
@@ -55,10 +56,16 @@ message GceRuntimeConfig {
   string startup_script = 6;
 }
 
+message LxdRuntimeConfig {
+  string endpoint = 1;
+  string startup_script = 2;
+}
+
 message RuntimeConfig {
   oneof provider {
     LibvirtRuntimeConfig libvirt = 1;
     GceRuntimeConfig gce = 2;
+    LxdRuntimeConfig lxd = 4;
   }
   MachineExposureConfig exposure = 3;
 }

@@ -273,6 +273,32 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 				Exposure: exposureConfig,
 			},
 		}, nil
+	case arcav1.RuntimeType_RUNTIME_TYPE_LXD:
+		lxd := config.GetLxd()
+		if lxd == nil || config.GetLibvirt() != nil || config.GetGce() != nil {
+			return validatedRuntimeRequest{}, errors.New("lxd runtime requires lxd config only")
+		}
+		endpoint := strings.TrimSpace(lxd.GetEndpoint())
+		startupScript, err := normalizeRuntimeStartupScript(lxd.GetStartupScript(), "lxd startup script")
+		if err != nil {
+			return validatedRuntimeRequest{}, err
+		}
+		if endpoint == "" {
+			return validatedRuntimeRequest{}, errors.New("lxd config requires endpoint")
+		}
+		return validatedRuntimeRequest{
+			name:        normalizedName,
+			runtimeType: db.RuntimeTypeLXD,
+			config: &arcav1.RuntimeConfig{
+				Provider: &arcav1.RuntimeConfig_Lxd{
+					Lxd: &arcav1.LxdRuntimeConfig{
+						Endpoint:      endpoint,
+						StartupScript: startupScript,
+					},
+				},
+				Exposure: exposureConfig,
+			},
+		}, nil
 	default:
 		return validatedRuntimeRequest{}, errors.New("runtime type is unsupported")
 	}
@@ -325,6 +351,8 @@ func runtimeTypeFromDB(runtimeType string) (arcav1.RuntimeType, error) {
 		return arcav1.RuntimeType_RUNTIME_TYPE_LIBVIRT, nil
 	case db.RuntimeTypeGCE:
 		return arcav1.RuntimeType_RUNTIME_TYPE_GCE, nil
+	case db.RuntimeTypeLXD:
+		return arcav1.RuntimeType_RUNTIME_TYPE_LXD, nil
 	default:
 		return arcav1.RuntimeType_RUNTIME_TYPE_UNSPECIFIED, errors.New("unknown runtime type")
 	}

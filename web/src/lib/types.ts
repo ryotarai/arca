@@ -57,7 +57,7 @@ export type MachineExposureConfig = {
   connectivity: 'private_ip' | 'public_ip' | ''
 }
 
-export type RuntimeCatalogType = 'libvirt' | 'gce'
+export type RuntimeCatalogType = 'libvirt' | 'gce' | 'lxd'
 
 export type RuntimeCatalogConfig =
   | {
@@ -74,6 +74,11 @@ export type RuntimeCatalogConfig =
       network: string
       subnetwork: string
       serviceAccountEmail: string
+      startupScript: string
+    }
+  | {
+      type: 'lxd'
+      endpoint: string
       startupScript: string
     }
 

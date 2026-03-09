@@ -27,6 +27,7 @@ const (
 	RuntimeType_RUNTIME_TYPE_UNSPECIFIED RuntimeType = 0
 	RuntimeType_RUNTIME_TYPE_LIBVIRT     RuntimeType = 1
 	RuntimeType_RUNTIME_TYPE_GCE         RuntimeType = 2
+	RuntimeType_RUNTIME_TYPE_LXD         RuntimeType = 3
 )
 
 // Enum value maps for RuntimeType.
@@ -35,11 +36,13 @@ var (
 		0: "RUNTIME_TYPE_UNSPECIFIED",
 		1: "RUNTIME_TYPE_LIBVIRT",
 		2: "RUNTIME_TYPE_GCE",
+		3: "RUNTIME_TYPE_LXD",
 	}
 	RuntimeType_value = map[string]int32{
 		"RUNTIME_TYPE_UNSPECIFIED": 0,
 		"RUNTIME_TYPE_LIBVIRT":     1,
 		"RUNTIME_TYPE_GCE":         2,
+		"RUNTIME_TYPE_LXD":         3,
 	}
 )
 
@@ -412,12 +415,65 @@ func (x *GceRuntimeConfig) GetStartupScript() string {
 	return ""
 }
 
+type LxdRuntimeConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Endpoint      string                 `protobuf:"bytes,1,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	StartupScript string                 `protobuf:"bytes,2,opt,name=startup_script,json=startupScript,proto3" json:"startup_script,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LxdRuntimeConfig) Reset() {
+	*x = LxdRuntimeConfig{}
+	mi := &file_arca_v1_runtime_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LxdRuntimeConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LxdRuntimeConfig) ProtoMessage() {}
+
+func (x *LxdRuntimeConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_runtime_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LxdRuntimeConfig.ProtoReflect.Descriptor instead.
+func (*LxdRuntimeConfig) Descriptor() ([]byte, []int) {
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *LxdRuntimeConfig) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *LxdRuntimeConfig) GetStartupScript() string {
+	if x != nil {
+		return x.StartupScript
+	}
+	return ""
+}
+
 type RuntimeConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Provider:
 	//
 	//	*RuntimeConfig_Libvirt
 	//	*RuntimeConfig_Gce
+	//	*RuntimeConfig_Lxd
 	Provider      isRuntimeConfig_Provider `protobuf_oneof:"provider"`
 	Exposure      *MachineExposureConfig   `protobuf:"bytes,3,opt,name=exposure,proto3" json:"exposure,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -426,7 +482,7 @@ type RuntimeConfig struct {
 
 func (x *RuntimeConfig) Reset() {
 	*x = RuntimeConfig{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[3]
+	mi := &file_arca_v1_runtime_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -438,7 +494,7 @@ func (x *RuntimeConfig) String() string {
 func (*RuntimeConfig) ProtoMessage() {}
 
 func (x *RuntimeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[3]
+	mi := &file_arca_v1_runtime_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -451,7 +507,7 @@ func (x *RuntimeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeConfig.ProtoReflect.Descriptor instead.
 func (*RuntimeConfig) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{3}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RuntimeConfig) GetProvider() isRuntimeConfig_Provider {
@@ -479,6 +535,15 @@ func (x *RuntimeConfig) GetGce() *GceRuntimeConfig {
 	return nil
 }
 
+func (x *RuntimeConfig) GetLxd() *LxdRuntimeConfig {
+	if x != nil {
+		if x, ok := x.Provider.(*RuntimeConfig_Lxd); ok {
+			return x.Lxd
+		}
+	}
+	return nil
+}
+
 func (x *RuntimeConfig) GetExposure() *MachineExposureConfig {
 	if x != nil {
 		return x.Exposure
@@ -498,9 +563,15 @@ type RuntimeConfig_Gce struct {
 	Gce *GceRuntimeConfig `protobuf:"bytes,2,opt,name=gce,proto3,oneof"`
 }
 
+type RuntimeConfig_Lxd struct {
+	Lxd *LxdRuntimeConfig `protobuf:"bytes,4,opt,name=lxd,proto3,oneof"`
+}
+
 func (*RuntimeConfig_Libvirt) isRuntimeConfig_Provider() {}
 
 func (*RuntimeConfig_Gce) isRuntimeConfig_Provider() {}
+
+func (*RuntimeConfig_Lxd) isRuntimeConfig_Provider() {}
 
 type Runtime struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -516,7 +587,7 @@ type Runtime struct {
 
 func (x *Runtime) Reset() {
 	*x = Runtime{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[4]
+	mi := &file_arca_v1_runtime_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +599,7 @@ func (x *Runtime) String() string {
 func (*Runtime) ProtoMessage() {}
 
 func (x *Runtime) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[4]
+	mi := &file_arca_v1_runtime_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +612,7 @@ func (x *Runtime) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Runtime.ProtoReflect.Descriptor instead.
 func (*Runtime) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{4}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Runtime) GetId() string {
@@ -594,7 +665,7 @@ type ListRuntimesRequest struct {
 
 func (x *ListRuntimesRequest) Reset() {
 	*x = ListRuntimesRequest{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[5]
+	mi := &file_arca_v1_runtime_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +677,7 @@ func (x *ListRuntimesRequest) String() string {
 func (*ListRuntimesRequest) ProtoMessage() {}
 
 func (x *ListRuntimesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[5]
+	mi := &file_arca_v1_runtime_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +690,7 @@ func (x *ListRuntimesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRuntimesRequest.ProtoReflect.Descriptor instead.
 func (*ListRuntimesRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{5}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{6}
 }
 
 type ListRuntimesResponse struct {
@@ -631,7 +702,7 @@ type ListRuntimesResponse struct {
 
 func (x *ListRuntimesResponse) Reset() {
 	*x = ListRuntimesResponse{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[6]
+	mi := &file_arca_v1_runtime_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +714,7 @@ func (x *ListRuntimesResponse) String() string {
 func (*ListRuntimesResponse) ProtoMessage() {}
 
 func (x *ListRuntimesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[6]
+	mi := &file_arca_v1_runtime_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +727,7 @@ func (x *ListRuntimesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRuntimesResponse.ProtoReflect.Descriptor instead.
 func (*ListRuntimesResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{6}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListRuntimesResponse) GetRuntimes() []*Runtime {
@@ -677,7 +748,7 @@ type CreateRuntimeRequest struct {
 
 func (x *CreateRuntimeRequest) Reset() {
 	*x = CreateRuntimeRequest{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[7]
+	mi := &file_arca_v1_runtime_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -689,7 +760,7 @@ func (x *CreateRuntimeRequest) String() string {
 func (*CreateRuntimeRequest) ProtoMessage() {}
 
 func (x *CreateRuntimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[7]
+	mi := &file_arca_v1_runtime_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -702,7 +773,7 @@ func (x *CreateRuntimeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRuntimeRequest.ProtoReflect.Descriptor instead.
 func (*CreateRuntimeRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateRuntimeRequest) GetName() string {
@@ -735,7 +806,7 @@ type CreateRuntimeResponse struct {
 
 func (x *CreateRuntimeResponse) Reset() {
 	*x = CreateRuntimeResponse{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[8]
+	mi := &file_arca_v1_runtime_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -747,7 +818,7 @@ func (x *CreateRuntimeResponse) String() string {
 func (*CreateRuntimeResponse) ProtoMessage() {}
 
 func (x *CreateRuntimeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[8]
+	mi := &file_arca_v1_runtime_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -760,7 +831,7 @@ func (x *CreateRuntimeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRuntimeResponse.ProtoReflect.Descriptor instead.
 func (*CreateRuntimeResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateRuntimeResponse) GetRuntime() *Runtime {
@@ -782,7 +853,7 @@ type UpdateRuntimeRequest struct {
 
 func (x *UpdateRuntimeRequest) Reset() {
 	*x = UpdateRuntimeRequest{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[9]
+	mi := &file_arca_v1_runtime_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -794,7 +865,7 @@ func (x *UpdateRuntimeRequest) String() string {
 func (*UpdateRuntimeRequest) ProtoMessage() {}
 
 func (x *UpdateRuntimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[9]
+	mi := &file_arca_v1_runtime_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -807,7 +878,7 @@ func (x *UpdateRuntimeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRuntimeRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRuntimeRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{9}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateRuntimeRequest) GetRuntimeId() string {
@@ -847,7 +918,7 @@ type UpdateRuntimeResponse struct {
 
 func (x *UpdateRuntimeResponse) Reset() {
 	*x = UpdateRuntimeResponse{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[10]
+	mi := &file_arca_v1_runtime_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +930,7 @@ func (x *UpdateRuntimeResponse) String() string {
 func (*UpdateRuntimeResponse) ProtoMessage() {}
 
 func (x *UpdateRuntimeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[10]
+	mi := &file_arca_v1_runtime_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +943,7 @@ func (x *UpdateRuntimeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRuntimeResponse.ProtoReflect.Descriptor instead.
 func (*UpdateRuntimeResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{10}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateRuntimeResponse) GetRuntime() *Runtime {
@@ -891,7 +962,7 @@ type DeleteRuntimeRequest struct {
 
 func (x *DeleteRuntimeRequest) Reset() {
 	*x = DeleteRuntimeRequest{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[11]
+	mi := &file_arca_v1_runtime_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -903,7 +974,7 @@ func (x *DeleteRuntimeRequest) String() string {
 func (*DeleteRuntimeRequest) ProtoMessage() {}
 
 func (x *DeleteRuntimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[11]
+	mi := &file_arca_v1_runtime_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -916,7 +987,7 @@ func (x *DeleteRuntimeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRuntimeRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRuntimeRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{11}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteRuntimeRequest) GetRuntimeId() string {
@@ -934,7 +1005,7 @@ type DeleteRuntimeResponse struct {
 
 func (x *DeleteRuntimeResponse) Reset() {
 	*x = DeleteRuntimeResponse{}
-	mi := &file_arca_v1_runtime_proto_msgTypes[12]
+	mi := &file_arca_v1_runtime_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -946,7 +1017,7 @@ func (x *DeleteRuntimeResponse) String() string {
 func (*DeleteRuntimeResponse) ProtoMessage() {}
 
 func (x *DeleteRuntimeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_runtime_proto_msgTypes[12]
+	mi := &file_arca_v1_runtime_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -959,7 +1030,7 @@ func (x *DeleteRuntimeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRuntimeResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRuntimeResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{12}
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{13}
 }
 
 var File_arca_v1_runtime_proto protoreflect.FileDescriptor
@@ -989,10 +1060,14 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"subnetwork\x18\x04 \x01(\tR\n" +
 	"subnetwork\x122\n" +
 	"\x15service_account_email\x18\x05 \x01(\tR\x13serviceAccountEmail\x12%\n" +
-	"\x0estartup_script\x18\x06 \x01(\tR\rstartupScript\"\xc1\x01\n" +
+	"\x0estartup_script\x18\x06 \x01(\tR\rstartupScript\"U\n" +
+	"\x10LxdRuntimeConfig\x12\x1a\n" +
+	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12%\n" +
+	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\xf0\x01\n" +
 	"\rRuntimeConfig\x129\n" +
 	"\alibvirt\x18\x01 \x01(\v2\x1d.arca.v1.LibvirtRuntimeConfigH\x00R\alibvirt\x12-\n" +
-	"\x03gce\x18\x02 \x01(\v2\x19.arca.v1.GceRuntimeConfigH\x00R\x03gce\x12:\n" +
+	"\x03gce\x18\x02 \x01(\v2\x19.arca.v1.GceRuntimeConfigH\x00R\x03gce\x12-\n" +
+	"\x03lxd\x18\x04 \x01(\v2\x19.arca.v1.LxdRuntimeConfigH\x00R\x03lxd\x12:\n" +
 	"\bexposure\x18\x03 \x01(\v2\x1e.arca.v1.MachineExposureConfigR\bexposureB\n" +
 	"\n" +
 	"\bprovider\"\xc5\x01\n" +
@@ -1025,11 +1100,12 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\x14DeleteRuntimeRequest\x12\x1d\n" +
 	"\n" +
 	"runtime_id\x18\x01 \x01(\tR\truntimeId\"\x17\n" +
-	"\x15DeleteRuntimeResponse*[\n" +
+	"\x15DeleteRuntimeResponse*q\n" +
 	"\vRuntimeType\x12\x1c\n" +
 	"\x18RUNTIME_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14RUNTIME_TYPE_LIBVIRT\x10\x01\x12\x14\n" +
-	"\x10RUNTIME_TYPE_GCE\x10\x02*\x9d\x01\n" +
+	"\x10RUNTIME_TYPE_GCE\x10\x02\x12\x14\n" +
+	"\x10RUNTIME_TYPE_LXD\x10\x03*\x9d\x01\n" +
 	"\x15MachineExposureMethod\x12'\n" +
 	"#MACHINE_EXPOSURE_METHOD_UNSPECIFIED\x10\x00\x12-\n" +
 	")MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL\x10\x01\x12,\n" +
@@ -1058,7 +1134,7 @@ func file_arca_v1_runtime_proto_rawDescGZIP() []byte {
 }
 
 var file_arca_v1_runtime_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_arca_v1_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_arca_v1_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_arca_v1_runtime_proto_goTypes = []any{
 	(RuntimeType)(0),              // 0: arca.v1.RuntimeType
 	(MachineExposureMethod)(0),    // 1: arca.v1.MachineExposureMethod
@@ -1066,45 +1142,47 @@ var file_arca_v1_runtime_proto_goTypes = []any{
 	(*MachineExposureConfig)(nil), // 3: arca.v1.MachineExposureConfig
 	(*LibvirtRuntimeConfig)(nil),  // 4: arca.v1.LibvirtRuntimeConfig
 	(*GceRuntimeConfig)(nil),      // 5: arca.v1.GceRuntimeConfig
-	(*RuntimeConfig)(nil),         // 6: arca.v1.RuntimeConfig
-	(*Runtime)(nil),               // 7: arca.v1.Runtime
-	(*ListRuntimesRequest)(nil),   // 8: arca.v1.ListRuntimesRequest
-	(*ListRuntimesResponse)(nil),  // 9: arca.v1.ListRuntimesResponse
-	(*CreateRuntimeRequest)(nil),  // 10: arca.v1.CreateRuntimeRequest
-	(*CreateRuntimeResponse)(nil), // 11: arca.v1.CreateRuntimeResponse
-	(*UpdateRuntimeRequest)(nil),  // 12: arca.v1.UpdateRuntimeRequest
-	(*UpdateRuntimeResponse)(nil), // 13: arca.v1.UpdateRuntimeResponse
-	(*DeleteRuntimeRequest)(nil),  // 14: arca.v1.DeleteRuntimeRequest
-	(*DeleteRuntimeResponse)(nil), // 15: arca.v1.DeleteRuntimeResponse
+	(*LxdRuntimeConfig)(nil),      // 6: arca.v1.LxdRuntimeConfig
+	(*RuntimeConfig)(nil),         // 7: arca.v1.RuntimeConfig
+	(*Runtime)(nil),               // 8: arca.v1.Runtime
+	(*ListRuntimesRequest)(nil),   // 9: arca.v1.ListRuntimesRequest
+	(*ListRuntimesResponse)(nil),  // 10: arca.v1.ListRuntimesResponse
+	(*CreateRuntimeRequest)(nil),  // 11: arca.v1.CreateRuntimeRequest
+	(*CreateRuntimeResponse)(nil), // 12: arca.v1.CreateRuntimeResponse
+	(*UpdateRuntimeRequest)(nil),  // 13: arca.v1.UpdateRuntimeRequest
+	(*UpdateRuntimeResponse)(nil), // 14: arca.v1.UpdateRuntimeResponse
+	(*DeleteRuntimeRequest)(nil),  // 15: arca.v1.DeleteRuntimeRequest
+	(*DeleteRuntimeResponse)(nil), // 16: arca.v1.DeleteRuntimeResponse
 }
 var file_arca_v1_runtime_proto_depIdxs = []int32{
 	1,  // 0: arca.v1.MachineExposureConfig.method:type_name -> arca.v1.MachineExposureMethod
 	2,  // 1: arca.v1.MachineExposureConfig.connectivity:type_name -> arca.v1.MachineConnectivity
 	4,  // 2: arca.v1.RuntimeConfig.libvirt:type_name -> arca.v1.LibvirtRuntimeConfig
 	5,  // 3: arca.v1.RuntimeConfig.gce:type_name -> arca.v1.GceRuntimeConfig
-	3,  // 4: arca.v1.RuntimeConfig.exposure:type_name -> arca.v1.MachineExposureConfig
-	0,  // 5: arca.v1.Runtime.type:type_name -> arca.v1.RuntimeType
-	6,  // 6: arca.v1.Runtime.config:type_name -> arca.v1.RuntimeConfig
-	7,  // 7: arca.v1.ListRuntimesResponse.runtimes:type_name -> arca.v1.Runtime
-	0,  // 8: arca.v1.CreateRuntimeRequest.type:type_name -> arca.v1.RuntimeType
-	6,  // 9: arca.v1.CreateRuntimeRequest.config:type_name -> arca.v1.RuntimeConfig
-	7,  // 10: arca.v1.CreateRuntimeResponse.runtime:type_name -> arca.v1.Runtime
-	0,  // 11: arca.v1.UpdateRuntimeRequest.type:type_name -> arca.v1.RuntimeType
-	6,  // 12: arca.v1.UpdateRuntimeRequest.config:type_name -> arca.v1.RuntimeConfig
-	7,  // 13: arca.v1.UpdateRuntimeResponse.runtime:type_name -> arca.v1.Runtime
-	8,  // 14: arca.v1.RuntimeService.ListRuntimes:input_type -> arca.v1.ListRuntimesRequest
-	10, // 15: arca.v1.RuntimeService.CreateRuntime:input_type -> arca.v1.CreateRuntimeRequest
-	12, // 16: arca.v1.RuntimeService.UpdateRuntime:input_type -> arca.v1.UpdateRuntimeRequest
-	14, // 17: arca.v1.RuntimeService.DeleteRuntime:input_type -> arca.v1.DeleteRuntimeRequest
-	9,  // 18: arca.v1.RuntimeService.ListRuntimes:output_type -> arca.v1.ListRuntimesResponse
-	11, // 19: arca.v1.RuntimeService.CreateRuntime:output_type -> arca.v1.CreateRuntimeResponse
-	13, // 20: arca.v1.RuntimeService.UpdateRuntime:output_type -> arca.v1.UpdateRuntimeResponse
-	15, // 21: arca.v1.RuntimeService.DeleteRuntime:output_type -> arca.v1.DeleteRuntimeResponse
-	18, // [18:22] is the sub-list for method output_type
-	14, // [14:18] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	6,  // 4: arca.v1.RuntimeConfig.lxd:type_name -> arca.v1.LxdRuntimeConfig
+	3,  // 5: arca.v1.RuntimeConfig.exposure:type_name -> arca.v1.MachineExposureConfig
+	0,  // 6: arca.v1.Runtime.type:type_name -> arca.v1.RuntimeType
+	7,  // 7: arca.v1.Runtime.config:type_name -> arca.v1.RuntimeConfig
+	8,  // 8: arca.v1.ListRuntimesResponse.runtimes:type_name -> arca.v1.Runtime
+	0,  // 9: arca.v1.CreateRuntimeRequest.type:type_name -> arca.v1.RuntimeType
+	7,  // 10: arca.v1.CreateRuntimeRequest.config:type_name -> arca.v1.RuntimeConfig
+	8,  // 11: arca.v1.CreateRuntimeResponse.runtime:type_name -> arca.v1.Runtime
+	0,  // 12: arca.v1.UpdateRuntimeRequest.type:type_name -> arca.v1.RuntimeType
+	7,  // 13: arca.v1.UpdateRuntimeRequest.config:type_name -> arca.v1.RuntimeConfig
+	8,  // 14: arca.v1.UpdateRuntimeResponse.runtime:type_name -> arca.v1.Runtime
+	9,  // 15: arca.v1.RuntimeService.ListRuntimes:input_type -> arca.v1.ListRuntimesRequest
+	11, // 16: arca.v1.RuntimeService.CreateRuntime:input_type -> arca.v1.CreateRuntimeRequest
+	13, // 17: arca.v1.RuntimeService.UpdateRuntime:input_type -> arca.v1.UpdateRuntimeRequest
+	15, // 18: arca.v1.RuntimeService.DeleteRuntime:input_type -> arca.v1.DeleteRuntimeRequest
+	10, // 19: arca.v1.RuntimeService.ListRuntimes:output_type -> arca.v1.ListRuntimesResponse
+	12, // 20: arca.v1.RuntimeService.CreateRuntime:output_type -> arca.v1.CreateRuntimeResponse
+	14, // 21: arca.v1.RuntimeService.UpdateRuntime:output_type -> arca.v1.UpdateRuntimeResponse
+	16, // 22: arca.v1.RuntimeService.DeleteRuntime:output_type -> arca.v1.DeleteRuntimeResponse
+	19, // [19:23] is the sub-list for method output_type
+	15, // [15:19] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_runtime_proto_init() }
@@ -1112,9 +1190,10 @@ func file_arca_v1_runtime_proto_init() {
 	if File_arca_v1_runtime_proto != nil {
 		return
 	}
-	file_arca_v1_runtime_proto_msgTypes[3].OneofWrappers = []any{
+	file_arca_v1_runtime_proto_msgTypes[4].OneofWrappers = []any{
 		(*RuntimeConfig_Libvirt)(nil),
 		(*RuntimeConfig_Gce)(nil),
+		(*RuntimeConfig_Lxd)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1122,7 +1201,7 @@ func file_arca_v1_runtime_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_runtime_proto_rawDesc), len(file_arca_v1_runtime_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

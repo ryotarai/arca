@@ -15,6 +15,7 @@ import (
 const (
 	RuntimeTypeLibvirt = "libvirt"
 	RuntimeTypeGCE     = "gce"
+	RuntimeTypeLXD     = "lxd"
 )
 
 type RuntimeCatalog struct {
