@@ -31,7 +31,8 @@ func main() {
 	controlPlaneClient := arcad.NewHTTPControlPlaneClient(cfg.ControlPlaneURL, cfg.AuthorizeURL, cfg.MachineID, cfg.MachineToken, &http.Client{Timeout: 10 * time.Second})
 	exposureCache := arcad.NewExposureCache(controlPlaneClient)
 	proxy := arcad.NewProxy(exposureCache, controlPlaneClient, cfg.SessionCookie, upstreamURL, cfg.TTydSocket)
-	proxy.SetReadinessChecker(arcad.NewReadinessChecker(cfg.StartupSentinel, splitCSV(cfg.ReadyEndpoints)))
+	readinessChecker := arcad.NewReadinessChecker(cfg.StartupSentinel, splitCSV(cfg.ReadyEndpoints))
+	proxy.SetReadinessChecker(readinessChecker)
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -58,6 +59,8 @@ func main() {
 			errCh <- err
 		}
 	}()
+
+	go arcad.NewReadinessReporter(readinessChecker, controlPlaneClient, cfg.ReadyReportInterval).Run(ctx)
 
 	select {
 	case <-ctx.Done():

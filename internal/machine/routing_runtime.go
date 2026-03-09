@@ -74,14 +74,6 @@ func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 	return runtime.IsRunning(ctx, machine)
 }
 
-func (r *RoutingRuntime) WaitReady(ctx context.Context, machine db.Machine, instanceID string) error {
-	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
-	if err != nil {
-		return err
-	}
-	return runtime.WaitReady(ctx, machine, instanceID)
-}
-
 func (r *RoutingRuntime) runtimeFor(ctx context.Context, runtimeID string) (Runtime, error) {
 	runtimeID = strings.TrimSpace(runtimeID)
 	if runtimeID == "" {

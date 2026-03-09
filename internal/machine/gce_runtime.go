@@ -47,7 +47,6 @@ type GceRuntime struct {
 
 	clientFactory        func(context.Context) (gceComputeClient, error)
 	buildArcadBinaryBase func(context.Context) (string, error)
-	waitReadyHTTP        func(context.Context, string) error
 
 	mu     sync.Mutex
 	client gceComputeClient
@@ -70,7 +69,6 @@ type GceRuntimeOptions struct {
 	Client               gceComputeClient
 	ClientFactory        func(context.Context) (gceComputeClient, error)
 	BuildArcadBinaryBase func(context.Context) (string, error)
-	WaitReadyHTTP        func(context.Context, string) error
 }
 
 type gceComputeClient interface {
@@ -206,7 +204,6 @@ func NewGceRuntimeWithOptions(options GceRuntimeOptions) (*GceRuntime, error) {
 		imageFamily:          imageFamily,
 		arcadGOOS:            arcadGOOS,
 		arcadGOARCH:          arcadGOARCH,
-		waitReadyHTTP:        firstNonNilWaitReadyHTTP(options.WaitReadyHTTP),
 		buildArcadBinaryBase: options.BuildArcadBinaryBase,
 	}
 
@@ -224,13 +221,6 @@ func NewGceRuntimeWithOptions(options GceRuntimeOptions) (*GceRuntime, error) {
 	}
 
 	return runtime, nil
-}
-
-func firstNonNilWaitReadyHTTP(fn func(context.Context, string) error) func(context.Context, string) error {
-	if fn != nil {
-		return fn
-	}
-	return waitHTTPReady
 }
 
 func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts RuntimeStartOptions) (string, error) {
@@ -348,48 +338,6 @@ func (r *GceRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, s
 	}
 	status := strings.ToUpper(strings.TrimSpace(instance.Status))
 	return status == "RUNNING" || status == "STAGING" || status == "PROVISIONING", instanceName, nil
-}
-
-func (r *GceRuntime) WaitReady(ctx context.Context, machine db.Machine, instanceID string) error {
-	instanceName := firstNonEmpty(instanceID, machine.ContainerID, r.instanceName(machine))
-	client, err := r.computeClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-
-	var lastErr error
-	for {
-		instance, found, err := r.getInstance(ctx, client, instanceName)
-		if err != nil {
-			lastErr = err
-		} else if found {
-			status := strings.ToUpper(strings.TrimSpace(instance.Status))
-			if status == "RUNNING" {
-				ip := gceInstanceIPv4(instance)
-				if ip == "" {
-					lastErr = fmt.Errorf("gce instance %q has no network ip", instanceName)
-				} else {
-					return r.waitReadyHTTP(ctx, fmt.Sprintf("http://%s:21030/__arca/readyz", ip))
-				}
-			} else {
-				lastErr = fmt.Errorf("instance status is %s", status)
-			}
-		} else {
-			lastErr = fmt.Errorf("gce instance %q not found", instanceName)
-		}
-
-		select {
-		case <-ctx.Done():
-			if lastErr == nil {
-				return ctx.Err()
-			}
-			return fmt.Errorf("%w (last error: %v)", ctx.Err(), lastErr)
-		case <-ticker.C:
-		}
-	}
 }
 
 func (r *GceRuntime) instanceName(machine db.Machine) string {
@@ -717,17 +665,4 @@ func regionFromZone(zone string) string {
 		return ""
 	}
 	return zone[:idx]
-}
-
-func gceInstanceIPv4(instance *gceInstance) string {
-	if instance == nil {
-		return ""
-	}
-	for _, nic := range instance.NetworkInterfaces {
-		ip := strings.TrimSpace(nic.NetworkIP)
-		if ip != "" {
-			return ip
-		}
-	}
-	return ""
 }

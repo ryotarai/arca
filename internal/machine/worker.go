@@ -17,12 +17,13 @@ import (
 	"github.com/ryotarai/arca/internal/db"
 )
 
+var errStartCancelled = errors.New("machine start cancelled")
+
 type Runtime interface {
 	EnsureRunning(context.Context, db.Machine, RuntimeStartOptions) (string, error)
 	EnsureStopped(context.Context, db.Machine) error
 	EnsureDeleted(context.Context, db.Machine) error
 	IsRunning(context.Context, db.Machine) (bool, string, error)
-	WaitReady(context.Context, db.Machine, string) error
 }
 
 type RuntimeStartOptions struct {
@@ -50,6 +51,8 @@ type Worker struct {
 const (
 	deleteTunnelMaxAttempts  = 5
 	deleteTunnelRetryBackoff = 3 * time.Second
+	readyPollInterval        = 2 * time.Second
+	readyStaleAfter          = 30 * time.Second
 )
 
 func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string) *Worker {
@@ -274,11 +277,25 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	if err != nil {
 		return err
 	}
+	if err := w.store.UpdateMachineRuntimeStateByMachineID(
+		ctx,
+		machine.ID,
+		db.MachineStatusStarting,
+		db.MachineDesiredRunning,
+		containerID,
+		"",
+	); err != nil {
+		return err
+	}
 
 	w.emitEvent(ctx, machine.ID, jobID, "info", "waiting_ready", "waiting for machine readiness")
 	readyCtx, cancel := context.WithTimeout(ctx, w.startupTTL)
 	defer cancel()
-	if err := w.runtime.WaitReady(readyCtx, machine, containerID); err != nil {
+	if err := w.waitMachineReady(readyCtx, machine.ID); err != nil {
+		if errors.Is(err, errStartCancelled) {
+			w.emitEvent(ctx, machine.ID, jobID, "info", "ready_wait_cancelled", "machine desired state changed while waiting for readiness")
+			return nil
+		}
 		return fmt.Errorf("wait machine ready: %w", err)
 	}
 
@@ -294,6 +311,41 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "ready", "machine is ready")
 	return nil
+}
+
+func (w *Worker) waitMachineReady(ctx context.Context, machineID string) error {
+	ticker := time.NewTicker(readyPollInterval)
+	defer ticker.Stop()
+
+	var lastState db.MachineReadiness
+	var hasState bool
+
+	for {
+		readiness, err := w.store.GetMachineReadinessByMachineID(ctx, machineID)
+		if err != nil {
+			return err
+		}
+		lastState = readiness
+		hasState = true
+		if readiness.DesiredStatus != db.MachineDesiredRunning {
+			return fmt.Errorf("%w: desired status changed to %q", errStartCancelled, readiness.DesiredStatus)
+		}
+		if readiness.Ready && readiness.ReadyReportedAt > 0 {
+			reportedAt := time.Unix(readiness.ReadyReportedAt, 0)
+			if time.Since(reportedAt) <= readyStaleAfter {
+				return nil
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			if hasState {
+				return fmt.Errorf("%w (last readiness: ready=%t desired=%s reported_at=%d)", ctx.Err(), lastState.Ready, lastState.DesiredStatus, lastState.ReadyReportedAt)
+			}
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
 func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (string, error) {

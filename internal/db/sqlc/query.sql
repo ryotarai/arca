@@ -278,11 +278,19 @@ DELETE FROM machines
 WHERE id = sqlc.arg(machine_id);
 
 -- name: CreateMachineState :exec
-INSERT INTO machine_states (machine_id, status, desired_status, updated_at)
-VALUES (sqlc.arg(machine_id), sqlc.arg(status), sqlc.arg(desired_status), sqlc.arg(updated_at));
+INSERT INTO machine_states (machine_id, status, desired_status, ready, ready_reported_at, ready_reason, updated_at)
+VALUES (
+  sqlc.arg(machine_id),
+  sqlc.arg(status),
+  sqlc.arg(desired_status),
+  FALSE,
+  sqlc.arg(updated_at),
+  '',
+  sqlc.arg(updated_at)
+);
 
 -- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -290,7 +298,7 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.id = sqlc.arg(machine_id)
@@ -305,7 +313,7 @@ ORDER BY um.created_at ASC
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -318,7 +326,10 @@ UPDATE machine_states
 SET status = sqlc.arg(status),
     desired_status = sqlc.arg(desired_status),
     updated_at = sqlc.arg(updated_at),
-    last_error = ''
+    last_error = '',
+    ready = FALSE,
+    ready_reported_at = sqlc.arg(updated_at),
+    ready_reason = 'state transition requested'
 WHERE machine_states.machine_id = sqlc.arg(machine_id)
   AND EXISTS (
     SELECT 1
@@ -336,6 +347,41 @@ SET status = sqlc.arg(status),
     last_error = sqlc.arg(last_error),
     updated_at = sqlc.arg(updated_at)
 WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: ReportMachineReadinessByMachineID :execrows
+UPDATE machine_states
+SET ready = sqlc.arg(ready),
+    ready_reported_at = sqlc.arg(ready_reported_at),
+    ready_reason = sqlc.arg(ready_reason),
+    container_id = CASE
+      WHEN sqlc.arg(container_id) <> '' THEN sqlc.arg(container_id)
+      ELSE container_id
+    END,
+    status = CASE
+      WHEN sqlc.arg(ready) = TRUE
+        AND desired_status = 'running'
+        AND status IN ('pending', 'starting', 'running')
+      THEN 'running'
+      ELSE status
+    END,
+    last_error = CASE
+      WHEN sqlc.arg(ready) = TRUE
+        AND desired_status = 'running'
+      THEN ''
+      ELSE last_error
+    END,
+    updated_at = sqlc.arg(updated_at)
+WHERE machine_id = sqlc.arg(machine_id)
+  AND (
+    sqlc.arg(ready) = FALSE
+    OR desired_status = 'running'
+  );
+
+-- name: GetMachineReadinessByMachineID :one
+SELECT ready, ready_reported_at, desired_status
+FROM machine_states
+WHERE machine_id = sqlc.arg(machine_id)
+LIMIT 1;
 
 -- name: CreateMachineEvent :exec
 INSERT INTO machine_events (id, machine_id, job_id, level, event_type, message, created_at)
@@ -421,7 +467,7 @@ WHERE status = 'running'
   AND lease_until < sqlc.arg(now_unix);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)

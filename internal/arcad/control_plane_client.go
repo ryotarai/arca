@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	getExposureByHostnameEndpoint = "/arca.v1.TunnelService/GetMachineExposureByHostname"
-	exchangeArcadSessionEndpoint  = "/arca.v1.TicketService/ExchangeArcadSession"
-	validateArcadSessionEndpoint  = "/arca.v1.TicketService/ValidateArcadSession"
+	getExposureByHostnameEndpoint  = "/arca.v1.TunnelService/GetMachineExposureByHostname"
+	exchangeArcadSessionEndpoint   = "/arca.v1.TicketService/ExchangeArcadSession"
+	validateArcadSessionEndpoint   = "/arca.v1.TicketService/ValidateArcadSession"
+	reportMachineReadinessEndpoint = "/arca.v1.TunnelService/ReportMachineReadiness"
 )
 
 // Exposure describes host routing and visibility.
@@ -53,6 +54,7 @@ type ControlPlaneClient interface {
 	GetExposureByHost(context.Context, string) (Exposure, error)
 	ExchangeArcadSession(context.Context, string, string) (ArcadSessionClaims, error)
 	ValidateArcadSession(context.Context, string, string, string) (ArcadSessionClaims, error)
+	ReportMachineReadiness(context.Context, bool, string, string) (bool, error)
 	AuthorizeURL(string) string
 }
 
@@ -227,6 +229,49 @@ func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host,
 
 func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {
 	return c.authorizeURL + "?target=" + url.QueryEscape(target)
+}
+
+func (c *HTTPControlPlaneClient) ReportMachineReadiness(ctx context.Context, ready bool, reason, containerID string) (bool, error) {
+	payload := map[string]any{
+		"ready":        ready,
+		"reason":       strings.TrimSpace(reason),
+		"machine_id":   c.machineID,
+		"container_id": strings.TrimSpace(containerID),
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return false, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+reportMachineReadinessEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Arca-Machine-ID", c.machineID)
+	if strings.TrimSpace(c.machineToken) != "" {
+		req.Header.Set("Authorization", "Bearer "+c.machineToken)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest {
+		return false, fmt.Errorf("report machine readiness unauthorized: status %d", resp.StatusCode)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("report machine readiness failed: status %d", resp.StatusCode)
+	}
+
+	var decoded map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return false, fmt.Errorf("decode report machine readiness: %w", err)
+	}
+	accepted, ok := decoded["accepted"].(bool)
+	if !ok {
+		return false, fmt.Errorf("invalid report machine readiness response")
+	}
+	return accepted, nil
 }
 
 func userIDFromPayload(payload map[string]any) string {

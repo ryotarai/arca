@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -256,15 +255,6 @@ func (r *LibvirtRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 	return false, domainName, nil
 }
 
-func (r *LibvirtRuntime) WaitReady(ctx context.Context, machine db.Machine, instanceID string) error {
-	domainName := firstNonEmpty(instanceID, machine.ContainerID, r.domainName(machine))
-	ip, err := r.waitDomainIPv4(ctx, domainName)
-	if err != nil {
-		return err
-	}
-	return waitHTTPReady(ctx, fmt.Sprintf("http://%s:21030/__arca/readyz", ip))
-}
-
 func (r *LibvirtRuntime) domainName(machine db.Machine) string {
 	if strings.TrimSpace(machine.ContainerID) != "" {
 		return machine.ContainerID
@@ -421,53 +411,6 @@ func (r *LibvirtRuntime) runVirsh(ctx context.Context, args ...string) (string, 
 	base := []string{"-c", r.uri}
 	base = append(base, args...)
 	return runCommand(ctx, "virsh", base...)
-}
-
-func (r *LibvirtRuntime) waitDomainIPv4(ctx context.Context, domainName string) (string, error) {
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-	var lastErr error
-	for {
-		ip, err := r.domainIPv4(ctx, domainName)
-		if err == nil {
-			return ip, nil
-		}
-		lastErr = err
-
-		select {
-		case <-ctx.Done():
-			if lastErr == nil {
-				return "", ctx.Err()
-			}
-			return "", fmt.Errorf("%w (last error: %v)", ctx.Err(), lastErr)
-		case <-ticker.C:
-		}
-	}
-}
-
-func (r *LibvirtRuntime) domainIPv4(ctx context.Context, domainName string) (string, error) {
-	output, err := r.runVirsh(ctx, "domifaddr", domainName, "--source", "lease")
-	if err != nil {
-		return "", err
-	}
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		fields := strings.Fields(strings.TrimSpace(line))
-		if len(fields) < 4 {
-			continue
-		}
-		cidr := fields[3]
-		addr, _, err := net.ParseCIDR(cidr)
-		if err != nil {
-			continue
-		}
-		ip4 := addr.To4()
-		if ip4 == nil {
-			continue
-		}
-		return ip4.String(), nil
-	}
-	return "", fmt.Errorf("no ipv4 lease found for domain %s", domainName)
 }
 
 func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinaryBase64 string) string {

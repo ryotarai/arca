@@ -99,12 +99,15 @@ type MachineJob struct {
 }
 
 type MachineState struct {
-	MachineID     string
-	Status        string
-	DesiredStatus string
-	ContainerID   string
-	LastError     string
-	UpdatedAt     int64
+	MachineID       string
+	Status          string
+	DesiredStatus   string
+	ContainerID     string
+	LastError       string
+	Ready           bool
+	ReadyReportedAt int64
+	ReadyReason     string
+	UpdatedAt       int64
 }
 
 type MachineToken struct {

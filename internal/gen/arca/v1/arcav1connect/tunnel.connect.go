@@ -45,6 +45,9 @@ const (
 	// TunnelServiceGetMachineExposureByHostnameProcedure is the fully-qualified name of the
 	// TunnelService's GetMachineExposureByHostname RPC.
 	TunnelServiceGetMachineExposureByHostnameProcedure = "/arca.v1.TunnelService/GetMachineExposureByHostname"
+	// TunnelServiceReportMachineReadinessProcedure is the fully-qualified name of the TunnelService's
+	// ReportMachineReadiness RPC.
+	TunnelServiceReportMachineReadinessProcedure = "/arca.v1.TunnelService/ReportMachineReadiness"
 )
 
 // TunnelServiceClient is a client for the arca.v1.TunnelService service.
@@ -53,6 +56,7 @@ type TunnelServiceClient interface {
 	UpsertMachineExposure(context.Context, *connect.Request[v1.UpsertMachineExposureRequest]) (*connect.Response[v1.UpsertMachineExposureResponse], error)
 	ListMachineExposures(context.Context, *connect.Request[v1.ListMachineExposuresRequest]) (*connect.Response[v1.ListMachineExposuresResponse], error)
 	GetMachineExposureByHostname(context.Context, *connect.Request[v1.GetMachineExposureByHostnameRequest]) (*connect.Response[v1.GetMachineExposureByHostnameResponse], error)
+	ReportMachineReadiness(context.Context, *connect.Request[v1.ReportMachineReadinessRequest]) (*connect.Response[v1.ReportMachineReadinessResponse], error)
 }
 
 // NewTunnelServiceClient constructs a client for the arca.v1.TunnelService service. By default, it
@@ -90,6 +94,12 @@ func NewTunnelServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(tunnelServiceMethods.ByName("GetMachineExposureByHostname")),
 			connect.WithClientOptions(opts...),
 		),
+		reportMachineReadiness: connect.NewClient[v1.ReportMachineReadinessRequest, v1.ReportMachineReadinessResponse](
+			httpClient,
+			baseURL+TunnelServiceReportMachineReadinessProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("ReportMachineReadiness")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -99,6 +109,7 @@ type tunnelServiceClient struct {
 	upsertMachineExposure        *connect.Client[v1.UpsertMachineExposureRequest, v1.UpsertMachineExposureResponse]
 	listMachineExposures         *connect.Client[v1.ListMachineExposuresRequest, v1.ListMachineExposuresResponse]
 	getMachineExposureByHostname *connect.Client[v1.GetMachineExposureByHostnameRequest, v1.GetMachineExposureByHostnameResponse]
+	reportMachineReadiness       *connect.Client[v1.ReportMachineReadinessRequest, v1.ReportMachineReadinessResponse]
 }
 
 // CreateMachineTunnel calls arca.v1.TunnelService.CreateMachineTunnel.
@@ -121,12 +132,18 @@ func (c *tunnelServiceClient) GetMachineExposureByHostname(ctx context.Context, 
 	return c.getMachineExposureByHostname.CallUnary(ctx, req)
 }
 
+// ReportMachineReadiness calls arca.v1.TunnelService.ReportMachineReadiness.
+func (c *tunnelServiceClient) ReportMachineReadiness(ctx context.Context, req *connect.Request[v1.ReportMachineReadinessRequest]) (*connect.Response[v1.ReportMachineReadinessResponse], error) {
+	return c.reportMachineReadiness.CallUnary(ctx, req)
+}
+
 // TunnelServiceHandler is an implementation of the arca.v1.TunnelService service.
 type TunnelServiceHandler interface {
 	CreateMachineTunnel(context.Context, *connect.Request[v1.CreateMachineTunnelRequest]) (*connect.Response[v1.CreateMachineTunnelResponse], error)
 	UpsertMachineExposure(context.Context, *connect.Request[v1.UpsertMachineExposureRequest]) (*connect.Response[v1.UpsertMachineExposureResponse], error)
 	ListMachineExposures(context.Context, *connect.Request[v1.ListMachineExposuresRequest]) (*connect.Response[v1.ListMachineExposuresResponse], error)
 	GetMachineExposureByHostname(context.Context, *connect.Request[v1.GetMachineExposureByHostnameRequest]) (*connect.Response[v1.GetMachineExposureByHostnameResponse], error)
+	ReportMachineReadiness(context.Context, *connect.Request[v1.ReportMachineReadinessRequest]) (*connect.Response[v1.ReportMachineReadinessResponse], error)
 }
 
 // NewTunnelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -160,6 +177,12 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(tunnelServiceMethods.ByName("GetMachineExposureByHostname")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tunnelServiceReportMachineReadinessHandler := connect.NewUnaryHandler(
+		TunnelServiceReportMachineReadinessProcedure,
+		svc.ReportMachineReadiness,
+		connect.WithSchema(tunnelServiceMethods.ByName("ReportMachineReadiness")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.TunnelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TunnelServiceCreateMachineTunnelProcedure:
@@ -170,6 +193,8 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 			tunnelServiceListMachineExposuresHandler.ServeHTTP(w, r)
 		case TunnelServiceGetMachineExposureByHostnameProcedure:
 			tunnelServiceGetMachineExposureByHostnameHandler.ServeHTTP(w, r)
+		case TunnelServiceReportMachineReadinessProcedure:
+			tunnelServiceReportMachineReadinessHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -193,4 +218,8 @@ func (UnimplementedTunnelServiceHandler) ListMachineExposures(context.Context, *
 
 func (UnimplementedTunnelServiceHandler) GetMachineExposureByHostname(context.Context, *connect.Request[v1.GetMachineExposureByHostnameRequest]) (*connect.Response[v1.GetMachineExposureByHostnameResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.TunnelService.GetMachineExposureByHostname is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) ReportMachineReadiness(context.Context, *connect.Request[v1.ReportMachineReadinessRequest]) (*connect.Response[v1.ReportMachineReadinessResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.TunnelService.ReportMachineReadiness is not implemented"))
 }

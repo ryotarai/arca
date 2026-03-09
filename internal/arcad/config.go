@@ -3,21 +3,23 @@ package arcad
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 // Config holds arcad runtime configuration.
 type Config struct {
-	ControlPlaneURL string
-	AuthorizeURL    string
-	MachineID       string
-	MachineToken    string
-	TunnelToken     string
-	ListenAddr      string
-	UpstreamURL     string
-	TTydSocket      string
-	SessionCookie   string
-	StartupSentinel string
-	ReadyEndpoints  string
+	ControlPlaneURL     string
+	AuthorizeURL        string
+	MachineID           string
+	MachineToken        string
+	TunnelToken         string
+	ListenAddr          string
+	UpstreamURL         string
+	TTydSocket          string
+	SessionCookie       string
+	StartupSentinel     string
+	ReadyEndpoints      string
+	ReadyReportInterval time.Duration
 }
 
 func ConfigFromEnv() (Config, error) {
@@ -33,6 +35,16 @@ func ConfigFromEnv() (Config, error) {
 		SessionCookie:   os.Getenv("ARCAD_SESSION_COOKIE_NAME"),
 		StartupSentinel: os.Getenv("ARCAD_STARTUP_SENTINEL"),
 		ReadyEndpoints:  os.Getenv("ARCAD_READY_TCP_ENDPOINTS"),
+	}
+	readyReportInterval := os.Getenv("ARCAD_READY_REPORT_INTERVAL")
+	if readyReportInterval == "" {
+		cfg.ReadyReportInterval = 10 * time.Second
+	} else {
+		parsed, err := time.ParseDuration(readyReportInterval)
+		if err != nil || parsed <= 0 {
+			return Config{}, fmt.Errorf("ARCAD_READY_REPORT_INTERVAL must be a positive duration")
+		}
+		cfg.ReadyReportInterval = parsed
 	}
 	if cfg.ListenAddr == "" {
 		cfg.ListenAddr = ":21030"

@@ -36,16 +36,25 @@ const (
 )
 
 type Machine struct {
-	ID            string
-	Name          string
-	RuntimeID     string
-	SetupVersion  string
-	Endpoint      string
-	Status        string
-	DesiredStatus string
-	ContainerID   string
-	LastError     string
-	MachineToken  string
+	ID              string
+	Name            string
+	RuntimeID       string
+	SetupVersion    string
+	Endpoint        string
+	Status          string
+	DesiredStatus   string
+	ContainerID     string
+	LastError       string
+	Ready           bool
+	ReadyReportedAt int64
+	ReadyReason     string
+	MachineToken    string
+}
+
+type MachineReadiness struct {
+	Ready           bool
+	ReadyReportedAt int64
+	DesiredStatus   string
 }
 
 type MachineJob struct {
@@ -245,15 +254,18 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
 			machines = append(machines, Machine{
-				ID:            row.ID,
-				Name:          row.Name,
-				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-				SetupVersion:  strings.TrimSpace(row.SetupVersion),
-				Endpoint:      strings.TrimSpace(row.Endpoint),
-				Status:        row.Status,
-				DesiredStatus: row.DesiredStatus,
-				ContainerID:   row.ContainerID,
-				LastError:     row.LastError,
+				ID:              row.ID,
+				Name:            row.Name,
+				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				SetupVersion:    strings.TrimSpace(row.SetupVersion),
+				Endpoint:        strings.TrimSpace(row.Endpoint),
+				Status:          row.Status,
+				DesiredStatus:   row.DesiredStatus,
+				ContainerID:     row.ContainerID,
+				LastError:       row.LastError,
+				Ready:           row.Ready,
+				ReadyReportedAt: row.ReadyReportedAt,
+				ReadyReason:     row.ReadyReason,
 			})
 		}
 		return machines, nil
@@ -265,15 +277,18 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
 			machines = append(machines, Machine{
-				ID:            row.ID,
-				Name:          row.Name,
-				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-				SetupVersion:  strings.TrimSpace(row.SetupVersion),
-				Endpoint:      strings.TrimSpace(row.Endpoint),
-				Status:        row.Status,
-				DesiredStatus: row.DesiredStatus,
-				ContainerID:   row.ContainerID,
-				LastError:     row.LastError,
+				ID:              row.ID,
+				Name:            row.Name,
+				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				SetupVersion:    strings.TrimSpace(row.SetupVersion),
+				Endpoint:        strings.TrimSpace(row.Endpoint),
+				Status:          row.Status,
+				DesiredStatus:   row.DesiredStatus,
+				ContainerID:     row.ContainerID,
+				LastError:       row.LastError,
+				Ready:           row.Ready,
+				ReadyReportedAt: row.ReadyReportedAt,
+				ReadyReason:     row.ReadyReason,
 			})
 		}
 		return machines, nil
@@ -465,15 +480,18 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			return Machine{}, err
 		}
 		return Machine{
-			ID:            row.ID,
-			Name:          row.Name,
-			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-			SetupVersion:  strings.TrimSpace(row.SetupVersion),
-			Endpoint:      strings.TrimSpace(row.Endpoint),
-			Status:        row.Status,
-			DesiredStatus: row.DesiredStatus,
-			ContainerID:   row.ContainerID,
-			LastError:     row.LastError,
+			ID:              row.ID,
+			Name:            row.Name,
+			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:    strings.TrimSpace(row.SetupVersion),
+			Endpoint:        strings.TrimSpace(row.Endpoint),
+			Status:          row.Status,
+			DesiredStatus:   row.DesiredStatus,
+			ContainerID:     row.ContainerID,
+			LastError:       row.LastError,
+			Ready:           row.Ready,
+			ReadyReportedAt: row.ReadyReportedAt,
+			ReadyReason:     row.ReadyReason,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByID(ctx, machineID)
@@ -481,15 +499,18 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			return Machine{}, err
 		}
 		return Machine{
-			ID:            row.ID,
-			Name:          row.Name,
-			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-			SetupVersion:  strings.TrimSpace(row.SetupVersion),
-			Endpoint:      strings.TrimSpace(row.Endpoint),
-			Status:        row.Status,
-			DesiredStatus: row.DesiredStatus,
-			ContainerID:   row.ContainerID,
-			LastError:     row.LastError,
+			ID:              row.ID,
+			Name:            row.Name,
+			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:    strings.TrimSpace(row.SetupVersion),
+			Endpoint:        strings.TrimSpace(row.Endpoint),
+			Status:          row.Status,
+			DesiredStatus:   row.DesiredStatus,
+			ContainerID:     row.ContainerID,
+			LastError:       row.LastError,
+			Ready:           row.Ready,
+			ReadyReportedAt: row.ReadyReportedAt,
+			ReadyReason:     row.ReadyReason,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -507,15 +528,18 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			return Machine{}, err
 		}
 		return Machine{
-			ID:            row.ID,
-			Name:          row.Name,
-			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-			SetupVersion:  strings.TrimSpace(row.SetupVersion),
-			Endpoint:      strings.TrimSpace(row.Endpoint),
-			Status:        row.Status,
-			DesiredStatus: row.DesiredStatus,
-			ContainerID:   row.ContainerID,
-			LastError:     row.LastError,
+			ID:              row.ID,
+			Name:            row.Name,
+			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:    strings.TrimSpace(row.SetupVersion),
+			Endpoint:        strings.TrimSpace(row.Endpoint),
+			Status:          row.Status,
+			DesiredStatus:   row.DesiredStatus,
+			ContainerID:     row.ContainerID,
+			LastError:       row.LastError,
+			Ready:           row.Ready,
+			ReadyReportedAt: row.ReadyReportedAt,
+			ReadyReason:     row.ReadyReason,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByIDForUser(ctx, postgresqlsqlc.GetMachineByIDForUserParams{
@@ -526,15 +550,18 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			return Machine{}, err
 		}
 		return Machine{
-			ID:            row.ID,
-			Name:          row.Name,
-			RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-			SetupVersion:  strings.TrimSpace(row.SetupVersion),
-			Endpoint:      strings.TrimSpace(row.Endpoint),
-			Status:        row.Status,
-			DesiredStatus: row.DesiredStatus,
-			ContainerID:   row.ContainerID,
-			LastError:     row.LastError,
+			ID:              row.ID,
+			Name:            row.Name,
+			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+			SetupVersion:    strings.TrimSpace(row.SetupVersion),
+			Endpoint:        strings.TrimSpace(row.Endpoint),
+			Status:          row.Status,
+			DesiredStatus:   row.DesiredStatus,
+			ContainerID:     row.ContainerID,
+			LastError:       row.LastError,
+			Ready:           row.Ready,
+			ReadyReportedAt: row.ReadyReportedAt,
+			ReadyReason:     row.ReadyReason,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -628,13 +655,16 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
 			machines = append(machines, Machine{
-				ID:            row.ID,
-				Name:          row.Name,
-				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-				Status:        row.Status,
-				DesiredStatus: row.DesiredStatus,
-				ContainerID:   row.ContainerID,
-				LastError:     row.LastError,
+				ID:              row.ID,
+				Name:            row.Name,
+				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				Status:          row.Status,
+				DesiredStatus:   row.DesiredStatus,
+				ContainerID:     row.ContainerID,
+				LastError:       row.LastError,
+				Ready:           row.Ready,
+				ReadyReportedAt: row.ReadyReportedAt,
+				ReadyReason:     row.ReadyReason,
 			})
 		}
 		return machines, nil
@@ -649,18 +679,78 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
 			machines = append(machines, Machine{
-				ID:            row.ID,
-				Name:          row.Name,
-				RuntimeID:     NormalizeMachineRuntime(row.RuntimeID),
-				Status:        row.Status,
-				DesiredStatus: row.DesiredStatus,
-				ContainerID:   row.ContainerID,
-				LastError:     row.LastError,
+				ID:              row.ID,
+				Name:            row.Name,
+				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				Status:          row.Status,
+				DesiredStatus:   row.DesiredStatus,
+				ContainerID:     row.ContainerID,
+				LastError:       row.LastError,
+				Ready:           row.Ready,
+				ReadyReportedAt: row.ReadyReportedAt,
+				ReadyReason:     row.ReadyReason,
 			})
 		}
 		return machines, nil
 	default:
 		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ReportMachineReadinessByMachineID(ctx context.Context, machineID string, ready bool, reason, containerID string) (bool, error) {
+	nowUnix := time.Now().Unix()
+	reason = strings.TrimSpace(reason)
+	containerID = strings.TrimSpace(containerID)
+	switch s.driver {
+	case DriverSQLite:
+		updated, err := s.sqliteQueries.ReportMachineReadinessByMachineID(ctx, sqlitesqlc.ReportMachineReadinessByMachineIDParams{
+			Ready:           ready,
+			ReadyReportedAt: nowUnix,
+			ReadyReason:     reason,
+			ContainerID:     containerID,
+			UpdatedAt:       nowUnix,
+			MachineID:       machineID,
+		})
+		return updated > 0, err
+	case DriverPostgres:
+		updated, err := s.pgQueries.ReportMachineReadinessByMachineID(ctx, postgresqlsqlc.ReportMachineReadinessByMachineIDParams{
+			Ready:           ready,
+			ReadyReportedAt: nowUnix,
+			ReadyReason:     reason,
+			ContainerID:     containerID,
+			UpdatedAt:       nowUnix,
+			MachineID:       machineID,
+		})
+		return updated > 0, err
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) GetMachineReadinessByMachineID(ctx context.Context, machineID string) (MachineReadiness, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetMachineReadinessByMachineID(ctx, machineID)
+		if err != nil {
+			return MachineReadiness{}, err
+		}
+		return MachineReadiness{
+			Ready:           row.Ready,
+			ReadyReportedAt: row.ReadyReportedAt,
+			DesiredStatus:   row.DesiredStatus,
+		}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetMachineReadinessByMachineID(ctx, machineID)
+		if err != nil {
+			return MachineReadiness{}, err
+		}
+		return MachineReadiness{
+			Ready:           row.Ready,
+			ReadyReportedAt: row.ReadyReportedAt,
+			DesiredStatus:   row.DesiredStatus,
+		}, nil
+	default:
+		return MachineReadiness{}, unsupportedDriverError(s.driver)
 	}
 }
 

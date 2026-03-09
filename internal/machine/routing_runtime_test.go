@@ -41,10 +41,6 @@ func (r *fakeRuntime) IsRunning(context.Context, db.Machine) (bool, string, erro
 	return true, r.name, nil
 }
 
-func (r *fakeRuntime) WaitReady(context.Context, db.Machine, string) error {
-	return nil
-}
-
 func TestRoutingRuntime_ResolvesCatalogRuntimeIDsAcrossTypes(t *testing.T) {
 	t.Parallel()
 

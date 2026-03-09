@@ -97,7 +97,6 @@ func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
 		BuildArcadBinaryBase: func(context.Context) (string, error) {
 			return "YXJjYWQ=", nil
 		},
-		WaitReadyHTTP: func(context.Context, string) error { return nil },
 	})
 	if err != nil {
 		t.Fatalf("new runtime: %v", err)
@@ -188,43 +187,6 @@ func TestGceRuntime_EnsureStoppedStopsRunningInstance(t *testing.T) {
 	}
 	if !reflect.DeepEqual(fakeClient.stopped, []string{"instance-a"}) {
 		t.Fatalf("stop calls = %#v", fakeClient.stopped)
-	}
-}
-
-func TestGceRuntime_WaitReadyUsesMachineReadyEndpoint(t *testing.T) {
-	t.Parallel()
-
-	fakeClient := newFakeGceComputeClient()
-	fakeClient.instances["instance-a"] = &gceInstance{
-		Name:   "instance-a",
-		Status: "RUNNING",
-		NetworkInterfaces: []struct {
-			NetworkIP string `json:"networkIP"`
-		}{{NetworkIP: "10.20.30.40"}},
-	}
-
-	var calledURL string
-	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
-		Project:             "project-a",
-		Zone:                "us-central1-a",
-		Network:             "main",
-		Subnetwork:          "main-subnet",
-		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
-		Client:              fakeClient,
-		WaitReadyHTTP: func(_ context.Context, readyURL string) error {
-			calledURL = readyURL
-			return nil
-		},
-	})
-	if err != nil {
-		t.Fatalf("new runtime: %v", err)
-	}
-
-	if err := runtime.WaitReady(context.Background(), db.Machine{ID: "machine"}, "instance-a"); err != nil {
-		t.Fatalf("wait ready: %v", err)
-	}
-	if calledURL != "http://10.20.30.40:21030/__arca/readyz" {
-		t.Fatalf("ready URL = %q", calledURL)
 	}
 }
 

@@ -173,6 +173,44 @@ func (s *tunnelConnectService) GetMachineExposureByHostname(ctx context.Context,
 	return connect.NewResponse(&arcav1.GetMachineExposureByHostnameResponse{Exposure: toMachineExposureMessage(exposure)}), nil
 }
 
+func (s *tunnelConnectService) ReportMachineReadiness(ctx context.Context, req *connect.Request[arcav1.ReportMachineReadinessRequest]) (*connect.Response[arcav1.ReportMachineReadinessResponse], error) {
+	if s.store == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("tunnel service unavailable"))
+	}
+
+	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))
+	if machineToken == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine token is required"))
+	}
+	machineID, err := s.store.GetMachineIDByMachineToken(ctx, machineToken)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
+		}
+		log.Printf("get machine id by token failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
+	}
+
+	requestMachineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if requestMachineID != "" && requestMachineID != machineID {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine id does not match token"))
+	}
+
+	updated, err := s.store.ReportMachineReadinessByMachineID(
+		ctx,
+		machineID,
+		req.Msg.GetReady(),
+		strings.TrimSpace(req.Msg.GetReason()),
+		strings.TrimSpace(req.Msg.GetContainerId()),
+	)
+	if err != nil {
+		log.Printf("report machine readiness failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to report machine readiness"))
+	}
+
+	return connect.NewResponse(&arcav1.ReportMachineReadinessResponse{Accepted: updated}), nil
+}
+
 func visibilityFromRequest(req *arcav1.UpsertMachineExposureRequest) string {
 	switch req.GetVisibility() {
 	case arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_SELECTED_USERS:

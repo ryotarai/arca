@@ -9,6 +9,7 @@ service TunnelService {
   rpc UpsertMachineExposure(UpsertMachineExposureRequest) returns (UpsertMachineExposureResponse);
   rpc ListMachineExposures(ListMachineExposuresRequest) returns (ListMachineExposuresResponse);
   rpc GetMachineExposureByHostname(GetMachineExposureByHostnameRequest) returns (GetMachineExposureByHostnameResponse);
+  rpc ReportMachineReadiness(ReportMachineReadinessRequest) returns (ReportMachineReadinessResponse);
 }
 
 enum EndpointVisibility {
@@ -75,4 +76,15 @@ message GetMachineExposureByHostnameRequest {
 
 message GetMachineExposureByHostnameResponse {
   MachineExposure exposure = 1;
+}
+
+message ReportMachineReadinessRequest {
+  bool ready = 1;
+  string reason = 2;
+  string machine_id = 3;
+  string container_id = 4;
+}
+
+message ReportMachineReadinessResponse {
+  bool accepted = 1;
 }

@@ -102,6 +102,9 @@ CREATE TABLE IF NOT EXISTS machine_states (
   desired_status TEXT NOT NULL,
   container_id TEXT NOT NULL DEFAULT '',
   last_error TEXT NOT NULL DEFAULT '',
+  ready BOOLEAN NOT NULL DEFAULT FALSE,
+  ready_reported_at BIGINT NOT NULL DEFAULT 0,
+  ready_reason TEXT NOT NULL DEFAULT '',
   updated_at BIGINT NOT NULL
 );
 

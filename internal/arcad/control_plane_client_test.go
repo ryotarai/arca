@@ -60,3 +60,24 @@ func TestExchangeArcadSessionAcceptsSnakeCasePayload(t *testing.T) {
 		t.Fatalf("unexpected expiry: %d", claims.ExpiresAt.Unix())
 	}
 }
+
+func TestReportMachineReadinessAcceptsResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != reportMachineReadinessEndpoint {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"accepted":true}`))
+	}))
+	t.Cleanup(server.Close)
+
+	client := NewHTTPControlPlaneClient(server.URL, "", "m1", "mt_1", server.Client())
+	accepted, err := client.ReportMachineReadiness(context.Background(), true, "ready", "container-1")
+	if err != nil {
+		t.Fatalf("ReportMachineReadiness failed: %v", err)
+	}
+	if !accepted {
+		t.Fatalf("accepted = false, want true")
+	}
+}

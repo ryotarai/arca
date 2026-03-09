@@ -310,14 +310,16 @@ func (s *machineConnectService) authenticate(ctx context.Context, header http.He
 
 func toMachineMessage(machine db.Machine) *arcav1.Machine {
 	return &arcav1.Machine{
-		Id:             machine.ID,
-		Name:           machine.Name,
-		Status:         machine.Status,
-		DesiredStatus:  machine.DesiredStatus,
-		LastError:      machine.LastError,
-		Endpoint:       machine.Endpoint,
-		RuntimeId:      machine.RuntimeID,
-		UpdateRequired: machineUpdateRequired(machine),
+		Id:              machine.ID,
+		Name:            machine.Name,
+		Status:          machine.Status,
+		DesiredStatus:   machine.DesiredStatus,
+		LastError:       machine.LastError,
+		Endpoint:        machine.Endpoint,
+		RuntimeId:       machine.RuntimeID,
+		UpdateRequired:  machineUpdateRequired(machine),
+		Ready:           machine.Ready,
+		ReadyReportedAt: machine.ReadyReportedAt,
 	}
 }
 

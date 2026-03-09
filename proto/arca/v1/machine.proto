@@ -24,6 +24,8 @@ message Machine {
   string endpoint = 6;
   string runtime_id = 7;
   bool update_required = 8;
+  bool ready = 9;
+  int64 ready_reported_at = 10;
 }
 
 message ListMachinesRequest {}

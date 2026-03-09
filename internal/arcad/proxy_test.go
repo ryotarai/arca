@@ -42,6 +42,10 @@ func (s *proxyStubControlPlane) ValidateArcadSession(_ context.Context, _, _, se
 	return ArcadSessionClaims{UserID: s.exchangeClaims.UserID}, nil
 }
 
+func (s *proxyStubControlPlane) ReportMachineReadiness(_ context.Context, _ bool, _, _ string) (bool, error) {
+	return true, nil
+}
+
 func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
 	return "https://control.example/auth/authorize?target=" + target
 }
