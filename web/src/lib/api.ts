@@ -403,7 +403,7 @@ function toRuntimeCatalogItem(input: {
       | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string; startupScript: string } }
       | {
           case: 'gce'
-          value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string }
+          value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string; machineType: string; diskSizeGb: bigint; imageProject: string; imageFamily: string }
         }
       | { case: 'lxd'; value: { endpoint: string; startupScript: string } }
       | { case: undefined; value?: undefined }
@@ -433,6 +433,10 @@ function toRuntimeCatalogItem(input: {
       subnetwork: gce?.subnetwork ?? '',
       serviceAccountEmail: gce?.serviceAccountEmail ?? '',
       startupScript: gce?.startupScript ?? '',
+      machineType: gce?.machineType ?? '',
+      diskSizeGb: Number(gce?.diskSizeGb ?? 0),
+      imageProject: gce?.imageProject ?? '',
+      imageFamily: gce?.imageFamily ?? '',
     }
   } else if (runtimeType === 'lxd') {
     const lxd = input.config?.provider.case === 'lxd' ? input.config.provider.value : undefined
@@ -491,6 +495,10 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
         subnetwork: config.subnetwork,
         serviceAccountEmail: config.serviceAccountEmail,
         startupScript: config.startupScript,
+        machineType: config.machineType,
+        diskSizeGb: BigInt(config.diskSizeGb || 0),
+        imageProject: config.imageProject,
+        imageFamily: config.imageFamily,
       },
     }
   } else if (type === 'lxd') {

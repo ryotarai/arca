@@ -27,6 +27,10 @@ type RuntimeFormState = {
   gceSubnetwork: string
   gceServiceAccountEmail: string
   gceStartupScript: string
+  gceMachineType: string
+  gceDiskSizeGb: string
+  gceImageProject: string
+  gceImageFamily: string
   lxdEndpoint: string
   lxdStartupScript: string
   exposureMethod: MachineExposureMethodType
@@ -57,6 +61,10 @@ function emptyRuntimeForm(): RuntimeFormState {
     gceSubnetwork: '',
     gceServiceAccountEmail: '',
     gceStartupScript: '',
+    gceMachineType: '',
+    gceDiskSizeGb: '',
+    gceImageProject: '',
+    gceImageFamily: '',
     lxdEndpoint: '',
     lxdStartupScript: '',
     exposureMethod: 'cloudflare_tunnel',
@@ -134,6 +142,10 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
       subnetwork: form.gceSubnetwork.trim(),
       serviceAccountEmail: form.gceServiceAccountEmail.trim(),
       startupScript: form.gceStartupScript,
+      machineType: form.gceMachineType.trim(),
+      diskSizeGb: form.gceDiskSizeGb.trim() !== '' ? parseInt(form.gceDiskSizeGb.trim(), 10) || 0 : 0,
+      imageProject: form.gceImageProject.trim(),
+      imageFamily: form.gceImageFamily.trim(),
     }
   }
   if (form.type === 'lxd') {
@@ -187,6 +199,10 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
       gceSubnetwork: runtime.config.subnetwork,
       gceServiceAccountEmail: runtime.config.serviceAccountEmail,
       gceStartupScript: runtime.config.startupScript,
+      gceMachineType: runtime.config.machineType,
+      gceDiskSizeGb: runtime.config.diskSizeGb ? String(runtime.config.diskSizeGb) : '',
+      gceImageProject: runtime.config.imageProject,
+      gceImageFamily: runtime.config.imageFamily,
       ...exposureFields,
     }
   }
@@ -393,6 +409,22 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                   <div className="space-y-2">
                     <Label htmlFor="runtime-gce-service-account-email">Service account email</Label>
                     <Input id="runtime-gce-service-account-email" value={form.gceServiceAccountEmail} onChange={(event) => setForm((current) => ({ ...current, gceServiceAccountEmail: event.target.value }))} className="h-10" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-gce-machine-type">Machine type (optional)</Label>
+                    <Input id="runtime-gce-machine-type" value={form.gceMachineType} onChange={(event) => setForm((current) => ({ ...current, gceMachineType: event.target.value }))} className="h-10" placeholder="e2-standard-2" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-gce-disk-size-gb">Disk size in GB (optional)</Label>
+                    <Input id="runtime-gce-disk-size-gb" type="number" value={form.gceDiskSizeGb} onChange={(event) => setForm((current) => ({ ...current, gceDiskSizeGb: event.target.value }))} className="h-10" placeholder="40" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-gce-image-project">VM image project (optional)</Label>
+                    <Input id="runtime-gce-image-project" value={form.gceImageProject} onChange={(event) => setForm((current) => ({ ...current, gceImageProject: event.target.value }))} className="h-10" placeholder="ubuntu-os-cloud" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-gce-image-family">Image family (optional)</Label>
+                    <Input id="runtime-gce-image-family" value={form.gceImageFamily} onChange={(event) => setForm((current) => ({ ...current, gceImageFamily: event.target.value }))} className="h-10" placeholder="ubuntu-2404-lts-amd64" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="runtime-gce-startup-script">Startup script (Bash, optional)</Label>

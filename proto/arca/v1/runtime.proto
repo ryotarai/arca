@@ -54,6 +54,10 @@ message GceRuntimeConfig {
   string subnetwork = 4;
   string service_account_email = 5;
   string startup_script = 6;
+  string machine_type = 7;
+  int64 disk_size_gb = 8;
+  string image_project = 9;
+  string image_family = 10;
 }
 
 message LxdRuntimeConfig {

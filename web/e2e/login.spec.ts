@@ -310,7 +310,7 @@ test('runtime catalog CRUD enforces typed config form constraints', async ({ pag
   await page.getByLabel('Type').selectOption('gce')
   await expect(page.getByRole('button', { name: 'Save runtime' })).toBeDisabled()
 
-  await page.getByLabel('Project').fill('my-project')
+  await page.getByLabel('Project', { exact: true }).fill('my-project')
   await page.getByLabel('Zone', { exact: true }).fill('us-central1-a')
   await page.getByLabel('Network').first().fill('vpc-main')
   await page.getByLabel('Subnetwork').fill('subnet-main')
