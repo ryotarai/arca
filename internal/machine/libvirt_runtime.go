@@ -648,7 +648,7 @@ package_update: false
 write_files:
   - path: /etc/arca/arcad.env
     permissions: "0640"
-    owner: root:arca
+    owner: root:root
     encoding: b64
     content: %s
   - path: /usr/local/bin/arca-machine-install.sh
