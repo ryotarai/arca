@@ -212,24 +212,25 @@ func (r *LxdRuntime) containerExists(ctx context.Context, name string) (bool, er
 }
 
 func (r *LxdRuntime) launchContainer(ctx context.Context, name, cloudConfig string) error {
-	tmpFile, err := os.CreateTemp("", "arca-lxd-cloud-init-*.yaml")
-	if err != nil {
-		return fmt.Errorf("create cloud-init temp file: %w", err)
+	// Use lxc init + config set + start instead of lxc launch --config
+	// to avoid "argument list too long" when cloud-init data (which includes
+	// the arcad binary) exceeds the OS command-line argument limit.
+	if _, err := r.runLxc(ctx, "init", r.image, name); err != nil {
+		return fmt.Errorf("init lxd container: %w", err)
 	}
-	defer os.Remove(tmpFile.Name())
 
-	if _, err := tmpFile.WriteString(cloudConfig); err != nil {
-		tmpFile.Close()
-		return fmt.Errorf("write cloud-init: %w", err)
+	// Pass user-data via stdin to avoid argument length limits.
+	cmd := exec.CommandContext(ctx, "lxc", "config", "set", name, "user.user-data", "-")
+	cmd.Stdin = strings.NewReader(cloudConfig)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		// Clean up the created-but-not-started container on failure.
+		_, _ = r.runLxc(ctx, "delete", name, "--force")
+		return fmt.Errorf("set cloud-init config: %w: %s", err, strings.TrimSpace(string(output)))
 	}
-	tmpFile.Close()
 
-	args := []string{
-		"launch", r.image, name,
-		"--config", "user.user-data=" + cloudConfig,
-	}
-	if _, err := r.runLxc(ctx, args...); err != nil {
-		return fmt.Errorf("launch lxd container: %w", err)
+	if _, err := r.runLxc(ctx, "start", name); err != nil {
+		_, _ = r.runLxc(ctx, "delete", name, "--force")
+		return fmt.Errorf("start lxd container: %w", err)
 	}
 	return nil
 }
