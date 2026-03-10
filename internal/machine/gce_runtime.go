@@ -102,8 +102,12 @@ type gceInsertInstanceRequest struct {
 		} `json:"initializeParams"`
 	} `json:"disks"`
 	NetworkInterfaces []struct {
-		Network    string `json:"network"`
-		Subnetwork string `json:"subnetwork"`
+		Network       string `json:"network"`
+		Subnetwork    string `json:"subnetwork"`
+		AccessConfigs []struct {
+			Type string `json:"type"`
+			Name string `json:"name"`
+		} `json:"accessConfigs,omitempty"`
 	} `json:"networkInterfaces"`
 	ServiceAccounts []struct {
 		Email  string   `json:"email"`
@@ -428,12 +432,22 @@ func (r *GceRuntime) instanceSpec(instanceName, cloudInit string) *gceInsertInst
 		},
 	}
 	req.NetworkInterfaces = []struct {
-		Network    string `json:"network"`
-		Subnetwork string `json:"subnetwork"`
+		Network       string `json:"network"`
+		Subnetwork    string `json:"subnetwork"`
+		AccessConfigs []struct {
+			Type string `json:"type"`
+			Name string `json:"name"`
+		} `json:"accessConfigs,omitempty"`
 	}{
 		{
 			Network:    gceNetworkPath(r.project, r.network),
 			Subnetwork: gceSubnetworkPath(r.project, r.zone, r.subnetwork),
+			AccessConfigs: []struct {
+				Type string `json:"type"`
+				Name string `json:"name"`
+			}{
+				{Type: "ONE_TO_ONE_NAT", Name: "External NAT"},
+			},
 		},
 	}
 	req.ServiceAccounts = []struct {
