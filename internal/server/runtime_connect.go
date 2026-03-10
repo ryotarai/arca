@@ -208,6 +208,8 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 		}
 	}
 
+	serverApiUrl := strings.TrimSpace(config.GetServerApiUrl())
+
 	switch runtimeType {
 	case arcav1.RuntimeType_RUNTIME_TYPE_LIBVIRT:
 		libvirt := config.GetLibvirt()
@@ -236,7 +238,8 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						StartupScript: startupScript,
 					},
 				},
-				Exposure: exposureConfig,
+				Exposure:     exposureConfig,
+				ServerApiUrl: serverApiUrl,
 			},
 		}, nil
 	case arcav1.RuntimeType_RUNTIME_TYPE_GCE:
@@ -278,7 +281,8 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						ImageFamily:         imageFamily,
 					},
 				},
-				Exposure: exposureConfig,
+				Exposure:     exposureConfig,
+				ServerApiUrl: serverApiUrl,
 			},
 		}, nil
 	case arcav1.RuntimeType_RUNTIME_TYPE_LXD:
@@ -304,7 +308,8 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						StartupScript: startupScript,
 					},
 				},
-				Exposure: exposureConfig,
+				Exposure:     exposureConfig,
+				ServerApiUrl: serverApiUrl,
 			},
 		}, nil
 	default:
