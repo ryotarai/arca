@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Read and apply the instructions in `AGENTS.local.md` as well.
+**First**, read and apply the instructions in `AGENTS.local.md` before using any other tools or reading any other files.
 
 ## Project Structure & Module Organization
 This repository is a Go + React application (`github.com/ryotarai/arca`).
