@@ -41,6 +41,12 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 - Keep the worker pool saturated until no executable tasks remain.
 9. Monitor running sessions and capture logs when needed.
 - Use tmux capture for active panes, for example: `tmux capture-pane -p -S - -t :codex-agents.0`.
+- **Patience rules for monitoring**:
+  - After launching a bgcodex session, wait at least **3 minutes** before checking its progress for the first time.
+  - If the session appears idle or slow, capture the pane output and review the last 50+ lines before deciding it is stuck. LLM agents often pause while thinking, reading files, or waiting for tool results — this is normal.
+  - **Never send Escape (interrupt) to a running session** unless all of the following are true: (1) the session has been running for at least 5 minutes with zero meaningful output change across two consecutive checks spaced 2+ minutes apart, AND (2) the captured output clearly shows a loop, repeated error, or explicit hang — not just a slow response.
+  - When in doubt, wait longer. A false interrupt wastes more time than a slow completion.
+  - Prefer checking progress via `tmux capture-pane` passively rather than interacting with the pane.
 10. On confirmed completion of each task run unit:
 - Verify task-scoped checks/tests completed in that worktree.
 - Merge branch into `main`.
