@@ -358,7 +358,11 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                   onChange={(event) => {
                     const val = event.target.value
                     const t: RuntimeCatalogType = val === 'gce' ? 'gce' : val === 'lxd' ? 'lxd' : 'libvirt'
-                    setForm((current) => ({ ...current, type: t }))
+                    setForm((current) => ({
+                      ...current,
+                      type: t,
+                      exposureConnectivity: (t === 'libvirt' || t === 'lxd') && current.exposureConnectivity === 'public_ip' ? '' : current.exposureConnectivity,
+                    }))
                   }}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -490,7 +494,7 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                     >
                       <option value="">Not set</option>
                       <option value="private_ip">Private IP</option>
-                      <option value="public_ip">Public IP</option>
+                      {form.type === 'gce' && <option value="public_ip">Public IP</option>}
                     </select>
                     <p className="text-xs text-muted-foreground">How the server reaches machine IPs for reverse proxying.</p>
                   </div>
