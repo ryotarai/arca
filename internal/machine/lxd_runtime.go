@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -14,8 +15,7 @@ import (
 
 const (
 	defaultLxdEndpoint    = "https://localhost:8443"
-	defaultLxdArcadGOOS   = "linux"
-	defaultLxdArcadGOARCH = "amd64"
+	defaultLxdArcadGOOS = "linux"
 	defaultLxdImage       = "ubuntu:24.04"
 )
 
@@ -62,7 +62,7 @@ func NewLxdRuntimeWithOptions(options LxdRuntimeOptions) *LxdRuntime {
 		arcadGOARCH = strings.TrimSpace(os.Getenv("ARCA_LXD_ARCAD_GOARCH"))
 	}
 	if arcadGOARCH == "" {
-		arcadGOARCH = defaultLxdArcadGOARCH
+		arcadGOARCH = runtime.GOARCH
 	}
 
 	image := strings.TrimSpace(options.Image)

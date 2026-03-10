@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -20,8 +21,7 @@ const (
 	defaultLibvirtURI          = "qemu:///system"
 	defaultLibvirtNetwork      = "default"
 	defaultLibvirtStoragePool  = "default"
-	defaultLibvirtArcadGOOS    = "linux"
-	defaultLibvirtArcadGOARCH  = "amd64"
+	defaultLibvirtArcadGOOS = "linux"
 )
 
 type LibvirtRuntime struct {
@@ -112,7 +112,7 @@ func NewLibvirtRuntimeWithOptions(options LibvirtRuntimeOptions) *LibvirtRuntime
 		arcadGOARCH = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOARCH"))
 	}
 	if arcadGOARCH == "" {
-		arcadGOARCH = defaultLibvirtArcadGOARCH
+		arcadGOARCH = runtime.GOARCH
 	}
 
 	return &LibvirtRuntime{
