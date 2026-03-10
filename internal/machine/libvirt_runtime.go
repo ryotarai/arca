@@ -396,7 +396,7 @@ ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64=%s
 ARCA_AGENT_ENDPOINT_URL=%s
 TTYD_SOCKET=/run/arca/ttyd.sock
 TTYD_BASE_PATH=/__arca/ttyd
-SHELLEY_BINARY_URL=https://github.com/ryotarai/shelley/releases/download/v0.321.967457453-ryotarai/shelley_linux_amd64
+SHELLEY_BINARY_URL_BASE=https://github.com/ryotarai/shelley/releases/download/v0.321.967457453-ryotarai/shelley_linux
 SHELLEY_BASE_PATH=/__arca/shelley
 SHELLEY_PORT=21032
 SHELLEY_DB_PATH=/var/lib/arca/shelley/shelley.db
@@ -483,7 +483,8 @@ if [ ! -x /usr/local/bin/cloudflared ]; then
 fi
 
 if [ ! -x /usr/local/bin/shelley ]; then
-  curl -fsSL "${SHELLEY_BINARY_URL}" -o /usr/local/bin/shelley
+  shelley_arch="$(dpkg --print-architecture)"
+  curl -fsSL "${SHELLEY_BINARY_URL_BASE}_${shelley_arch}" -o /usr/local/bin/shelley
   chmod +x /usr/local/bin/shelley
 fi
 
