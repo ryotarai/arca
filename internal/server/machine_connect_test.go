@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -190,6 +191,10 @@ func (s *authenticatorStub) Authenticate(ctx context.Context, sessionToken strin
 		panic("Authenticate should not be called in this test")
 	}
 	return s.authenticateFunc(ctx, sessionToken)
+}
+
+func (s *authenticatorStub) AuthenticateIAPJWT(context.Context, string) (string, string, string, error) {
+	return "", "", "", errors.New("iap not configured")
 }
 
 func (s *authenticatorStub) Logout(context.Context, string) error {

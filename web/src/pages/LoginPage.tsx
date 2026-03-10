@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { login, startOidcLogin } from '@/lib/api'
+import { login, me, startOidcLogin } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { User } from '@/lib/types'
 
@@ -13,9 +13,10 @@ type LoginPageProps = {
   onLogin: (user: User) => void
   oidcEnabled: boolean
   passwordLoginDisabled: boolean
+  iapEnabled: boolean
 }
 
-export function LoginPage({ user, onLogin, oidcEnabled, passwordLoginDisabled }: LoginPageProps) {
+export function LoginPage({ user, onLogin, oidcEnabled, passwordLoginDisabled, iapEnabled }: LoginPageProps) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextPath = sanitizeNextPath(searchParams.get('next'))
@@ -23,6 +24,26 @@ export function LoginPage({ user, onLogin, oidcEnabled, passwordLoginDisabled }:
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [oidcLoading, setOidcLoading] = useState(false)
+  const [iapLoading, setIapLoading] = useState(iapEnabled)
+
+  useEffect(() => {
+    if (!iapEnabled) return
+    let cancelled = false
+    const tryIAP = async () => {
+      try {
+        const iapUser = await me()
+        if (!cancelled && iapUser != null) {
+          onLogin(iapUser)
+        }
+      } catch {
+        // IAP auth failed, fall through to other methods
+      } finally {
+        if (!cancelled) setIapLoading(false)
+      }
+    }
+    void tryIAP()
+    return () => { cancelled = true }
+  }, [iapEnabled, onLogin])
 
   useEffect(() => {
     if (user != null && nextPath !== '/') {
@@ -35,6 +56,18 @@ export function LoginPage({ user, onLogin, oidcEnabled, passwordLoginDisabled }:
       return null
     }
     return <Navigate to="/" replace />
+  }
+
+  const showPasswordForm = !passwordLoginDisabled
+  const showOidc = oidcEnabled
+  const iapOnly = iapEnabled && !showPasswordForm && !showOidc
+
+  if (iapLoading && iapOnly) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-slate-950 text-slate-100">
+        <p className="text-sm text-slate-300">Authenticating...</p>
+      </main>
+    )
   }
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -100,6 +133,9 @@ export function LoginPage({ user, onLogin, oidcEnabled, passwordLoginDisabled }:
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 p-8 pt-2">
+            {iapLoading && !iapOnly && (
+              <p className="text-center text-sm text-slate-300">Authenticating via IAP...</p>
+            )}
             {!passwordLoginDisabled && (
               <form className="space-y-4" onSubmit={submit}>
                 <div className="space-y-2">

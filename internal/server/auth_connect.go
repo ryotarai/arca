@@ -124,23 +124,27 @@ func (s *authConnectService) Me(ctx context.Context, req *connect.Request[arcav1
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
 
-	sessionToken, err := sessionTokenFromHeader(req.Header())
-	if err != nil || sessionToken == "" {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-	}
-
-	userID, email, role, err := s.authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		switch {
-		case errors.Is(err, auth.ErrUnauthenticated):
-			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-		default:
-			log.Printf("authenticate failed: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authenticate"))
+	sessionToken, _ := sessionTokenFromHeader(req.Header())
+	if sessionToken != "" {
+		userID, email, role, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}}), nil
 		}
 	}
 
-	return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}}), nil
+	// Fallback: try IAP JWT
+	if iapJWT := iapJWTFromHeader(req.Header()); iapJWT != "" {
+		userID, email, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}}), nil
+		}
+	}
+
+	return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+}
+
+func iapJWTFromHeader(header http.Header) string {
+	return strings.TrimSpace(header.Get("X-Goog-IAP-JWT-Assertion"))
 }
 
 func sessionTokenFromHeader(header http.Header) (string, error) {

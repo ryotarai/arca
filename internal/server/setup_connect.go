@@ -269,6 +269,8 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		OIDCAllowedEmailDomains: append([]string(nil),
 			current.OIDCAllowedEmailDomains...,
 		),
+		IAPEnabled:  current.IAPEnabled,
+		IAPAudience: current.IAPAudience,
 	}
 
 	if err := s.store.UpsertSetupState(ctx, state); err != nil {
@@ -347,15 +349,23 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("oidc issuer url, client id, and client secret are required when oidc is enabled"))
 		}
 	}
-	// Password login disabled: only allowed when OIDC is fully configured
-	current.PasswordLoginDisabled = req.Msg.GetPasswordLoginDisabled()
-	if current.PasswordLoginDisabled && !current.OIDCEnabled {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot disable password login without enabling oidc"))
-	}
-	if current.PasswordLoginDisabled && current.OIDCEnabled {
-		if current.OIDCIssuerURL == "" || current.OIDCClientID == "" || strings.TrimSpace(current.OIDCClientSecret) == "" {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot disable password login without a fully configured oidc provider"))
+	// IAP settings
+	current.IAPEnabled = req.Msg.GetIapEnabled()
+	if current.IAPEnabled {
+		iapAudience := strings.TrimSpace(req.Msg.GetIapAudience())
+		if iapAudience == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("iap audience is required when iap is enabled"))
 		}
+		current.IAPAudience = iapAudience
+	} else {
+		current.IAPAudience = strings.TrimSpace(req.Msg.GetIapAudience())
+	}
+
+	// Password login validation: at least one auth method must remain enabled
+	current.PasswordLoginDisabled = req.Msg.GetPasswordLoginDisabled()
+	passwordEnabled := !current.PasswordLoginDisabled
+	if !passwordEnabled && !current.OIDCEnabled && !current.IAPEnabled {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one authentication method must be enabled"))
 	}
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
 		log.Printf("persist setup state failed: %v", err)
@@ -387,6 +397,8 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		ServerExposureMethod:           serverExposureMethodToProto(state.ServerExposureMethod),
 		ServerDomain:                   state.ServerDomain,
 		PasswordLoginDisabled:          state.PasswordLoginDisabled,
+		IapEnabled:                     state.IAPEnabled,
+		IapAudience:                    state.IAPAudience,
 	}
 }
 
@@ -464,32 +476,47 @@ func normalizeOIDCAllowedEmailDomains(values []string) ([]string, error) {
 }
 
 func (s *setupConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
-	sessionToken, err := sessionTokenFromHeader(header)
-	if err != nil || sessionToken == "" {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			return userID, nil
+		}
 	}
 
-	userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, _, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			return userID, nil
+		}
 	}
-	return userID, nil
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
 func (s *setupConnectService) authenticateAdmin(ctx context.Context, header http.Header) (string, error) {
-	sessionToken, err := sessionTokenFromHeader(header)
-	if err != nil || sessionToken == "" {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			if role != db.UserRoleAdmin {
+				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
+			}
+			return userID, nil
+		}
 	}
 
-	userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			if role != db.UserRoleAdmin {
+				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
+			}
+			return userID, nil
+		}
 	}
-	if role != db.UserRoleAdmin {
-		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
-	}
-	return userID, nil
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
 func shouldSkipCloudflareValidation() bool {

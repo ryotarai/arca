@@ -203,14 +203,21 @@ func resolveMachineIDFromHeader(ctx context.Context, store *db.Store, header htt
 }
 
 func authenticateUserFromHeader(ctx context.Context, authenticator Authenticator, header http.Header) (string, error) {
-	sessionToken, err := sessionTokenFromHeader(header)
-	if err != nil || sessionToken == "" {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, _, err := authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			return userID, nil
+		}
 	}
 
-	userID, _, _, err := authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	// Fallback: try IAP JWT
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, _, err := authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			return userID, nil
+		}
 	}
-	return userID, nil
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }

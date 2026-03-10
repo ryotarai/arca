@@ -296,16 +296,22 @@ func (s *machineConnectService) authenticate(ctx context.Context, header http.He
 		return "", connect.NewError(connect.CodeUnavailable, errors.New("machine store unavailable"))
 	}
 
-	sessionToken, err := sessionTokenFromHeader(header)
-	if err != nil || sessionToken == "" {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			return userID, nil
+		}
 	}
 
-	userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, _, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			return userID, nil
+		}
 	}
-	return userID, nil
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
 func toMachineMessage(machine db.Machine) *arcav1.Machine {

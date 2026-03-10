@@ -40,6 +40,8 @@ type SetupState struct {
 	OIDCClientSecret               string
 	OIDCAllowedEmailDomains        []string
 	PasswordLoginDisabled          bool
+	IAPEnabled                     bool
+	IAPAudience                    string
 	ServerExposureMethod           string
 	ServerDomain                   string
 	UpdatedAtUnix                  int64
@@ -117,6 +119,15 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		return SetupState{}, err
 	}
 	passwordLoginDisabled := parseBoolMetaValue(passwordLoginDisabledRaw)
+	iapEnabledRaw, err := s.getMetaValue(ctx, setupMetaIAPEnabled)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	iapEnabled := parseBoolMetaValue(iapEnabledRaw)
+	iapAudience, err := s.getMetaValue(ctx, setupMetaIAPAudience)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
 	serverExposureMethod, err := s.getMetaValue(ctx, setupMetaServerExposureMethod)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
@@ -156,6 +167,8 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			OIDCClientSecret:               oidcClientSecret,
 			OIDCAllowedEmailDomains:        oidcAllowedDomains,
 			PasswordLoginDisabled:          passwordLoginDisabled,
+			IAPEnabled:                     iapEnabled,
+			IAPAudience:                    strings.TrimSpace(iapAudience),
 			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
@@ -183,6 +196,8 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			OIDCClientSecret:               oidcClientSecret,
 			OIDCAllowedEmailDomains:        oidcAllowedDomains,
 			PasswordLoginDisabled:          passwordLoginDisabled,
+			IAPEnabled:                     iapEnabled,
+			IAPAudience:                    strings.TrimSpace(iapAudience),
 			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
@@ -260,6 +275,12 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaPasswordLoginDisabled, boolMetaValue(state.PasswordLoginDisabled)); err != nil {
 		return err
 	}
+	if err := s.upsertMetaValue(ctx, setupMetaIAPEnabled, boolMetaValue(state.IAPEnabled)); err != nil {
+		return err
+	}
+	if err := s.upsertMetaValue(ctx, setupMetaIAPAudience, strings.TrimSpace(state.IAPAudience)); err != nil {
+		return err
+	}
 	if err := s.upsertMetaValue(ctx, setupMetaServerExposureMethod, NormalizeServerExposureMethod(state.ServerExposureMethod)); err != nil {
 		return err
 	}
@@ -291,6 +312,8 @@ const setupMetaOIDCClientID = "setup.oidc.client_id"
 const setupMetaOIDCClientSecret = "setup.oidc.client_secret"
 const setupMetaOIDCAllowedEmailDomains = "setup.oidc.allowed_email_domains"
 const setupMetaPasswordLoginDisabled = "setup.password_login_disabled"
+const setupMetaIAPEnabled = "setup.iap.enabled"
+const setupMetaIAPAudience = "setup.iap.audience"
 const setupMetaServerExposureMethod = "setup.server_exposure_method"
 const setupMetaServerDomain = "setup.server_domain"
 

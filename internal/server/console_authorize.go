@@ -78,15 +78,22 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 }
 
 func userIDFromSessionCookie(r *http.Request, authenticator Authenticator) (string, error) {
-	sessionToken, err := sessionTokenFromHeader(r.Header)
-	if err != nil || sessionToken == "" {
-		return "", errors.New("unauthenticated")
+	sessionToken, _ := sessionTokenFromHeader(r.Header)
+	if sessionToken != "" {
+		userID, _, _, err := authenticator.Authenticate(r.Context(), sessionToken)
+		if err == nil {
+			return userID, nil
+		}
 	}
-	userID, _, _, err := authenticator.Authenticate(r.Context(), sessionToken)
-	if err != nil {
-		return "", err
+
+	if iapJWT := iapJWTFromHeader(r.Header); iapJWT != "" {
+		userID, _, _, err := authenticator.AuthenticateIAPJWT(r.Context(), iapJWT)
+		if err == nil {
+			return userID, nil
+		}
 	}
-	return userID, nil
+
+	return "", errors.New("unauthenticated")
 }
 
 func stripPort(host string) string {

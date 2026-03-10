@@ -156,18 +156,28 @@ func (s *runtimeConnectService) authenticateAdmin(ctx context.Context, header ht
 		return "", connect.NewError(connect.CodeUnavailable, errors.New("runtime management unavailable"))
 	}
 
-	sessionToken, err := sessionTokenFromHeader(header)
-	if err != nil || sessionToken == "" {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			if role != db.UserRoleAdmin {
+				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage runtimes"))
+			}
+			return userID, nil
+		}
 	}
-	userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			if role != db.UserRoleAdmin {
+				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage runtimes"))
+			}
+			return userID, nil
+		}
 	}
-	if role != db.UserRoleAdmin {
-		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage runtimes"))
-	}
-	return userID, nil
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
 type validatedRuntimeRequest struct {

@@ -22,6 +22,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [cloudflareApiToken, setCloudflareApiToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(setupStatus.cloudflareZoneID)
   const [passwordLoginDisabled, setPasswordLoginDisabled] = useState(setupStatus.passwordLoginDisabled)
+  const [iapEnabled, setIapEnabled] = useState(setupStatus.iapEnabled)
+  const [iapAudience, setIapAudience] = useState(setupStatus.iapAudience)
   const [oidcEnabled, setOidcEnabled] = useState(setupStatus.oidcEnabled)
   const [oidcIssuerURL, setOidcIssuerURL] = useState(setupStatus.oidcIssuerURL)
   const [oidcClientID, setOidcClientID] = useState(setupStatus.oidcClientID)
@@ -36,6 +38,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
     setServerDomain(setupStatus.serverDomain)
     setDisableInternetPublicExposure(setupStatus.internetPublicExposureDisabled)
     setCloudflareZoneID(setupStatus.cloudflareZoneID)
+    setIapEnabled(setupStatus.iapEnabled)
+    setIapAudience(setupStatus.iapAudience)
     setOidcEnabled(setupStatus.oidcEnabled)
     setOidcIssuerURL(setupStatus.oidcIssuerURL)
     setOidcClientID(setupStatus.oidcClientID)
@@ -72,6 +76,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         cloudflareApiToken,
         cloudflareZoneID,
         passwordLoginDisabled,
+        iapEnabled,
+        iapAudience.trim(),
       )
       const normalizedOidcAllowedEmailDomains = oidcAllowedEmailDomainsText
         .split(/\r?\n/)
@@ -81,6 +87,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         ...setupStatus,
         internetPublicExposureDisabled: disableInternetPublicExposure,
         passwordLoginDisabled,
+        iapEnabled,
+        iapAudience: iapAudience.trim(),
         oidcEnabled,
         oidcIssuerURL: oidcIssuerURL.trim(),
         oidcClientID: oidcClientID.trim(),
@@ -212,9 +220,23 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                 </p>
               </div>
               <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4">
-                <Label htmlFor="settings-oidc-enabled">
-                  Google/OIDC login
-                </Label>
+                <p className="text-sm font-medium text-foreground">Password login</p>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    id="settings-password-login-enabled"
+                    type="checkbox"
+                    checked={!passwordLoginDisabled}
+                    onChange={(event) => setPasswordLoginDisabled(!event.target.checked)}
+                  />
+                  Enable password login
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Recovery override: set <code>ARCA_ALLOW_PASSWORD_LOGIN=1</code> env var on the server.
+                </p>
+              </div>
+
+              <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4">
+                <p className="text-sm font-medium text-foreground">Google/OIDC login</p>
                 <label className="flex items-center gap-2 text-sm text-foreground">
                   <input
                     id="settings-oidc-enabled"
@@ -277,22 +299,34 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                     Leave empty to allow any verified email domain.
                   </p>
                 </div>
-                {oidcEnabled && (
-                  <div className="space-y-2 border-t border-border pt-4">
-                    <label className="flex items-center gap-2 text-sm text-foreground">
-                      <input
-                        id="settings-password-login-disabled"
-                        type="checkbox"
-                        checked={passwordLoginDisabled}
-                        onChange={(event) => setPasswordLoginDisabled(event.target.checked)}
-                      />
-                      Disable password login
-                    </label>
-                    <p className="text-xs text-muted-foreground">
-                      When enabled, users can only sign in via OIDC. Recovery override: set <code>ARCA_ALLOW_PASSWORD_LOGIN=1</code> env var on the server.
-                    </p>
-                  </div>
-                )}
+              </div>
+
+              <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4">
+                <p className="text-sm font-medium text-foreground">Cloud IAP authentication</p>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    id="settings-iap-enabled"
+                    type="checkbox"
+                    checked={iapEnabled}
+                    onChange={(event) => setIapEnabled(event.target.checked)}
+                  />
+                  Enable Cloud IAP authentication
+                </label>
+                <div className="space-y-2">
+                  <Label htmlFor="settings-iap-audience">
+                    IAP audience
+                  </Label>
+                  <Input
+                    id="settings-iap-audience"
+                    value={iapAudience}
+                    onChange={(event) => setIapAudience(event.target.value)}
+                    className="h-10"
+                    placeholder="/projects/PROJECT_NUMBER/global/backendServices/BACKEND_SERVICE_ID"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Configure IAP in Google Cloud Console. The audience string is found in the IAP settings.
+                  </p>
+                </div>
               </div>
               <Button
                 type="submit"

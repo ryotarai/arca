@@ -40,6 +40,7 @@ type Authenticator interface {
 	StartOIDCLogin(context.Context, string, string) (string, error)
 	LoginWithOIDCCode(context.Context, string, string) (string, string, string, string, time.Time, error)
 	Authenticate(context.Context, string) (string, string, string, error)
+	AuthenticateIAPJWT(context.Context, string) (string, string, string, error)
 	Logout(context.Context, string) error
 }
 

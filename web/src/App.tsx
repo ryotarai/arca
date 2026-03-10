@@ -33,6 +33,8 @@ export function App() {
     oidcClientSecretConfigured: false,
     oidcAllowedEmailDomains: [],
     passwordLoginDisabled: false,
+    iapEnabled: false,
+    iapAudience: '',
     serverExposureMethod: 'cloudflare_tunnel',
     serverDomain: '',
   })
@@ -99,6 +101,8 @@ export function App() {
                   oidcClientSecretConfigured: false,
                   oidcAllowedEmailDomains: [],
                   passwordLoginDisabled: false,
+                  iapEnabled: false,
+                  iapAudience: '',
                   serverExposureMethod: 'cloudflare_tunnel',
                   serverDomain: '',
                 })
@@ -114,7 +118,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/setup" element={<Navigate to="/" replace />} />
-      <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} passwordLoginDisabled={setupStatus.passwordLoginDisabled} />} />
+      <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} passwordLoginDisabled={setupStatus.passwordLoginDisabled} iapEnabled={setupStatus.iapEnabled} />} />
       <Route path="/login/oidc/callback" element={<OidcCallbackPage user={user} onLogin={setUser} />} />
       <Route path="/users/setup" element={<UserSetupPage user={user} />} />
 

@@ -147,18 +147,28 @@ func (s *userConnectService) authenticateAdmin(ctx context.Context, header http.
 	if s.authenticator == nil || s.store == nil {
 		return "", connect.NewError(connect.CodeUnavailable, errors.New("user management unavailable"))
 	}
-	sessionToken, err := sessionTokenFromHeader(header)
-	if err != nil || sessionToken == "" {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			if role != db.UserRoleAdmin {
+				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage users"))
+			}
+			return userID, nil
+		}
 	}
-	userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			if role != db.UserRoleAdmin {
+				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage users"))
+			}
+			return userID, nil
+		}
 	}
-	if role != db.UserRoleAdmin {
-		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage users"))
-	}
-	return userID, nil
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
 func (s *userConnectService) UpdateUserRole(ctx context.Context, req *connect.Request[arcav1.UpdateUserRoleRequest]) (*connect.Response[arcav1.UpdateUserRoleResponse], error) {
@@ -266,15 +276,22 @@ func (s *userConnectService) authenticateUser(ctx context.Context, header http.H
 	if s.authenticator == nil || s.store == nil {
 		return "", connect.NewError(connect.CodeUnavailable, errors.New("user management unavailable"))
 	}
-	sessionToken, err := sessionTokenFromHeader(header)
-	if err != nil || sessionToken == "" {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			return userID, nil
+		}
 	}
-	userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
-	if err != nil {
-		return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, _, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			return userID, nil
+		}
 	}
-	return userID, nil
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
 func normalizeSSHPublicKeys(input []string) ([]string, error) {

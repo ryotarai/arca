@@ -42,6 +42,8 @@ export type SetupStatus = {
   oidcClientSecretConfigured: boolean
   oidcAllowedEmailDomains: string[]
   passwordLoginDisabled: boolean
+  iapEnabled: boolean
+  iapAudience: string
   serverExposureMethod: ServerExposureMethod
   serverDomain: string
 }

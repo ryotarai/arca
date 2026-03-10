@@ -86,6 +86,8 @@ type SetupStatus struct {
 	ServerExposureMethod           ServerExposureMethod   `protobuf:"varint,15,opt,name=server_exposure_method,json=serverExposureMethod,proto3,enum=arca.v1.ServerExposureMethod" json:"server_exposure_method,omitempty"`
 	ServerDomain                   string                 `protobuf:"bytes,16,opt,name=server_domain,json=serverDomain,proto3" json:"server_domain,omitempty"`
 	PasswordLoginDisabled          bool                   `protobuf:"varint,17,opt,name=password_login_disabled,json=passwordLoginDisabled,proto3" json:"password_login_disabled,omitempty"`
+	IapEnabled                     bool                   `protobuf:"varint,18,opt,name=iap_enabled,json=iapEnabled,proto3" json:"iap_enabled,omitempty"`
+	IapAudience                    string                 `protobuf:"bytes,19,opt,name=iap_audience,json=iapAudience,proto3" json:"iap_audience,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
@@ -216,6 +218,20 @@ func (x *SetupStatus) GetPasswordLoginDisabled() bool {
 		return x.PasswordLoginDisabled
 	}
 	return false
+}
+
+func (x *SetupStatus) GetIapEnabled() bool {
+	if x != nil {
+		return x.IapEnabled
+	}
+	return false
+}
+
+func (x *SetupStatus) GetIapAudience() string {
+	if x != nil {
+		return x.IapAudience
+	}
+	return ""
 }
 
 type GetSetupStatusRequest struct {
@@ -649,6 +665,8 @@ type UpdateDomainSettingsRequest struct {
 	CloudflareApiToken            string                 `protobuf:"bytes,13,opt,name=cloudflare_api_token,json=cloudflareApiToken,proto3" json:"cloudflare_api_token,omitempty"`
 	CloudflareZoneId              string                 `protobuf:"bytes,14,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
 	PasswordLoginDisabled         bool                   `protobuf:"varint,15,opt,name=password_login_disabled,json=passwordLoginDisabled,proto3" json:"password_login_disabled,omitempty"`
+	IapEnabled                    bool                   `protobuf:"varint,16,opt,name=iap_enabled,json=iapEnabled,proto3" json:"iap_enabled,omitempty"`
+	IapAudience                   string                 `protobuf:"bytes,17,opt,name=iap_audience,json=iapAudience,proto3" json:"iap_audience,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -774,6 +792,20 @@ func (x *UpdateDomainSettingsRequest) GetPasswordLoginDisabled() bool {
 	return false
 }
 
+func (x *UpdateDomainSettingsRequest) GetIapEnabled() bool {
+	if x != nil {
+		return x.IapEnabled
+	}
+	return false
+}
+
+func (x *UpdateDomainSettingsRequest) GetIapAudience() string {
+	if x != nil {
+		return x.IapAudience
+	}
+	return ""
+}
+
 type UpdateDomainSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -822,7 +854,7 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xe2\x05\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xa6\x06\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x123\n" +
@@ -838,7 +870,10 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x1aoidc_allowed_email_domains\x18\x0e \x03(\tR\x17oidcAllowedEmailDomains\x12S\n" +
 	"\x16server_exposure_method\x18\x0f \x01(\x0e2\x1d.arca.v1.ServerExposureMethodR\x14serverExposureMethod\x12#\n" +
 	"\rserver_domain\x18\x10 \x01(\tR\fserverDomain\x126\n" +
-	"\x17password_login_disabled\x18\x11 \x01(\bR\x15passwordLoginDisabledJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\a\x10\b\"\x17\n" +
+	"\x17password_login_disabled\x18\x11 \x01(\bR\x15passwordLoginDisabled\x12\x1f\n" +
+	"\viap_enabled\x18\x12 \x01(\bR\n" +
+	"iapEnabled\x12!\n" +
+	"\fiap_audience\x18\x13 \x01(\tR\viapAudienceJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\a\x10\b\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"C\n" +
@@ -865,7 +900,7 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	" \x01(\tR\fserverDomain\x12%\n" +
 	"\x0esetup_password\x18\v \x01(\tR\rsetupPasswordJ\x04\b\x03\x10\x04J\x04\b\x05\x10\x06J\x04\b\a\x10\b\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xc2\x05\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\x86\x06\n" +
 	"\x1bUpdateDomainSettingsRequest\x12'\n" +
 	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\x12G\n" +
 	" disable_internet_public_exposure\x18\x04 \x01(\bR\x1ddisableInternetPublicExposure\x12!\n" +
@@ -880,7 +915,10 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\rserver_domain\x18\f \x01(\tR\fserverDomain\x120\n" +
 	"\x14cloudflare_api_token\x18\r \x01(\tR\x12cloudflareApiToken\x12,\n" +
 	"\x12cloudflare_zone_id\x18\x0e \x01(\tR\x10cloudflareZoneId\x126\n" +
-	"\x17password_login_disabled\x18\x0f \x01(\bR\x15passwordLoginDisabledJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03\"L\n" +
+	"\x17password_login_disabled\x18\x0f \x01(\bR\x15passwordLoginDisabled\x12\x1f\n" +
+	"\viap_enabled\x18\x10 \x01(\bR\n" +
+	"iapEnabled\x12!\n" +
+	"\fiap_audience\x18\x11 \x01(\tR\viapAudienceJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03\"L\n" +
 	"\x1cUpdateDomainSettingsResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status*\x8f\x01\n" +
 	"\x14ServerExposureMethod\x12&\n" +
