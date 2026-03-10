@@ -141,6 +141,9 @@ type gceInsertInstanceRequest struct {
 			Value string `json:"value"`
 		} `json:"items"`
 	} `json:"metadata"`
+	Tags *struct {
+		Items []string `json:"items"`
+	} `json:"tags,omitempty"`
 }
 
 type gceAPIError struct {
@@ -505,6 +508,11 @@ func (r *GceRuntime) instanceSpec(instanceName, cloudInit string) *gceInsertInst
 		Value string `json:"value"`
 	}{
 		{Key: "user-data", Value: cloudInit},
+	}
+	req.Tags = &struct {
+		Items []string `json:"items"`
+	}{
+		Items: []string{"arca-machine"},
 	}
 	return req
 }
