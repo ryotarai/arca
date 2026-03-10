@@ -99,6 +99,8 @@ export function App() {
                   oidcClientSecretConfigured: false,
                   oidcAllowedEmailDomains: [],
                   passwordLoginDisabled: false,
+                  serverExposureMethod: 'cloudflare_tunnel',
+                  serverDomain: '',
                 })
               }
             />

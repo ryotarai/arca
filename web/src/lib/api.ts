@@ -610,7 +610,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         oidcClientId?: string
         oidcClientSecretConfigured?: boolean
         oidcAllowedEmailDomains?: string[]
-        serverExposureMethod?: number
+        serverExposureMethod?: number | string
         serverDomain?: string
         passwordLoginDisabled?: boolean
       }
@@ -627,7 +627,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       oidcClientId?: string
       oidcClientSecretConfigured?: boolean
       oidcAllowedEmailDomains?: string[]
-      serverExposureMethod?: number
+      serverExposureMethod?: number | string
       serverDomain?: string
       passwordLoginDisabled?: boolean
     }>(
@@ -648,10 +648,12 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       response.status?.oidcClientSecretConfigured ?? response.oidcClientSecretConfigured ?? false
     const oidcAllowedEmailDomains =
       response.status?.oidcAllowedEmailDomains ?? response.oidcAllowedEmailDomains ?? []
-    const serverExposureMethodNum =
+    const serverExposureMethodRaw =
       response.status?.serverExposureMethod ?? response.serverExposureMethod ?? 0
     const serverExposureMethod: ServerExposureMethod =
-      serverExposureMethodNum === 2 ? 'manual' : 'cloudflare_tunnel'
+      serverExposureMethodRaw === 2 || serverExposureMethodRaw === 'SERVER_EXPOSURE_METHOD_MANUAL'
+        ? 'manual'
+        : 'cloudflare_tunnel'
     const serverDomain = response.status?.serverDomain ?? response.serverDomain ?? ''
     const passwordLoginDisabled =
       response.status?.passwordLoginDisabled ?? response.passwordLoginDisabled ?? false
