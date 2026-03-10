@@ -14,7 +14,7 @@ COPY web/ ./web/
 RUN npm --prefix web run build
 
 # === Go builder stage ===
-FROM --platform=$BUILDPLATFORM golang:1.24-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS builder
 
 WORKDIR /src
 
