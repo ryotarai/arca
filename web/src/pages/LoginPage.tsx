@@ -12,9 +12,10 @@ type LoginPageProps = {
   user: User | null
   onLogin: (user: User) => void
   oidcEnabled: boolean
+  passwordLoginDisabled: boolean
 }
 
-export function LoginPage({ user, onLogin, oidcEnabled }: LoginPageProps) {
+export function LoginPage({ user, onLogin, oidcEnabled, passwordLoginDisabled }: LoginPageProps) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextPath = sanitizeNextPath(searchParams.get('next'))
@@ -94,45 +95,49 @@ export function LoginPage({ user, onLogin, oidcEnabled }: LoginPageProps) {
         <Card className="w-full max-w-md border-white/15 bg-white/[0.04] py-0 shadow-2xl shadow-black/35 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500">
           <CardHeader className="space-y-3 p-8 pb-4">
             <CardTitle className="text-2xl font-semibold text-white">Login</CardTitle>
-            <CardDescription className="text-slate-300">Use your provisioned email and password.</CardDescription>
+            <CardDescription className="text-slate-300">
+              {passwordLoginDisabled ? 'Sign in with your organization account.' : 'Use your provisioned email and password.'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 p-8 pt-2">
-            <form className="space-y-4" onSubmit={submit}>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                  placeholder="you@company.dev"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-200">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  minLength={8}
-                  required
-                  className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
-                  placeholder="minimum 8 characters"
-                />
-              </div>
-              <Button type="submit" className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100">
-                Login
-              </Button>
-            </form>
+            {!passwordLoginDisabled && (
+              <form className="space-y-4" onSubmit={submit}>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-slate-200">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="you@company.dev"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-slate-200">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    minLength={8}
+                    required
+                    className="h-10 border-white/20 bg-white/10 text-slate-100 placeholder:text-slate-400 focus-visible:ring-sky-400/45"
+                    placeholder="minimum 8 characters"
+                  />
+                </div>
+                <Button type="submit" className="h-10 w-full bg-white text-slate-900 hover:bg-slate-100">
+                  Login
+                </Button>
+              </form>
+            )}
             {oidcEnabled && (
               <Button
                 type="button"

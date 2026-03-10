@@ -612,6 +612,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         oidcAllowedEmailDomains?: string[]
         serverExposureMethod?: number
         serverDomain?: string
+        passwordLoginDisabled?: boolean
       }
       isConfigured?: boolean
       configured?: boolean
@@ -628,6 +629,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       oidcAllowedEmailDomains?: string[]
       serverExposureMethod?: number
       serverDomain?: string
+      passwordLoginDisabled?: boolean
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -651,6 +653,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const serverExposureMethod: ServerExposureMethod =
       serverExposureMethodNum === 2 ? 'manual' : 'cloudflare_tunnel'
     const serverDomain = response.status?.serverDomain ?? response.serverDomain ?? ''
+    const passwordLoginDisabled =
+      response.status?.passwordLoginDisabled ?? response.passwordLoginDisabled ?? false
 
     return {
       isConfigured,
@@ -664,6 +668,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       oidcClientID,
       oidcClientSecretConfigured,
       oidcAllowedEmailDomains,
+      passwordLoginDisabled,
       serverExposureMethod,
       serverDomain,
     }
@@ -681,6 +686,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         oidcClientID: '',
         oidcClientSecretConfigured: false,
         oidcAllowedEmailDomains: [],
+        passwordLoginDisabled: false,
         serverExposureMethod: 'cloudflare_tunnel',
         serverDomain: '',
       }
@@ -766,6 +772,7 @@ export async function updateDomainSettings(
   serverDomain: string = '',
   cloudflareApiToken: string = '',
   cloudflareZoneID: string = '',
+  passwordLoginDisabled: boolean = false,
 ): Promise<void> {
   const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
   const response = await callConnectJSONCandidates<{
@@ -786,6 +793,7 @@ export async function updateDomainSettings(
     serverDomain,
     cloudflareApiToken,
     cloudflareZoneId: cloudflareZoneID,
+    passwordLoginDisabled,
   })
   if (response.status?.completed !== true) {
     throw new Error(response.message ?? 'failed to update domain settings')

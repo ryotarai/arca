@@ -7,25 +7,32 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/ryotarai/arca/internal/auth"
+	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
 
 type authConnectService struct {
 	authenticator Authenticator
+	store         *db.Store
 }
 
-func newAuthConnectService(authenticator Authenticator) *authConnectService {
-	return &authConnectService{authenticator: authenticator}
+func newAuthConnectService(authenticator Authenticator, store *db.Store) *authConnectService {
+	return &authConnectService{authenticator: authenticator, store: store}
 }
 
 func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arcav1.LoginRequest]) (*connect.Response[arcav1.LoginResponse], error) {
 	if s.authenticator == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
+	}
+
+	if s.isPasswordLoginDisabled(ctx) {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("password login is disabled"))
 	}
 
 	userID, email, role, token, expiresAt, err := s.authenticator.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
@@ -229,6 +236,21 @@ func randomCookieToken(n int) (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func (s *authConnectService) isPasswordLoginDisabled(ctx context.Context) bool {
+	// Env var override: ARCA_ALLOW_PASSWORD_LOGIN=1 forces password login on (recovery)
+	if v := strings.ToLower(strings.TrimSpace(os.Getenv("ARCA_ALLOW_PASSWORD_LOGIN"))); v == "1" || v == "true" || v == "yes" {
+		return false
+	}
+	if s.store == nil {
+		return false
+	}
+	state, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		return false
+	}
+	return state.PasswordLoginDisabled
 }
 
 func isSecureRequest(header http.Header) bool {

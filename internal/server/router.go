@@ -72,7 +72,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	if deps.Authenticator != nil {
-		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator))
+		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator, deps.Store))
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {

@@ -39,6 +39,7 @@ type SetupState struct {
 	OIDCClientID                   string
 	OIDCClientSecret               string
 	OIDCAllowedEmailDomains        []string
+	PasswordLoginDisabled          bool
 	ServerExposureMethod           string
 	ServerDomain                   string
 	UpdatedAtUnix                  int64
@@ -111,6 +112,11 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		return SetupState{}, err
 	}
 	oidcAllowedDomains := parseCSVMetaValue(oidcAllowedDomainsRaw)
+	passwordLoginDisabledRaw, err := s.getMetaValue(ctx, setupMetaPasswordLoginDisabled)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	passwordLoginDisabled := parseBoolMetaValue(passwordLoginDisabledRaw)
 	serverExposureMethod, err := s.getMetaValue(ctx, setupMetaServerExposureMethod)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
@@ -149,6 +155,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			OIDCClientID:                   strings.TrimSpace(oidcClientID),
 			OIDCClientSecret:               oidcClientSecret,
 			OIDCAllowedEmailDomains:        oidcAllowedDomains,
+			PasswordLoginDisabled:          passwordLoginDisabled,
 			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
@@ -175,6 +182,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			OIDCClientID:                   strings.TrimSpace(oidcClientID),
 			OIDCClientSecret:               oidcClientSecret,
 			OIDCAllowedEmailDomains:        oidcAllowedDomains,
+			PasswordLoginDisabled:          passwordLoginDisabled,
 			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
@@ -249,6 +257,9 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaOIDCAllowedEmailDomains, csvMetaValue(state.OIDCAllowedEmailDomains)); err != nil {
 		return err
 	}
+	if err := s.upsertMetaValue(ctx, setupMetaPasswordLoginDisabled, boolMetaValue(state.PasswordLoginDisabled)); err != nil {
+		return err
+	}
 	if err := s.upsertMetaValue(ctx, setupMetaServerExposureMethod, NormalizeServerExposureMethod(state.ServerExposureMethod)); err != nil {
 		return err
 	}
@@ -279,6 +290,7 @@ const setupMetaOIDCIssuerURL = "setup.oidc.issuer_url"
 const setupMetaOIDCClientID = "setup.oidc.client_id"
 const setupMetaOIDCClientSecret = "setup.oidc.client_secret"
 const setupMetaOIDCAllowedEmailDomains = "setup.oidc.allowed_email_domains"
+const setupMetaPasswordLoginDisabled = "setup.password_login_disabled"
 const setupMetaServerExposureMethod = "setup.server_exposure_method"
 const setupMetaServerDomain = "setup.server_domain"
 

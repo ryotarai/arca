@@ -21,6 +21,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [disableInternetPublicExposure, setDisableInternetPublicExposure] = useState(setupStatus.internetPublicExposureDisabled)
   const [cloudflareApiToken, setCloudflareApiToken] = useState('')
   const [cloudflareZoneID, setCloudflareZoneID] = useState(setupStatus.cloudflareZoneID)
+  const [passwordLoginDisabled, setPasswordLoginDisabled] = useState(setupStatus.passwordLoginDisabled)
   const [oidcEnabled, setOidcEnabled] = useState(setupStatus.oidcEnabled)
   const [oidcIssuerURL, setOidcIssuerURL] = useState(setupStatus.oidcIssuerURL)
   const [oidcClientID, setOidcClientID] = useState(setupStatus.oidcClientID)
@@ -59,6 +60,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         serverDomain.trim(),
         cloudflareApiToken,
         cloudflareZoneID,
+        passwordLoginDisabled,
       )
       const normalizedOidcAllowedEmailDomains = oidcAllowedEmailDomainsText
         .split(/\r?\n/)
@@ -67,6 +69,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
       onSetupStatusChange({
         ...setupStatus,
         internetPublicExposureDisabled: disableInternetPublicExposure,
+        passwordLoginDisabled,
         oidcEnabled,
         oidcIssuerURL: oidcIssuerURL.trim(),
         oidcClientID: oidcClientID.trim(),
@@ -263,6 +266,22 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                     Leave empty to allow any verified email domain.
                   </p>
                 </div>
+                {oidcEnabled && (
+                  <div className="space-y-2 border-t border-border pt-4">
+                    <label className="flex items-center gap-2 text-sm text-foreground">
+                      <input
+                        id="settings-password-login-disabled"
+                        type="checkbox"
+                        checked={passwordLoginDisabled}
+                        onChange={(event) => setPasswordLoginDisabled(event.target.checked)}
+                      />
+                      Disable password login
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, users can only sign in via OIDC. Recovery override: set <code>ARCA_ALLOW_PASSWORD_LOGIN=1</code> env var on the server.
+                    </p>
+                  </div>
+                )}
               </div>
               <Button
                 type="submit"

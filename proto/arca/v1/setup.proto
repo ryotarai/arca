@@ -33,6 +33,7 @@ message SetupStatus {
   repeated string oidc_allowed_email_domains = 14;
   ServerExposureMethod server_exposure_method = 15;
   string server_domain = 16;
+  bool password_login_disabled = 17;
 }
 
 message GetSetupStatusRequest {}
@@ -89,6 +90,7 @@ message UpdateDomainSettingsRequest {
   string server_domain = 12;
   string cloudflare_api_token = 13;
   string cloudflare_zone_id = 14;
+  bool password_login_disabled = 15;
 }
 
 message UpdateDomainSettingsResponse {

@@ -347,6 +347,16 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("oidc issuer url, client id, and client secret are required when oidc is enabled"))
 		}
 	}
+	// Password login disabled: only allowed when OIDC is fully configured
+	current.PasswordLoginDisabled = req.Msg.GetPasswordLoginDisabled()
+	if current.PasswordLoginDisabled && !current.OIDCEnabled {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot disable password login without enabling oidc"))
+	}
+	if current.PasswordLoginDisabled && current.OIDCEnabled {
+		if current.OIDCIssuerURL == "" || current.OIDCClientID == "" || strings.TrimSpace(current.OIDCClientSecret) == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot disable password login without a fully configured oidc provider"))
+		}
+	}
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
@@ -376,6 +386,7 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		OidcAllowedEmailDomains:        append([]string(nil), state.OIDCAllowedEmailDomains...),
 		ServerExposureMethod:           serverExposureMethodToProto(state.ServerExposureMethod),
 		ServerDomain:                   state.ServerDomain,
+		PasswordLoginDisabled:          state.PasswordLoginDisabled,
 	}
 }
 

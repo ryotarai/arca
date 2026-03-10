@@ -32,6 +32,7 @@ export function App() {
     oidcClientID: '',
     oidcClientSecretConfigured: false,
     oidcAllowedEmailDomains: [],
+    passwordLoginDisabled: false,
   })
 
   useEffect(() => {
@@ -95,6 +96,7 @@ export function App() {
                   oidcClientID: '',
                   oidcClientSecretConfigured: false,
                   oidcAllowedEmailDomains: [],
+                  passwordLoginDisabled: false,
                 })
               }
             />
@@ -108,7 +110,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/setup" element={<Navigate to="/" replace />} />
-      <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} />} />
+      <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} passwordLoginDisabled={setupStatus.passwordLoginDisabled} />} />
       <Route path="/login/oidc/callback" element={<OidcCallbackPage user={user} onLogin={setUser} />} />
       <Route path="/users/setup" element={<UserSetupPage user={user} />} />
 
