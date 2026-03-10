@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -15,7 +16,8 @@ import (
 )
 
 type arcadBinaryHandler struct {
-	store *db.Store
+	store     *db.Store
+	binaryDir string
 
 	mu    sync.RWMutex
 	cache map[string][]byte // key: "goos/goarch"
@@ -27,9 +29,14 @@ var allowedPlatforms = map[string]bool{
 }
 
 func newArcadBinaryHandler(store *db.Store) *arcadBinaryHandler {
+	binaryDir := os.Getenv("ARCAD_BINARY_DIR")
+	if binaryDir == "" {
+		binaryDir = "/opt/arcad"
+	}
 	return &arcadBinaryHandler{
-		store: store,
-		cache: make(map[string][]byte),
+		store:     store,
+		binaryDir: binaryDir,
+		cache:     make(map[string][]byte),
 	}
 }
 
@@ -90,9 +97,14 @@ func (h *arcadBinaryHandler) getOrBuild(ctx context.Context, goos, goarch, key s
 		return data, nil
 	}
 
-	data, err := buildArcadBinary(ctx, goos, goarch)
+	// Try pre-built binary first, fall back to go build for local dev.
+	prebuiltPath := filepath.Join(h.binaryDir, fmt.Sprintf("arcad_%s_%s", goos, goarch))
+	data, err := os.ReadFile(prebuiltPath)
 	if err != nil {
-		return nil, err
+		data, err = buildArcadBinary(ctx, goos, goarch)
+		if err != nil {
+			return nil, err
+		}
 	}
 	h.cache[key] = data
 	return data, nil

@@ -25,7 +25,11 @@ import (
 func main() {
 	addr := os.Getenv("SERVER_ADDR")
 	if addr == "" {
-		addr = ":8080"
+		if port := os.Getenv("PORT"); port != "" {
+			addr = ":" + port
+		} else {
+			addr = ":8080"
+		}
 	}
 
 	dbConfig := db.ConfigFromEnv()

@@ -21,5 +21,8 @@ web/.playwright/
 *.db
 *.db.*
 
+# Worktrees
+.worktrees/
+
 # OS/editor noise
 .DS_Store
