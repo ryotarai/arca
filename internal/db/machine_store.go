@@ -149,6 +149,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 			ID:        machineTokenID,
 			MachineID: machineID,
 			TokenHash: machineTokenHash,
+			Token:     machineToken,
 			CreatedAt: nowUnix,
 		}); err != nil {
 			return Machine{}, err
@@ -200,6 +201,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 			ID:        machineTokenID,
 			MachineID: machineID,
 			TokenHash: machineTokenHash,
+			Token:     machineToken,
 			CreatedAt: nowUnix,
 		}); err != nil {
 			return Machine{}, err
@@ -492,6 +494,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			Ready:           row.Ready,
 			ReadyReportedAt: row.ReadyReportedAt,
 			ReadyReason:     row.ReadyReason,
+			MachineToken:    row.MachineToken,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByID(ctx, machineID)
@@ -511,6 +514,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			Ready:           row.Ready,
 			ReadyReportedAt: row.ReadyReportedAt,
 			ReadyReason:     row.ReadyReason,
+			MachineToken:    row.MachineToken,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)

@@ -298,9 +298,10 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
+LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
 WHERE m.id = sqlc.arg(machine_id)
 LIMIT 1;
 
@@ -511,8 +512,8 @@ WHERE role = 'admin'
 LIMIT 1;
 
 -- name: CreateMachineToken :exec
-INSERT INTO machine_tokens (id, machine_id, token_hash, created_at)
-VALUES (sqlc.arg(id), sqlc.arg(machine_id), sqlc.arg(token_hash), sqlc.arg(created_at));
+INSERT INTO machine_tokens (id, machine_id, token_hash, token, created_at)
+VALUES (sqlc.arg(id), sqlc.arg(machine_id), sqlc.arg(token_hash), sqlc.arg(token), sqlc.arg(created_at));
 
 -- name: GetMachineIDByActiveTokenHash :one
 SELECT machine_id

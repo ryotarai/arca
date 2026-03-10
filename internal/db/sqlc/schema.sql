@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS machine_tokens (
   id TEXT PRIMARY KEY,
   machine_id TEXT NOT NULL UNIQUE REFERENCES machines(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL UNIQUE,
+  token TEXT NOT NULL DEFAULT '',
   created_at BIGINT NOT NULL,
   revoked_at BIGINT
 );

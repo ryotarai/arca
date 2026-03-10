@@ -252,14 +252,15 @@ func (q *Queries) CreateMachineState(ctx context.Context, arg CreateMachineState
 }
 
 const createMachineToken = `-- name: CreateMachineToken :exec
-INSERT INTO machine_tokens (id, machine_id, token_hash, created_at)
-VALUES (?1, ?2, ?3, ?4)
+INSERT INTO machine_tokens (id, machine_id, token_hash, token, created_at)
+VALUES (?1, ?2, ?3, ?4, ?5)
 `
 
 type CreateMachineTokenParams struct {
 	ID        string
 	MachineID string
 	TokenHash string
+	Token     string
 	CreatedAt int64
 }
 
@@ -268,6 +269,7 @@ func (q *Queries) CreateMachineToken(ctx context.Context, arg CreateMachineToken
 		arg.ID,
 		arg.MachineID,
 		arg.TokenHash,
+		arg.Token,
 		arg.CreatedAt,
 	)
 	return err
@@ -580,9 +582,10 @@ func (q *Queries) GetActiveUserSetupTokenByUserID(ctx context.Context, arg GetAc
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
+LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
 WHERE m.id = ?1
 LIMIT 1
 `
@@ -600,6 +603,7 @@ type GetMachineByIDRow struct {
 	Ready           bool
 	ReadyReportedAt int64
 	ReadyReason     string
+	MachineToken    string
 }
 
 func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMachineByIDRow, error) {
@@ -618,6 +622,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.Ready,
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
+		&i.MachineToken,
 	)
 	return i, err
 }

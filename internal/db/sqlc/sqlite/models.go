@@ -114,6 +114,7 @@ type MachineToken struct {
 	ID        string
 	MachineID string
 	TokenHash string
+	Token     string
 	CreatedAt int64
 	RevokedAt sql.NullInt64
 }
