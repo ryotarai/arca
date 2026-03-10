@@ -56,6 +56,70 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - If tests fail, automatically attempt a fix and re-run tests without waiting for an extra user prompt.
 - When a failing test indicates a product bug, fix implementation first; only adjust tests when the expected behavior is incorrect or the test is flaky.
 
+## Manual Machine Testing via API
+
+When testing machine provisioning or runtime changes end-to-end, use the static API token to drive operations via curl instead of the browser UI.
+
+### Setup
+Start the server with `ARCA_API_TOKEN` set:
+```bash
+ARCA_API_TOKEN="dev-token-12345" make run
+```
+
+### API operations
+All ConnectRPC endpoints accept `Authorization: Bearer <token>` header.
+
+```bash
+TOKEN="dev-token-12345"
+
+# List machines
+curl -s -X POST http://localhost:8080/arca.v1.MachineService/ListMachines \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" -d '{}'
+
+# Create a machine (runtime_id from runtimes table)
+curl -s -X POST http://localhost:8080/arca.v1.MachineService/CreateMachine \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"test1","runtime_id":"RUNTIME_ID_HERE"}'
+
+# Get machine status
+curl -s -X POST http://localhost:8080/arca.v1.MachineService/GetMachine \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"machine_id":"MACHINE_ID_HERE"}'
+
+# Delete a machine
+curl -s -X POST http://localhost:8080/arca.v1.MachineService/DeleteMachine \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"machine_id":"MACHINE_ID_HERE"}'
+```
+
+### Monitoring a machine
+```bash
+# Check LXD containers
+sudo lxc list
+
+# View cloud-init progress
+sudo lxc exec arca-machine-XXXX -- tail -20 /var/log/cloud-init-output.log
+
+# View bootstrap service logs (arcad download, service startup)
+sudo lxc exec arca-machine-XXXX -- journalctl -u arca-bootstrap.service --no-pager
+
+# View arcad daemon logs
+sudo lxc exec arca-machine-XXXX -- journalctl -u arca-arcad.service --no-pager
+
+# Check arcad env vars (control plane URL, machine token, etc.)
+sudo lxc exec arca-machine-XXXX -- cat /etc/arca/arcad.env
+
+# Inspect DB state directly
+sqlite3 arca.db "SELECT id, name, status, desired_status FROM machines m JOIN machine_states ms ON ms.machine_id = m.id;"
+```
+
+### LXD networking
+LXD containers access the host server via the bridge IP `10.200.0.1`. The runtime config `serverApiUrl` must be set to `http://10.200.0.1:8080` for containers to reach the arca server (set via the runtimes DB table or the UI runtime settings page).
+
 ## Generated Files & Regeneration
 Do not manually edit generated outputs:
 - `internal/db/sqlc/postgresql/*.go`
