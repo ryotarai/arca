@@ -32,6 +32,8 @@ export function App() {
     oidcClientID: '',
     oidcClientSecretConfigured: false,
     oidcAllowedEmailDomains: [],
+    serverExposureMethod: 'cloudflare_tunnel',
+    serverDomain: '',
   })
 
   useEffect(() => {

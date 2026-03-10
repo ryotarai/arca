@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,6 +29,17 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setServerExposureMethod(setupStatus.serverExposureMethod)
+    setServerDomain(setupStatus.serverDomain)
+    setDisableInternetPublicExposure(setupStatus.internetPublicExposureDisabled)
+    setCloudflareZoneID(setupStatus.cloudflareZoneID)
+    setOidcEnabled(setupStatus.oidcEnabled)
+    setOidcIssuerURL(setupStatus.oidcIssuerURL)
+    setOidcClientID(setupStatus.oidcClientID)
+    setOidcAllowedEmailDomainsText(setupStatus.oidcAllowedEmailDomains.join('\n'))
+  }, [setupStatus])
 
   if (user == null) {
     return <Navigate to="/login" replace />
