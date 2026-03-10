@@ -27,6 +27,33 @@ func NewMachineProxyHandler(store *db.Store, ipCache *machine.MachineIPCache) *M
 	return &MachineProxyHandler{store: store, ipCache: ipCache}
 }
 
+// IsMachineProxyRequest returns true if the request's Host header matches a
+// machine exposure that uses proxy-via-server mode. This is a lightweight
+// check (DB lookups only, no proxying) used by the timeout middleware to
+// skip the deadline for long-lived WebSocket connections.
+func (h *MachineProxyHandler) IsMachineProxyRequest(r *http.Request) bool {
+	if h == nil || h.store == nil {
+		return false
+	}
+	hostname := extractHostname(r.Host)
+	if hostname == "" {
+		return false
+	}
+	exposure, err := h.store.GetMachineExposureByHostname(r.Context(), hostname)
+	if err != nil {
+		return false
+	}
+	m, err := h.store.GetMachineByID(r.Context(), exposure.MachineID)
+	if err != nil {
+		return false
+	}
+	runtimeCatalog, err := h.store.GetRuntimeByID(r.Context(), m.RuntimeID)
+	if err != nil {
+		return false
+	}
+	return db.GetRuntimeExposureMethod(runtimeCatalog.ConfigJSON) == db.MachineExposureMethodProxyViaServer
+}
+
 // TryServeHTTP attempts to handle the request as a machine proxy request.
 // Returns true if the request was handled (the Host matched a machine exposure).
 func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Request) bool {
