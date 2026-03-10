@@ -13,3 +13,4 @@ internal/server/ui/dist/
 
 .worktrees/
 .claude/*.local.json
+*.local.md
