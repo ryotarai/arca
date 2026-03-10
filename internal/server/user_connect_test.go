@@ -15,7 +15,7 @@ import (
 func newUserServiceForTest(t *testing.T) (*db.Store, *auth.Service) {
 	t.Helper()
 
-	dsn := "file:" + filepath.Join(t.TempDir(), "server-user-test.db") + "?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)"
+	dsn := "file:" + filepath.Join(t.TempDir(), "server-user-test.db") + "?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)"
 	dbConn, err := db.Open(db.Config{Driver: db.DriverSQLite, DSN: dsn})
 	if err != nil {
 		t.Fatalf("open db: %v", err)

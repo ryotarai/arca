@@ -241,7 +241,7 @@ func parityBackends(t *testing.T) []parityBackend {
 		{
 			name:   "sqlite",
 			driver: DriverSQLite,
-			dsn:    fmt.Sprintf("file:%s/parity.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)", t.TempDir()),
+			dsn:    fmt.Sprintf("file:%s/parity.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)", t.TempDir()),
 		},
 	}
 

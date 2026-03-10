@@ -3,7 +3,7 @@ package db
 import "os"
 
 const (
-	defaultSQLiteDSN = "file:arca.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)"
+	defaultSQLiteDSN = "file:arca.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)"
 )
 
 type Config struct {

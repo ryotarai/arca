@@ -24,7 +24,7 @@ export default defineConfig({
     env: {
       ...process.env,
       SERVER_ADDR: '127.0.0.1:18080',
-      DB_DSN: 'file:/tmp/arca-e2e.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)',
+      DB_DSN: 'file:/tmp/arca-e2e.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)',
       ARCA_SKIP_SETUP: '1',
       ARCA_SKIP_CLOUDFLARE_VALIDATION: shouldSkipCloudflareValidation,
     },
