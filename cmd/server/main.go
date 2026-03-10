@@ -70,10 +70,11 @@ func main() {
 		}
 	}
 	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{})
-	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10))
+	ipCache := machine.NewMachineIPCache(runtime, store, 5*time.Minute)
+	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache)
 	go machineWorker.Run(ctx)
 
-	machineProxy := server.NewMachineProxyHandler(store, authService)
+	machineProxy := server.NewMachineProxyHandler(store, authService, ipCache)
 	httpServer := &http.Server{
 		Addr:              addr,
 		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy}),

@@ -45,6 +45,7 @@ type Worker struct {
 	store        *db.Store
 	runtime      Runtime
 	cfClient     *cloudflare.Client
+	ipCache      *MachineIPCache
 	workerID     string
 	pollInterval time.Duration
 	leaseTTL     time.Duration
@@ -61,11 +62,12 @@ const (
 	readyStaleAfter          = 30 * time.Second
 )
 
-func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string) *Worker {
+func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string, ipCache *MachineIPCache) *Worker {
 	return &Worker{
 		store:        store,
 		runtime:      runtime,
 		cfClient:     cfClient,
+		ipCache:      ipCache,
 		workerID:     workerID,
 		pollInterval: 2 * time.Second,
 		leaseTTL:     30 * time.Second,
@@ -311,15 +313,9 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		return err
 	}
 
-	// Collect machine IPs once runtime is started
-	if info, infoErr := w.runtime.GetMachineInfo(ctx, machine); infoErr != nil {
-		slog.Warn("machine info collection failed", "machine_id", machine.ID, "error", infoErr)
-	} else if info != nil {
-		if err := w.store.UpdateMachineIPsByID(ctx, machine.ID, info.PrivateIP, info.PublicIP); err != nil {
-			slog.Warn("machine ip update failed", "machine_id", machine.ID, "error", err)
-		} else {
-			w.emitEvent(ctx, machine.ID, jobID, "info", "ips_updated", fmt.Sprintf("private_ip=%s public_ip=%s", info.PrivateIP, info.PublicIP))
-		}
+	// Invalidate IP cache so next proxy request fetches fresh IPs
+	if w.ipCache != nil {
+		w.ipCache.Invalidate(machine.ID)
 	}
 
 	w.emitEvent(ctx, machine.ID, jobID, "info", "waiting_ready", "waiting for machine readiness")
@@ -629,6 +625,10 @@ func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machin
 }
 
 func (w *Worker) handleStop(ctx context.Context, machine db.Machine, jobID string) error {
+	if w.ipCache != nil {
+		w.ipCache.Invalidate(machine.ID)
+	}
+
 	if machine.DesiredStatus == db.MachineDesiredDeleted {
 		return w.handleDelete(ctx, machine, jobID)
 	}
@@ -666,6 +666,10 @@ func (w *Worker) handleStop(ctx context.Context, machine db.Machine, jobID strin
 }
 
 func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID string) error {
+	if w.ipCache != nil {
+		w.ipCache.Invalidate(machine.ID)
+	}
+
 	if err := w.store.UpdateMachineRuntimeStateByMachineID(
 		ctx,
 		machine.ID,

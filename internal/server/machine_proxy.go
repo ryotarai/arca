@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/machine"
 )
 
 const proxySessionCookieName = "arca_proxy_session"
@@ -26,10 +27,11 @@ const proxySessionTTL = 8 * time.Hour
 type MachineProxyHandler struct {
 	store         *db.Store
 	authenticator Authenticator
+	ipCache       *machine.MachineIPCache
 }
 
-func NewMachineProxyHandler(store *db.Store, authenticator Authenticator) *MachineProxyHandler {
-	return &MachineProxyHandler{store: store, authenticator: authenticator}
+func NewMachineProxyHandler(store *db.Store, authenticator Authenticator, ipCache *machine.MachineIPCache) *MachineProxyHandler {
+	return &MachineProxyHandler{store: store, authenticator: authenticator, ipCache: ipCache}
 }
 
 // TryServeHTTP attempts to handle the request as a machine proxy request.
@@ -54,16 +56,16 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Check if this machine uses proxy-via-server exposure
-	machine, err := h.store.GetMachineByID(r.Context(), exposure.MachineID)
+	m, err := h.store.GetMachineByID(r.Context(), exposure.MachineID)
 	if err != nil {
 		log.Printf("machine proxy: lookup machine %q failed: %v", exposure.MachineID, err)
 		http.Error(w, "machine not found", http.StatusBadGateway)
 		return true
 	}
 
-	runtimeCatalog, err := h.store.GetRuntimeByID(r.Context(), machine.RuntimeID)
+	runtimeCatalog, err := h.store.GetRuntimeByID(r.Context(), m.RuntimeID)
 	if err != nil {
-		log.Printf("machine proxy: lookup runtime %q failed: %v", machine.RuntimeID, err)
+		log.Printf("machine proxy: lookup runtime %q failed: %v", m.RuntimeID, err)
 		http.Error(w, "runtime not found", http.StatusBadGateway)
 		return true
 	}
@@ -89,9 +91,17 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 		return true
 	}
 
-	// Resolve the upstream URL for the machine
+	// Resolve the upstream URL for the machine via IP cache
+	var machineInfo *machine.RuntimeMachineInfo
+	if h.ipCache != nil {
+		var infoErr error
+		machineInfo, infoErr = h.ipCache.Get(r.Context(), m)
+		if infoErr != nil {
+			log.Printf("machine proxy: ip cache lookup for %q failed: %v", m.ID, infoErr)
+		}
+	}
 	connectivity := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON).Connectivity
-	upstreamURL := resolveUpstreamURL(machine, exposure, connectivity)
+	upstreamURL := resolveUpstreamURL(machineInfo, m, exposure, connectivity)
 	if upstreamURL == "" {
 		http.Error(w, "machine upstream unavailable", http.StatusBadGateway)
 		return true
@@ -220,7 +230,7 @@ func (h *MachineProxyHandler) authenticateRequest(r *http.Request) string {
 	return userID
 }
 
-func resolveUpstreamURL(machine db.Machine, exposure db.MachineExposure, connectivity string) string {
+func resolveUpstreamURL(info *machine.RuntimeMachineInfo, m db.Machine, exposure db.MachineExposure, connectivity string) string {
 	service := strings.TrimSpace(exposure.Service)
 	if service == "" {
 		service = "http://localhost:11030"
@@ -237,15 +247,17 @@ func resolveUpstreamURL(machine db.Machine, exposure db.MachineExposure, connect
 
 	// Determine the target IP based on the runtime's connectivity setting.
 	var ip string
-	conn := strings.ToLower(strings.TrimSpace(connectivity))
-	switch {
-	case conn == "public_ip" || strings.HasSuffix(conn, "_public_ip"):
-		ip = machine.PublicIP
-		if ip == "" {
-			ip = machine.PrivateIP
+	if info != nil {
+		conn := strings.ToLower(strings.TrimSpace(connectivity))
+		switch {
+		case conn == "public_ip" || strings.HasSuffix(conn, "_public_ip"):
+			ip = info.PublicIP
+			if ip == "" {
+				ip = info.PrivateIP
+			}
+		default:
+			ip = info.PrivateIP
 		}
-	default:
-		ip = machine.PrivateIP
 	}
 
 	if ip != "" {
@@ -253,9 +265,9 @@ func resolveUpstreamURL(machine db.Machine, exposure db.MachineExposure, connect
 	}
 
 	// Legacy fallback: check if endpoint is an IP address.
-	if machine.Endpoint != "" {
-		if parsed := net.ParseIP(machine.Endpoint); parsed != nil {
-			return "http://" + net.JoinHostPort(machine.Endpoint, port)
+	if m.Endpoint != "" {
+		if parsed := net.ParseIP(m.Endpoint); parsed != nil {
+			return "http://" + net.JoinHostPort(m.Endpoint, port)
 		}
 	}
 
