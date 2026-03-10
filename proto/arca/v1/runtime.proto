@@ -68,6 +68,7 @@ message RuntimeConfig {
     LxdRuntimeConfig lxd = 4;
   }
   MachineExposureConfig exposure = 3;
+  string server_api_url = 5;
 }
 
 message Runtime {

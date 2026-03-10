@@ -269,6 +269,12 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	if err != nil {
 		return err
 	}
+	// Override control plane URL if the runtime has a server_api_url configured
+	if runtimeCatalog, rtErr := w.store.GetRuntimeByID(ctx, machine.RuntimeID); rtErr == nil {
+		if override := db.GetRuntimeServerAPIURL(runtimeCatalog.ConfigJSON); override != "" {
+			controlPlaneURL = override
+		}
+	}
 	ownerUserID, err := w.store.GetMachineOwnerUserID(ctx, machine.ID)
 	if err != nil {
 		return fmt.Errorf("load machine owner: %w", err)

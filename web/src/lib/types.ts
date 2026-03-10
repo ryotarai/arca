@@ -88,6 +88,7 @@ export type RuntimeCatalogItem = {
   type: RuntimeCatalogType
   config: RuntimeCatalogConfig
   exposure: MachineExposureConfig
+  serverApiUrl: string
   createdAt: number
   updatedAt: number
 }

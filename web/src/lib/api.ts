@@ -416,6 +416,7 @@ function toRuntimeCatalogItem(input: {
       cloudflareZoneId?: string
       connectivity?: number
     }
+    serverApiUrl?: string
   }
   createdAt: bigint
   updatedAt: bigint
@@ -469,12 +470,13 @@ function toRuntimeCatalogItem(input: {
     type: runtimeType,
     config,
     exposure,
+    serverApiUrl: input.config?.serverApiUrl ?? '',
     createdAt: Number(input.createdAt),
     updatedAt: Number(input.updatedAt),
   }
 }
 
-function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig, exposure?: MachineExposureConfig) {
+function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig, exposure?: MachineExposureConfig, serverApiUrl?: string) {
   let provider
   if (type === 'gce') {
     if (config.type !== 'gce') {
@@ -529,6 +531,9 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
       connectivity: exposure.connectivity === 'private_ip' ? 1 : exposure.connectivity === 'public_ip' ? 2 : 0,
     }
   }
+  if (serverApiUrl) {
+    result.serverApiUrl = serverApiUrl
+  }
   return result
 }
 
@@ -542,12 +547,13 @@ export async function createRuntime(
   type: RuntimeCatalogType,
   config: RuntimeCatalogConfig,
   exposure?: MachineExposureConfig,
+  serverApiUrl?: string,
 ): Promise<RuntimeCatalogItem> {
   const response = await runtimeClient.createRuntime(
     create(CreateRuntimeRequestSchema, {
       name,
       type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config, exposure),
+      config: runtimeConfigPayload(type, config, exposure, serverApiUrl),
     }),
   )
   if (response.runtime == null) {
@@ -562,13 +568,14 @@ export async function updateRuntime(
   type: RuntimeCatalogType,
   config: RuntimeCatalogConfig,
   exposure?: MachineExposureConfig,
+  serverApiUrl?: string,
 ): Promise<RuntimeCatalogItem> {
   const response = await runtimeClient.updateRuntime(
     create(UpdateRuntimeRequestSchema, {
       runtimeId: runtimeID,
       name,
       type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config, exposure),
+      config: runtimeConfigPayload(type, config, exposure, serverApiUrl),
     }),
   )
   if (response.runtime == null) {
