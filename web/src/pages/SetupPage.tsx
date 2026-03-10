@@ -122,7 +122,7 @@ export function SetupPage({
         <header className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur">
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Arca setup</p>
           <h1 className="mt-2 text-2xl font-semibold text-white">Complete initial configuration</h1>
-          <p className="mt-1 text-sm text-slate-300">Admin account and Cloudflare network settings.</p>
+          <p className="mt-1 text-sm text-slate-300">Admin account and server exposure settings.</p>
           <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
             <div className="h-full rounded-full bg-sky-300 transition-all" style={{ width: `${progress}%` }} />
           </div>
