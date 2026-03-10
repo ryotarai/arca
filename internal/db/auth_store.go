@@ -431,6 +431,25 @@ func (s *Store) RevokeSessionByTokenHash(ctx context.Context, tokenHash string) 
 	}
 }
 
+func (s *Store) GetFirstAdmin(ctx context.Context) (AuthUser, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetFirstAdminUser(ctx)
+		if err != nil {
+			return AuthUser{}, err
+		}
+		return AuthUser{ID: row.ID, Email: row.Email, Role: row.Role}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetFirstAdminUser(ctx)
+		if err != nil {
+			return AuthUser{}, err
+		}
+		return AuthUser{ID: row.ID, Email: row.Email, Role: row.Role}, nil
+	default:
+		return AuthUser{}, unsupportedDriverError(s.driver)
+	}
+}
+
 func toAuthUser(user sqlitesqlc.User) AuthUser {
 	return AuthUser{
 		ID:                    user.ID,

@@ -511,6 +511,12 @@ FROM users
 WHERE role = 'admin'
 LIMIT 1;
 
+-- name: GetFirstAdminUser :one
+SELECT id, email, role
+FROM users
+WHERE role = 'admin'
+LIMIT 1;
+
 -- name: CreateMachineToken :exec
 INSERT INTO machine_tokens (id, machine_id, token_hash, token, created_at)
 VALUES (sqlc.arg(id), sqlc.arg(machine_id), sqlc.arg(token_hash), sqlc.arg(token), sqlc.arg(created_at));

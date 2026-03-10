@@ -37,6 +37,7 @@ type Service struct {
 	sessionTTL        time.Duration
 	userSetupTokenTTL time.Duration
 	now               func() time.Time
+	staticAPIToken    string
 }
 
 func NewService(store *db.Store) *Service {
@@ -46,6 +47,13 @@ func NewService(store *db.Store) *Service {
 		userSetupTokenTTL: 24 * time.Hour,
 		now:               time.Now,
 	}
+}
+
+// SetStaticAPIToken configures a static API token for non-browser clients.
+// When set, requests with this token in the Authorization header are
+// authenticated as the first admin user.
+func (s *Service) SetStaticAPIToken(token string) {
+	s.staticAPIToken = token
 }
 
 func (s *Service) Register(ctx context.Context, email, password string) (string, string, error) {
@@ -260,6 +268,10 @@ func (s *Service) Authenticate(ctx context.Context, sessionToken string) (string
 	if sessionToken == "" {
 		return "", "", "", ErrUnauthenticated
 	}
+	// Check static API token first (dev/scripting use).
+	if s.staticAPIToken != "" && subtle.ConstantTimeCompare([]byte(sessionToken), []byte(s.staticAPIToken)) == 1 {
+		return s.authenticateAsFirstAdmin(ctx)
+	}
 	tokenHash := hashSessionToken(sessionToken)
 	user, err := s.store.GetUserByActiveSessionTokenHash(ctx, tokenHash, s.now().Unix())
 	if err != nil {
@@ -269,6 +281,14 @@ func (s *Service) Authenticate(ctx context.Context, sessionToken string) (string
 		return "", "", "", err
 	}
 	return user.ID, user.Email, user.Role, nil
+}
+
+func (s *Service) authenticateAsFirstAdmin(ctx context.Context) (string, string, string, error) {
+	admin, err := s.store.GetFirstAdmin(ctx)
+	if err != nil {
+		return "", "", "", fmt.Errorf("static API token: %w", ErrUnauthenticated)
+	}
+	return admin.ID, admin.Email, admin.Role, nil
 }
 
 func (s *Service) Logout(ctx context.Context, sessionToken string) error {

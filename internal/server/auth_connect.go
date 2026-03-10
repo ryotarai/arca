@@ -139,10 +139,26 @@ func (s *authConnectService) Me(ctx context.Context, req *connect.Request[arcav1
 func sessionTokenFromHeader(header http.Header) (string, error) {
 	req := &http.Request{Header: header}
 	cookie, err := req.Cookie(sessionCookieName)
-	if err != nil {
-		return "", err
+	if err == nil {
+		return cookie.Value, nil
 	}
-	return cookie.Value, nil
+	// Fall back to Authorization: Bearer <token> for non-browser clients.
+	if token := bearerTokenFromHeader(header); token != "" {
+		return token, nil
+	}
+	return "", err
+}
+
+func bearerTokenFromHeader(header http.Header) string {
+	auth := strings.TrimSpace(header.Get("Authorization"))
+	if auth == "" {
+		return ""
+	}
+	parts := strings.SplitN(auth, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return ""
+	}
+	return strings.TrimSpace(parts[1])
 }
 
 func oidcStateFromHeader(header http.Header) (string, error) {

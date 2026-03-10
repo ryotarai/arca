@@ -50,6 +50,10 @@ func main() {
 		log.Fatalf("setup password init failed: %v", err)
 	}
 	authService := auth.NewService(store)
+	if apiToken := os.Getenv("ARCA_API_TOKEN"); apiToken != "" {
+		authService.SetStaticAPIToken(apiToken)
+		log.Printf("static API token enabled")
+	}
 	cfClient := cloudflare.NewClient(http.DefaultClient)
 	consoleTunnel := server.NewConsoleTunnelManager(ctx, cfClient, consoleOriginURL(addr))
 	if setupState, setupErr := store.GetSetupState(ctx); setupErr != nil {

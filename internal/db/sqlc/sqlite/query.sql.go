@@ -581,6 +581,26 @@ func (q *Queries) GetActiveUserSetupTokenByUserID(ctx context.Context, arg GetAc
 	return i, err
 }
 
+const getFirstAdminUser = `-- name: GetFirstAdminUser :one
+SELECT id, email, role
+FROM users
+WHERE role = 'admin'
+LIMIT 1
+`
+
+type GetFirstAdminUserRow struct {
+	ID    string
+	Email string
+	Role  string
+}
+
+func (q *Queries) GetFirstAdminUser(ctx context.Context) (GetFirstAdminUserRow, error) {
+	row := q.db.QueryRowContext(ctx, getFirstAdminUser)
+	var i GetFirstAdminUserRow
+	err := row.Scan(&i.ID, &i.Email, &i.Role)
+	return i, err
+}
+
 const getMachineByID = `-- name: GetMachineByID :one
 SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
 FROM machines m
