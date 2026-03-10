@@ -476,6 +476,7 @@ type RuntimeConfig struct {
 	//	*RuntimeConfig_Lxd
 	Provider      isRuntimeConfig_Provider `protobuf_oneof:"provider"`
 	Exposure      *MachineExposureConfig   `protobuf:"bytes,3,opt,name=exposure,proto3" json:"exposure,omitempty"`
+	ServerApiUrl  string                   `protobuf:"bytes,5,opt,name=server_api_url,json=serverApiUrl,proto3" json:"server_api_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -549,6 +550,13 @@ func (x *RuntimeConfig) GetExposure() *MachineExposureConfig {
 		return x.Exposure
 	}
 	return nil
+}
+
+func (x *RuntimeConfig) GetServerApiUrl() string {
+	if x != nil {
+		return x.ServerApiUrl
+	}
+	return ""
 }
 
 type isRuntimeConfig_Provider interface {
@@ -1063,12 +1071,13 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\x0estartup_script\x18\x06 \x01(\tR\rstartupScript\"U\n" +
 	"\x10LxdRuntimeConfig\x12\x1a\n" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12%\n" +
-	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\xf0\x01\n" +
+	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\x96\x02\n" +
 	"\rRuntimeConfig\x129\n" +
 	"\alibvirt\x18\x01 \x01(\v2\x1d.arca.v1.LibvirtRuntimeConfigH\x00R\alibvirt\x12-\n" +
 	"\x03gce\x18\x02 \x01(\v2\x19.arca.v1.GceRuntimeConfigH\x00R\x03gce\x12-\n" +
 	"\x03lxd\x18\x04 \x01(\v2\x19.arca.v1.LxdRuntimeConfigH\x00R\x03lxd\x12:\n" +
-	"\bexposure\x18\x03 \x01(\v2\x1e.arca.v1.MachineExposureConfigR\bexposureB\n" +
+	"\bexposure\x18\x03 \x01(\v2\x1e.arca.v1.MachineExposureConfigR\bexposure\x12$\n" +
+	"\x0eserver_api_url\x18\x05 \x01(\tR\fserverApiUrlB\n" +
 	"\n" +
 	"\bprovider\"\xc5\x01\n" +
 	"\aRuntime\x12\x0e\n" +

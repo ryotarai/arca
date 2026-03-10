@@ -47,3 +47,15 @@ func GetRuntimeExposureConfig(configJSON string) RuntimeExposureConfig {
 	}
 	return wrapper.Exposure
 }
+
+// GetRuntimeServerAPIURL extracts the server API URL override from a runtime
+// config JSON string. Returns empty string if not set.
+func GetRuntimeServerAPIURL(configJSON string) string {
+	var wrapper struct {
+		ServerApiUrl string `json:"serverApiUrl,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(configJSON), &wrapper); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(wrapper.ServerApiUrl)
+}

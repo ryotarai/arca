@@ -36,6 +36,7 @@ type RuntimeFormState = {
   exposureCloudflareAccountId: string
   exposureCloudflareZoneId: string
   exposureConnectivity: 'private_ip' | 'public_ip' | ''
+  serverApiUrl: string
 }
 
 const runtimeNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
@@ -65,6 +66,7 @@ function emptyRuntimeForm(): RuntimeFormState {
     exposureCloudflareAccountId: '',
     exposureCloudflareZoneId: '',
     exposureConnectivity: '',
+    serverApiUrl: '',
   }
 }
 
@@ -171,6 +173,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
     exposureCloudflareAccountId: runtime.exposure.cloudflareAccountId,
     exposureCloudflareZoneId: runtime.exposure.cloudflareZoneId,
     exposureConnectivity: runtime.exposure.connectivity,
+    serverApiUrl: runtime.serverApiUrl,
   } as const
   if (runtime.type === 'gce') {
     return {
@@ -270,11 +273,12 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
       const runtimeName = form.name.trim().toLowerCase()
       const config = toConfig(form)
       const exposure = toExposureConfig(form)
+      const serverApiUrl = form.serverApiUrl.trim() || undefined
       if (form.id === '') {
-        await createRuntime(runtimeName, form.type, config, exposure)
+        await createRuntime(runtimeName, form.type, config, exposure, serverApiUrl)
         setSuccess('Runtime created.')
       } else {
-        await updateRuntime(form.id, runtimeName, form.type, config, exposure)
+        await updateRuntime(form.id, runtimeName, form.type, config, exposure, serverApiUrl)
         setSuccess('Runtime updated.')
       }
       resetForm()
@@ -507,6 +511,18 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                     </div>
                   </>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="runtime-server-api-url">Server API URL</Label>
+                <Input
+                  id="runtime-server-api-url"
+                  value={form.serverApiUrl}
+                  onChange={(event) => setForm((current) => ({ ...current, serverApiUrl: event.target.value }))}
+                  className="h-10"
+                  placeholder="https://<server domain>"
+                />
+                <p className="text-xs text-muted-foreground">Override the URL machines use to reach the API server. Leave empty to use the default (https:// + server domain).</p>
               </div>
 
               <div className="flex items-center gap-3">
