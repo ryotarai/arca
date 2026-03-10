@@ -6,8 +6,10 @@ web/playwright-report/
 web/test-results/
 web/.playwright/
 bin/
-hayai.db
-arca.db
+*.db
+*.db-shm
+*.db-wal
 internal/server/ui/dist/
 
 .worktrees/
+.claude/*.local.json
