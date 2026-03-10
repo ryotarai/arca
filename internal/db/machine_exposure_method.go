@@ -48,6 +48,12 @@ func GetRuntimeExposureConfig(configJSON string) RuntimeExposureConfig {
 	return wrapper.Exposure
 }
 
+// GetRuntimeConnectivity extracts the connectivity setting from a runtime
+// config JSON string. Returns empty string if not set.
+func GetRuntimeConnectivity(configJSON string) string {
+	return strings.TrimSpace(GetRuntimeExposureConfig(configJSON).Connectivity)
+}
+
 // GetRuntimeServerAPIURL extracts the server API URL override from a runtime
 // config JSON string. Returns empty string if not set.
 func GetRuntimeServerAPIURL(configJSON string) string {

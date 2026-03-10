@@ -41,6 +41,8 @@ type Machine struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	PrivateIP       string
+	PublicIP        string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -261,6 +263,8 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 				SetupVersion:    strings.TrimSpace(row.SetupVersion),
 				Endpoint:        strings.TrimSpace(row.Endpoint),
+				PrivateIP:       strings.TrimSpace(row.PrivateIp),
+				PublicIP:        strings.TrimSpace(row.PublicIp),
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -284,6 +288,8 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 				SetupVersion:    strings.TrimSpace(row.SetupVersion),
 				Endpoint:        strings.TrimSpace(row.Endpoint),
+				PrivateIP:       strings.TrimSpace(row.PrivateIp),
+				PublicIP:        strings.TrimSpace(row.PublicIp),
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -487,6 +493,8 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			PrivateIP:       strings.TrimSpace(row.PrivateIp),
+			PublicIP:        strings.TrimSpace(row.PublicIp),
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -507,6 +515,8 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			PrivateIP:       strings.TrimSpace(row.PrivateIp),
+			PublicIP:        strings.TrimSpace(row.PublicIp),
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -537,6 +547,8 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			PrivateIP:       strings.TrimSpace(row.PrivateIp),
+			PublicIP:        strings.TrimSpace(row.PublicIp),
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -559,6 +571,8 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			PrivateIP:       strings.TrimSpace(row.PrivateIp),
+			PublicIP:        strings.TrimSpace(row.PublicIp),
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -627,6 +641,27 @@ func (s *Store) UpdateMachineEndpointByID(ctx context.Context, machineID, endpoi
 	}
 }
 
+func (s *Store) UpdateMachineIPsByID(ctx context.Context, machineID, privateIP, publicIP string) error {
+	privateIP = strings.TrimSpace(privateIP)
+	publicIP = strings.TrimSpace(publicIP)
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateMachineIPsByID(ctx, sqlitesqlc.UpdateMachineIPsByIDParams{
+			PrivateIp: privateIP,
+			PublicIp:  publicIP,
+			MachineID: machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateMachineIPsByID(ctx, postgresqlsqlc.UpdateMachineIPsByIDParams{
+			PrivateIp: privateIP,
+			PublicIp:  publicIP,
+			MachineID: machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) RecoverExpiredMachineJobs(ctx context.Context, nowUnix int64) error {
 	switch s.driver {
 	case DriverSQLite:
@@ -662,6 +697,8 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				ID:              row.ID,
 				Name:            row.Name,
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				PrivateIP:       strings.TrimSpace(row.PrivateIp),
+				PublicIP:        strings.TrimSpace(row.PublicIp),
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -686,6 +723,8 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				ID:              row.ID,
 				Name:            row.Name,
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				PrivateIP:       strings.TrimSpace(row.PrivateIp),
+				PublicIP:        strings.TrimSpace(row.PublicIp),
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,

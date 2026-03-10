@@ -602,7 +602,7 @@ func (q *Queries) GetFirstAdminUser(ctx context.Context) (GetFirstAdminUserRow, 
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.private_ip, m.public_ip, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -616,6 +616,8 @@ type GetMachineByIDRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	PrivateIp       string
+	PublicIp        string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -635,6 +637,8 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.RuntimeID,
 		&i.SetupVersion,
 		&i.Endpoint,
+		&i.PrivateIp,
+		&i.PublicIp,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -648,7 +652,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.private_ip, m.public_ip, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -668,6 +672,8 @@ type GetMachineByIDForUserRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	PrivateIp       string
+	PublicIp        string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -686,6 +692,8 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 		&i.RuntimeID,
 		&i.SetupVersion,
 		&i.Endpoint,
+		&i.PrivateIp,
+		&i.PublicIp,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -1263,7 +1271,7 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.private_ip, m.public_ip, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = ?1
@@ -1282,6 +1290,8 @@ type ListMachinesByDesiredStatusRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	PrivateIp       string
+	PublicIp        string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -1306,6 +1316,8 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.RuntimeID,
 			&i.SetupVersion,
 			&i.Endpoint,
+			&i.PrivateIp,
+			&i.PublicIp,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,
@@ -1328,7 +1340,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 }
 
 const listMachinesByUser = `-- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.private_ip, m.public_ip, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
 FROM machines m
 JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -1342,6 +1354,8 @@ type ListMachinesByUserRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	PrivateIp       string
+	PublicIp        string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -1366,6 +1380,8 @@ func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]List
 			&i.RuntimeID,
 			&i.SetupVersion,
 			&i.Endpoint,
+			&i.PrivateIp,
+			&i.PublicIp,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,
@@ -1737,6 +1753,24 @@ type UpdateMachineEndpointByIDParams struct {
 
 func (q *Queries) UpdateMachineEndpointByID(ctx context.Context, arg UpdateMachineEndpointByIDParams) error {
 	_, err := q.db.ExecContext(ctx, updateMachineEndpointByID, arg.Endpoint, arg.MachineID)
+	return err
+}
+
+const updateMachineIPsByID = `-- name: UpdateMachineIPsByID :exec
+UPDATE machines
+SET private_ip = ?1,
+    public_ip = ?2
+WHERE id = ?3
+`
+
+type UpdateMachineIPsByIDParams struct {
+	PrivateIp string
+	PublicIp  string
+	MachineID string
+}
+
+func (q *Queries) UpdateMachineIPsByID(ctx context.Context, arg UpdateMachineIPsByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineIPsByID, arg.PrivateIp, arg.PublicIp, arg.MachineID)
 	return err
 }
 

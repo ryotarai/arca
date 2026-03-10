@@ -227,6 +227,30 @@ func (r *LibvirtRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 	return false, domainName, nil
 }
 
+func (r *LibvirtRuntime) GetMachineInfo(ctx context.Context, machine db.Machine) (*RuntimeMachineInfo, error) {
+	domainName := r.domainName(machine)
+	output, err := r.runVirsh(ctx, "domifaddr", domainName)
+	if err != nil {
+		return nil, fmt.Errorf("get libvirt domain addresses for %q: %w", domainName, err)
+	}
+	info := &RuntimeMachineInfo{}
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
+			continue
+		}
+		addr := fields[3]
+		if idx := strings.Index(addr, "/"); idx > 0 {
+			addr = addr[:idx]
+		}
+		if strings.TrimSpace(addr) != "" {
+			info.PrivateIP = strings.TrimSpace(addr)
+			break
+		}
+	}
+	return info, nil
+}
+
 func (r *LibvirtRuntime) domainName(machine db.Machine) string {
 	if strings.TrimSpace(machine.ContainerID) != "" {
 		return machine.ContainerID

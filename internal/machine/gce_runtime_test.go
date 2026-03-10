@@ -40,8 +40,13 @@ func (f *fakeGceComputeClient) InsertInstance(_ context.Context, _, _ string, in
 		f.instances = map[string]*gceInstance{}
 	}
 	f.instances[instance.Name] = &gceInstance{Name: instance.Name, Status: "RUNNING", NetworkInterfaces: []struct {
-		NetworkIP string `json:"networkIP"`
-	}{{NetworkIP: "10.0.0.10"}}}
+		NetworkIP     string `json:"networkIP"`
+		AccessConfigs []struct {
+			NatIP string `json:"natIP"`
+		} `json:"accessConfigs"`
+	}{{NetworkIP: "10.0.0.10", AccessConfigs: []struct {
+		NatIP string `json:"natIP"`
+	}{{NatIP: "35.200.1.1"}}}}}
 	return &gceOperation{Name: "insert-op"}, nil
 }
 
@@ -51,7 +56,10 @@ func (f *fakeGceComputeClient) StartInstance(_ context.Context, _, _, instance s
 		current.Status = "RUNNING"
 		if len(current.NetworkInterfaces) == 0 {
 			current.NetworkInterfaces = []struct {
-				NetworkIP string `json:"networkIP"`
+				NetworkIP     string `json:"networkIP"`
+				AccessConfigs []struct {
+					NatIP string `json:"natIP"`
+				} `json:"accessConfigs"`
 			}{{NetworkIP: "10.0.0.10"}}
 		}
 	}

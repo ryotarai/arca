@@ -163,6 +163,28 @@ func (r *LxdRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, s
 	return false, containerName, nil
 }
 
+func (r *LxdRuntime) GetMachineInfo(ctx context.Context, machine db.Machine) (*RuntimeMachineInfo, error) {
+	containerName := r.containerName(machine)
+	output, err := r.runLxc(ctx, "list", containerName, "--format=csv", "--columns=4")
+	if err != nil {
+		return nil, fmt.Errorf("get lxd container addresses for %q: %w", containerName, err)
+	}
+	info := &RuntimeMachineInfo{}
+	for _, part := range strings.Split(strings.TrimSpace(output), "\n") {
+		for _, addr := range strings.Split(part, ",") {
+			addr = strings.TrimSpace(addr)
+			// lxc list outputs addresses as "IP (IFACE)"
+			if idx := strings.Index(addr, " "); idx > 0 {
+				addr = addr[:idx]
+			}
+			if addr != "" && !strings.Contains(addr, ":") && info.PrivateIP == "" {
+				info.PrivateIP = addr
+			}
+		}
+	}
+	return info, nil
+}
+
 func (r *LxdRuntime) containerName(machine db.Machine) string {
 	if strings.TrimSpace(machine.ContainerID) != "" {
 		return machine.ContainerID

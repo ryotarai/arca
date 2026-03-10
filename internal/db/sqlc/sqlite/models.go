@@ -53,6 +53,8 @@ type Machine struct {
 	RuntimeID    string
 	SetupVersion string
 	Endpoint     string
+	PrivateIp    string
+	PublicIp     string
 	CreatedAt    time.Time
 }
 

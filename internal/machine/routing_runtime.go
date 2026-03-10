@@ -75,6 +75,14 @@ func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 	return runtime.IsRunning(ctx, machine)
 }
 
+func (r *RoutingRuntime) GetMachineInfo(ctx context.Context, machine db.Machine) (*RuntimeMachineInfo, error) {
+	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
+	if err != nil {
+		return nil, err
+	}
+	return runtime.GetMachineInfo(ctx, machine)
+}
+
 func (r *RoutingRuntime) runtimeFor(ctx context.Context, runtimeID string) (Runtime, error) {
 	runtimeID = strings.TrimSpace(runtimeID)
 	if runtimeID == "" {

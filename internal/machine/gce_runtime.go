@@ -74,8 +74,30 @@ type gceInstance struct {
 	Name              string `json:"name"`
 	Status            string `json:"status"`
 	NetworkInterfaces []struct {
-		NetworkIP string `json:"networkIP"`
+		NetworkIP     string `json:"networkIP"`
+		AccessConfigs []struct {
+			NatIP string `json:"natIP"`
+		} `json:"accessConfigs"`
 	} `json:"networkInterfaces"`
+}
+
+func (i *gceInstance) PrivateIP() string {
+	if i == nil || len(i.NetworkInterfaces) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(i.NetworkInterfaces[0].NetworkIP)
+}
+
+func (i *gceInstance) PublicIP() string {
+	if i == nil || len(i.NetworkInterfaces) == 0 {
+		return ""
+	}
+	for _, ac := range i.NetworkInterfaces[0].AccessConfigs {
+		if ip := strings.TrimSpace(ac.NatIP); ip != "" {
+			return ip
+		}
+	}
+	return ""
 }
 
 type gceOperation struct {
@@ -302,6 +324,25 @@ func (r *GceRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, s
 	}
 	status := strings.ToUpper(strings.TrimSpace(instance.Status))
 	return status == "RUNNING" || status == "STAGING" || status == "PROVISIONING", instanceName, nil
+}
+
+func (r *GceRuntime) GetMachineInfo(ctx context.Context, machine db.Machine) (*RuntimeMachineInfo, error) {
+	instanceName := r.instanceName(machine)
+	client, err := r.computeClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	instance, found, err := r.getInstance(ctx, client, instanceName)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("gce instance %q not found", instanceName)
+	}
+	return &RuntimeMachineInfo{
+		PrivateIP: instance.PrivateIP(),
+		PublicIP:  instance.PublicIP(),
+	}, nil
 }
 
 func (r *GceRuntime) instanceName(machine db.Machine) string {

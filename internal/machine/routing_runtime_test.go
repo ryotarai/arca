@@ -41,6 +41,10 @@ func (r *fakeRuntime) IsRunning(context.Context, db.Machine) (bool, string, erro
 	return true, r.name, nil
 }
 
+func (r *fakeRuntime) GetMachineInfo(context.Context, db.Machine) (*RuntimeMachineInfo, error) {
+	return &RuntimeMachineInfo{}, nil
+}
+
 func TestRoutingRuntime_ResolvesCatalogRuntimeIDsAcrossTypes(t *testing.T) {
 	t.Parallel()
 

@@ -19,11 +19,17 @@ import (
 
 var errStartCancelled = errors.New("machine start cancelled")
 
+type RuntimeMachineInfo struct {
+	PrivateIP string
+	PublicIP  string
+}
+
 type Runtime interface {
 	EnsureRunning(context.Context, db.Machine, RuntimeStartOptions) (string, error)
 	EnsureStopped(context.Context, db.Machine) error
 	EnsureDeleted(context.Context, db.Machine) error
 	IsRunning(context.Context, db.Machine) (bool, string, error)
+	GetMachineInfo(context.Context, db.Machine) (*RuntimeMachineInfo, error)
 }
 
 type RuntimeStartOptions struct {
@@ -303,6 +309,17 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		"",
 	); err != nil {
 		return err
+	}
+
+	// Collect machine IPs once runtime is started
+	if info, infoErr := w.runtime.GetMachineInfo(ctx, machine); infoErr != nil {
+		slog.Warn("machine info collection failed", "machine_id", machine.ID, "error", infoErr)
+	} else if info != nil {
+		if err := w.store.UpdateMachineIPsByID(ctx, machine.ID, info.PrivateIP, info.PublicIP); err != nil {
+			slog.Warn("machine ip update failed", "machine_id", machine.ID, "error", err)
+		} else {
+			w.emitEvent(ctx, machine.ID, jobID, "info", "ips_updated", fmt.Sprintf("private_ip=%s public_ip=%s", info.PrivateIP, info.PublicIP))
+		}
 	}
 
 	w.emitEvent(ctx, machine.ID, jobID, "info", "waiting_ready", "waiting for machine readiness")

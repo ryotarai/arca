@@ -90,7 +90,8 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Resolve the upstream URL for the machine
-	upstreamURL := resolveUpstreamURL(machine, exposure)
+	connectivity := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON).Connectivity
+	upstreamURL := resolveUpstreamURL(machine, exposure, connectivity)
 	if upstreamURL == "" {
 		http.Error(w, "machine upstream unavailable", http.StatusBadGateway)
 		return true
@@ -219,7 +220,7 @@ func (h *MachineProxyHandler) authenticateRequest(r *http.Request) string {
 	return userID
 }
 
-func resolveUpstreamURL(machine db.Machine, exposure db.MachineExposure) string {
+func resolveUpstreamURL(machine db.Machine, exposure db.MachineExposure, connectivity string) string {
 	service := strings.TrimSpace(exposure.Service)
 	if service == "" {
 		service = "http://localhost:11030"
@@ -234,11 +235,26 @@ func resolveUpstreamURL(machine db.Machine, exposure db.MachineExposure) string 
 		port = "11030"
 	}
 
-	// For proxy-via-server, we need the machine's actual IP.
-	// The machine endpoint stores the hostname for DNS-based access.
-	// The machine's IP is resolved at runtime - for now check if endpoint is an IP.
+	// Determine the target IP based on the runtime's connectivity setting.
+	var ip string
+	conn := strings.ToLower(strings.TrimSpace(connectivity))
+	switch {
+	case conn == "public_ip" || strings.HasSuffix(conn, "_public_ip"):
+		ip = machine.PublicIP
+		if ip == "" {
+			ip = machine.PrivateIP
+		}
+	default:
+		ip = machine.PrivateIP
+	}
+
+	if ip != "" {
+		return "http://" + net.JoinHostPort(ip, port)
+	}
+
+	// Legacy fallback: check if endpoint is an IP address.
 	if machine.Endpoint != "" {
-		if ip := net.ParseIP(machine.Endpoint); ip != nil {
+		if parsed := net.ParseIP(machine.Endpoint); parsed != nil {
 			return "http://" + net.JoinHostPort(machine.Endpoint, port)
 		}
 	}
