@@ -692,6 +692,7 @@ write_files:
       RuntimeDirectory=arca
       RuntimeDirectoryMode=0770
       UMask=0007
+      WorkingDirectory=/home/arcauser
       ExecStartPre=/usr/bin/rm -f ${TTYD_SOCKET}
       ExecStart=/usr/bin/ttyd -W -i ${TTYD_SOCKET} -U arcauser:arca -b ${TTYD_BASE_PATH} tmux new-session -A -s arca
       Restart=always
@@ -725,6 +726,7 @@ write_files:
       [Service]
       Type=simple
       EnvironmentFile=/etc/arca/arcad.env
+      WorkingDirectory=/home/arcauser
       ExecStart=/usr/local/bin/shelley -db ${SHELLEY_DB_PATH} serve -port ${SHELLEY_PORT} -base-path ${SHELLEY_BASE_PATH}
       Restart=always
       User=arcauser
