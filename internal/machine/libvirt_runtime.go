@@ -409,6 +409,7 @@ func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions) string {
 
 	envFile := fmt.Sprintf(`ARCAD_TUNNEL_TOKEN=%s
 ARCAD_CONTROL_PLANE_URL=%s
+ARCAD_AUTHORIZE_URL=%s
 ARCAD_MACHINE_ID=%s
 ARCAD_MACHINE_TOKEN=%s
 ARCAD_STARTUP_SENTINEL=/var/lib/arca/startup.done
@@ -424,7 +425,7 @@ SHELLEY_BINARY_URL_BASE=https://github.com/ryotarai/shelley/releases/download/v0
 SHELLEY_BASE_PATH=/__arca/shelley
 SHELLEY_PORT=21032
 SHELLEY_DB_PATH=/var/lib/arca/shelley/shelley.db
-`, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken), daemonUser, interactiveUser, shellEscape(authorizedKeysBase64), shellEscape(agentEndpoint))
+`, shellEscape(opts.TunnelToken), shellEscape(opts.ControlPlaneURL), shellEscape(opts.AuthorizeURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken), daemonUser, interactiveUser, shellEscape(authorizedKeysBase64), shellEscape(agentEndpoint))
 
 	installScript := `#!/usr/bin/env bash
 set -euxo pipefail

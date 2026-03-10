@@ -35,6 +35,7 @@ type Runtime interface {
 type RuntimeStartOptions struct {
 	TunnelToken           string
 	ControlPlaneURL       string
+	AuthorizeURL          string
 	MachineID             string
 	MachineToken          string
 	StartupScript         string
@@ -292,9 +293,17 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		return fmt.Errorf("load user settings: %w", err)
 	}
 
+	// Compute the authorize URL from the public server domain so that arcad
+	// can redirect browsers even when the control-plane URL is an internal IP.
+	var authorizeURL string
+	if serverDomain := strings.TrimSpace(setup.ServerDomain); serverDomain != "" {
+		authorizeURL = "https://" + serverDomain + "/console/authorize"
+	}
+
 	containerID, err := w.runtime.EnsureRunning(ctx, machine, RuntimeStartOptions{
 		TunnelToken:           tunnelToken,
 		ControlPlaneURL:       controlPlaneURL,
+		AuthorizeURL:          authorizeURL,
 		MachineID:             machine.ID,
 		MachineToken:          machine.MachineToken,
 		InteractiveSSHPubKeys: userSettings.SSHPublicKeys,
