@@ -1,5 +1,8 @@
 # Repository Guidelines
 
+> **Note:** If `AGENTS.local.md` exists in the repository root, read and apply its instructions as well.
+
+
 ## Project Structure & Module Organization
 This repository is a Go + React application (`github.com/ryotarai/arca`).
 - `cmd/server/`: server entrypoint and startup.
