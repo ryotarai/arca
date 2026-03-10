@@ -93,10 +93,7 @@ func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
 		Subnetwork:          "main-subnet",
 		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
 		StartupScript:       "echo startup from gce",
-		Client:              fakeClient,
-		BuildArcadBinaryBase: func(context.Context) (string, error) {
-			return "YXJjYWQ=", nil
-		},
+		Client: fakeClient,
 	})
 	if err != nil {
 		t.Fatalf("new runtime: %v", err)

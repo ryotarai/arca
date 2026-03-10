@@ -15,7 +15,9 @@ func TestCloudInitUserData_IncludesAndExecutesStartupScript(t *testing.T) {
 	cloudInit := cloudInitUserData(db.Machine{ID: "machine-123456789abc"}, RuntimeStartOptions{
 		StartupScript:         "echo hello startup",
 		InteractiveSSHPubKeys: []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJ9vZxA2v4n5hF8B07A2fkYg6P5mK2xOb3d9HfNQh8S test@example.com"},
-	}, "YXJjYWQ=")
+		ControlPlaneURL:       "https://arca.example.com",
+		MachineToken:          "test-token-123",
+	})
 
 	startupScript, ok := cloudInitFileContent(cloudInit, "/usr/local/bin/arca-user-startup.sh")
 	if !ok {
@@ -40,6 +42,9 @@ func TestCloudInitUserData_IncludesAndExecutesStartupScript(t *testing.T) {
 	}
 	if !strings.Contains(bootstrapScript, "authorized_keys") {
 		t.Fatalf("bootstrap script does not provision authorized_keys")
+	}
+	if !strings.Contains(bootstrapScript, "/arcad/download?os=linux&arch=${goarch}") {
+		t.Fatalf("bootstrap script does not download arcad binary via curl")
 	}
 	for _, path := range []string{
 		"${interactive_home}/.claude/CLAUDE.md",

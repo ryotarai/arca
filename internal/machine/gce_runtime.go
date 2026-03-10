@@ -3,16 +3,12 @@ package machine
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -27,8 +23,6 @@ const (
 	defaultGceDiskSizeGB   int64 = 40
 	defaultGceImageProject       = "ubuntu-os-cloud"
 	defaultGceImageFamily        = "ubuntu-2404-lts-amd64"
-	defaultGceArcadGOOS          = "linux"
-	defaultGceArcadGOARCH        = "amd64"
 )
 
 type GceRuntime struct {
@@ -42,11 +36,7 @@ type GceRuntime struct {
 	diskSizeGB          int64
 	imageProject        string
 	imageFamily         string
-	arcadGOOS           string
-	arcadGOARCH         string
-
-	clientFactory        func(context.Context) (gceComputeClient, error)
-	buildArcadBinaryBase func(context.Context) (string, error)
+	clientFactory func(context.Context) (gceComputeClient, error)
 
 	mu     sync.Mutex
 	client gceComputeClient
@@ -63,12 +53,8 @@ type GceRuntimeOptions struct {
 	DiskSizeGB          int64
 	ImageProject        string
 	ImageFamily         string
-	ArcadGOOS           string
-	ArcadGOARCH         string
-
-	Client               gceComputeClient
-	ClientFactory        func(context.Context) (gceComputeClient, error)
-	BuildArcadBinaryBase func(context.Context) (string, error)
+	Client        gceComputeClient
+	ClientFactory func(context.Context) (gceComputeClient, error)
 }
 
 type gceComputeClient interface {
@@ -176,39 +162,17 @@ func NewGceRuntimeWithOptions(options GceRuntimeOptions) (*GceRuntime, error) {
 	if imageFamily == "" {
 		imageFamily = defaultGceImageFamily
 	}
-	arcadGOOS := strings.TrimSpace(options.ArcadGOOS)
-	if arcadGOOS == "" {
-		arcadGOOS = strings.TrimSpace(os.Getenv("ARCA_GCE_ARCAD_GOOS"))
-	}
-	if arcadGOOS == "" {
-		arcadGOOS = defaultGceArcadGOOS
-	}
-	arcadGOARCH := strings.TrimSpace(options.ArcadGOARCH)
-	if arcadGOARCH == "" {
-		arcadGOARCH = strings.TrimSpace(os.Getenv("ARCA_GCE_ARCAD_GOARCH"))
-	}
-	if arcadGOARCH == "" {
-		arcadGOARCH = defaultGceArcadGOARCH
-	}
-
 	runtime := &GceRuntime{
-		project:              project,
-		zone:                 zone,
-		network:              network,
-		subnetwork:           subnetwork,
-		serviceAccountEmail:  serviceAccountEmail,
-		startupScript:        startupScript,
-		machineType:          machineType,
-		diskSizeGB:           diskSizeGB,
-		imageProject:         imageProject,
-		imageFamily:          imageFamily,
-		arcadGOOS:            arcadGOOS,
-		arcadGOARCH:          arcadGOARCH,
-		buildArcadBinaryBase: options.BuildArcadBinaryBase,
-	}
-
-	if runtime.buildArcadBinaryBase == nil {
-		runtime.buildArcadBinaryBase = runtime.buildArcadBinaryBase64
+		project:             project,
+		zone:                zone,
+		network:             network,
+		subnetwork:          subnetwork,
+		serviceAccountEmail: serviceAccountEmail,
+		startupScript:       startupScript,
+		machineType:         machineType,
+		diskSizeGB:          diskSizeGB,
+		imageProject:        imageProject,
+		imageFamily:         imageFamily,
 	}
 
 	switch {
@@ -235,12 +199,8 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 		return "", err
 	}
 	if !found {
-		arcadBinaryBase64, err := r.buildArcadBinaryBase(ctx)
-		if err != nil {
-			return "", err
-		}
 		opts.StartupScript = r.startupScript
-		cloudInit := cloudInitUserData(machine, opts, arcadBinaryBase64)
+		cloudInit := cloudInitUserData(machine, opts)
 		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit))
 		if err != nil {
 			return "", fmt.Errorf("create gce instance %q: %w", instanceName, err)
@@ -492,32 +452,6 @@ func (r *GceRuntime) instanceSpec(instanceName, cloudInit string) *gceInsertInst
 		{Key: "user-data", Value: cloudInit},
 	}
 	return req
-}
-
-func (r *GceRuntime) buildArcadBinaryBase64(ctx context.Context) (string, error) {
-	tmpDir, err := os.MkdirTemp("", "arca-gce-arcad-*")
-	if err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(tmpDir)
-
-	arcadPath := filepath.Join(tmpDir, "arcad")
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", arcadPath, "./cmd/arcad")
-	cmd.Env = append(os.Environ(),
-		"GOOS="+r.arcadGOOS,
-		"GOARCH="+r.arcadGOARCH,
-		"CGO_ENABLED=0",
-	)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("go build ./cmd/arcad failed: %w: %s", err, strings.TrimSpace(string(output)))
-	}
-
-	data, err := os.ReadFile(arcadPath)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 func newGceRESTClient(ctx context.Context) (gceComputeClient, error) {

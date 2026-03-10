@@ -2,11 +2,9 @@ package machine
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -15,23 +13,18 @@ import (
 
 const (
 	defaultLxdEndpoint    = "https://localhost:8443"
-	defaultLxdArcadGOOS = "linux"
 	defaultLxdImage       = "ubuntu:24.04"
 )
 
 type LxdRuntime struct {
 	endpoint      string
 	startupScript string
-	arcadGOOS     string
-	arcadGOARCH   string
 	image         string
 }
 
 type LxdRuntimeOptions struct {
 	Endpoint      string
 	StartupScript string
-	ArcadGOOS     string
-	ArcadGOARCH   string
 	Image         string
 }
 
@@ -49,22 +42,6 @@ func NewLxdRuntimeWithOptions(options LxdRuntimeOptions) *LxdRuntime {
 		startupScript = ""
 	}
 
-	arcadGOOS := strings.TrimSpace(options.ArcadGOOS)
-	if arcadGOOS == "" {
-		arcadGOOS = strings.TrimSpace(os.Getenv("ARCA_LXD_ARCAD_GOOS"))
-	}
-	if arcadGOOS == "" {
-		arcadGOOS = defaultLxdArcadGOOS
-	}
-
-	arcadGOARCH := strings.TrimSpace(options.ArcadGOARCH)
-	if arcadGOARCH == "" {
-		arcadGOARCH = strings.TrimSpace(os.Getenv("ARCA_LXD_ARCAD_GOARCH"))
-	}
-	if arcadGOARCH == "" {
-		arcadGOARCH = runtime.GOARCH
-	}
-
 	image := strings.TrimSpace(options.Image)
 	if image == "" {
 		image = strings.TrimSpace(os.Getenv("ARCA_LXD_IMAGE"))
@@ -76,8 +53,6 @@ func NewLxdRuntimeWithOptions(options LxdRuntimeOptions) *LxdRuntime {
 	return &LxdRuntime{
 		endpoint:      endpoint,
 		startupScript: startupScript,
-		arcadGOOS:     arcadGOOS,
-		arcadGOARCH:   arcadGOARCH,
 		image:         image,
 	}
 }
@@ -91,13 +66,8 @@ func (r *LxdRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	}
 
 	if !exists {
-		arcadBinaryBase64, err := r.buildArcadBinaryBase64(ctx)
-		if err != nil {
-			return "", err
-		}
-
 		opts.StartupScript = r.startupScript
-		cloudConfig := cloudInitUserData(machine, opts, arcadBinaryBase64)
+		cloudConfig := cloudInitUserData(machine, opts)
 
 		if err := r.launchContainer(ctx, containerName, cloudConfig); err != nil {
 			return "", err
@@ -233,32 +203,6 @@ func (r *LxdRuntime) launchContainer(ctx context.Context, name, cloudConfig stri
 		return fmt.Errorf("start lxd container: %w", err)
 	}
 	return nil
-}
-
-func (r *LxdRuntime) buildArcadBinaryBase64(ctx context.Context) (string, error) {
-	tmpDir, err := os.MkdirTemp("", "arca-lxd-build-*")
-	if err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(tmpDir)
-
-	arcadPath := tmpDir + "/arcad"
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", arcadPath, "./cmd/arcad")
-	cmd.Env = append(os.Environ(),
-		"GOOS="+r.arcadGOOS,
-		"GOARCH="+r.arcadGOARCH,
-		"CGO_ENABLED=0",
-	)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("go build ./cmd/arcad failed: %w: %s", err, strings.TrimSpace(string(output)))
-	}
-
-	data, err := os.ReadFile(arcadPath)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 func (r *LxdRuntime) runLxc(ctx context.Context, args ...string) (string, error) {

@@ -103,6 +103,13 @@ func NewRouter(deps Dependencies) http.Handler {
 		// Backward-compatible alias.
 		r.Get("/auth/authorize", authorizeHandler)
 	}
+	if deps.Store != nil {
+		arcadHandler := newArcadBinaryHandler(deps.Store)
+		r.Route("/arcad", func(sub chi.Router) {
+			sub.Use(middleware.Timeout(5 * time.Minute))
+			sub.Get("/download", arcadHandler.ServeHTTP)
+		})
+	}
 
 	// Machine proxy middleware: intercept requests with Host headers matching
 	// machine exposures in proxy-via-server mode before the SPA handler.

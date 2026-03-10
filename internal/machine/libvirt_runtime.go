@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -21,7 +20,6 @@ const (
 	defaultLibvirtURI          = "qemu:///system"
 	defaultLibvirtNetwork      = "default"
 	defaultLibvirtStoragePool  = "default"
-	defaultLibvirtArcadGOOS = "linux"
 )
 
 type LibvirtRuntime struct {
@@ -32,8 +30,6 @@ type LibvirtRuntime struct {
 	network       string
 	storagePool   string
 	startupScript string
-	arcadGOOS     string
-	arcadGOARCH   string
 }
 
 type LibvirtRuntimeOptions struct {
@@ -44,8 +40,6 @@ type LibvirtRuntimeOptions struct {
 	Network       string
 	StoragePool   string
 	StartupScript string
-	ArcadGOOS     string
-	ArcadGOARCH   string
 }
 
 func NewLibvirtRuntime() *LibvirtRuntime {
@@ -99,22 +93,6 @@ func NewLibvirtRuntimeWithOptions(options LibvirtRuntimeOptions) *LibvirtRuntime
 		startupScript = ""
 	}
 
-	arcadGOOS := strings.TrimSpace(options.ArcadGOOS)
-	if arcadGOOS == "" {
-		arcadGOOS = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOOS"))
-	}
-	if arcadGOOS == "" {
-		arcadGOOS = defaultLibvirtArcadGOOS
-	}
-
-	arcadGOARCH := strings.TrimSpace(options.ArcadGOARCH)
-	if arcadGOARCH == "" {
-		arcadGOARCH = strings.TrimSpace(os.Getenv("ARCA_LIBVIRT_ARCAD_GOARCH"))
-	}
-	if arcadGOARCH == "" {
-		arcadGOARCH = runtime.GOARCH
-	}
-
 	return &LibvirtRuntime{
 		workspaceDir:  workspaceDir,
 		baseImage:     baseImage,
@@ -123,8 +101,6 @@ func NewLibvirtRuntimeWithOptions(options LibvirtRuntimeOptions) *LibvirtRuntime
 		network:       network,
 		storagePool:   storagePool,
 		startupScript: startupScript,
-		arcadGOOS:     arcadGOOS,
-		arcadGOARCH:   arcadGOARCH,
 	}
 }
 
@@ -142,13 +118,9 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 	if err := r.ensureDiskImage(ctx, workspace); err != nil {
 		return "", err
 	}
-	arcadBinaryBase64, err := r.buildArcadBinaryBase64(ctx, workspace)
-	if err != nil {
-		return "", err
-	}
 	opts.StartupScript = r.startupScript
 	startupNonce := time.Now().UTC().Format("20060102T150405")
-	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts, arcadBinaryBase64, startupNonce); err != nil {
+	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts, startupNonce); err != nil {
 		return "", err
 	}
 
@@ -271,12 +243,12 @@ func (r *LibvirtRuntime) ensureDiskImage(ctx context.Context, workspace string) 
 	return err
 }
 
-func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Machine, workspace string, opts RuntimeStartOptions, arcadBinaryBase64, startupNonce string) error {
+func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Machine, workspace string, opts RuntimeStartOptions, startupNonce string) error {
 	userDataPath := filepath.Join(workspace, "user-data")
 	metaDataPath := filepath.Join(workspace, "meta-data")
 	seedPath := filepath.Join(workspace, "seed.iso")
 
-	userData := cloudInitUserData(machine, opts, arcadBinaryBase64)
+	userData := cloudInitUserData(machine, opts)
 	metaData := fmt.Sprintf("instance-id: %s-%s\nlocal-hostname: arca-%s\n", machine.ID, startupNonce, machine.ID[:12])
 
 	if err := os.WriteFile(userDataPath, []byte(userData), 0o644); err != nil {
@@ -287,26 +259,6 @@ func (r *LibvirtRuntime) ensureCloudInitSeed(ctx context.Context, machine db.Mac
 	}
 	_, err := runCommand(ctx, "cloud-localds", seedPath, userDataPath, metaDataPath)
 	return err
-}
-
-func (r *LibvirtRuntime) buildArcadBinaryBase64(ctx context.Context, workspace string) (string, error) {
-	arcadPath := filepath.Join(workspace, "arcad")
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", arcadPath, "./cmd/arcad")
-	cmd.Env = append(os.Environ(),
-		"GOOS="+r.arcadGOOS,
-		"GOARCH="+r.arcadGOARCH,
-		"CGO_ENABLED=0",
-	)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("go build ./cmd/arcad failed: %w: %s", err, strings.TrimSpace(string(output)))
-	}
-
-	data, err := os.ReadFile(arcadPath)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 func (r *LibvirtRuntime) isDomainDefined(ctx context.Context, domainName string) (bool, error) {
@@ -413,7 +365,7 @@ func (r *LibvirtRuntime) runVirsh(ctx context.Context, args ...string) (string, 
 	return runCommand(ctx, "virsh", base...)
 }
 
-func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions, arcadBinaryBase64 string) string {
+func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions) string {
 	const (
 		daemonUser      = "arcad"
 		interactiveUser = "arcauser"
@@ -550,6 +502,22 @@ else
 fi
 install -o "$interactive_user" -g arca -m 0600 "$keys_tmp" "$authorized_keys_path"
 rm -f "$keys_tmp"
+arch="$(dpkg --print-architecture)"
+case "$arch" in
+  amd64) goarch="amd64" ;;
+  arm64) goarch="arm64" ;;
+  *) echo "unsupported architecture: $arch"; exit 1 ;;
+esac
+for attempt in $(seq 1 10); do
+  if curl -fsSL \
+    -H "Authorization: Bearer ${ARCAD_MACHINE_TOKEN}" \
+    "${ARCAD_CONTROL_PLANE_URL}/arcad/download?os=linux&arch=${goarch}" \
+    -o /usr/local/bin/arcad; then
+    break
+  fi
+  echo "arcad download attempt $attempt failed, retrying in 5s..."
+  sleep 5
+done
 chmod +x /usr/local/bin/arcad
 
 /usr/bin/env bash /usr/local/bin/arca-user-startup.sh
@@ -667,11 +635,6 @@ write_files:
     owner: root:root
     encoding: b64
     content: %s
-  - path: /usr/local/bin/arcad
-    permissions: "0755"
-    owner: root:root
-    encoding: b64
-    content: %s
   - path: /etc/systemd/system/arca-arcad.service
     permissions: "0644"
     owner: root:root
@@ -744,7 +707,7 @@ write_files:
       WantedBy=multi-user.target
 runcmd:
   - ["/usr/local/bin/arca-machine-install.sh"]
-`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(installScript)), base64.StdEncoding.EncodeToString([]byte(bootstrapScript)), base64.StdEncoding.EncodeToString([]byte(startupScript)), arcadBinaryBase64)
+`, base64.StdEncoding.EncodeToString([]byte(envFile)), base64.StdEncoding.EncodeToString([]byte(installScript)), base64.StdEncoding.EncodeToString([]byte(bootstrapScript)), base64.StdEncoding.EncodeToString([]byte(startupScript)))
 }
 
 func shellEscape(value string) string {
