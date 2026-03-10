@@ -26,12 +26,14 @@ type RuntimeExposureConfig struct {
 // a runtime config JSON string. Returns cloudflare_tunnel as default.
 func GetRuntimeExposureMethod(configJSON string) string {
 	cfg := GetRuntimeExposureConfig(configJSON)
-	switch strings.ToLower(strings.TrimSpace(cfg.Method)) {
-	case MachineExposureMethodProxyViaServer:
+	method := strings.ToLower(strings.TrimSpace(cfg.Method))
+	// Match both plain value ("proxy_via_server") and protobuf enum name
+	// ("MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER") since config_json is
+	// serialized via protojson which uses the enum name.
+	if method == MachineExposureMethodProxyViaServer || strings.HasSuffix(method, "_proxy_via_server") {
 		return MachineExposureMethodProxyViaServer
-	default:
-		return MachineExposureMethodCloudflareTunnel
 	}
+	return MachineExposureMethodCloudflareTunnel
 }
 
 // GetRuntimeExposureConfig extracts the exposure config from a runtime
