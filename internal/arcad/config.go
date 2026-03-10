@@ -67,8 +67,7 @@ func ConfigFromEnv() (Config, error) {
 	if cfg.MachineID == "" {
 		return Config{}, fmt.Errorf("ARCAD_MACHINE_ID is required")
 	}
-	if cfg.TunnelToken == "" {
-		return Config{}, fmt.Errorf("ARCAD_TUNNEL_TOKEN is required")
-	}
+	// TunnelToken is optional; when empty, cloudflared is not started
+	// (proxy-via-server exposure mode).
 	return cfg, nil
 }

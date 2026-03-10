@@ -48,17 +48,21 @@ func main() {
 		}
 	}()
 
-	runner := &arcad.CloudflaredRunner{
-		TunnelToken:   cfg.TunnelToken,
-		RestartOnExit: true,
-		Stdout:        os.Stdout,
-		Stderr:        os.Stderr,
-	}
-	go func() {
-		if err := runner.Run(ctx); err != nil {
-			errCh <- err
+	if cfg.TunnelToken != "" {
+		runner := &arcad.CloudflaredRunner{
+			TunnelToken:   cfg.TunnelToken,
+			RestartOnExit: true,
+			Stdout:        os.Stdout,
+			Stderr:        os.Stderr,
 		}
-	}()
+		go func() {
+			if err := runner.Run(ctx); err != nil {
+				errCh <- err
+			}
+		}()
+	} else {
+		log.Printf("ARCAD_TUNNEL_TOKEN not set; skipping cloudflared")
+	}
 
 	go arcad.NewReadinessReporter(readinessChecker, controlPlaneClient, cfg.ReadyReportInterval).Run(ctx)
 
