@@ -111,6 +111,16 @@ func NewRouter(deps Dependencies) http.Handler {
 		})
 	}
 
+	// Health check endpoint — always available, no auth required.
+	r.Get("/healthz", func(w http.ResponseWriter, req *http.Request) {
+		if err := deps.HealthChecker.Ping(req.Context()); err != nil {
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, "ok")
+	})
+
 	// Machine proxy middleware: intercept requests with Host headers matching
 	// machine exposures in proxy-via-server mode before the SPA handler.
 	spa := spaHandler()
