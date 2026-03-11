@@ -35,6 +35,8 @@ export function App() {
     passwordLoginDisabled: false,
     iapEnabled: false,
     iapAudience: '',
+    iapAutoProvisioning: false,
+    oidcAutoProvisioning: false,
     serverExposureMethod: 'cloudflare_tunnel',
     serverDomain: '',
   })
@@ -103,6 +105,8 @@ export function App() {
                   passwordLoginDisabled: false,
                   iapEnabled: false,
                   iapAudience: '',
+                  iapAutoProvisioning: false,
+                  oidcAutoProvisioning: false,
                   serverExposureMethod: 'cloudflare_tunnel',
                   serverDomain: '',
                 })

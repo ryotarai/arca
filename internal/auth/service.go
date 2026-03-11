@@ -253,7 +253,18 @@ func (s *Service) LoginWithOIDCCode(ctx context.Context, code, redirectURI strin
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", "", "", "", time.Time{}, ErrOIDCRejected
+			if !config.AutoProvisioning {
+				return "", "", "", "", time.Time{}, ErrOIDCRejected
+			}
+			userID, createErr := s.autoProvisionUser(ctx, email)
+			if createErr != nil {
+				return "", "", "", "", time.Time{}, createErr
+			}
+			sessionToken, expiresAt, err := s.createSession(ctx, userID)
+			if err != nil {
+				return "", "", "", "", time.Time{}, err
+			}
+			return userID, email, "user", sessionToken, expiresAt, nil
 		}
 		return "", "", "", "", time.Time{}, err
 	}
@@ -310,6 +321,7 @@ type oidcConfig struct {
 	ClientID            string
 	ClientSecret        string
 	AllowedEmailDomains []string
+	AutoProvisioning    bool
 }
 
 func (s *Service) loadOIDCConfig(ctx context.Context) (oidcConfig, error) {
@@ -352,6 +364,7 @@ func (s *Service) loadOIDCConfig(ctx context.Context) (oidcConfig, error) {
 		ClientID:            clientID,
 		ClientSecret:        clientSecret,
 		AllowedEmailDomains: setup.OIDCAllowedEmailDomains,
+		AutoProvisioning:    setup.OIDCAutoProvisioning,
 	}, nil
 }
 
@@ -559,6 +572,33 @@ func verifyPassword(encodedHash, password string) (bool, error) {
 
 	computed := argon2.IDKey([]byte(password), salt, iterations, memory, parallelism, uint32(len(expectedHash)))
 	return subtle.ConstantTimeCompare(expectedHash, computed) == 1, nil
+}
+
+func (s *Service) autoProvisionUser(ctx context.Context, email string) (string, error) {
+	userID, err := randomID()
+	if err != nil {
+		return "", err
+	}
+	password, err := randomToken()
+	if err != nil {
+		return "", err
+	}
+	passwordHash, err := hashPassword(password)
+	if err != nil {
+		return "", err
+	}
+	if err := s.store.CreateUser(ctx, userID, email, passwordHash); err != nil {
+		if isUniqueViolation(err) {
+			// Race: user was created between check and insert; fetch existing.
+			user, getErr := s.store.GetUserByEmail(ctx, email)
+			if getErr != nil {
+				return "", getErr
+			}
+			return user.ID, nil
+		}
+		return "", err
+	}
+	return userID, nil
 }
 
 func isUniqueViolation(err error) bool {

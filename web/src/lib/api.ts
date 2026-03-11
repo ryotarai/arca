@@ -615,6 +615,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         passwordLoginDisabled?: boolean
         iapEnabled?: boolean
         iapAudience?: string
+        iapAutoProvisioning?: boolean
+        oidcAutoProvisioning?: boolean
       }
       isConfigured?: boolean
       configured?: boolean
@@ -634,6 +636,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       passwordLoginDisabled?: boolean
       iapEnabled?: boolean
       iapAudience?: string
+      iapAutoProvisioning?: boolean
+      oidcAutoProvisioning?: boolean
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -663,6 +667,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       response.status?.passwordLoginDisabled ?? response.passwordLoginDisabled ?? false
     const iapEnabled = response.status?.iapEnabled ?? response.iapEnabled ?? false
     const iapAudience = response.status?.iapAudience ?? response.iapAudience ?? ''
+    const iapAutoProvisioning = response.status?.iapAutoProvisioning ?? response.iapAutoProvisioning ?? false
+    const oidcAutoProvisioning = response.status?.oidcAutoProvisioning ?? response.oidcAutoProvisioning ?? false
 
     return {
       isConfigured,
@@ -679,6 +685,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       passwordLoginDisabled,
       iapEnabled,
       iapAudience,
+      iapAutoProvisioning,
+      oidcAutoProvisioning,
       serverExposureMethod,
       serverDomain,
     }
@@ -699,6 +707,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         passwordLoginDisabled: false,
         iapEnabled: false,
         iapAudience: '',
+        iapAutoProvisioning: false,
+        oidcAutoProvisioning: false,
         serverExposureMethod: 'cloudflare_tunnel',
         serverDomain: '',
       }
@@ -787,6 +797,8 @@ export async function updateDomainSettings(
   passwordLoginDisabled: boolean = false,
   iapEnabled: boolean = false,
   iapAudience: string = '',
+  iapAutoProvisioning: boolean = false,
+  oidcAutoProvisioning: boolean = false,
 ): Promise<void> {
   const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
   const response = await callConnectJSONCandidates<{
@@ -810,6 +822,8 @@ export async function updateDomainSettings(
     passwordLoginDisabled,
     iapEnabled,
     iapAudience,
+    iapAutoProvisioning,
+    oidcAutoProvisioning,
   })
   if (response.status?.completed !== true) {
     throw new Error(response.message ?? 'failed to update domain settings')

@@ -361,6 +361,9 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		current.IAPAudience = strings.TrimSpace(req.Msg.GetIapAudience())
 	}
 
+	current.IAPAutoProvisioning = req.Msg.GetIapAutoProvisioning()
+	current.OIDCAutoProvisioning = req.Msg.GetOidcAutoProvisioning()
+
 	// Password login validation: at least one auth method must remain enabled
 	current.PasswordLoginDisabled = req.Msg.GetPasswordLoginDisabled()
 	passwordEnabled := !current.PasswordLoginDisabled
@@ -399,6 +402,8 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		PasswordLoginDisabled:          state.PasswordLoginDisabled,
 		IapEnabled:                     state.IAPEnabled,
 		IapAudience:                    state.IAPAudience,
+		IapAutoProvisioning:            state.IAPAutoProvisioning,
+		OidcAutoProvisioning:           state.OIDCAutoProvisioning,
 	}
 }
 

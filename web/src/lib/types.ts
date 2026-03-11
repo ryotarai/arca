@@ -44,6 +44,8 @@ export type SetupStatus = {
   passwordLoginDisabled: boolean
   iapEnabled: boolean
   iapAudience: string
+  iapAutoProvisioning: boolean
+  oidcAutoProvisioning: boolean
   serverExposureMethod: ServerExposureMethod
   serverDomain: string
 }

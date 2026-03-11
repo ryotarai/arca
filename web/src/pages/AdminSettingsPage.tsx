@@ -24,6 +24,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [passwordLoginDisabled, setPasswordLoginDisabled] = useState(setupStatus.passwordLoginDisabled)
   const [iapEnabled, setIapEnabled] = useState(setupStatus.iapEnabled)
   const [iapAudience, setIapAudience] = useState(setupStatus.iapAudience)
+  const [iapAutoProvisioning, setIapAutoProvisioning] = useState(setupStatus.iapAutoProvisioning)
+  const [oidcAutoProvisioning, setOidcAutoProvisioning] = useState(setupStatus.oidcAutoProvisioning)
   const [oidcEnabled, setOidcEnabled] = useState(setupStatus.oidcEnabled)
   const [oidcIssuerURL, setOidcIssuerURL] = useState(setupStatus.oidcIssuerURL)
   const [oidcClientID, setOidcClientID] = useState(setupStatus.oidcClientID)
@@ -40,6 +42,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
     setCloudflareZoneID(setupStatus.cloudflareZoneID)
     setIapEnabled(setupStatus.iapEnabled)
     setIapAudience(setupStatus.iapAudience)
+    setIapAutoProvisioning(setupStatus.iapAutoProvisioning)
+    setOidcAutoProvisioning(setupStatus.oidcAutoProvisioning)
     setOidcEnabled(setupStatus.oidcEnabled)
     setOidcIssuerURL(setupStatus.oidcIssuerURL)
     setOidcClientID(setupStatus.oidcClientID)
@@ -78,6 +82,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         passwordLoginDisabled,
         iapEnabled,
         iapAudience.trim(),
+        iapAutoProvisioning,
+        oidcAutoProvisioning,
       )
       const normalizedOidcAllowedEmailDomains = oidcAllowedEmailDomainsText
         .split(/\r?\n/)
@@ -89,6 +95,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         passwordLoginDisabled,
         iapEnabled,
         iapAudience: iapAudience.trim(),
+        iapAutoProvisioning,
+        oidcAutoProvisioning,
         oidcEnabled,
         oidcIssuerURL: oidcIssuerURL.trim(),
         oidcClientID: oidcClientID.trim(),
@@ -299,6 +307,17 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                     Leave empty to allow any verified email domain.
                   </p>
                 </div>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={oidcAutoProvisioning}
+                    onChange={(event) => setOidcAutoProvisioning(event.target.checked)}
+                  />
+                  Auto-provision users authenticated via OIDC
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  When enabled, users who pass OIDC authentication are automatically created if they don't exist.
+                </p>
               </div>
 
               <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4">
@@ -327,6 +346,17 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                     Configure IAP in Google Cloud Console. The audience string is found in the IAP settings.
                   </p>
                 </div>
+                <label className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={iapAutoProvisioning}
+                    onChange={(event) => setIapAutoProvisioning(event.target.checked)}
+                  />
+                  Auto-provision users authenticated via IAP
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  When enabled, users who pass IAP authentication are automatically created if they don't exist.
+                </p>
               </div>
               <Button
                 type="submit"

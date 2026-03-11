@@ -42,6 +42,8 @@ type SetupState struct {
 	PasswordLoginDisabled          bool
 	IAPEnabled                     bool
 	IAPAudience                    string
+	IAPAutoProvisioning            bool
+	OIDCAutoProvisioning           bool
 	ServerExposureMethod           string
 	ServerDomain                   string
 	UpdatedAtUnix                  int64
@@ -128,6 +130,16 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
 	}
+	iapAutoProvisioningRaw, err := s.getMetaValue(ctx, setupMetaIAPAutoProvisioning)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	iapAutoProvisioning := parseBoolMetaValue(iapAutoProvisioningRaw)
+	oidcAutoProvisioningRaw, err := s.getMetaValue(ctx, setupMetaOIDCAutoProvisioning)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
+	oidcAutoProvisioning := parseBoolMetaValue(oidcAutoProvisioningRaw)
 	serverExposureMethod, err := s.getMetaValue(ctx, setupMetaServerExposureMethod)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
@@ -169,6 +181,8 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			PasswordLoginDisabled:          passwordLoginDisabled,
 			IAPEnabled:                     iapEnabled,
 			IAPAudience:                    strings.TrimSpace(iapAudience),
+			IAPAutoProvisioning:            iapAutoProvisioning,
+			OIDCAutoProvisioning:           oidcAutoProvisioning,
 			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
@@ -198,6 +212,8 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			PasswordLoginDisabled:          passwordLoginDisabled,
 			IAPEnabled:                     iapEnabled,
 			IAPAudience:                    strings.TrimSpace(iapAudience),
+			IAPAutoProvisioning:            iapAutoProvisioning,
+			OIDCAutoProvisioning:           oidcAutoProvisioning,
 			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
@@ -281,6 +297,12 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaIAPAudience, strings.TrimSpace(state.IAPAudience)); err != nil {
 		return err
 	}
+	if err := s.upsertMetaValue(ctx, setupMetaIAPAutoProvisioning, boolMetaValue(state.IAPAutoProvisioning)); err != nil {
+		return err
+	}
+	if err := s.upsertMetaValue(ctx, setupMetaOIDCAutoProvisioning, boolMetaValue(state.OIDCAutoProvisioning)); err != nil {
+		return err
+	}
 	if err := s.upsertMetaValue(ctx, setupMetaServerExposureMethod, NormalizeServerExposureMethod(state.ServerExposureMethod)); err != nil {
 		return err
 	}
@@ -314,6 +336,8 @@ const setupMetaOIDCAllowedEmailDomains = "setup.oidc.allowed_email_domains"
 const setupMetaPasswordLoginDisabled = "setup.password_login_disabled"
 const setupMetaIAPEnabled = "setup.iap.enabled"
 const setupMetaIAPAudience = "setup.iap.audience"
+const setupMetaIAPAutoProvisioning = "setup.iap.auto_provisioning"
+const setupMetaOIDCAutoProvisioning = "setup.oidc.auto_provisioning"
 const setupMetaServerExposureMethod = "setup.server_exposure_method"
 const setupMetaServerDomain = "setup.server_domain"
 

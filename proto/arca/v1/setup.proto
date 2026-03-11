@@ -36,6 +36,8 @@ message SetupStatus {
   bool password_login_disabled = 17;
   bool iap_enabled = 18;
   string iap_audience = 19;
+  bool iap_auto_provisioning = 20;
+  bool oidc_auto_provisioning = 21;
 }
 
 message GetSetupStatusRequest {}
@@ -95,6 +97,8 @@ message UpdateDomainSettingsRequest {
   bool password_login_disabled = 15;
   bool iap_enabled = 16;
   string iap_audience = 17;
+  bool iap_auto_provisioning = 18;
+  bool oidc_auto_provisioning = 19;
 }
 
 message UpdateDomainSettingsResponse {

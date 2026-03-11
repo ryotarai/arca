@@ -48,7 +48,14 @@ func (s *Service) AuthenticateIAPJWT(ctx context.Context, jwtToken string) (stri
 	user, err := s.store.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", "", "", ErrIAPRejected
+			if !setup.IAPAutoProvisioning {
+				return "", "", "", ErrIAPRejected
+			}
+			userID, createErr := s.autoProvisionUser(ctx, email)
+			if createErr != nil {
+				return "", "", "", createErr
+			}
+			return userID, email, "user", nil
 		}
 		return "", "", "", err
 	}
