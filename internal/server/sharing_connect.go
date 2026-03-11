@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -119,8 +120,20 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	for _, m := range requestedMembers {
 		uid := strings.TrimSpace(m.UserId)
 		r := strings.TrimSpace(m.Role)
-		if uid == "" || r == "" {
+		if r == "" {
 			continue
+		}
+		// Resolve email to user ID if not provided
+		if uid == "" {
+			email := strings.TrimSpace(m.Email)
+			if email == "" {
+				continue
+			}
+			user, err := s.store.GetUserByEmail(ctx, email)
+			if err != nil {
+				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found: %s", email))
+			}
+			uid = user.ID
 		}
 		requestedSet[uid] = r
 	}
