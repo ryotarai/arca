@@ -291,7 +291,7 @@ VALUES (
 
 -- name: ListMachinesAccessibleByUser :many
 SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason,
-  COALESCE(um.role, '') AS user_role
+  COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN user_machines um ON um.machine_id = m.id AND um.user_id = sqlc.arg(user_id)

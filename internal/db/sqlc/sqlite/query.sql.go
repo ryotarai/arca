@@ -8,6 +8,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const claimMachineJob = `-- name: ClaimMachineJob :execrows
@@ -1303,7 +1304,7 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
 SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason,
-  COALESCE(um.role, '') AS user_role
+  COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN user_machines um ON um.machine_id = m.id AND um.user_id = ?1
@@ -1327,6 +1328,7 @@ type ListMachinesAccessibleByUserRow struct {
 	ReadyReportedAt int64
 	ReadyReason     string
 	UserRole        string
+	CreatedAt       time.Time
 }
 
 func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID string) ([]ListMachinesAccessibleByUserRow, error) {
@@ -1352,6 +1354,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
 			&i.UserRole,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
