@@ -797,6 +797,154 @@ func (x *UpdateUserSettingsResponse) GetSettings() *UserSettings {
 	return nil
 }
 
+type SearchUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchUsersRequest) Reset() {
+	*x = SearchUsersRequest{}
+	mi := &file_arca_v1_user_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchUsersRequest) ProtoMessage() {}
+
+func (x *SearchUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchUsersRequest.ProtoReflect.Descriptor instead.
+func (*SearchUsersRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SearchUsersRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchUsersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type SearchUsersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []*UserSearchResult    `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchUsersResponse) Reset() {
+	*x = SearchUsersResponse{}
+	mi := &file_arca_v1_user_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchUsersResponse) ProtoMessage() {}
+
+func (x *SearchUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchUsersResponse.ProtoReflect.Descriptor instead.
+func (*SearchUsersResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SearchUsersResponse) GetUsers() []*UserSearchResult {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+type UserSearchResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserSearchResult) Reset() {
+	*x = UserSearchResult{}
+	mi := &file_arca_v1_user_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserSearchResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserSearchResult) ProtoMessage() {}
+
+func (x *UserSearchResult) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserSearchResult.ProtoReflect.Descriptor instead.
+func (*UserSearchResult) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *UserSearchResult) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UserSearchResult) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
 var File_arca_v1_user_proto protoreflect.FileDescriptor
 
 const file_arca_v1_user_proto_rawDesc = "" +
@@ -846,7 +994,15 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x19UpdateUserSettingsRequest\x121\n" +
 	"\bsettings\x18\x01 \x01(\v2\x15.arca.v1.UserSettingsR\bsettings\"O\n" +
 	"\x1aUpdateUserSettingsResponse\x121\n" +
-	"\bsettings\x18\x01 \x01(\v2\x15.arca.v1.UserSettingsR\bsettings2\xde\x04\n" +
+	"\bsettings\x18\x01 \x01(\v2\x15.arca.v1.UserSettingsR\bsettings\"@\n" +
+	"\x12SearchUsersRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"F\n" +
+	"\x13SearchUsersResponse\x12/\n" +
+	"\x05users\x18\x01 \x03(\v2\x19.arca.v1.UserSearchResultR\x05users\"8\n" +
+	"\x10UserSearchResult\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email2\xa8\x05\n" +
 	"\vUserService\x12B\n" +
 	"\tListUsers\x12\x19.arca.v1.ListUsersRequest\x1a\x1a.arca.v1.ListUsersResponse\x12E\n" +
 	"\n" +
@@ -855,7 +1011,8 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x11CompleteUserSetup\x12!.arca.v1.CompleteUserSetupRequest\x1a\".arca.v1.CompleteUserSetupResponse\x12Q\n" +
 	"\x0eUpdateUserRole\x12\x1e.arca.v1.UpdateUserRoleRequest\x1a\x1f.arca.v1.UpdateUserRoleResponse\x12T\n" +
 	"\x0fGetUserSettings\x12\x1f.arca.v1.GetUserSettingsRequest\x1a .arca.v1.GetUserSettingsResponse\x12]\n" +
-	"\x12UpdateUserSettings\x12\".arca.v1.UpdateUserSettingsRequest\x1a#.arca.v1.UpdateUserSettingsResponseB\x8b\x01\n" +
+	"\x12UpdateUserSettings\x12\".arca.v1.UpdateUserSettingsRequest\x1a#.arca.v1.UpdateUserSettingsResponse\x12H\n" +
+	"\vSearchUsers\x12\x1b.arca.v1.SearchUsersRequest\x1a\x1c.arca.v1.SearchUsersResponseB\x8b\x01\n" +
 	"\vcom.arca.v1B\tUserProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -870,7 +1027,7 @@ func file_arca_v1_user_proto_rawDescGZIP() []byte {
 	return file_arca_v1_user_proto_rawDescData
 }
 
-var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_arca_v1_user_proto_goTypes = []any{
 	(*ManagedUser)(nil),                 // 0: arca.v1.ManagedUser
 	(*ListUsersRequest)(nil),            // 1: arca.v1.ListUsersRequest
@@ -888,36 +1045,42 @@ var file_arca_v1_user_proto_goTypes = []any{
 	(*GetUserSettingsResponse)(nil),     // 13: arca.v1.GetUserSettingsResponse
 	(*UpdateUserSettingsRequest)(nil),   // 14: arca.v1.UpdateUserSettingsRequest
 	(*UpdateUserSettingsResponse)(nil),  // 15: arca.v1.UpdateUserSettingsResponse
-	(*User)(nil),                        // 16: arca.v1.User
+	(*SearchUsersRequest)(nil),          // 16: arca.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),         // 17: arca.v1.SearchUsersResponse
+	(*UserSearchResult)(nil),            // 18: arca.v1.UserSearchResult
+	(*User)(nil),                        // 19: arca.v1.User
 }
 var file_arca_v1_user_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.ListUsersResponse.users:type_name -> arca.v1.ManagedUser
 	0,  // 1: arca.v1.CreateUserResponse.user:type_name -> arca.v1.ManagedUser
 	0,  // 2: arca.v1.IssueUserSetupTokenResponse.user:type_name -> arca.v1.ManagedUser
-	16, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
+	19, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
 	0,  // 4: arca.v1.UpdateUserRoleResponse.user:type_name -> arca.v1.ManagedUser
 	11, // 5: arca.v1.GetUserSettingsResponse.settings:type_name -> arca.v1.UserSettings
 	11, // 6: arca.v1.UpdateUserSettingsRequest.settings:type_name -> arca.v1.UserSettings
 	11, // 7: arca.v1.UpdateUserSettingsResponse.settings:type_name -> arca.v1.UserSettings
-	1,  // 8: arca.v1.UserService.ListUsers:input_type -> arca.v1.ListUsersRequest
-	3,  // 9: arca.v1.UserService.CreateUser:input_type -> arca.v1.CreateUserRequest
-	5,  // 10: arca.v1.UserService.IssueUserSetupToken:input_type -> arca.v1.IssueUserSetupTokenRequest
-	7,  // 11: arca.v1.UserService.CompleteUserSetup:input_type -> arca.v1.CompleteUserSetupRequest
-	9,  // 12: arca.v1.UserService.UpdateUserRole:input_type -> arca.v1.UpdateUserRoleRequest
-	12, // 13: arca.v1.UserService.GetUserSettings:input_type -> arca.v1.GetUserSettingsRequest
-	14, // 14: arca.v1.UserService.UpdateUserSettings:input_type -> arca.v1.UpdateUserSettingsRequest
-	2,  // 15: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
-	4,  // 16: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
-	6,  // 17: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
-	8,  // 18: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
-	10, // 19: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
-	13, // 20: arca.v1.UserService.GetUserSettings:output_type -> arca.v1.GetUserSettingsResponse
-	15, // 21: arca.v1.UserService.UpdateUserSettings:output_type -> arca.v1.UpdateUserSettingsResponse
-	15, // [15:22] is the sub-list for method output_type
-	8,  // [8:15] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	18, // 8: arca.v1.SearchUsersResponse.users:type_name -> arca.v1.UserSearchResult
+	1,  // 9: arca.v1.UserService.ListUsers:input_type -> arca.v1.ListUsersRequest
+	3,  // 10: arca.v1.UserService.CreateUser:input_type -> arca.v1.CreateUserRequest
+	5,  // 11: arca.v1.UserService.IssueUserSetupToken:input_type -> arca.v1.IssueUserSetupTokenRequest
+	7,  // 12: arca.v1.UserService.CompleteUserSetup:input_type -> arca.v1.CompleteUserSetupRequest
+	9,  // 13: arca.v1.UserService.UpdateUserRole:input_type -> arca.v1.UpdateUserRoleRequest
+	12, // 14: arca.v1.UserService.GetUserSettings:input_type -> arca.v1.GetUserSettingsRequest
+	14, // 15: arca.v1.UserService.UpdateUserSettings:input_type -> arca.v1.UpdateUserSettingsRequest
+	16, // 16: arca.v1.UserService.SearchUsers:input_type -> arca.v1.SearchUsersRequest
+	2,  // 17: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
+	4,  // 18: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
+	6,  // 19: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
+	8,  // 20: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
+	10, // 21: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
+	13, // 22: arca.v1.UserService.GetUserSettings:output_type -> arca.v1.GetUserSettingsResponse
+	15, // 23: arca.v1.UserService.UpdateUserSettings:output_type -> arca.v1.UpdateUserSettingsResponse
+	17, // 24: arca.v1.UserService.SearchUsers:output_type -> arca.v1.SearchUsersResponse
+	17, // [17:25] is the sub-list for method output_type
+	9,  // [9:17] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_user_proto_init() }
@@ -932,7 +1095,7 @@ func file_arca_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_user_proto_rawDesc), len(file_arca_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -255,6 +255,34 @@ func (s *userConnectService) UpdateUserSettings(ctx context.Context, req *connec
 	}), nil
 }
 
+func (s *userConnectService) SearchUsers(ctx context.Context, req *connect.Request[arcav1.SearchUsersRequest]) (*connect.Response[arcav1.SearchUsersResponse], error) {
+	if _, err := s.authenticateUser(ctx, req.Header()); err != nil {
+		return nil, err
+	}
+
+	query := strings.TrimSpace(req.Msg.GetQuery())
+	if query == "" {
+		return connect.NewResponse(&arcav1.SearchUsersResponse{}), nil
+	}
+
+	limit := int64(req.Msg.GetLimit())
+	if limit <= 0 || limit > 20 {
+		limit = 20
+	}
+
+	results, err := s.store.SearchUsersByEmail(ctx, query, limit)
+	if err != nil {
+		log.Printf("search users failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to search users"))
+	}
+
+	items := make([]*arcav1.UserSearchResult, 0, len(results))
+	for _, r := range results {
+		items = append(items, &arcav1.UserSearchResult{Id: r.ID, Email: r.Email})
+	}
+	return connect.NewResponse(&arcav1.SearchUsersResponse{Users: items}), nil
+}
+
 func toManagedUserMessage(user db.ManagedUser) *arcav1.ManagedUser {
 	return &arcav1.ManagedUser{
 		Id:                  user.ID,

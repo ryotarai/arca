@@ -45,6 +45,7 @@ import {
   GetUserSettingsRequestSchema,
   IssueUserSetupTokenRequestSchema,
   ListUsersRequestSchema as ListManagedUsersRequestSchema,
+  SearchUsersRequestSchema,
   UpdateUserSettingsRequestSchema,
   UpdateUserRoleRequestSchema,
   UserService,
@@ -864,6 +865,13 @@ export async function getMachineSharing(machineID: string): Promise<{
     members: response.members,
     generalAccess: response.generalAccess,
   }
+}
+
+export async function searchUsers(query: string, limit = 10): Promise<{ id: string; email: string }[]> {
+  const response = await userClient.searchUsers(
+    create(SearchUsersRequestSchema, { query, limit }),
+  )
+  return response.users.map((u) => ({ id: u.id, email: u.email }))
 }
 
 export async function updateMachineSharing(

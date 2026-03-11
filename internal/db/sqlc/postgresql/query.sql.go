@@ -1814,6 +1814,47 @@ func (q *Queries) RevokeSessionByTokenHash(ctx context.Context, tokenHash string
 	return err
 }
 
+const searchUsersByEmail = `-- name: SearchUsersByEmail :many
+SELECT id, email
+FROM users
+WHERE LOWER(email) LIKE '%' || LOWER($1) || '%'
+ORDER BY email ASC
+LIMIT $2
+`
+
+type SearchUsersByEmailParams struct {
+	Query      string
+	LimitCount int32
+}
+
+type SearchUsersByEmailRow struct {
+	ID    string
+	Email string
+}
+
+func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmailParams) ([]SearchUsersByEmailRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchUsersByEmail, arg.Query, arg.LimitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchUsersByEmailRow
+	for rows.Next() {
+		var i SearchUsersByEmailRow
+		if err := rows.Scan(&i.ID, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateMachineEndpointByID = `-- name: UpdateMachineEndpointByID :exec
 UPDATE machines
 SET endpoint = $1

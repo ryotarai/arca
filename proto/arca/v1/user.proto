@@ -14,6 +14,7 @@ service UserService {
   rpc UpdateUserRole(UpdateUserRoleRequest) returns (UpdateUserRoleResponse);
   rpc GetUserSettings(GetUserSettingsRequest) returns (GetUserSettingsResponse);
   rpc UpdateUserSettings(UpdateUserSettingsRequest) returns (UpdateUserSettingsResponse);
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
 }
 
 message ManagedUser {
@@ -85,4 +86,18 @@ message UpdateUserSettingsRequest {
 
 message UpdateUserSettingsResponse {
   UserSettings settings = 1;
+}
+
+message SearchUsersRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchUsersResponse {
+  repeated UserSearchResult users = 1;
+}
+
+message UserSearchResult {
+  string id = 1;
+  string email = 2;
 }

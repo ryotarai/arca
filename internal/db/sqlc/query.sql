@@ -25,6 +25,13 @@ FROM users
 WHERE email = sqlc.arg(email)
 LIMIT 1;
 
+-- name: SearchUsersByEmail :many
+SELECT id, email
+FROM users
+WHERE LOWER(email) LIKE '%' || LOWER(sqlc.arg(query)) || '%'
+ORDER BY email ASC
+LIMIT sqlc.arg(limit_count);
+
 -- name: GetUserByID :one
 SELECT id, email, password_hash, password_setup_required, role, created_at
 FROM users

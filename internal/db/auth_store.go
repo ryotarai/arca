@@ -450,6 +450,44 @@ func (s *Store) GetFirstAdmin(ctx context.Context) (AuthUser, error) {
 	}
 }
 
+type UserSearchResult struct {
+	ID    string
+	Email string
+}
+
+func (s *Store) SearchUsersByEmail(ctx context.Context, query string, limit int64) ([]UserSearchResult, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.SearchUsersByEmail(ctx, sqlitesqlc.SearchUsersByEmailParams{
+			Query:      query,
+			LimitCount: limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+		results := make([]UserSearchResult, 0, len(rows))
+		for _, row := range rows {
+			results = append(results, UserSearchResult{ID: row.ID, Email: row.Email})
+		}
+		return results, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.SearchUsersByEmail(ctx, postgresqlsqlc.SearchUsersByEmailParams{
+			Query:      query,
+			LimitCount: int32(limit),
+		})
+		if err != nil {
+			return nil, err
+		}
+		results := make([]UserSearchResult, 0, len(rows))
+		for _, row := range rows {
+			results = append(results, UserSearchResult{ID: row.ID, Email: row.Email})
+		}
+		return results, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
 func toAuthUser(user sqlitesqlc.User) AuthUser {
 	return AuthUser{
 		ID:                    user.ID,

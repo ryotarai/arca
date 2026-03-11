@@ -52,6 +52,8 @@ const (
 	// UserServiceUpdateUserSettingsProcedure is the fully-qualified name of the UserService's
 	// UpdateUserSettings RPC.
 	UserServiceUpdateUserSettingsProcedure = "/arca.v1.UserService/UpdateUserSettings"
+	// UserServiceSearchUsersProcedure is the fully-qualified name of the UserService's SearchUsers RPC.
+	UserServiceSearchUsersProcedure = "/arca.v1.UserService/SearchUsers"
 )
 
 // UserServiceClient is a client for the arca.v1.UserService service.
@@ -63,6 +65,7 @@ type UserServiceClient interface {
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)
 	GetUserSettings(context.Context, *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error)
 	UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error)
+	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
 }
 
 // NewUserServiceClient constructs a client for the arca.v1.UserService service. By default, it uses
@@ -118,6 +121,12 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("UpdateUserSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		searchUsers: connect.NewClient[v1.SearchUsersRequest, v1.SearchUsersResponse](
+			httpClient,
+			baseURL+UserServiceSearchUsersProcedure,
+			connect.WithSchema(userServiceMethods.ByName("SearchUsers")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -130,6 +139,7 @@ type userServiceClient struct {
 	updateUserRole      *connect.Client[v1.UpdateUserRoleRequest, v1.UpdateUserRoleResponse]
 	getUserSettings     *connect.Client[v1.GetUserSettingsRequest, v1.GetUserSettingsResponse]
 	updateUserSettings  *connect.Client[v1.UpdateUserSettingsRequest, v1.UpdateUserSettingsResponse]
+	searchUsers         *connect.Client[v1.SearchUsersRequest, v1.SearchUsersResponse]
 }
 
 // ListUsers calls arca.v1.UserService.ListUsers.
@@ -167,6 +177,11 @@ func (c *userServiceClient) UpdateUserSettings(ctx context.Context, req *connect
 	return c.updateUserSettings.CallUnary(ctx, req)
 }
 
+// SearchUsers calls arca.v1.UserService.SearchUsers.
+func (c *userServiceClient) SearchUsers(ctx context.Context, req *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error) {
+	return c.searchUsers.CallUnary(ctx, req)
+}
+
 // UserServiceHandler is an implementation of the arca.v1.UserService service.
 type UserServiceHandler interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
@@ -176,6 +191,7 @@ type UserServiceHandler interface {
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)
 	GetUserSettings(context.Context, *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error)
 	UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error)
+	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -227,6 +243,12 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("UpdateUserSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceSearchUsersHandler := connect.NewUnaryHandler(
+		UserServiceSearchUsersProcedure,
+		svc.SearchUsers,
+		connect.WithSchema(userServiceMethods.ByName("SearchUsers")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceListUsersProcedure:
@@ -243,6 +265,8 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceGetUserSettingsHandler.ServeHTTP(w, r)
 		case UserServiceUpdateUserSettingsProcedure:
 			userServiceUpdateUserSettingsHandler.ServeHTTP(w, r)
+		case UserServiceSearchUsersProcedure:
+			userServiceSearchUsersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -278,4 +302,8 @@ func (UnimplementedUserServiceHandler) GetUserSettings(context.Context, *connect
 
 func (UnimplementedUserServiceHandler) UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.UpdateUserSettings is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.SearchUsers is not implemented"))
 }

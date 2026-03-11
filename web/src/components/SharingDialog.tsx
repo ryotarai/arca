@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -8,7 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getMachineSharing, updateMachineSharing } from '@/lib/api'
+import {
+  Popover,
+  PopoverContent,
+  PopoverAnchor,
+} from '@/components/ui/popover'
+import { getMachineSharing, searchUsers, updateMachineSharing } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 
 type Member = {
@@ -31,6 +36,9 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [searchResults, setSearchResults] = useState<{ id: string; email: string }[]>([])
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!open || machineID === '') return
@@ -59,6 +67,54 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
     return () => { cancelled = true }
   }, [open, machineID])
 
+  useEffect(() => {
+    if (!open) {
+      setNewEmail('')
+      setSearchResults([])
+      setPopoverOpen(false)
+    }
+  }, [open])
+
+  const handleEmailChange = (value: string) => {
+    setNewEmail(value)
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    const trimmed = value.trim()
+    if (trimmed.length < 2) {
+      setSearchResults([])
+      setPopoverOpen(false)
+      return
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchUsers(trimmed, 10)
+        const memberEmails = new Set(members.map((m) => m.email))
+        const filtered = results.filter((r) => !memberEmails.has(r.email))
+        setSearchResults(filtered)
+        setPopoverOpen(filtered.length > 0)
+      } catch {
+        setSearchResults([])
+        setPopoverOpen(false)
+      }
+    }, 300)
+  }
+
+  const handleSelectUser = (user: { id: string; email: string }) => {
+    if (members.some((m) => m.email === user.email)) {
+      setError('User already added')
+      return
+    }
+    setMembers((prev) => [...prev, { userId: user.id, email: user.email, role: 'viewer' }])
+    setNewEmail('')
+    setSearchResults([])
+    setPopoverOpen(false)
+    setError('')
+  }
+
   const handleAddMember = () => {
     const email = newEmail.trim()
     if (email === '') return
@@ -68,6 +124,8 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
     }
     setMembers((prev) => [...prev, { userId: '', email, role: 'viewer' }])
     setNewEmail('')
+    setSearchResults([])
+    setPopoverOpen(false)
     setError('')
   }
 
@@ -124,23 +182,51 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
         ) : (
           <div className="space-y-5">
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Add by email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleAddMember()
-                    }
-                  }}
-                  className="flex-1"
-                />
-                <Button type="button" variant="secondary" className="h-9 px-3" onClick={handleAddMember}>
-                  Add
-                </Button>
-              </div>
+              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                <div className="flex items-center gap-2">
+                  <PopoverAnchor asChild>
+                    <Input
+                      placeholder="Add by email"
+                      value={newEmail}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddMember()
+                        }
+                        if (e.key === 'Escape') {
+                          setPopoverOpen(false)
+                        }
+                      }}
+                      className="flex-1"
+                      autoComplete="off"
+                    />
+                  </PopoverAnchor>
+                  <Button type="button" variant="secondary" className="h-9 px-3" onClick={handleAddMember}>
+                    Add
+                  </Button>
+                </div>
+                <PopoverContent
+                  className="p-1 w-[var(--radix-popover-trigger-width)]"
+                  align="start"
+                  sideOffset={4}
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  {searchResults.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className="w-full rounded-sm px-2 py-1.5 text-sm text-left text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        handleSelectUser(user)
+                      }}
+                    >
+                      {user.email}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
 
               {members.length > 0 && (
                 <div className="space-y-2">
