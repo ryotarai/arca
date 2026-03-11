@@ -12,15 +12,15 @@ func canUserAccessExposure(ctx context.Context, store *db.Store, exposure db.Mac
 	if role == db.MachineRoleNone {
 		return false
 	}
-	// /__arca/* paths (ttyd/shelley) require admin
-	if isAdminOnlyArcaPath(targetPath) {
-		return role == db.MachineRoleAdmin
+	// /__arca/* paths (ttyd/shelley/claudecodeui) require admin or editor
+	if isPrivilegedArcaPath(targetPath) {
+		return role == db.MachineRoleAdmin || role == db.MachineRoleEditor
 	}
 	// Regular endpoints: viewer+ can access
 	return true
 }
 
-func isAdminOnlyArcaPath(path string) bool {
+func isPrivilegedArcaPath(path string) bool {
 	path = strings.TrimSpace(path)
 	if path == "" || path == "/__arca/readyz" {
 		return false

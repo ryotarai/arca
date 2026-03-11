@@ -244,6 +244,7 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
                           className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
                         >
                           <option value="admin">Admin</option>
+                          <option value="editor">Editor</option>
                           <option value="viewer">Viewer</option>
                         </select>
                         <Button

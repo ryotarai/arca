@@ -54,6 +54,7 @@ type Machine struct {
 
 const (
 	MachineRoleAdmin  = "admin"
+	MachineRoleEditor = "editor"
 	MachineRoleViewer = "viewer"
 	MachineRoleNone   = ""
 

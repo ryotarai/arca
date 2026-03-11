@@ -96,6 +96,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const isRunning = machine?.status === 'running'
   const isAdmin = machine?.userRole === 'admin'
+  const isEditor = machine?.userRole === 'editor'
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
@@ -301,7 +302,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     <p className="text-xs text-muted-foreground">Proxied to localhost:11030 inside the machine</p>
                   </div>
                 )}
-                {isAdmin && isRunning && ttydURL != null && (
+                {(isAdmin || isEditor) && isRunning && ttydURL != null && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Terminal (ttyd)</p>
                     <a
