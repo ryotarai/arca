@@ -425,6 +425,7 @@ function toRuntimeCatalogItem(input: {
       connectivity?: number
     }
     serverApiUrl?: string
+    autoStopTimeoutSeconds?: bigint
   }
   createdAt: bigint
   updatedAt: bigint
@@ -483,12 +484,13 @@ function toRuntimeCatalogItem(input: {
     config,
     exposure,
     serverApiUrl: input.config?.serverApiUrl ?? '',
+    autoStopTimeoutSeconds: Number(input.config?.autoStopTimeoutSeconds ?? 0),
     createdAt: Number(input.createdAt),
     updatedAt: Number(input.updatedAt),
   }
 }
 
-function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig, exposure?: MachineExposureConfig, serverApiUrl?: string) {
+function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig, exposure?: MachineExposureConfig, serverApiUrl?: string, autoStopTimeoutSeconds?: number) {
   let provider
   if (type === 'gce') {
     if (config.type !== 'gce') {
@@ -550,6 +552,9 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
   if (serverApiUrl) {
     result.serverApiUrl = serverApiUrl
   }
+  if (autoStopTimeoutSeconds != null && autoStopTimeoutSeconds > 0) {
+    result.autoStopTimeoutSeconds = BigInt(autoStopTimeoutSeconds)
+  }
   return result
 }
 
@@ -573,12 +578,13 @@ export async function createRuntime(
   config: RuntimeCatalogConfig,
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
+  autoStopTimeoutSeconds?: number,
 ): Promise<RuntimeCatalogItem> {
   const response = await runtimeClient.createRuntime(
     create(CreateRuntimeRequestSchema, {
       name,
       type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config, exposure, serverApiUrl),
+      config: runtimeConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
     }),
   )
   if (response.runtime == null) {
@@ -594,13 +600,14 @@ export async function updateRuntime(
   config: RuntimeCatalogConfig,
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
+  autoStopTimeoutSeconds?: number,
 ): Promise<RuntimeCatalogItem> {
   const response = await runtimeClient.updateRuntime(
     create(UpdateRuntimeRequestSchema, {
       runtimeId: runtimeID,
       name,
       type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config, exposure, serverApiUrl),
+      config: runtimeConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
     }),
   )
   if (response.runtime == null) {

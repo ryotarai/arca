@@ -91,6 +91,7 @@ func (w *Worker) Run(ctx context.Context) {
 
 		nowUnix := time.Now().Unix()
 		w.maybeReconcile(ctx, nowUnix)
+		w.maybeAutoStop(ctx, nowUnix)
 		if err := w.store.RecoverExpiredMachineJobs(ctx, nowUnix); err != nil {
 			log.Printf("machine worker recover failed: %v", err)
 		}
@@ -170,6 +171,67 @@ func (w *Worker) maybeReconcile(ctx context.Context, nowUnix int64) {
 		}
 		w.emitEvent(ctx, machine.ID, "", "warn", "reconcile_scheduled", "container is not running; reconcile job enqueued")
 		slog.Info("machine reconcile job enqueued", "machine_id", machine.ID)
+	}
+}
+
+func (w *Worker) maybeAutoStop(ctx context.Context, nowUnix int64) {
+	if w.store == nil || w.runtime == nil {
+		return
+	}
+	now := time.Now()
+	// Piggyback on the same cadence as reconcile (reuse reconcileTTL interval)
+	if !w.lastSweep.IsZero() && now.Sub(w.lastSweep) < w.reconcileTTL {
+		return
+	}
+
+	machines, err := w.store.ListMachinesByDesiredStatus(ctx, db.MachineDesiredRunning, 200)
+	if err != nil {
+		slog.Error("auto-stop list failed", "error", err)
+		return
+	}
+
+	// Cache runtime configs per runtime_id to avoid N+1 queries
+	runtimeConfigs := make(map[string]string) // runtime_id -> config_json
+
+	for _, machine := range machines {
+		if machine.Status != db.MachineStatusRunning {
+			continue
+		}
+		if machine.LastActivityAt == 0 {
+			continue
+		}
+
+		configJSON, ok := runtimeConfigs[machine.RuntimeID]
+		if !ok {
+			rt, rtErr := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
+			if rtErr != nil {
+				slog.Warn("auto-stop runtime lookup failed", "machine_id", machine.ID, "runtime_id", machine.RuntimeID, "error", rtErr)
+				continue
+			}
+			configJSON = rt.ConfigJSON
+			runtimeConfigs[machine.RuntimeID] = configJSON
+		}
+
+		timeout := db.GetRuntimeAutoStopTimeoutSeconds(configJSON)
+		if timeout <= 0 {
+			continue
+		}
+
+		idleDuration := nowUnix - machine.LastActivityAt
+		if idleDuration <= timeout {
+			continue
+		}
+
+		stopped, stopErr := w.store.RequestSystemStopMachine(ctx, machine.ID)
+		if stopErr != nil {
+			slog.Warn("auto-stop request failed", "machine_id", machine.ID, "error", stopErr)
+			continue
+		}
+		if stopped {
+			idleMinutes := idleDuration / 60
+			w.emitEvent(ctx, machine.ID, "", "info", "auto_stop", fmt.Sprintf("machine auto-stopped after %d minutes idle", idleMinutes))
+			slog.Info("machine auto-stopped", "machine_id", machine.ID, "idle_minutes", idleMinutes)
+		}
 	}
 }
 
@@ -348,6 +410,12 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	); err != nil {
 		return err
 	}
+
+	// Initialize last_activity_at so idle timer starts from readiness, not epoch 0
+	if err := w.store.UpdateMachineLastActivityAt(ctx, machine.ID); err != nil {
+		slog.Warn("update machine last activity on start failed", "machine_id", machine.ID, "error", err)
+	}
+
 	w.emitEvent(ctx, machine.ID, jobID, "info", "ready", "machine is ready")
 	return nil
 }

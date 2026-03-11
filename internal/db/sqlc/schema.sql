@@ -105,7 +105,8 @@ CREATE TABLE IF NOT EXISTS machine_states (
   ready BOOLEAN NOT NULL DEFAULT FALSE,
   ready_reported_at BIGINT NOT NULL DEFAULT 0,
   ready_reason TEXT NOT NULL DEFAULT '',
-  updated_at BIGINT NOT NULL
+  updated_at BIGINT NOT NULL,
+  last_activity_at BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS machine_jobs (

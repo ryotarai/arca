@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -167,6 +168,10 @@ func (s *ticketConnectService) ValidateArcadSession(ctx context.Context, req *co
 	}
 	if !canUserAccessExposure(ctx, s.store, exposure, session.UserID, targetPath) {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("access denied"))
+	}
+
+	if err := s.store.UpdateMachineLastActivityAt(ctx, machineID); err != nil {
+		slog.Warn("update machine last activity failed", "machine_id", machineID, "error", err)
 	}
 
 	return connect.NewResponse(&arcav1.ValidateArcadSessionResponse{

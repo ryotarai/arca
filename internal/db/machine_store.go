@@ -50,6 +50,7 @@ type Machine struct {
 	ReadyReason     string
 	MachineToken    string
 	UserRole        string
+	LastActivityAt  int64
 }
 
 const (
@@ -721,6 +722,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				LastActivityAt:  row.LastActivityAt,
 			})
 		}
 		return machines, nil
@@ -745,6 +747,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				LastActivityAt:  row.LastActivityAt,
 			})
 		}
 		return machines, nil
@@ -1349,6 +1352,127 @@ func (s *Store) ListMachineEventsByMachineID(ctx context.Context, machineID stri
 	default:
 		return nil, unsupportedDriverError(s.driver)
 	}
+}
+
+func (s *Store) UpdateMachineLastActivityAt(ctx context.Context, machineID string) error {
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateMachineLastActivityAt(ctx, sqlitesqlc.UpdateMachineLastActivityAtParams{
+			LastActivityAt: nowUnix,
+			MachineID:      machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateMachineLastActivityAt(ctx, postgresqlsqlc.UpdateMachineLastActivityAtParams{
+			LastActivityAt: nowUnix,
+			MachineID:      machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) RequestSystemStopMachine(ctx context.Context, machineID string) (bool, error) {
+	nowUnix := time.Now().Unix()
+	jobID, err := randomID()
+	if err != nil {
+		return false, err
+	}
+	eventID, err := randomID()
+	if err != nil {
+		return false, err
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	var updated int64
+	switch s.driver {
+	case DriverSQLite:
+		q := s.sqliteQueries.WithTx(tx)
+		updated, err = q.RequestSystemStopMachine(ctx, sqlitesqlc.RequestSystemStopMachineParams{
+			UpdatedAt: nowUnix,
+			MachineID: machineID,
+		})
+		if err != nil {
+			return false, err
+		}
+		if updated == 0 {
+			if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
+				return false, err
+			}
+			return false, nil
+		}
+		if err = q.EnqueueMachineJob(ctx, sqlitesqlc.EnqueueMachineJobParams{
+			ID:        jobID,
+			MachineID: machineID,
+			Kind:      MachineJobStop,
+			NextRunAt: nowUnix,
+			NowUnix:   nowUnix,
+		}); err != nil {
+			return false, err
+		}
+		if err = q.CreateMachineEvent(ctx, sqlitesqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: machineID,
+			JobID:     jobID,
+			Level:     "info",
+			EventType: "auto_stop_requested",
+			Message:   "machine auto-stop requested due to idle timeout",
+			CreatedAt: nowUnix,
+		}); err != nil {
+			return false, err
+		}
+	case DriverPostgres:
+		q := s.pgQueries.WithTx(tx)
+		updated, err = q.RequestSystemStopMachine(ctx, postgresqlsqlc.RequestSystemStopMachineParams{
+			UpdatedAt: nowUnix,
+			MachineID: machineID,
+		})
+		if err != nil {
+			return false, err
+		}
+		if updated == 0 {
+			if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
+				return false, err
+			}
+			return false, nil
+		}
+		if err = q.EnqueueMachineJob(ctx, postgresqlsqlc.EnqueueMachineJobParams{
+			ID:        jobID,
+			MachineID: machineID,
+			Kind:      MachineJobStop,
+			NextRunAt: nowUnix,
+			NowUnix:   nowUnix,
+		}); err != nil {
+			return false, err
+		}
+		if err = q.CreateMachineEvent(ctx, postgresqlsqlc.CreateMachineEventParams{
+			ID:        eventID,
+			MachineID: machineID,
+			JobID:     jobID,
+			Level:     "info",
+			EventType: "auto_stop_requested",
+			Message:   "machine auto-stop requested due to idle timeout",
+			CreatedAt: nowUnix,
+		}); err != nil {
+			return false, err
+		}
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func isMachineNameUniqueConstraintError(err error) bool {

@@ -74,6 +74,7 @@ message RuntimeConfig {
   }
   MachineExposureConfig exposure = 3;
   string server_api_url = 5;
+  int64 auto_stop_timeout_seconds = 6;
 }
 
 message Runtime {

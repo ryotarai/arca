@@ -1370,7 +1370,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = $1
@@ -1396,6 +1396,7 @@ type ListMachinesByDesiredStatusRow struct {
 	Ready           bool
 	ReadyReportedAt int64
 	ReadyReason     string
+	LastActivityAt  int64
 }
 
 func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachinesByDesiredStatusParams) ([]ListMachinesByDesiredStatusRow, error) {
@@ -1420,6 +1421,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.Ready,
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
+			&i.LastActivityAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1756,6 +1758,29 @@ func (q *Queries) ReportMachineReadinessByMachineID(ctx context.Context, arg Rep
 	return result.RowsAffected()
 }
 
+const requestSystemStopMachine = `-- name: RequestSystemStopMachine :execrows
+UPDATE machine_states
+SET status = 'stopping',
+    desired_status = 'stopped',
+    updated_at = $1
+WHERE machine_id = $2
+  AND desired_status = 'running'
+  AND status = 'running'
+`
+
+type RequestSystemStopMachineParams struct {
+	UpdatedAt int64
+	MachineID string
+}
+
+func (q *Queries) RequestSystemStopMachine(ctx context.Context, arg RequestSystemStopMachineParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, requestSystemStopMachine, arg.UpdatedAt, arg.MachineID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const requeueMachineJob = `-- name: RequeueMachineJob :exec
 UPDATE machine_jobs
 SET status = 'queued',
@@ -1868,6 +1893,23 @@ type UpdateMachineEndpointByIDParams struct {
 
 func (q *Queries) UpdateMachineEndpointByID(ctx context.Context, arg UpdateMachineEndpointByIDParams) error {
 	_, err := q.db.ExecContext(ctx, updateMachineEndpointByID, arg.Endpoint, arg.MachineID)
+	return err
+}
+
+const updateMachineLastActivityAt = `-- name: UpdateMachineLastActivityAt :exec
+UPDATE machine_states
+SET last_activity_at = $1
+WHERE machine_id = $2
+  AND last_activity_at < $1
+`
+
+type UpdateMachineLastActivityAtParams struct {
+	LastActivityAt int64
+	MachineID      string
+}
+
+func (q *Queries) UpdateMachineLastActivityAt(ctx context.Context, arg UpdateMachineLastActivityAtParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineLastActivityAt, arg.LastActivityAt, arg.MachineID)
 	return err
 }
 

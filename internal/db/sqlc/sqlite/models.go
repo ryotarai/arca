@@ -107,6 +107,7 @@ type MachineState struct {
 	ReadyReportedAt int64
 	ReadyReason     string
 	UpdatedAt       int64
+	LastActivityAt  int64
 }
 
 type MachineToken struct {

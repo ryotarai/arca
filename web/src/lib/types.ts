@@ -103,6 +103,7 @@ export type RuntimeCatalogItem = {
   config: RuntimeCatalogConfig
   exposure: MachineExposureConfig
   serverApiUrl: string
+  autoStopTimeoutSeconds: number
   createdAt: number
   updatedAt: number
 }

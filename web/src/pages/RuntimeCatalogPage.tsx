@@ -41,6 +41,7 @@ type RuntimeFormState = {
   exposureCloudflareZoneId: string
   exposureConnectivity: 'private_ip' | 'public_ip' | ''
   serverApiUrl: string
+  autoStopTimeoutHours: string
 }
 
 const runtimeNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
@@ -75,6 +76,7 @@ function emptyRuntimeForm(): RuntimeFormState {
     exposureCloudflareZoneId: '',
     exposureConnectivity: '',
     serverApiUrl: '',
+    autoStopTimeoutHours: '',
   }
 }
 
@@ -186,6 +188,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
     exposureCloudflareZoneId: runtime.exposure.cloudflareZoneId,
     exposureConnectivity: runtime.exposure.connectivity,
     serverApiUrl: runtime.serverApiUrl,
+    autoStopTimeoutHours: runtime.autoStopTimeoutSeconds > 0 ? String(runtime.autoStopTimeoutSeconds / 3600) : '',
   } as const
   if (runtime.type === 'gce') {
     return {
@@ -293,11 +296,13 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
       const config = toConfig(form)
       const exposure = toExposureConfig(form)
       const serverApiUrl = form.serverApiUrl.trim() || undefined
+      const autoStopHours = parseFloat(form.autoStopTimeoutHours.trim())
+      const autoStopTimeoutSeconds = autoStopHours > 0 ? Math.round(autoStopHours * 3600) : 0
       if (form.id === '') {
-        await createRuntime(runtimeName, form.type, config, exposure, serverApiUrl)
+        await createRuntime(runtimeName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds || undefined)
         setSuccess('Runtime created.')
       } else {
-        await updateRuntime(form.id, runtimeName, form.type, config, exposure, serverApiUrl)
+        await updateRuntime(form.id, runtimeName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds)
         setSuccess('Runtime updated.')
       }
       resetForm()
@@ -562,6 +567,21 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
                   placeholder="https://<server domain>"
                 />
                 <p className="text-xs text-muted-foreground">Override the URL machines use to reach the API server. Leave empty to use the default (https:// + server domain).</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="runtime-auto-stop-timeout">Auto-stop timeout (hours)</Label>
+                <Input
+                  id="runtime-auto-stop-timeout"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.autoStopTimeoutHours}
+                  onChange={(event) => setForm((current) => ({ ...current, autoStopTimeoutHours: event.target.value }))}
+                  className="h-10"
+                  placeholder="0 (disabled)"
+                />
+                <p className="text-xs text-muted-foreground">Automatically stop machines after this many hours of inactivity. Set to 0 or leave empty to disable.</p>
               </div>
 
               <div className="flex items-center gap-3">

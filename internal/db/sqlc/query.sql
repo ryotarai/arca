@@ -478,7 +478,7 @@ WHERE status = 'running'
   AND lease_until < sqlc.arg(now_unix);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)
@@ -675,3 +675,18 @@ FROM machine_events
 WHERE machine_id = sqlc.arg(machine_id)
 ORDER BY created_at DESC
 LIMIT sqlc.arg(limit_n);
+
+-- name: UpdateMachineLastActivityAt :exec
+UPDATE machine_states
+SET last_activity_at = sqlc.arg(last_activity_at)
+WHERE machine_id = sqlc.arg(machine_id)
+  AND last_activity_at < sqlc.arg(last_activity_at);
+
+-- name: RequestSystemStopMachine :execrows
+UPDATE machine_states
+SET status = 'stopping',
+    desired_status = 'stopped',
+    updated_at = sqlc.arg(updated_at)
+WHERE machine_id = sqlc.arg(machine_id)
+  AND desired_status = 'running'
+  AND status = 'running';

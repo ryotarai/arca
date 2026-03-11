@@ -65,3 +65,15 @@ func GetRuntimeServerAPIURL(configJSON string) string {
 	}
 	return strings.TrimSpace(wrapper.ServerApiUrl)
 }
+
+// GetRuntimeAutoStopTimeoutSeconds extracts the auto-stop timeout from a
+// runtime config JSON string. Returns 0 if not set (disabled).
+func GetRuntimeAutoStopTimeoutSeconds(configJSON string) int64 {
+	var wrapper struct {
+		AutoStopTimeoutSeconds int64 `json:"autoStopTimeoutSeconds,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(configJSON), &wrapper); err != nil {
+		return 0
+	}
+	return wrapper.AutoStopTimeoutSeconds
+}
