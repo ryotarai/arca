@@ -163,18 +163,18 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 				t.Fatalf("unexpected tunnel: %+v", tunnel)
 			}
 
-			firstExposure, err := store.UpsertMachineExposure(ctx, created.ID, "ssh", "ssh.example.com", "http://localhost:2222", EndpointVisibilityOwnerOnly, nil)
+			firstExposure, err := store.UpsertMachineExposure(ctx, created.ID, "ssh", "ssh.example.com", "http://localhost:2222")
 			if err != nil {
 				t.Fatalf("upsert machine exposure: %v", err)
 			}
-			updatedExposure, err := store.UpsertMachineExposure(ctx, created.ID, "ssh", "ssh-updated.example.com", "http://localhost:2223", EndpointVisibilityInternetPublic, nil)
+			updatedExposure, err := store.UpsertMachineExposure(ctx, created.ID, "ssh", "ssh-updated.example.com", "http://localhost:2223")
 			if err != nil {
 				t.Fatalf("upsert machine exposure update: %v", err)
 			}
 			if updatedExposure.ID != firstExposure.ID {
 				t.Fatalf("expected upsert to preserve exposure id: before=%q after=%q", firstExposure.ID, updatedExposure.ID)
 			}
-			if updatedExposure.Hostname != "ssh-updated.example.com" || !updatedExposure.IsPublic || updatedExposure.Visibility != EndpointVisibilityInternetPublic {
+			if updatedExposure.Hostname != "ssh-updated.example.com" {
 				t.Fatalf("unexpected updated exposure: %+v", updatedExposure)
 			}
 

@@ -88,7 +88,7 @@ func TestListMachinesPropagatesUpdateRequired(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := newMachineConnectService(auth, store, nil)
+	svc := newMachineConnectService(auth, store, nil, nil)
 
 	req := connect.NewRequest(&arcav1.ListMachinesRequest{})
 	req.Header().Set("Cookie", sessionCookieName+"=session-token")
@@ -134,7 +134,7 @@ func TestGetMachinePropagatesUpdateRequired(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := newMachineConnectService(auth, store, nil)
+	svc := newMachineConnectService(auth, store, nil, nil)
 
 	req := connect.NewRequest(&arcav1.GetMachineRequest{MachineId: "machine-1"})
 	req.Header().Set("Cookie", sessionCookieName+"=session-token")

@@ -19,7 +19,7 @@ func TestMachineRuntimeSelection_CreateRequiresExplicitRuntimeAndAllowsStartOver
 
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
-	service := newMachineConnectService(authenticator, store, nil)
+	service := newMachineConnectService(authenticator, store, nil, store)
 
 	if _, _, err := authenticator.Register(ctx, "runtime-owner@example.com", "owner-password"); err != nil {
 		t.Fatalf("register owner: %v", err)
@@ -71,7 +71,7 @@ func TestMachineRuntimeSelection_InvalidOrDeletedRuntimeIsRejected(t *testing.T)
 
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
-	service := newMachineConnectService(authenticator, store, nil)
+	service := newMachineConnectService(authenticator, store, nil, store)
 
 	if _, _, err := authenticator.Register(ctx, "runtime-owner-deleted@example.com", "owner-password"); err != nil {
 		t.Fatalf("register owner: %v", err)
