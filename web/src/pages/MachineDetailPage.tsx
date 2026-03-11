@@ -8,12 +8,12 @@ import {
   deleteMachine,
   listMachineEvents,
   listMachineExposures,
-  listRuntimes,
+  listAvailableRuntimes,
   startMachine,
   stopMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, MachineEvent, MachineExposure, RuntimeCatalogItem, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineExposure, RuntimeSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -87,7 +87,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const navigate = useNavigate()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [events, setEvents] = useState<MachineEvent[]>([])
-  const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
+  const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -120,7 +120,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineExposures(machineID),
-          listRuntimes(),
+          listAvailableRuntimes(),
         ])
         if (!cancelled) {
           setMachine(item)

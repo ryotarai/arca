@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { listRuntimes } from '@/lib/api'
+import { listAvailableRuntimes, listRuntimes } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { RuntimeCatalogItem, User } from '@/lib/types'
+import type { RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
 
 type RuntimeDetailPageProps = {
   user: User | null
@@ -20,7 +20,9 @@ function formatUnix(unix: number): string {
 
 export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
   const { runtimeID } = useParams()
+  const isAdmin = user?.role === 'admin'
   const [runtime, setRuntime] = useState<RuntimeCatalogItem | null>(null)
+  const [summary, setSummary] = useState<RuntimeSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -35,11 +37,15 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
       setLoading(true)
       setError('')
       try {
-        const items = await listRuntimes()
-        if (cancelled) {
-          return
+        if (isAdmin) {
+          const items = await listRuntimes()
+          if (cancelled) return
+          setRuntime(items.find((item) => item.id === runtimeID) ?? null)
+        } else {
+          const items = await listAvailableRuntimes()
+          if (cancelled) return
+          setSummary(items.find((item) => item.id === runtimeID) ?? null)
         }
-        setRuntime(items.find((item) => item.id === runtimeID) ?? null)
       } catch (e) {
         if (!cancelled) {
           setError(messageFromError(e))
@@ -56,13 +62,13 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
     return () => {
       cancelled = true
     }
-  }, [user, runtimeID])
+  }, [user, runtimeID, isAdmin])
 
   if (user == null) {
     return <Navigate to="/login" replace />
   }
   if (runtimeID == null || runtimeID === '') {
-    return <Navigate to="/runtimes" replace />
+    return <Navigate to={isAdmin ? '/runtimes' : '/machines'} replace />
   }
 
   return (
@@ -76,7 +82,7 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
-              <Link to="/runtimes">Back</Link>
+              <Link to={isAdmin ? '/runtimes' : '/machines'}>Back</Link>
             </Button>
             <Button type="button" variant="secondary" onClick={onLogout}>
               Logout
@@ -92,9 +98,7 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
           <CardContent className="space-y-4 p-6 pt-3">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : runtime == null ? (
-              <p className="text-sm text-muted-foreground">Runtime not found.</p>
-            ) : (
+            ) : isAdmin && runtime != null ? (
               <>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Name</p>
@@ -142,6 +146,19 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
                   </div>
                 )}
               </>
+            ) : !isAdmin && summary != null ? (
+              <>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="text-lg font-semibold text-foreground">{summary.name}</p>
+                </div>
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <p className="text-sm text-foreground">{summary.type}</p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Runtime not found.</p>
             )}
 
             {error !== '' && (

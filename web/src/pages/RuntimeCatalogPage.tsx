@@ -266,6 +266,9 @@ export function RuntimeCatalogPage({ user, onLogout }: RuntimeCatalogPageProps) 
   if (user == null) {
     return <Navigate to="/login" replace />
   }
+  if (user.role !== 'admin') {
+    return <Navigate to="/machines" replace />
+  }
 
   const reloadRuntimes = async () => {
     setRuntimes(await listRuntimes())

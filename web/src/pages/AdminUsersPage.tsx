@@ -55,6 +55,9 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
   if (user == null) {
     return <Navigate to="/login" replace />
   }
+  if (user.role !== 'admin') {
+    return <Navigate to="/machines" replace />
+  }
 
   const reloadUsers = async () => {
     setUsers(await listManagedUsers())
