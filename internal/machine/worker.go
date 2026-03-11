@@ -10,6 +10,7 @@ import (
 	"math"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -43,17 +44,20 @@ type RuntimeStartOptions struct {
 }
 
 type Worker struct {
-	store        *db.Store
-	runtime      Runtime
-	cfClient     *cloudflare.Client
-	ipCache      *MachineIPCache
-	workerID     string
-	pollInterval time.Duration
-	leaseTTL     time.Duration
-	reconcileTTL time.Duration
-	startupTTL   time.Duration
-	stopTTL      time.Duration
-	lastSweep    time.Time
+	store          *db.Store
+	runtime        Runtime
+	cfClient       *cloudflare.Client
+	ipCache        *MachineIPCache
+	workerID       string
+	pollInterval   time.Duration
+	leaseTTL       time.Duration
+	reconcileTTL   time.Duration
+	startupTTL     time.Duration
+	stopTTL        time.Duration
+	lastSweep      time.Time
+	maxConcurrency int
+	sem            chan struct{}
+	wg             sync.WaitGroup
 }
 
 const (
@@ -63,18 +67,23 @@ const (
 	readyStaleAfter          = 30 * time.Second
 )
 
-func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string, ipCache *MachineIPCache) *Worker {
+func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string, ipCache *MachineIPCache, maxConcurrency int) *Worker {
+	if maxConcurrency <= 0 {
+		maxConcurrency = 4
+	}
 	return &Worker{
-		store:        store,
-		runtime:      runtime,
-		cfClient:     cfClient,
-		ipCache:      ipCache,
-		workerID:     workerID,
-		pollInterval: 2 * time.Second,
-		leaseTTL:     30 * time.Second,
-		reconcileTTL: 15 * time.Second,
-		startupTTL:   4 * time.Minute,
-		stopTTL:      90 * time.Second,
+		store:          store,
+		runtime:        runtime,
+		cfClient:       cfClient,
+		ipCache:        ipCache,
+		workerID:       workerID,
+		pollInterval:   2 * time.Second,
+		leaseTTL:       30 * time.Second,
+		reconcileTTL:   15 * time.Second,
+		startupTTL:     4 * time.Minute,
+		stopTTL:        90 * time.Second,
+		maxConcurrency: maxConcurrency,
+		sem:            make(chan struct{}, maxConcurrency),
 	}
 }
 
@@ -85,6 +94,7 @@ func (w *Worker) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			w.wg.Wait()
 			return
 		default:
 		}
@@ -96,26 +106,80 @@ func (w *Worker) Run(ctx context.Context) {
 			log.Printf("machine worker recover failed: %v", err)
 		}
 
-		job, ok, err := w.store.ClaimNextMachineJob(ctx, w.workerID, nowUnix+int64(w.leaseTTL.Seconds()), nowUnix)
-		if err != nil {
-			log.Printf("machine worker claim failed: %v", err)
+		// Check if we have capacity for more jobs
+		select {
+		case w.sem <- struct{}{}:
+			// Acquired semaphore slot
+		default:
+			// All slots busy, wait for next tick
 			select {
 			case <-ctx.Done():
-				return
-			case <-ticker.C:
-			}
-			continue
-		}
-		if !ok {
-			select {
-			case <-ctx.Done():
+				w.wg.Wait()
 				return
 			case <-ticker.C:
 			}
 			continue
 		}
 
-		w.processJob(ctx, job)
+		job, ok, err := w.store.ClaimNextMachineJob(ctx, w.workerID, nowUnix+int64(w.leaseTTL.Seconds()), nowUnix)
+		if err != nil {
+			<-w.sem // release slot
+			log.Printf("machine worker claim failed: %v", err)
+			select {
+			case <-ctx.Done():
+				w.wg.Wait()
+				return
+			case <-ticker.C:
+			}
+			continue
+		}
+		if !ok {
+			<-w.sem // release slot
+			select {
+			case <-ctx.Done():
+				w.wg.Wait()
+				return
+			case <-ticker.C:
+			}
+			continue
+		}
+
+		w.wg.Add(1)
+		go func() {
+			defer w.wg.Done()
+			defer func() { <-w.sem }()
+
+			hbCtx, hbCancel := context.WithCancel(ctx)
+			defer hbCancel()
+			go w.runHeartbeat(hbCtx, job.ID)
+
+			w.processJob(ctx, job)
+		}()
+	}
+}
+
+func (w *Worker) runHeartbeat(ctx context.Context, jobID string) {
+	interval := w.leaseTTL / 2
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			nowUnix := time.Now().Unix()
+			leaseUntil := nowUnix + int64(w.leaseTTL.Seconds())
+			ok, err := w.store.ExtendMachineJobLease(ctx, jobID, w.workerID, leaseUntil, nowUnix)
+			if err != nil {
+				slog.Warn("heartbeat extend lease failed", "job_id", jobID, "error", err)
+				return
+			}
+			if !ok {
+				slog.Warn("heartbeat lease lost", "job_id", jobID)
+				return
+			}
+		}
 	}
 }
 

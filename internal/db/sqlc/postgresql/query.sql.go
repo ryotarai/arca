@@ -555,6 +555,32 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 	return err
 }
 
+const extendMachineJobLease = `-- name: ExtendMachineJobLease :execrows
+UPDATE machine_jobs
+SET lease_until = $1, updated_at = $2
+WHERE id = $3 AND status = 'running' AND lease_owner = $4
+`
+
+type ExtendMachineJobLeaseParams struct {
+	LeaseUntil sql.NullInt64
+	UpdatedAt  int64
+	ID         string
+	LeaseOwner sql.NullString
+}
+
+func (q *Queries) ExtendMachineJobLease(ctx context.Context, arg ExtendMachineJobLeaseParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, extendMachineJobLease,
+		arg.LeaseUntil,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.LeaseOwner,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getActiveArcadSessionByHashAndMachine = `-- name: GetActiveArcadSessionByHashAndMachine :one
 SELECT s.id, s.user_id, u.email, s.machine_id, s.exposure_id, s.expires_at
 FROM arcad_sessions s
@@ -1596,11 +1622,14 @@ func (q *Queries) ListPendingMachineAccessRequestsByMachineID(ctx context.Contex
 }
 
 const listRunnableMachineJobs = `-- name: ListRunnableMachineJobs :many
-SELECT id, machine_id, kind, attempt
-FROM machine_jobs
-WHERE status = 'queued'
-  AND next_run_at <= $1
-ORDER BY created_at ASC
+SELECT mj.id, mj.machine_id, mj.kind, mj.attempt
+FROM machine_jobs mj
+WHERE mj.status = 'queued'
+  AND mj.next_run_at <= $1
+  AND mj.machine_id NOT IN (
+    SELECT mj2.machine_id FROM machine_jobs mj2 WHERE mj2.status = 'running'
+  )
+ORDER BY mj.created_at ASC
 LIMIT $2
 `
 

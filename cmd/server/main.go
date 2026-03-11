@@ -69,10 +69,20 @@ func main() {
 			log.Printf("console endpoint exposed at https://%s", hostname)
 		}
 	}
+	workerConcurrency := 4
+	if v := os.Getenv("ARCA_WORKER_CONCURRENCY"); v != "" {
+		if n, parseErr := strconv.Atoi(v); parseErr == nil && n > 0 {
+			workerConcurrency = n
+		}
+	}
 	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{})
 	ipCache := machine.NewMachineIPCache(runtime, store, 5*time.Minute)
-	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache)
-	go machineWorker.Run(ctx)
+	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency)
+	workerDone := make(chan struct{})
+	go func() {
+		machineWorker.Run(ctx)
+		close(workerDone)
+	}()
 
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
 	httpServer := &http.Server{
@@ -96,6 +106,7 @@ func main() {
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			log.Fatalf("graceful shutdown failed: %v", err)
 		}
+		<-workerDone
 		log.Println("server stopped")
 	case err := <-errCh:
 		log.Fatalf("server failed: %v", err)

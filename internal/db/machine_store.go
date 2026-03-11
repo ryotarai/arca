@@ -699,6 +699,29 @@ func (s *Store) RecoverExpiredMachineJobs(ctx context.Context, nowUnix int64) er
 	}
 }
 
+func (s *Store) ExtendMachineJobLease(ctx context.Context, jobID string, leaseOwner string, leaseUntil int64, nowUnix int64) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ExtendMachineJobLease(ctx, sqlitesqlc.ExtendMachineJobLeaseParams{
+			LeaseUntil: sql.NullInt64{Int64: leaseUntil, Valid: true},
+			UpdatedAt:  nowUnix,
+			ID:         jobID,
+			LeaseOwner: sql.NullString{String: leaseOwner, Valid: true},
+		})
+		return rows > 0, err
+	case DriverPostgres:
+		rows, err := s.pgQueries.ExtendMachineJobLease(ctx, postgresqlsqlc.ExtendMachineJobLeaseParams{
+			LeaseUntil: sql.NullInt64{Int64: leaseUntil, Valid: true},
+			UpdatedAt:  nowUnix,
+			ID:         jobID,
+			LeaseOwner: sql.NullString{String: leaseOwner, Valid: true},
+		})
+		return rows > 0, err
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus string, limit int64) ([]Machine, error) {
 	switch s.driver {
 	case DriverSQLite:

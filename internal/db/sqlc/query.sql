@@ -431,11 +431,14 @@ VALUES (
 );
 
 -- name: ListRunnableMachineJobs :many
-SELECT id, machine_id, kind, attempt
-FROM machine_jobs
-WHERE status = 'queued'
-  AND next_run_at <= sqlc.arg(now_unix)
-ORDER BY created_at ASC
+SELECT mj.id, mj.machine_id, mj.kind, mj.attempt
+FROM machine_jobs mj
+WHERE mj.status = 'queued'
+  AND mj.next_run_at <= sqlc.arg(now_unix)
+  AND mj.machine_id NOT IN (
+    SELECT mj2.machine_id FROM machine_jobs mj2 WHERE mj2.status = 'running'
+  )
+ORDER BY mj.created_at ASC
 LIMIT sqlc.arg(limit_n);
 
 -- name: ClaimMachineJob :execrows
@@ -476,6 +479,11 @@ SET status = 'queued',
 WHERE status = 'running'
   AND lease_until IS NOT NULL
   AND lease_until < sqlc.arg(now_unix);
+
+-- name: ExtendMachineJobLease :execrows
+UPDATE machine_jobs
+SET lease_until = sqlc.arg(lease_until), updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id) AND status = 'running' AND lease_owner = sqlc.arg(lease_owner);
 
 -- name: ListMachinesByDesiredStatus :many
 SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.last_activity_at

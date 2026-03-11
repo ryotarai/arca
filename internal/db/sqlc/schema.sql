@@ -129,6 +129,9 @@ CREATE INDEX IF NOT EXISTS idx_machine_jobs_status_next_run_at
 CREATE INDEX IF NOT EXISTS idx_machine_jobs_lease_until
   ON machine_jobs(status, lease_until);
 
+CREATE INDEX IF NOT EXISTS idx_machine_jobs_machine_id_status
+  ON machine_jobs(machine_id, status);
+
 CREATE TABLE IF NOT EXISTS machine_events (
   id TEXT PRIMARY KEY,
   machine_id TEXT NOT NULL,
