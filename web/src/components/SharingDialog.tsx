@@ -8,11 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Popover,
-  PopoverContent,
-  PopoverAnchor,
-} from '@/components/ui/popover'
 import { getMachineSharing, searchUsers, updateMachineSharing } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 
@@ -37,8 +32,9 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [searchResults, setSearchResults] = useState<{ id: string; email: string }[]>([])
-  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open || machineID === '') return
@@ -71,7 +67,7 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
     if (!open) {
       setNewEmail('')
       setSearchResults([])
-      setPopoverOpen(false)
+      setShowDropdown(false)
     }
   }, [open])
 
@@ -85,7 +81,7 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
     const trimmed = value.trim()
     if (trimmed.length < 2) {
       setSearchResults([])
-      setPopoverOpen(false)
+      setShowDropdown(false)
       return
     }
 
@@ -95,10 +91,10 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
         const memberEmails = new Set(members.map((m) => m.email))
         const filtered = results.filter((r) => !memberEmails.has(r.email))
         setSearchResults(filtered)
-        setPopoverOpen(filtered.length > 0)
+        setShowDropdown(filtered.length > 0)
       } catch {
         setSearchResults([])
-        setPopoverOpen(false)
+        setShowDropdown(false)
       }
     }, 300)
   }
@@ -111,7 +107,7 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
     setMembers((prev) => [...prev, { userId: user.id, email: user.email, role: 'viewer' }])
     setNewEmail('')
     setSearchResults([])
-    setPopoverOpen(false)
+    setShowDropdown(false)
     setError('')
   }
 
@@ -125,7 +121,7 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
     setMembers((prev) => [...prev, { userId: '', email, role: 'viewer' }])
     setNewEmail('')
     setSearchResults([])
-    setPopoverOpen(false)
+    setShowDropdown(false)
     setError('')
   }
 
@@ -182,53 +178,51 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
         ) : (
           <div className="space-y-5">
             <div className="space-y-3">
-              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <div className="relative" ref={wrapperRef}>
                 <div className="flex items-center gap-2">
-                  <PopoverAnchor asChild>
-                    <Input
-                      placeholder="Add by email"
-                      value={newEmail}
-                      onChange={(e) => handleEmailChange(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddMember()
-                        }
-                        if (e.key === 'Escape') {
-                          setPopoverOpen(false)
-                        }
-                      }}
-                      className="flex-1"
-                      autoComplete="off"
-                    />
-                  </PopoverAnchor>
+                  <Input
+                    placeholder="Add by email"
+                    value={newEmail}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleAddMember()
+                      }
+                      if (e.key === 'Escape') {
+                        setShowDropdown(false)
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (!wrapperRef.current?.contains(e.relatedTarget as Node)) {
+                        setShowDropdown(false)
+                      }
+                    }}
+                    className="flex-1"
+                    autoComplete="off"
+                  />
                   <Button type="button" variant="secondary" className="h-9 px-3" onClick={handleAddMember}>
                     Add
                   </Button>
                 </div>
-                <PopoverContent
-                  className="p-1 w-[var(--radix-popover-trigger-width)]"
-                  align="start"
-                  sideOffset={4}
-                  onOpenAutoFocus={(e) => e.preventDefault()}
-                  onInteractOutside={(e) => e.preventDefault()}
-                  onFocusOutside={(e) => e.preventDefault()}
-                >
-                  {searchResults.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      className="w-full rounded-sm px-2 py-1.5 text-sm text-left text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        handleSelectUser(user)
-                      }}
-                    >
-                      {user.email}
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
+                {showDropdown && searchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
+                    {searchResults.map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        className="w-full rounded-sm px-2 py-1.5 text-sm text-left text-popover-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          handleSelectUser(user)
+                        }}
+                      >
+                        {user.email}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {members.length > 0 && (
                 <div className="space-y-2">
