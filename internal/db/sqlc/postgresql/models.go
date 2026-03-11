@@ -67,21 +67,13 @@ type MachineEvent struct {
 }
 
 type MachineExposure struct {
-	ID         string
-	MachineID  string
-	Name       string
-	Hostname   string
-	Service    string
-	IsPublic   bool
-	Visibility string
-	CreatedAt  int64
-	UpdatedAt  int64
-}
-
-type MachineExposureAclUser struct {
-	ExposureID string
-	UserID     string
-	CreatedAt  int64
+	ID        string
+	MachineID string
+	Name      string
+	Hostname  string
+	Service   string
+	CreatedAt int64
+	UpdatedAt int64
 }
 
 type MachineJob struct {
@@ -96,6 +88,13 @@ type MachineJob struct {
 	LastError  sql.NullString
 	CreatedAt  int64
 	UpdatedAt  int64
+}
+
+type MachineSharing struct {
+	MachineID          string
+	GeneralAccessScope string
+	GeneralAccessRole  string
+	UpdatedAt          int64
 }
 
 type MachineState struct {

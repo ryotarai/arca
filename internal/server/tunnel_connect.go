@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"log"
-	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -40,12 +39,10 @@ func (s *tunnelConnectService) UpsertMachineExposure(ctx context.Context, req *c
 	if machineID == "" || name == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id and name are required"))
 	}
-	if _, err := s.store.GetMachineByIDForUser(ctx, userID, machineID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
-		}
-		log.Printf("authorize machine for exposure update failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
+
+	role := s.store.ResolveMachineRole(ctx, userID, machineID)
+	if role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
 	}
 
 	existing, err := s.store.GetMachineExposureByMachineIDAndName(ctx, machineID, name)
@@ -57,36 +54,14 @@ func (s *tunnelConnectService) UpsertMachineExposure(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load exposure"))
 	}
 
-	visibility := visibilityFromRequest(req.Msg)
-	if visibility == db.EndpointVisibilityInternetPublic {
-		setup, err := s.store.GetSetupState(ctx)
-		if err != nil {
-			log.Printf("load setup state failed: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to evaluate exposure policy"))
-		}
-		if setup.InternetPublicExposureDisabled {
-			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("internet public visibility is disabled by admin policy"))
-		}
-	}
-
-	selectedUserIDs := normalizeSelectedUserIDs(req.Msg.GetSelectedUserIds(), userID)
-	if visibility != db.EndpointVisibilitySelectedUsers {
-		selectedUserIDs = nil
-	}
-
 	exposure, err := s.store.UpsertMachineExposure(
 		ctx,
 		existing.MachineID,
 		existing.Name,
 		existing.Hostname,
 		existing.Service,
-		visibility,
-		selectedUserIDs,
 	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("selected user ids include unknown users"))
-		}
 		log.Printf("upsert machine exposure failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist exposure settings"))
 	}
@@ -107,12 +82,10 @@ func (s *tunnelConnectService) ListMachineExposures(ctx context.Context, req *co
 	if machineID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
-	if _, err := s.store.GetMachineByIDForUser(ctx, userID, machineID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
-		}
-		log.Printf("authorize machine for exposure listing failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
+
+	role := s.store.ResolveMachineRole(ctx, userID, machineID)
+	if role == db.MachineRoleNone {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 	}
 
 	exposures, err := s.store.ListMachineExposuresByMachineID(ctx, machineID)
@@ -211,62 +184,12 @@ func (s *tunnelConnectService) ReportMachineReadiness(ctx context.Context, req *
 	return connect.NewResponse(&arcav1.ReportMachineReadinessResponse{Accepted: updated}), nil
 }
 
-func visibilityFromRequest(req *arcav1.UpsertMachineExposureRequest) string {
-	switch req.GetVisibility() {
-	case arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_SELECTED_USERS:
-		return db.EndpointVisibilitySelectedUsers
-	case arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_ALL_ARCA_USERS:
-		return db.EndpointVisibilityAllArcaUsers
-	case arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_INTERNET_PUBLIC:
-		return db.EndpointVisibilityInternetPublic
-	case arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_OWNER_ONLY:
-		return db.EndpointVisibilityOwnerOnly
-	default:
-		if req.GetPublic() {
-			return db.EndpointVisibilityInternetPublic
-		}
-		return db.EndpointVisibilityOwnerOnly
-	}
-}
-
-func normalizeSelectedUserIDs(ids []string, ownerUserID string) []string {
-	result := make([]string, 0, len(ids)+1)
-	for _, id := range ids {
-		trimmed := strings.TrimSpace(id)
-		if trimmed == "" || slices.Contains(result, trimmed) {
-			continue
-		}
-		result = append(result, trimmed)
-	}
-	ownerUserID = strings.TrimSpace(ownerUserID)
-	if ownerUserID != "" && !slices.Contains(result, ownerUserID) {
-		result = append(result, ownerUserID)
-	}
-	return result
-}
-
-func visibilityToProto(visibility string) arcav1.EndpointVisibility {
-	switch db.NormalizeEndpointVisibility(visibility) {
-	case db.EndpointVisibilitySelectedUsers:
-		return arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_SELECTED_USERS
-	case db.EndpointVisibilityAllArcaUsers:
-		return arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_ALL_ARCA_USERS
-	case db.EndpointVisibilityInternetPublic:
-		return arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_INTERNET_PUBLIC
-	default:
-		return arcav1.EndpointVisibility_ENDPOINT_VISIBILITY_OWNER_ONLY
-	}
-}
-
 func toMachineExposureMessage(exposure db.MachineExposure) *arcav1.MachineExposure {
 	return &arcav1.MachineExposure{
-		Id:              exposure.ID,
-		MachineId:       exposure.MachineID,
-		Name:            exposure.Name,
-		Hostname:        exposure.Hostname,
-		Service:         exposure.Service,
-		Public:          db.IsInternetPublicVisibility(exposure.Visibility),
-		Visibility:      visibilityToProto(exposure.Visibility),
-		SelectedUserIds: exposure.SelectedUserIDs,
+		Id:        exposure.ID,
+		MachineId: exposure.MachineID,
+		Name:      exposure.Name,
+		Hostname:  exposure.Hostname,
+		Service:   exposure.Service,
 	}
 }

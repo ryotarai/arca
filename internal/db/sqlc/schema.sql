@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS runtimes (
 CREATE TABLE IF NOT EXISTS user_machines (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'owner',
+  role TEXT NOT NULL DEFAULT 'admin',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id, machine_id)
 );
@@ -191,8 +191,6 @@ CREATE TABLE IF NOT EXISTS machine_exposures (
   name TEXT NOT NULL,
   hostname TEXT NOT NULL UNIQUE,
   service TEXT NOT NULL,
-  is_public BOOLEAN NOT NULL DEFAULT FALSE,
-  visibility TEXT NOT NULL DEFAULT 'owner_only',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL,
   UNIQUE(machine_id, name)
@@ -200,11 +198,9 @@ CREATE TABLE IF NOT EXISTS machine_exposures (
 
 CREATE INDEX IF NOT EXISTS idx_machine_exposures_machine_id ON machine_exposures(machine_id);
 
-CREATE TABLE IF NOT EXISTS machine_exposure_acl_users (
-  exposure_id TEXT NOT NULL REFERENCES machine_exposures(id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at BIGINT NOT NULL,
-  PRIMARY KEY (exposure_id, user_id)
+CREATE TABLE IF NOT EXISTS machine_sharing (
+  machine_id TEXT PRIMARY KEY REFERENCES machines(id) ON DELETE CASCADE,
+  general_access_scope TEXT NOT NULL DEFAULT 'none',
+  general_access_role TEXT NOT NULL DEFAULT 'none',
+  updated_at BIGINT NOT NULL DEFAULT 0
 );
-
-CREATE INDEX IF NOT EXISTS idx_machine_exposure_acl_users_user_id ON machine_exposure_acl_users(user_id);

@@ -242,7 +242,7 @@ WHERE id = sqlc.arg(machine_id)
     FROM user_machines um
     WHERE um.machine_id = machines.id
       AND um.user_id = sqlc.arg(user_id)
-      AND um.role = 'owner'
+      AND um.role = 'admin'
   );
 
 -- name: UpdateMachineRuntimeByIDForOwner :execrows
@@ -255,14 +255,14 @@ WHERE id = sqlc.arg(machine_id)
     FROM user_machines um
     WHERE um.machine_id = machines.id
       AND um.user_id = sqlc.arg(user_id)
-      AND um.role = 'owner'
+      AND um.role = 'admin'
   );
 
 -- name: DeleteUserMachineByMachineIDForOwner :execrows
 DELETE FROM user_machines
 WHERE machine_id = sqlc.arg(machine_id)
   AND user_id = sqlc.arg(user_id)
-  AND role = 'owner';
+  AND role = 'admin';
 
 -- name: DeleteMachineIfNoUsers :exec
 DELETE FROM machines
@@ -289,12 +289,15 @@ VALUES (
   sqlc.arg(updated_at)
 );
 
--- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+-- name: ListMachinesAccessibleByUser :many
+SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason,
+  COALESCE(um.role, '') AS user_role
 FROM machines m
-JOIN user_machines um ON um.machine_id = m.id
 JOIN machine_states ms ON ms.machine_id = m.id
+LEFT JOIN user_machines um ON um.machine_id = m.id AND um.user_id = sqlc.arg(user_id)
+LEFT JOIN machine_sharing sh ON sh.machine_id = m.id
 WHERE um.user_id = sqlc.arg(user_id)
+  OR (sh.general_access_scope = 'arca_users' AND sh.general_access_role != 'none')
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
@@ -309,7 +312,7 @@ LIMIT 1;
 SELECT um.user_id
 FROM user_machines um
 WHERE um.machine_id = sqlc.arg(machine_id)
-  AND um.role = 'owner'
+  AND um.role = 'admin'
 ORDER BY um.created_at ASC
 LIMIT 1;
 
@@ -337,7 +340,7 @@ WHERE machine_states.machine_id = sqlc.arg(machine_id)
     FROM user_machines um
     WHERE um.machine_id = machine_states.machine_id
       AND um.user_id = sqlc.arg(user_id)
-      AND um.role = 'owner'
+      AND um.role = 'admin'
   );
 
 -- name: UpdateMachineRuntimeStateByMachineID :exec
@@ -581,55 +584,87 @@ WHERE machine_id = sqlc.arg(machine_id)
 LIMIT 1;
 
 -- name: UpsertMachineExposure :exec
-INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at)
+INSERT INTO machine_exposures (id, machine_id, name, hostname, service, created_at, updated_at)
 VALUES (
   sqlc.arg(id),
   sqlc.arg(machine_id),
   sqlc.arg(name),
   sqlc.arg(hostname),
   sqlc.arg(service),
-  sqlc.arg(is_public),
-  sqlc.arg(visibility),
   sqlc.arg(created_at),
   sqlc.arg(updated_at)
 )
 ON CONFLICT (machine_id, name) DO UPDATE
 SET hostname = excluded.hostname,
     service = excluded.service,
-    is_public = excluded.is_public,
-    visibility = excluded.visibility,
     updated_at = excluded.updated_at;
 
 -- name: ListMachineExposuresByMachineID :many
-SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = sqlc.arg(machine_id)
 ORDER BY created_at ASC;
 
 -- name: GetMachineExposureByHostname :one
-SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, created_at, updated_at
 FROM machine_exposures
 WHERE hostname = sqlc.arg(hostname)
 LIMIT 1;
 
 -- name: GetMachineExposureByMachineIDAndName :one
-SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = sqlc.arg(machine_id)
   AND name = sqlc.arg(name)
 LIMIT 1;
 
--- name: DeleteMachineExposureACLUsersByExposureID :exec
-DELETE FROM machine_exposure_acl_users
-WHERE exposure_id = sqlc.arg(exposure_id);
+-- name: GetMachineSharingByMachineID :one
+SELECT machine_id, general_access_scope, general_access_role, updated_at
+FROM machine_sharing
+WHERE machine_id = sqlc.arg(machine_id)
+LIMIT 1;
 
--- name: InsertMachineExposureACLUser :exec
-INSERT INTO machine_exposure_acl_users (exposure_id, user_id, created_at)
-VALUES (sqlc.arg(exposure_id), sqlc.arg(user_id), sqlc.arg(created_at))
-ON CONFLICT (exposure_id, user_id) DO NOTHING;
+-- name: UpsertMachineSharing :exec
+INSERT INTO machine_sharing (machine_id, general_access_scope, general_access_role, updated_at)
+VALUES (
+  sqlc.arg(machine_id),
+  sqlc.arg(general_access_scope),
+  sqlc.arg(general_access_role),
+  sqlc.arg(updated_at)
+)
+ON CONFLICT (machine_id) DO UPDATE
+SET general_access_scope = excluded.general_access_scope,
+    general_access_role = excluded.general_access_role,
+    updated_at = excluded.updated_at;
 
--- name: ListMachineExposureACLUsersByExposureID :many
-SELECT user_id
-FROM machine_exposure_acl_users
-WHERE exposure_id = sqlc.arg(exposure_id)
-ORDER BY user_id ASC;
+-- name: ListUserMachinesByMachineID :many
+SELECT um.user_id, um.machine_id, um.role, u.email
+FROM user_machines um
+JOIN users u ON u.id = um.user_id
+WHERE um.machine_id = sqlc.arg(machine_id)
+ORDER BY um.created_at ASC;
+
+-- name: UpsertUserMachine :exec
+INSERT INTO user_machines (user_id, machine_id, role)
+VALUES (sqlc.arg(user_id), sqlc.arg(machine_id), sqlc.arg(role))
+ON CONFLICT (user_id, machine_id) DO UPDATE
+SET role = excluded.role;
+
+-- name: DeleteUserMachine :execrows
+DELETE FROM user_machines
+WHERE user_id = sqlc.arg(user_id)
+  AND machine_id = sqlc.arg(machine_id);
+
+-- name: GetUserMachineRole :one
+SELECT role
+FROM user_machines
+WHERE user_id = sqlc.arg(user_id)
+  AND machine_id = sqlc.arg(machine_id)
+LIMIT 1;
+
+-- name: ListMachineEventsByMachineID :many
+SELECT id, machine_id, job_id, level, event_type, message, created_at
+FROM machine_events
+WHERE machine_id = sqlc.arg(machine_id)
+ORDER BY created_at DESC
+LIMIT sqlc.arg(limit_n);

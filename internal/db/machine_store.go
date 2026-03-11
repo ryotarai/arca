@@ -49,6 +49,31 @@ type Machine struct {
 	ReadyReportedAt int64
 	ReadyReason     string
 	MachineToken    string
+	UserRole        string
+}
+
+const (
+	MachineRoleAdmin  = "admin"
+	MachineRoleViewer = "viewer"
+	MachineRoleNone   = ""
+
+	GeneralAccessScopeNone      = "none"
+	GeneralAccessScopeArcaUsers = "arca_users"
+	GeneralAccessScopeAnonymous = "anonymous"
+
+	GeneralAccessRoleNone   = "none"
+	GeneralAccessRoleViewer = "viewer"
+)
+
+type MachineSharing struct {
+	GeneralAccessScope string
+	GeneralAccessRole  string
+}
+
+type MachineSharingMember struct {
+	UserID string
+	Email  string
+	Role   string
 }
 
 type MachineReadiness struct {
@@ -133,7 +158,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		if err = q.CreateUserMachine(ctx, sqlitesqlc.CreateUserMachineParams{
 			UserID:    userID,
 			MachineID: machineID,
-			Role:      "owner",
+			Role:      "admin",
 		}); err != nil {
 			return Machine{}, err
 		}
@@ -174,6 +199,14 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		}); err != nil {
 			return Machine{}, err
 		}
+		if err = q.UpsertMachineSharing(ctx, sqlitesqlc.UpsertMachineSharingParams{
+			MachineID:          machineID,
+			GeneralAccessScope: GeneralAccessScopeNone,
+			GeneralAccessRole:  GeneralAccessRoleNone,
+			UpdatedAt:          nowUnix,
+		}); err != nil {
+			return Machine{}, err
+		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
 		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion}); err != nil {
@@ -185,7 +218,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		if err = q.CreateUserMachine(ctx, postgresqlsqlc.CreateUserMachineParams{
 			UserID:    userID,
 			MachineID: machineID,
-			Role:      "owner",
+			Role:      "admin",
 		}); err != nil {
 			return Machine{}, err
 		}
@@ -226,6 +259,14 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		}); err != nil {
 			return Machine{}, err
 		}
+		if err = q.UpsertMachineSharing(ctx, postgresqlsqlc.UpsertMachineSharingParams{
+			MachineID:          machineID,
+			GeneralAccessScope: GeneralAccessScopeNone,
+			GeneralAccessRole:  GeneralAccessRoleNone,
+			UpdatedAt:          nowUnix,
+		}); err != nil {
+			return Machine{}, err
+		}
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
 	}
@@ -249,12 +290,16 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machine, error) {
 	switch s.driver {
 	case DriverSQLite:
-		rows, err := s.sqliteQueries.ListMachinesByUser(ctx, userID)
+		rows, err := s.sqliteQueries.ListMachinesAccessibleByUser(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
+			userRole := row.UserRole
+			if userRole == "" {
+				userRole = MachineRoleViewer
+			}
 			machines = append(machines, Machine{
 				ID:              row.ID,
 				Name:            row.Name,
@@ -268,16 +313,21 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				UserRole:        userRole,
 			})
 		}
 		return machines, nil
 	case DriverPostgres:
-		rows, err := s.pgQueries.ListMachinesByUser(ctx, userID)
+		rows, err := s.pgQueries.ListMachinesAccessibleByUser(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
+			userRole := row.UserRole
+			if userRole == "" {
+				userRole = MachineRoleViewer
+			}
 			machines = append(machines, Machine{
 				ID:              row.ID,
 				Name:            row.Name,
@@ -291,6 +341,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				UserRole:        userRole,
 			})
 		}
 		return machines, nil
@@ -1084,6 +1135,219 @@ func randomToken() (string, error) {
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+func (s *Store) ResolveMachineRole(ctx context.Context, userID, machineID string) string {
+	if userID == "" {
+		// Anonymous: check general_access_scope for anonymous
+		sharing, err := s.GetMachineSharing(ctx, machineID)
+		if err != nil {
+			return MachineRoleNone
+		}
+		if sharing.GeneralAccessScope == GeneralAccessScopeAnonymous && sharing.GeneralAccessRole == GeneralAccessRoleViewer {
+			return MachineRoleViewer
+		}
+		return MachineRoleNone
+	}
+	// Check individual role
+	role, err := s.GetUserMachineRole(ctx, userID, machineID)
+	if err == nil && role != "" {
+		return role
+	}
+	// Check general access for arca users
+	sharing, err := s.GetMachineSharing(ctx, machineID)
+	if err != nil {
+		return MachineRoleNone
+	}
+	if sharing.GeneralAccessScope == GeneralAccessScopeArcaUsers && sharing.GeneralAccessRole == GeneralAccessRoleViewer {
+		return MachineRoleViewer
+	}
+	if sharing.GeneralAccessScope == GeneralAccessScopeAnonymous && sharing.GeneralAccessRole == GeneralAccessRoleViewer {
+		return MachineRoleViewer
+	}
+	return MachineRoleNone
+}
+
+func (s *Store) GetUserMachineRole(ctx context.Context, userID, machineID string) (string, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.GetUserMachineRole(ctx, sqlitesqlc.GetUserMachineRoleParams{
+			UserID:    userID,
+			MachineID: machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.GetUserMachineRole(ctx, postgresqlsqlc.GetUserMachineRoleParams{
+			UserID:    userID,
+			MachineID: machineID,
+		})
+	default:
+		return "", unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) GetMachineSharing(ctx context.Context, machineID string) (MachineSharing, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetMachineSharingByMachineID(ctx, machineID)
+		if err != nil {
+			return MachineSharing{}, err
+		}
+		return MachineSharing{
+			GeneralAccessScope: row.GeneralAccessScope,
+			GeneralAccessRole:  row.GeneralAccessRole,
+		}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetMachineSharingByMachineID(ctx, machineID)
+		if err != nil {
+			return MachineSharing{}, err
+		}
+		return MachineSharing{
+			GeneralAccessScope: row.GeneralAccessScope,
+			GeneralAccessRole:  row.GeneralAccessRole,
+		}, nil
+	default:
+		return MachineSharing{}, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpsertMachineSharing(ctx context.Context, machineID string, sharing MachineSharing) error {
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpsertMachineSharing(ctx, sqlitesqlc.UpsertMachineSharingParams{
+			MachineID:          machineID,
+			GeneralAccessScope: sharing.GeneralAccessScope,
+			GeneralAccessRole:  sharing.GeneralAccessRole,
+			UpdatedAt:          nowUnix,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpsertMachineSharing(ctx, postgresqlsqlc.UpsertMachineSharingParams{
+			MachineID:          machineID,
+			GeneralAccessScope: sharing.GeneralAccessScope,
+			GeneralAccessRole:  sharing.GeneralAccessRole,
+			UpdatedAt:          nowUnix,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ListUserMachinesByMachineID(ctx context.Context, machineID string) ([]MachineSharingMember, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListUserMachinesByMachineID(ctx, machineID)
+		if err != nil {
+			return nil, err
+		}
+		members := make([]MachineSharingMember, 0, len(rows))
+		for _, row := range rows {
+			members = append(members, MachineSharingMember{
+				UserID: row.UserID,
+				Email:  row.Email,
+				Role:   row.Role,
+			})
+		}
+		return members, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListUserMachinesByMachineID(ctx, machineID)
+		if err != nil {
+			return nil, err
+		}
+		members := make([]MachineSharingMember, 0, len(rows))
+		for _, row := range rows {
+			members = append(members, MachineSharingMember{
+				UserID: row.UserID,
+				Email:  row.Email,
+				Role:   row.Role,
+			})
+		}
+		return members, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpsertUserMachine(ctx context.Context, userID, machineID, role string) error {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpsertUserMachine(ctx, sqlitesqlc.UpsertUserMachineParams{
+			UserID:    userID,
+			MachineID: machineID,
+			Role:      role,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpsertUserMachine(ctx, postgresqlsqlc.UpsertUserMachineParams{
+			UserID:    userID,
+			MachineID: machineID,
+			Role:      role,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) DeleteUserMachine(ctx context.Context, userID, machineID string) error {
+	switch s.driver {
+	case DriverSQLite:
+		_, err := s.sqliteQueries.DeleteUserMachine(ctx, sqlitesqlc.DeleteUserMachineParams{
+			UserID:    userID,
+			MachineID: machineID,
+		})
+		return err
+	case DriverPostgres:
+		_, err := s.pgQueries.DeleteUserMachine(ctx, postgresqlsqlc.DeleteUserMachineParams{
+			UserID:    userID,
+			MachineID: machineID,
+		})
+		return err
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ListMachineEventsByMachineID(ctx context.Context, machineID string, limit int64) ([]MachineEvent, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListMachineEventsByMachineID(ctx, sqlitesqlc.ListMachineEventsByMachineIDParams{
+			MachineID: machineID,
+			LimitN:    limit,
+		})
+		if err != nil {
+			return nil, err
+		}
+		events := make([]MachineEvent, 0, len(rows))
+		for _, row := range rows {
+			events = append(events, MachineEvent{
+				ID: row.ID, MachineID: row.MachineID, JobID: row.JobID,
+				Level: row.Level, EventType: row.EventType, Message: row.Message, CreatedAt: row.CreatedAt,
+			})
+		}
+		return events, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListMachineEventsByMachineID(ctx, postgresqlsqlc.ListMachineEventsByMachineIDParams{
+			MachineID: machineID,
+			LimitN:    int32(limit),
+		})
+		if err != nil {
+			return nil, err
+		}
+		events := make([]MachineEvent, 0, len(rows))
+		for _, row := range rows {
+			events = append(events, MachineEvent{
+				ID: row.ID, MachineID: row.MachineID, JobID: row.JobID,
+				Level: row.Level, EventType: row.EventType, Message: row.Message, CreatedAt: row.CreatedAt,
+			})
+		}
+		return events, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
 }
 
 func isMachineNameUniqueConstraintError(err error) bool {

@@ -19,14 +19,15 @@ import (
 type machineConnectService struct {
 	authenticator Authenticator
 	store         MachineStore
+	dbStore       *db.Store
 }
 
 var machineNamePattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 
 var reservedMachineNames = []string{"admin", "console", "dash", "api", "system"}
 
-func newMachineConnectService(authenticator Authenticator, store MachineStore, _ *cloudflare.Client) *machineConnectService {
-	return &machineConnectService{authenticator: authenticator, store: store}
+func newMachineConnectService(authenticator Authenticator, store MachineStore, _ *cloudflare.Client, dbStore *db.Store) *machineConnectService {
+	return &machineConnectService{authenticator: authenticator, store: store, dbStore: dbStore}
 }
 
 func (s *machineConnectService) ListMachines(ctx context.Context, req *connect.Request[arcav1.ListMachinesRequest]) (*connect.Response[arcav1.ListMachinesResponse], error) {
@@ -60,14 +61,28 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
 
+	role := s.resolveMachineRole(ctx, userID, machineID)
+	if role == db.MachineRoleNone {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+	}
+
 	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			// User has general access but no user_machines row — fetch directly
+			if s.dbStore != nil {
+				m, mErr := s.dbStore.GetMachineByID(ctx, machineID)
+				if mErr == nil {
+					m.UserRole = role
+					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessage(m)}), nil
+				}
+			}
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
 		log.Printf("get machine failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
 	}
+	machine.UserRole = role
 
 	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessage(machine)}), nil
 }
@@ -112,6 +127,10 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	if role := s.resolveMachineRole(ctx, userID, machineID); role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
 	}
 
 	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
@@ -218,6 +237,10 @@ func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
 
+	if role := s.resolveMachineRole(ctx, userID, machineID); role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
 	updated, err := s.store.RequestStopMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
 		log.Printf("stop machine failed: %v", err)
@@ -250,6 +273,10 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
 
+	if role := s.resolveMachineRole(ctx, userID, machineID); role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
 	requested, err := s.store.RequestDeleteMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
 		log.Printf("request machine delete failed: %v", err)
@@ -273,8 +300,18 @@ func (s *machineConnectService) ListMachineEvents(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
 
+	role := s.resolveMachineRole(ctx, userID, machineID)
+	if role == db.MachineRoleNone {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+	}
+
+	// Admin-only: viewers cannot see events per design
+	if role != db.MachineRoleAdmin {
+		return connect.NewResponse(&arcav1.ListMachineEventsResponse{Events: nil}), nil
+	}
+
 	limit := int64(req.Msg.GetLimit())
-	events, err := s.store.ListMachineEventsByMachineIDForUser(ctx, userID, machineID, limit)
+	events, err := s.dbStore.ListMachineEventsByMachineID(ctx, machineID, limit)
 	if err != nil {
 		log.Printf("list machine events failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list machine events"))
@@ -314,6 +351,17 @@ func (s *machineConnectService) authenticate(ctx context.Context, header http.He
 	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
+func (s *machineConnectService) resolveMachineRole(ctx context.Context, userID, machineID string) string {
+	if s.dbStore != nil {
+		return s.dbStore.ResolveMachineRole(ctx, userID, machineID)
+	}
+	// Fallback for tests without dbStore: check via GetMachineByIDForUser
+	if _, err := s.store.GetMachineByIDForUser(ctx, userID, machineID); err == nil {
+		return db.MachineRoleAdmin
+	}
+	return db.MachineRoleNone
+}
+
 func toMachineMessage(machine db.Machine) *arcav1.Machine {
 	return &arcav1.Machine{
 		Id:              machine.ID,
@@ -326,6 +374,7 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 		UpdateRequired:  machineUpdateRequired(machine),
 		Ready:           machine.Ready,
 		ReadyReportedAt: machine.ReadyReportedAt,
+		UserRole:        machine.UserRole,
 	}
 }
 

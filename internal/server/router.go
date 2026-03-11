@@ -79,7 +79,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {
-		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore, deps.Cloudflare))
+		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore, deps.Cloudflare, deps.Store))
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.Store != nil {
@@ -87,6 +87,10 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 
 		path, handler = arcav1connect.NewRuntimeServiceHandler(newRuntimeConnectService(deps.Store, deps.Authenticator))
+		r.Mount(path, handler)
+	}
+	if deps.Store != nil && deps.Authenticator != nil {
+		path, handler := arcav1connect.NewSharingServiceHandler(newSharingConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Cloudflare != nil && deps.Authenticator != nil {

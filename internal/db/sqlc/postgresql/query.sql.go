@@ -418,16 +418,6 @@ func (q *Queries) DeleteMachineByID(ctx context.Context, machineID string) (int6
 	return result.RowsAffected()
 }
 
-const deleteMachineExposureACLUsersByExposureID = `-- name: DeleteMachineExposureACLUsersByExposureID :exec
-DELETE FROM machine_exposure_acl_users
-WHERE exposure_id = $1
-`
-
-func (q *Queries) DeleteMachineExposureACLUsersByExposureID(ctx context.Context, exposureID string) error {
-	_, err := q.db.ExecContext(ctx, deleteMachineExposureACLUsersByExposureID, exposureID)
-	return err
-}
-
 const deleteMachineIfNoUsers = `-- name: DeleteMachineIfNoUsers :exec
 DELETE FROM machines
 WHERE id = $1
@@ -456,11 +446,30 @@ func (q *Queries) DeleteRuntimeByID(ctx context.Context, id string) (int64, erro
 	return result.RowsAffected()
 }
 
+const deleteUserMachine = `-- name: DeleteUserMachine :execrows
+DELETE FROM user_machines
+WHERE user_id = $1
+  AND machine_id = $2
+`
+
+type DeleteUserMachineParams struct {
+	UserID    string
+	MachineID string
+}
+
+func (q *Queries) DeleteUserMachine(ctx context.Context, arg DeleteUserMachineParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUserMachine, arg.UserID, arg.MachineID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteUserMachineByMachineIDForOwner = `-- name: DeleteUserMachineByMachineIDForOwner :execrows
 DELETE FROM user_machines
 WHERE machine_id = $1
   AND user_id = $2
-  AND role = 'owner'
+  AND role = 'admin'
 `
 
 type DeleteUserMachineByMachineIDForOwnerParams struct {
@@ -698,7 +707,7 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 }
 
 const getMachineExposureByHostname = `-- name: GetMachineExposureByHostname :one
-SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, created_at, updated_at
 FROM machine_exposures
 WHERE hostname = $1
 LIMIT 1
@@ -713,8 +722,6 @@ func (q *Queries) GetMachineExposureByHostname(ctx context.Context, hostname str
 		&i.Name,
 		&i.Hostname,
 		&i.Service,
-		&i.IsPublic,
-		&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -722,7 +729,7 @@ func (q *Queries) GetMachineExposureByHostname(ctx context.Context, hostname str
 }
 
 const getMachineExposureByMachineIDAndName = `-- name: GetMachineExposureByMachineIDAndName :one
-SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = $1
   AND name = $2
@@ -743,8 +750,6 @@ func (q *Queries) GetMachineExposureByMachineIDAndName(ctx context.Context, arg 
 		&i.Name,
 		&i.Hostname,
 		&i.Service,
-		&i.IsPublic,
-		&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -770,7 +775,7 @@ const getMachineOwnerUserID = `-- name: GetMachineOwnerUserID :one
 SELECT um.user_id
 FROM user_machines um
 WHERE um.machine_id = $1
-  AND um.role = 'owner'
+  AND um.role = 'admin'
 ORDER BY um.created_at ASC
 LIMIT 1
 `
@@ -799,6 +804,25 @@ func (q *Queries) GetMachineReadinessByMachineID(ctx context.Context, machineID 
 	row := q.db.QueryRowContext(ctx, getMachineReadinessByMachineID, machineID)
 	var i GetMachineReadinessByMachineIDRow
 	err := row.Scan(&i.Ready, &i.ReadyReportedAt, &i.DesiredStatus)
+	return i, err
+}
+
+const getMachineSharingByMachineID = `-- name: GetMachineSharingByMachineID :one
+SELECT machine_id, general_access_scope, general_access_role, updated_at
+FROM machine_sharing
+WHERE machine_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetMachineSharingByMachineID(ctx context.Context, machineID string) (MachineSharing, error) {
+	row := q.db.QueryRowContext(ctx, getMachineSharingByMachineID, machineID)
+	var i MachineSharing
+	err := row.Scan(
+		&i.MachineID,
+		&i.GeneralAccessScope,
+		&i.GeneralAccessRole,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
@@ -958,6 +982,26 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	return i, err
 }
 
+const getUserMachineRole = `-- name: GetUserMachineRole :one
+SELECT role
+FROM user_machines
+WHERE user_id = $1
+  AND machine_id = $2
+LIMIT 1
+`
+
+type GetUserMachineRoleParams struct {
+	UserID    string
+	MachineID string
+}
+
+func (q *Queries) GetUserMachineRole(ctx context.Context, arg GetUserMachineRoleParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserMachineRole, arg.UserID, arg.MachineID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
 const getUserSettingsByUserID = `-- name: GetUserSettingsByUserID :one
 SELECT u.id AS user_id,
        COALESCE(s.ssh_public_keys_json, '[]') AS ssh_public_keys_json
@@ -1111,23 +1155,6 @@ func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
 	return column_1, err
 }
 
-const insertMachineExposureACLUser = `-- name: InsertMachineExposureACLUser :exec
-INSERT INTO machine_exposure_acl_users (exposure_id, user_id, created_at)
-VALUES ($1, $2, $3)
-ON CONFLICT (exposure_id, user_id) DO NOTHING
-`
-
-type InsertMachineExposureACLUserParams struct {
-	ExposureID string
-	UserID     string
-	CreatedAt  int64
-}
-
-func (q *Queries) InsertMachineExposureACLUser(ctx context.Context, arg InsertMachineExposureACLUserParams) error {
-	_, err := q.db.ExecContext(ctx, insertMachineExposureACLUser, arg.ExposureID, arg.UserID, arg.CreatedAt)
-	return err
-}
-
 const invalidateUserSetupTokensByUserID = `-- name: InvalidateUserSetupTokensByUserID :exec
 UPDATE user_setup_tokens
 SET used_at = $1
@@ -1143,6 +1170,50 @@ type InvalidateUserSetupTokensByUserIDParams struct {
 func (q *Queries) InvalidateUserSetupTokensByUserID(ctx context.Context, arg InvalidateUserSetupTokensByUserIDParams) error {
 	_, err := q.db.ExecContext(ctx, invalidateUserSetupTokensByUserID, arg.UsedAt, arg.UserID)
 	return err
+}
+
+const listMachineEventsByMachineID = `-- name: ListMachineEventsByMachineID :many
+SELECT id, machine_id, job_id, level, event_type, message, created_at
+FROM machine_events
+WHERE machine_id = $1
+ORDER BY created_at DESC
+LIMIT $2
+`
+
+type ListMachineEventsByMachineIDParams struct {
+	MachineID string
+	LimitN    int32
+}
+
+func (q *Queries) ListMachineEventsByMachineID(ctx context.Context, arg ListMachineEventsByMachineIDParams) ([]MachineEvent, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineEventsByMachineID, arg.MachineID, arg.LimitN)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MachineEvent
+	for rows.Next() {
+		var i MachineEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.MachineID,
+			&i.JobID,
+			&i.Level,
+			&i.EventType,
+			&i.Message,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listMachineEventsByMachineIDForUser = `-- name: ListMachineEventsByMachineIDForUser :many
@@ -1192,38 +1263,8 @@ func (q *Queries) ListMachineEventsByMachineIDForUser(ctx context.Context, arg L
 	return items, nil
 }
 
-const listMachineExposureACLUsersByExposureID = `-- name: ListMachineExposureACLUsersByExposureID :many
-SELECT user_id
-FROM machine_exposure_acl_users
-WHERE exposure_id = $1
-ORDER BY user_id ASC
-`
-
-func (q *Queries) ListMachineExposureACLUsersByExposureID(ctx context.Context, exposureID string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listMachineExposureACLUsersByExposureID, exposureID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var user_id string
-		if err := rows.Scan(&user_id); err != nil {
-			return nil, err
-		}
-		items = append(items, user_id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listMachineExposuresByMachineID = `-- name: ListMachineExposuresByMachineID :many
-SELECT id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at
+SELECT id, machine_id, name, hostname, service, created_at, updated_at
 FROM machine_exposures
 WHERE machine_id = $1
 ORDER BY created_at ASC
@@ -1244,10 +1285,73 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 			&i.Name,
 			&i.Hostname,
 			&i.Service,
-			&i.IsPublic,
-			&i.Visibility,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
+SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason,
+  COALESCE(um.role, '') AS user_role
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+LEFT JOIN user_machines um ON um.machine_id = m.id AND um.user_id = $1
+LEFT JOIN machine_sharing sh ON sh.machine_id = m.id
+WHERE um.user_id = $1
+  OR (sh.general_access_scope = 'arca_users' AND sh.general_access_role != 'none')
+ORDER BY m.created_at DESC
+`
+
+type ListMachinesAccessibleByUserRow struct {
+	ID              string
+	Name            string
+	RuntimeID       string
+	SetupVersion    string
+	Endpoint        string
+	Status          string
+	DesiredStatus   string
+	ContainerID     string
+	LastError       string
+	Ready           bool
+	ReadyReportedAt int64
+	ReadyReason     string
+	UserRole        string
+}
+
+func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID string) ([]ListMachinesAccessibleByUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMachinesAccessibleByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMachinesAccessibleByUserRow
+	for rows.Next() {
+		var i ListMachinesAccessibleByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.RuntimeID,
+			&i.SetupVersion,
+			&i.Endpoint,
+			&i.Status,
+			&i.DesiredStatus,
+			&i.ContainerID,
+			&i.LastError,
+			&i.Ready,
+			&i.ReadyReportedAt,
+			&i.ReadyReason,
+			&i.UserRole,
 		); err != nil {
 			return nil, err
 		}
@@ -1300,66 +1404,6 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 	var items []ListMachinesByDesiredStatusRow
 	for rows.Next() {
 		var i ListMachinesByDesiredStatusRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.RuntimeID,
-			&i.SetupVersion,
-			&i.Endpoint,
-			&i.Status,
-			&i.DesiredStatus,
-			&i.ContainerID,
-			&i.LastError,
-			&i.Ready,
-			&i.ReadyReportedAt,
-			&i.ReadyReason,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listMachinesByUser = `-- name: ListMachinesByUser :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
-FROM machines m
-JOIN user_machines um ON um.machine_id = m.id
-JOIN machine_states ms ON ms.machine_id = m.id
-WHERE um.user_id = $1
-ORDER BY m.created_at DESC
-`
-
-type ListMachinesByUserRow struct {
-	ID              string
-	Name            string
-	RuntimeID       string
-	SetupVersion    string
-	Endpoint        string
-	Status          string
-	DesiredStatus   string
-	ContainerID     string
-	LastError       string
-	Ready           bool
-	ReadyReportedAt int64
-	ReadyReason     string
-}
-
-func (q *Queries) ListMachinesByUser(ctx context.Context, userID string) ([]ListMachinesByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMachinesByUser, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListMachinesByUserRow
-	for rows.Next() {
-		var i ListMachinesByUserRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -1458,6 +1502,49 @@ func (q *Queries) ListRuntimes(ctx context.Context) ([]Runtime, error) {
 			&i.ConfigJson,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserMachinesByMachineID = `-- name: ListUserMachinesByMachineID :many
+SELECT um.user_id, um.machine_id, um.role, u.email
+FROM user_machines um
+JOIN users u ON u.id = um.user_id
+WHERE um.machine_id = $1
+ORDER BY um.created_at ASC
+`
+
+type ListUserMachinesByMachineIDRow struct {
+	UserID    string
+	MachineID string
+	Role      string
+	Email     string
+}
+
+func (q *Queries) ListUserMachinesByMachineID(ctx context.Context, machineID string) ([]ListUserMachinesByMachineIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserMachinesByMachineID, machineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserMachinesByMachineIDRow
+	for rows.Next() {
+		var i ListUserMachinesByMachineIDRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.MachineID,
+			&i.Role,
+			&i.Email,
 		); err != nil {
 			return nil, err
 		}
@@ -1749,7 +1836,7 @@ WHERE id = $2
     FROM user_machines um
     WHERE um.machine_id = machines.id
       AND um.user_id = $3
-      AND um.role = 'owner'
+      AND um.role = 'admin'
   )
 `
 
@@ -1777,7 +1864,7 @@ WHERE id = $3
     FROM user_machines um
     WHERE um.machine_id = machines.id
       AND um.user_id = $4
-      AND um.role = 'owner'
+      AND um.role = 'admin'
   )
 `
 
@@ -1847,7 +1934,7 @@ WHERE machine_states.machine_id = $4
     FROM user_machines um
     WHERE um.machine_id = machine_states.machine_id
       AND um.user_id = $5
-      AND um.role = 'owner'
+      AND um.role = 'admin'
   )
 `
 
@@ -1962,7 +2049,7 @@ func (q *Queries) UpdateUserRoleByID(ctx context.Context, arg UpdateUserRoleByID
 }
 
 const upsertMachineExposure = `-- name: UpsertMachineExposure :exec
-INSERT INTO machine_exposures (id, machine_id, name, hostname, service, is_public, visibility, created_at, updated_at)
+INSERT INTO machine_exposures (id, machine_id, name, hostname, service, created_at, updated_at)
 VALUES (
   $1,
   $2,
@@ -1970,28 +2057,22 @@ VALUES (
   $4,
   $5,
   $6,
-  $7,
-  $8,
-  $9
+  $7
 )
 ON CONFLICT (machine_id, name) DO UPDATE
 SET hostname = excluded.hostname,
     service = excluded.service,
-    is_public = excluded.is_public,
-    visibility = excluded.visibility,
     updated_at = excluded.updated_at
 `
 
 type UpsertMachineExposureParams struct {
-	ID         string
-	MachineID  string
-	Name       string
-	Hostname   string
-	Service    string
-	IsPublic   bool
-	Visibility string
-	CreatedAt  int64
-	UpdatedAt  int64
+	ID        string
+	MachineID string
+	Name      string
+	Hostname  string
+	Service   string
+	CreatedAt int64
+	UpdatedAt int64
 }
 
 func (q *Queries) UpsertMachineExposure(ctx context.Context, arg UpsertMachineExposureParams) error {
@@ -2001,9 +2082,38 @@ func (q *Queries) UpsertMachineExposure(ctx context.Context, arg UpsertMachineEx
 		arg.Name,
 		arg.Hostname,
 		arg.Service,
-		arg.IsPublic,
-		arg.Visibility,
 		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const upsertMachineSharing = `-- name: UpsertMachineSharing :exec
+INSERT INTO machine_sharing (machine_id, general_access_scope, general_access_role, updated_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4
+)
+ON CONFLICT (machine_id) DO UPDATE
+SET general_access_scope = excluded.general_access_scope,
+    general_access_role = excluded.general_access_role,
+    updated_at = excluded.updated_at
+`
+
+type UpsertMachineSharingParams struct {
+	MachineID          string
+	GeneralAccessScope string
+	GeneralAccessRole  string
+	UpdatedAt          int64
+}
+
+func (q *Queries) UpsertMachineSharing(ctx context.Context, arg UpsertMachineSharingParams) error {
+	_, err := q.db.ExecContext(ctx, upsertMachineSharing,
+		arg.MachineID,
+		arg.GeneralAccessScope,
+		arg.GeneralAccessRole,
 		arg.UpdatedAt,
 	)
 	return err
@@ -2102,6 +2212,24 @@ func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStatePara
 		arg.CloudflareApiToken,
 		arg.UpdatedAt,
 	)
+	return err
+}
+
+const upsertUserMachine = `-- name: UpsertUserMachine :exec
+INSERT INTO user_machines (user_id, machine_id, role)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, machine_id) DO UPDATE
+SET role = excluded.role
+`
+
+type UpsertUserMachineParams struct {
+	UserID    string
+	MachineID string
+	Role      string
+}
+
+func (q *Queries) UpsertUserMachine(ctx context.Context, arg UpsertUserMachineParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserMachine, arg.UserID, arg.MachineID, arg.Role)
 	return err
 }
 

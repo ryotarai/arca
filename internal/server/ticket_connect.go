@@ -40,12 +40,9 @@ func (s *ticketConnectService) IssueTicket(ctx context.Context, req *connect.Req
 	if machineID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
 	}
-	if _, err := s.store.GetMachineByIDForUser(ctx, userID, machineID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
-		}
-		log.Printf("authorize machine for ticket failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
+	role := s.store.ResolveMachineRole(ctx, userID, machineID)
+	if role == db.MachineRoleNone {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 	}
 
 	expiresAt := time.Now().Add(authTicketTTL)

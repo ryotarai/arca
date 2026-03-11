@@ -170,7 +170,14 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                     <li key={machine.id} className="rounded-lg border border-border bg-muted/30 p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
-                          <p className="font-medium text-foreground">{machine.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground">{machine.name}</p>
+                            {machine.userRole !== '' && machine.userRole !== 'admin' && (
+                              <span className="inline-flex items-center rounded-full border border-violet-400/40 bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-violet-200">
+                                {machine.userRole}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">runtime: {runtimes.find((r) => r.id === machine.runtimeId)?.name ?? machine.runtimeId}</p>
                           <div className="mt-1 flex items-center gap-2">
                             <StatusBadge status={machine.status} />
@@ -181,7 +188,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                         </div>
 
                         <div className="flex flex-wrap items-center justify-end gap-2 sm:max-w-md">
-                          {machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' && (
+                          {machine.userRole === 'admin' && machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' && (
                             <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
                               Restart to update
                             </Button>

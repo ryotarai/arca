@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { EndpointVisibility } from '@/gen/arca/v1/tunnel_pb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { SharingDialog } from '@/components/SharingDialog'
 import {
   getMachine,
   deleteMachine,
@@ -13,7 +13,7 @@ import {
   stopMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, MachineEvent, MachineExposure, RuntimeSummary, User } from '@/lib/types'
+import type { Machine, MachineEvent, RuntimeSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -91,11 +91,11 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
-  const [defaultExposure, setDefaultExposure] = useState<MachineExposure | null>(null)
-  const [exposureVisibility, setExposureVisibility] = useState<EndpointVisibility>(EndpointVisibility.OWNER_ONLY)
+  const [sharingOpen, setSharingOpen] = useState(false)
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const isRunning = machine?.status === 'running'
+  const isAdmin = machine?.userRole === 'admin'
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
@@ -126,9 +126,6 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           setMachine(item)
           setEvents(eventItems)
           setRuntimes(runtimeItems)
-          const defaultItem = exposureItems.find((item) => item.name === 'default') ?? null
-          setDefaultExposure(defaultItem)
-          setExposureVisibility(defaultItem?.visibility ?? EndpointVisibility.OWNER_ONLY)
           setError('')
         }
       } catch (e) {
@@ -239,6 +236,11 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
             <p className="mt-1 text-xs text-muted-foreground">{machineID}</p>
           </div>
           <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Button type="button" variant="secondary" onClick={() => setSharingOpen(true)}>
+                Share
+              </Button>
+            )}
             <Button asChild type="button" variant="secondary">
               <Link to="/machines">Back</Link>
             </Button>
@@ -264,19 +266,21 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                   <p className="text-sm text-muted-foreground">Name</p>
                   <p className="text-lg font-semibold text-foreground">{machine.name}</p>
                 </div>
-                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Runtime</p>
-                  {machine.runtimeId === '' ? (
-                    <p className="text-sm text-foreground">Unassigned</p>
-                  ) : (
-                    <Link
-                      to={`/runtimes/${machine.runtimeId}`}
-                      className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
-                    >
-                      {runtimes.find((r) => r.id === machine.runtimeId)?.name ?? machine.runtimeId}
-                    </Link>
-                  )}
-                </div>
+                {isAdmin && (
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm text-muted-foreground">Runtime</p>
+                    {machine.runtimeId === '' ? (
+                      <p className="text-sm text-foreground">Unassigned</p>
+                    ) : (
+                      <Link
+                        to={`/runtimes/${machine.runtimeId}`}
+                        className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
+                      >
+                        {runtimes.find((r) => r.id === machine.runtimeId)?.name ?? machine.runtimeId}
+                      </Link>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Status</p>
                   <div className="flex items-center gap-2">
@@ -297,7 +301,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     <p className="text-xs text-muted-foreground">Proxied to localhost:11030 inside the machine</p>
                   </div>
                 )}
-                {isRunning && ttydURL != null && (
+                {isAdmin && isRunning && ttydURL != null && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Terminal (ttyd)</p>
                     <a
@@ -310,62 +314,52 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     </a>
                   </div>
                 )}
-                <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Endpoint visibility</p>
-                  <p className="text-sm text-foreground">
-                    {exposureVisibility === EndpointVisibility.OWNER_ONLY && 'Owner only'}
-                    {exposureVisibility === EndpointVisibility.SELECTED_USERS && 'Selected Arca users'}
-                    {exposureVisibility === EndpointVisibility.ALL_ARCA_USERS && 'All Arca users'}
-                    {exposureVisibility === EndpointVisibility.INTERNET_PUBLIC && 'Internet public'}
-                  </p>
-                  <Button asChild type="button" variant="secondary" className="h-9 px-3">
-                    <Link to={`/machines/${machineID}/edit`}>Edit visibility</Link>
-                  </Button>
-                </div>
                 {machine.lastError != null && machine.lastError !== '' && (
                   <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
                     <p className="text-sm text-red-200">last error</p>
                     <p className="mt-1 break-all text-xs text-red-100">{machine.lastError}</p>
                   </div>
                 )}
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-9 px-3"
-                    onClick={() => void handleStart()}
-                    disabled={machine.desiredStatus === 'running' && machine.status !== 'failed'}
-                  >
-                    Start
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-9 px-3"
-                    onClick={() => void handleStop()}
-                    disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
-                  >
-                    Stop
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-9 px-3"
-                    onClick={() => void handleRestart()}
-                    disabled={machine.status === 'starting' || machine.status === 'stopping' || machine.status === 'pending' || machine.status === 'deleting'}
-                  >
-                    {machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' ? 'Restart to update' : 'Restart'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-9 px-3"
-                    onClick={() => void handleDelete()}
-                    disabled={deleting}
-                  >
-                    {deleting ? 'Deleting...' : 'Delete'}
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9 px-3"
+                      onClick={() => void handleStart()}
+                      disabled={machine.desiredStatus === 'running' && machine.status !== 'failed'}
+                    >
+                      Start
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9 px-3"
+                      onClick={() => void handleStop()}
+                      disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
+                    >
+                      Stop
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9 px-3"
+                      onClick={() => void handleRestart()}
+                      disabled={machine.status === 'starting' || machine.status === 'stopping' || machine.status === 'pending' || machine.status === 'deleting'}
+                    >
+                      {machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' ? 'Restart to update' : 'Restart'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9 px-3"
+                      onClick={() => void handleDelete()}
+                      disabled={deleting}
+                    >
+                      {deleting ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
 
@@ -377,36 +371,46 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           </CardContent>
         </Card>
 
-        <Card className="py-0 shadow-sm">
-          <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl">Machine events</CardTitle>
-            <CardDescription>Recent state transitions and worker activities.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 pt-3">
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Loading events...</p>
-            ) : sortedEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No events yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {sortedEvents.map((event) => (
-                  <div key={event.id} className="rounded-lg border border-border bg-muted/30 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <EventLevelBadge level={event.level} />
-                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">{event.eventType}</span>
+        {isAdmin && (
+          <Card className="py-0 shadow-sm">
+            <CardHeader className="space-y-2 p-6 pb-3">
+              <CardTitle className="text-xl">Machine events</CardTitle>
+              <CardDescription>Recent state transitions and worker activities.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 pt-3">
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Loading events...</p>
+              ) : sortedEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No events yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {sortedEvents.map((event) => (
+                    <div key={event.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <EventLevelBadge level={event.level} />
+                          <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">{event.eventType}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{formatEventTimestamp(Number(event.createdAt))}</span>
                       </div>
-                      <span className="text-xs text-muted-foreground">{formatEventTimestamp(Number(event.createdAt))}</span>
+                      <p className="mt-2 text-sm text-foreground">{event.message}</p>
+                      {event.jobId !== '' && <p className="mt-1 text-xs text-muted-foreground">job: {event.jobId}</p>}
                     </div>
-                    <p className="mt-2 text-sm text-foreground">{event.message}</p>
-                    {event.jobId !== '' && <p className="mt-1 text-xs text-muted-foreground">job: {event.jobId}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </section>
+
+      {isAdmin && (
+        <SharingDialog
+          machineID={machineID}
+          open={sharingOpen}
+          onOpenChange={setSharingOpen}
+        />
+      )}
     </main>
   )
 }

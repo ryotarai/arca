@@ -512,7 +512,7 @@ func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (s
 		return "", fmt.Errorf("update tunnel ingress: %w", err)
 	}
 
-	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:11030", db.EndpointVisibilityOwnerOnly, nil); err != nil {
+	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:11030"); err != nil {
 		return "", fmt.Errorf("upsert machine exposure: %w", err)
 	}
 	if err := w.store.UpdateMachineEndpointByID(ctx, machine.ID, hostname); err != nil {
@@ -621,7 +621,7 @@ func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machin
 
 	// Use arcad's listen port (21030) as the service URL so the server
 	// proxies to arcad, which handles __arca/* path routing (ttyd, shelley, etc.).
-	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:21030", db.EndpointVisibilityOwnerOnly, nil); err != nil {
+	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:21030"); err != nil {
 		return fmt.Errorf("upsert machine exposure: %w", err)
 	}
 	if err := w.store.UpdateMachineEndpointByID(ctx, machine.ID, hostname); err != nil {

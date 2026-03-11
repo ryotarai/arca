@@ -30,11 +30,15 @@ import {
   UpdateRuntimeRequestSchema,
 } from '@/gen/arca/v1/runtime_pb'
 import {
-  EndpointVisibility,
   ListMachineExposuresRequestSchema,
   TunnelService,
-  UpsertMachineExposureRequestSchema,
 } from '@/gen/arca/v1/tunnel_pb'
+import {
+  GetMachineSharingRequestSchema,
+  SharingService,
+  UpdateMachineSharingRequestSchema,
+} from '@/gen/arca/v1/sharing_pb'
+import type { GeneralAccess, MachineSharingMember } from '@/gen/arca/v1/sharing_pb'
 import {
   CompleteUserSetupRequestSchema,
   CreateUserRequestSchema,
@@ -73,6 +77,7 @@ const machineClient = createClient(MachineService, connectTransport)
 const runtimeClient = createClient(RuntimeService, connectTransport)
 const tunnelClient = createClient(TunnelService, connectTransport)
 const userClient = createClient(UserService, connectTransport)
+const sharingClient = createClient(SharingService, connectTransport)
 
 type PollingOptions = {
   timeoutMs?: number
@@ -848,22 +853,36 @@ export async function listMachineExposures(machineID: string): Promise<MachineEx
   return response.exposures
 }
 
-export async function updateMachineExposureVisibility(
+export async function getMachineSharing(machineID: string): Promise<{
+  members: MachineSharingMember[]
+  generalAccess: GeneralAccess | undefined
+}> {
+  const response = await sharingClient.getMachineSharing(
+    create(GetMachineSharingRequestSchema, { machineId: machineID }),
+  )
+  return {
+    members: response.members,
+    generalAccess: response.generalAccess,
+  }
+}
+
+export async function updateMachineSharing(
   machineID: string,
-  name: string,
-  visibility: EndpointVisibility,
-  selectedUserIDs: string[],
-): Promise<MachineExposure> {
-  const response = await tunnelClient.upsertMachineExposure(
-    create(UpsertMachineExposureRequestSchema, {
+  members: { userId: string; email: string; role: string }[],
+  generalAccess: { scope: string; role: string },
+): Promise<{
+  members: MachineSharingMember[]
+  generalAccess: GeneralAccess | undefined
+}> {
+  const response = await sharingClient.updateMachineSharing(
+    create(UpdateMachineSharingRequestSchema, {
       machineId: machineID,
-      name,
-      visibility,
-      selectedUserIds: selectedUserIDs,
+      members,
+      generalAccess,
     }),
   )
-  if (response.exposure == null) {
-    throw new Error('request failed')
+  return {
+    members: response.members,
+    generalAccess: response.generalAccess,
   }
-  return response.exposure
 }

@@ -26,6 +26,7 @@ message Machine {
   bool update_required = 8;
   bool ready = 9;
   int64 ready_reported_at = 10;
+  string user_role = 11;
 }
 
 message ListMachinesRequest {}

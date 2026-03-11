@@ -8,29 +8,19 @@ import (
 )
 
 func canUserAccessExposure(ctx context.Context, store *db.Store, exposure db.MachineExposure, userID, targetPath string) bool {
-	if isOwnerOnlyArcaPath(targetPath) {
-		_, err := store.GetMachineByIDForUser(ctx, userID, exposure.MachineID)
-		return err == nil
+	role := store.ResolveMachineRole(ctx, userID, exposure.MachineID)
+	if role == db.MachineRoleNone {
+		return false
 	}
-
-	visibility := db.NormalizeEndpointVisibility(exposure.Visibility)
-	if visibility == db.EndpointVisibilityAllArcaUsers || visibility == db.EndpointVisibilityInternetPublic {
-		return true
+	// /__arca/* paths (ttyd/shelley) require admin
+	if isAdminOnlyArcaPath(targetPath) {
+		return role == db.MachineRoleAdmin
 	}
-	if _, err := store.GetMachineByIDForUser(ctx, userID, exposure.MachineID); err == nil {
-		return true
-	}
-	if visibility == db.EndpointVisibilitySelectedUsers {
-		for _, selected := range exposure.SelectedUserIDs {
-			if selected == userID {
-				return true
-			}
-		}
-	}
-	return false
+	// Regular endpoints: viewer+ can access
+	return true
 }
 
-func isOwnerOnlyArcaPath(path string) bool {
+func isAdminOnlyArcaPath(path string) bool {
 	path = strings.TrimSpace(path)
 	if path == "" || path == "/__arca/readyz" {
 		return false
