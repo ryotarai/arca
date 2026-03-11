@@ -1073,6 +1073,146 @@ func (*DeleteRuntimeResponse) Descriptor() ([]byte, []int) {
 	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{13}
 }
 
+type RuntimeSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Type          RuntimeType            `protobuf:"varint,3,opt,name=type,proto3,enum=arca.v1.RuntimeType" json:"type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RuntimeSummary) Reset() {
+	*x = RuntimeSummary{}
+	mi := &file_arca_v1_runtime_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RuntimeSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuntimeSummary) ProtoMessage() {}
+
+func (x *RuntimeSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_runtime_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuntimeSummary.ProtoReflect.Descriptor instead.
+func (*RuntimeSummary) Descriptor() ([]byte, []int) {
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RuntimeSummary) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RuntimeSummary) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RuntimeSummary) GetType() RuntimeType {
+	if x != nil {
+		return x.Type
+	}
+	return RuntimeType_RUNTIME_TYPE_UNSPECIFIED
+}
+
+type ListAvailableRuntimesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAvailableRuntimesRequest) Reset() {
+	*x = ListAvailableRuntimesRequest{}
+	mi := &file_arca_v1_runtime_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAvailableRuntimesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAvailableRuntimesRequest) ProtoMessage() {}
+
+func (x *ListAvailableRuntimesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_runtime_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAvailableRuntimesRequest.ProtoReflect.Descriptor instead.
+func (*ListAvailableRuntimesRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{15}
+}
+
+type ListAvailableRuntimesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runtimes      []*RuntimeSummary      `protobuf:"bytes,1,rep,name=runtimes,proto3" json:"runtimes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAvailableRuntimesResponse) Reset() {
+	*x = ListAvailableRuntimesResponse{}
+	mi := &file_arca_v1_runtime_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAvailableRuntimesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAvailableRuntimesResponse) ProtoMessage() {}
+
+func (x *ListAvailableRuntimesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_runtime_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAvailableRuntimesResponse.ProtoReflect.Descriptor instead.
+func (*ListAvailableRuntimesResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_runtime_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListAvailableRuntimesResponse) GetRuntimes() []*RuntimeSummary {
+	if x != nil {
+		return x.Runtimes
+	}
+	return nil
+}
+
 var File_arca_v1_runtime_proto protoreflect.FileDescriptor
 
 const file_arca_v1_runtime_proto_rawDesc = "" +
@@ -1147,7 +1287,14 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\x14DeleteRuntimeRequest\x12\x1d\n" +
 	"\n" +
 	"runtime_id\x18\x01 \x01(\tR\truntimeId\"\x17\n" +
-	"\x15DeleteRuntimeResponse*q\n" +
+	"\x15DeleteRuntimeResponse\"^\n" +
+	"\x0eRuntimeSummary\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12(\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x14.arca.v1.RuntimeTypeR\x04type\"\x1e\n" +
+	"\x1cListAvailableRuntimesRequest\"T\n" +
+	"\x1dListAvailableRuntimesResponse\x123\n" +
+	"\bruntimes\x18\x01 \x03(\v2\x17.arca.v1.RuntimeSummaryR\bruntimes*q\n" +
 	"\vRuntimeType\x12\x1c\n" +
 	"\x18RUNTIME_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14RUNTIME_TYPE_LIBVIRT\x10\x01\x12\x14\n" +
@@ -1160,9 +1307,10 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\x13MachineConnectivity\x12$\n" +
 	" MACHINE_CONNECTIVITY_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fMACHINE_CONNECTIVITY_PRIVATE_IP\x10\x01\x12\"\n" +
-	"\x1eMACHINE_CONNECTIVITY_PUBLIC_IP\x10\x022\xcd\x02\n" +
+	"\x1eMACHINE_CONNECTIVITY_PUBLIC_IP\x10\x022\xb5\x03\n" +
 	"\x0eRuntimeService\x12K\n" +
-	"\fListRuntimes\x12\x1c.arca.v1.ListRuntimesRequest\x1a\x1d.arca.v1.ListRuntimesResponse\x12N\n" +
+	"\fListRuntimes\x12\x1c.arca.v1.ListRuntimesRequest\x1a\x1d.arca.v1.ListRuntimesResponse\x12f\n" +
+	"\x15ListAvailableRuntimes\x12%.arca.v1.ListAvailableRuntimesRequest\x1a&.arca.v1.ListAvailableRuntimesResponse\x12N\n" +
 	"\rCreateRuntime\x12\x1d.arca.v1.CreateRuntimeRequest\x1a\x1e.arca.v1.CreateRuntimeResponse\x12N\n" +
 	"\rUpdateRuntime\x12\x1d.arca.v1.UpdateRuntimeRequest\x1a\x1e.arca.v1.UpdateRuntimeResponse\x12N\n" +
 	"\rDeleteRuntime\x12\x1d.arca.v1.DeleteRuntimeRequest\x1a\x1e.arca.v1.DeleteRuntimeResponseB\x8e\x01\n" +
@@ -1181,25 +1329,28 @@ func file_arca_v1_runtime_proto_rawDescGZIP() []byte {
 }
 
 var file_arca_v1_runtime_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_arca_v1_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_arca_v1_runtime_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_arca_v1_runtime_proto_goTypes = []any{
-	(RuntimeType)(0),              // 0: arca.v1.RuntimeType
-	(MachineExposureMethod)(0),    // 1: arca.v1.MachineExposureMethod
-	(MachineConnectivity)(0),      // 2: arca.v1.MachineConnectivity
-	(*MachineExposureConfig)(nil), // 3: arca.v1.MachineExposureConfig
-	(*LibvirtRuntimeConfig)(nil),  // 4: arca.v1.LibvirtRuntimeConfig
-	(*GceRuntimeConfig)(nil),      // 5: arca.v1.GceRuntimeConfig
-	(*LxdRuntimeConfig)(nil),      // 6: arca.v1.LxdRuntimeConfig
-	(*RuntimeConfig)(nil),         // 7: arca.v1.RuntimeConfig
-	(*Runtime)(nil),               // 8: arca.v1.Runtime
-	(*ListRuntimesRequest)(nil),   // 9: arca.v1.ListRuntimesRequest
-	(*ListRuntimesResponse)(nil),  // 10: arca.v1.ListRuntimesResponse
-	(*CreateRuntimeRequest)(nil),  // 11: arca.v1.CreateRuntimeRequest
-	(*CreateRuntimeResponse)(nil), // 12: arca.v1.CreateRuntimeResponse
-	(*UpdateRuntimeRequest)(nil),  // 13: arca.v1.UpdateRuntimeRequest
-	(*UpdateRuntimeResponse)(nil), // 14: arca.v1.UpdateRuntimeResponse
-	(*DeleteRuntimeRequest)(nil),  // 15: arca.v1.DeleteRuntimeRequest
-	(*DeleteRuntimeResponse)(nil), // 16: arca.v1.DeleteRuntimeResponse
+	(RuntimeType)(0),                      // 0: arca.v1.RuntimeType
+	(MachineExposureMethod)(0),            // 1: arca.v1.MachineExposureMethod
+	(MachineConnectivity)(0),              // 2: arca.v1.MachineConnectivity
+	(*MachineExposureConfig)(nil),         // 3: arca.v1.MachineExposureConfig
+	(*LibvirtRuntimeConfig)(nil),          // 4: arca.v1.LibvirtRuntimeConfig
+	(*GceRuntimeConfig)(nil),              // 5: arca.v1.GceRuntimeConfig
+	(*LxdRuntimeConfig)(nil),              // 6: arca.v1.LxdRuntimeConfig
+	(*RuntimeConfig)(nil),                 // 7: arca.v1.RuntimeConfig
+	(*Runtime)(nil),                       // 8: arca.v1.Runtime
+	(*ListRuntimesRequest)(nil),           // 9: arca.v1.ListRuntimesRequest
+	(*ListRuntimesResponse)(nil),          // 10: arca.v1.ListRuntimesResponse
+	(*CreateRuntimeRequest)(nil),          // 11: arca.v1.CreateRuntimeRequest
+	(*CreateRuntimeResponse)(nil),         // 12: arca.v1.CreateRuntimeResponse
+	(*UpdateRuntimeRequest)(nil),          // 13: arca.v1.UpdateRuntimeRequest
+	(*UpdateRuntimeResponse)(nil),         // 14: arca.v1.UpdateRuntimeResponse
+	(*DeleteRuntimeRequest)(nil),          // 15: arca.v1.DeleteRuntimeRequest
+	(*DeleteRuntimeResponse)(nil),         // 16: arca.v1.DeleteRuntimeResponse
+	(*RuntimeSummary)(nil),                // 17: arca.v1.RuntimeSummary
+	(*ListAvailableRuntimesRequest)(nil),  // 18: arca.v1.ListAvailableRuntimesRequest
+	(*ListAvailableRuntimesResponse)(nil), // 19: arca.v1.ListAvailableRuntimesResponse
 }
 var file_arca_v1_runtime_proto_depIdxs = []int32{
 	1,  // 0: arca.v1.MachineExposureConfig.method:type_name -> arca.v1.MachineExposureMethod
@@ -1217,19 +1368,23 @@ var file_arca_v1_runtime_proto_depIdxs = []int32{
 	0,  // 12: arca.v1.UpdateRuntimeRequest.type:type_name -> arca.v1.RuntimeType
 	7,  // 13: arca.v1.UpdateRuntimeRequest.config:type_name -> arca.v1.RuntimeConfig
 	8,  // 14: arca.v1.UpdateRuntimeResponse.runtime:type_name -> arca.v1.Runtime
-	9,  // 15: arca.v1.RuntimeService.ListRuntimes:input_type -> arca.v1.ListRuntimesRequest
-	11, // 16: arca.v1.RuntimeService.CreateRuntime:input_type -> arca.v1.CreateRuntimeRequest
-	13, // 17: arca.v1.RuntimeService.UpdateRuntime:input_type -> arca.v1.UpdateRuntimeRequest
-	15, // 18: arca.v1.RuntimeService.DeleteRuntime:input_type -> arca.v1.DeleteRuntimeRequest
-	10, // 19: arca.v1.RuntimeService.ListRuntimes:output_type -> arca.v1.ListRuntimesResponse
-	12, // 20: arca.v1.RuntimeService.CreateRuntime:output_type -> arca.v1.CreateRuntimeResponse
-	14, // 21: arca.v1.RuntimeService.UpdateRuntime:output_type -> arca.v1.UpdateRuntimeResponse
-	16, // 22: arca.v1.RuntimeService.DeleteRuntime:output_type -> arca.v1.DeleteRuntimeResponse
-	19, // [19:23] is the sub-list for method output_type
-	15, // [15:19] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	0,  // 15: arca.v1.RuntimeSummary.type:type_name -> arca.v1.RuntimeType
+	17, // 16: arca.v1.ListAvailableRuntimesResponse.runtimes:type_name -> arca.v1.RuntimeSummary
+	9,  // 17: arca.v1.RuntimeService.ListRuntimes:input_type -> arca.v1.ListRuntimesRequest
+	18, // 18: arca.v1.RuntimeService.ListAvailableRuntimes:input_type -> arca.v1.ListAvailableRuntimesRequest
+	11, // 19: arca.v1.RuntimeService.CreateRuntime:input_type -> arca.v1.CreateRuntimeRequest
+	13, // 20: arca.v1.RuntimeService.UpdateRuntime:input_type -> arca.v1.UpdateRuntimeRequest
+	15, // 21: arca.v1.RuntimeService.DeleteRuntime:input_type -> arca.v1.DeleteRuntimeRequest
+	10, // 22: arca.v1.RuntimeService.ListRuntimes:output_type -> arca.v1.ListRuntimesResponse
+	19, // 23: arca.v1.RuntimeService.ListAvailableRuntimes:output_type -> arca.v1.ListAvailableRuntimesResponse
+	12, // 24: arca.v1.RuntimeService.CreateRuntime:output_type -> arca.v1.CreateRuntimeResponse
+	14, // 25: arca.v1.RuntimeService.UpdateRuntime:output_type -> arca.v1.UpdateRuntimeResponse
+	16, // 26: arca.v1.RuntimeService.DeleteRuntime:output_type -> arca.v1.DeleteRuntimeResponse
+	22, // [22:27] is the sub-list for method output_type
+	17, // [17:22] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_runtime_proto_init() }
@@ -1248,7 +1403,7 @@ func file_arca_v1_runtime_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_runtime_proto_rawDesc), len(file_arca_v1_runtime_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   14,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

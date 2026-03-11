@@ -23,6 +23,7 @@ import {
 import {
   CreateRuntimeRequestSchema,
   DeleteRuntimeRequestSchema,
+  ListAvailableRuntimesRequestSchema,
   ListRuntimesRequestSchema,
   RuntimeService,
   RuntimeType,
@@ -55,6 +56,7 @@ import type {
   RuntimeCatalogConfig,
   RuntimeCatalogItem,
   RuntimeCatalogType,
+  RuntimeSummary,
   ServerExposureMethod,
   SetupStatus,
   User,
@@ -548,6 +550,15 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
 export async function listRuntimes(): Promise<RuntimeCatalogItem[]> {
   const response = await runtimeClient.listRuntimes(create(ListRuntimesRequestSchema))
   return response.runtimes.map((runtime) => toRuntimeCatalogItem(runtime))
+}
+
+export async function listAvailableRuntimes(): Promise<RuntimeSummary[]> {
+  const response = await runtimeClient.listAvailableRuntimes(create(ListAvailableRuntimesRequestSchema))
+  return response.runtimes.map((runtime) => ({
+    id: runtime.id,
+    name: runtime.name,
+    type: runtimeTypeFromProto(runtime.type),
+  }))
 }
 
 export async function createRuntime(

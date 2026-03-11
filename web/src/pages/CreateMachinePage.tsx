@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMachine, listRuntimes } from '@/lib/api'
+import { createMachine, listAvailableRuntimes } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { RuntimeCatalogItem, User } from '@/lib/types'
+import type { RuntimeSummary, User } from '@/lib/types'
 
 type CreateMachinePageProps = {
   user: User | null
@@ -17,7 +17,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [selectedRuntimeID, setSelectedRuntimeID] = useState('')
-  const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
+  const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
   const [loadingRuntimes, setLoadingRuntimes] = useState(true)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -33,7 +33,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       setLoadingRuntimes(true)
       setError('')
       try {
-        const items = await listRuntimes()
+        const items = await listAvailableRuntimes()
         if (cancelled) {
           return
         }

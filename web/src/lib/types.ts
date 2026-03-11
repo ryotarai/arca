@@ -91,6 +91,12 @@ export type RuntimeCatalogConfig =
       startupScript: string
     }
 
+export type RuntimeSummary = {
+  id: string
+  name: string
+  type: RuntimeCatalogType
+}
+
 export type RuntimeCatalogItem = {
   id: string
   name: string

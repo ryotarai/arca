@@ -6,6 +6,7 @@ option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
 
 service RuntimeService {
   rpc ListRuntimes(ListRuntimesRequest) returns (ListRuntimesResponse);
+  rpc ListAvailableRuntimes(ListAvailableRuntimesRequest) returns (ListAvailableRuntimesResponse);
   rpc CreateRuntime(CreateRuntimeRequest) returns (CreateRuntimeResponse);
   rpc UpdateRuntime(UpdateRuntimeRequest) returns (UpdateRuntimeResponse);
   rpc DeleteRuntime(DeleteRuntimeRequest) returns (DeleteRuntimeResponse);
@@ -116,3 +117,15 @@ message DeleteRuntimeRequest {
 }
 
 message DeleteRuntimeResponse {}
+
+message RuntimeSummary {
+  string id = 1;
+  string name = 2;
+  RuntimeType type = 3;
+}
+
+message ListAvailableRuntimesRequest {}
+
+message ListAvailableRuntimesResponse {
+  repeated RuntimeSummary runtimes = 1;
+}

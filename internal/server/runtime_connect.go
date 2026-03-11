@@ -151,6 +151,57 @@ func (s *runtimeConnectService) DeleteRuntime(ctx context.Context, req *connect.
 	return connect.NewResponse(&arcav1.DeleteRuntimeResponse{}), nil
 }
 
+func (s *runtimeConnectService) ListAvailableRuntimes(ctx context.Context, req *connect.Request[arcav1.ListAvailableRuntimesRequest]) (*connect.Response[arcav1.ListAvailableRuntimesResponse], error) {
+	if _, err := s.authenticate(ctx, req.Header()); err != nil {
+		return nil, err
+	}
+
+	runtimes, err := s.store.ListRuntimes(ctx)
+	if err != nil {
+		log.Printf("list available runtimes failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list runtimes"))
+	}
+
+	items := make([]*arcav1.RuntimeSummary, 0, len(runtimes))
+	for _, runtime := range runtimes {
+		runtimeType, err := runtimeTypeFromDB(runtime.Type)
+		if err != nil {
+			log.Printf("invalid runtime row id=%s: %v", runtime.ID, err)
+			continue
+		}
+		items = append(items, &arcav1.RuntimeSummary{
+			Id:   runtime.ID,
+			Name: runtime.Name,
+			Type: runtimeType,
+		})
+	}
+
+	return connect.NewResponse(&arcav1.ListAvailableRuntimesResponse{Runtimes: items}), nil
+}
+
+func (s *runtimeConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
+	if s.authenticator == nil || s.store == nil {
+		return "", connect.NewError(connect.CodeUnavailable, errors.New("runtime service unavailable"))
+	}
+
+	sessionToken, _ := sessionTokenFromHeader(header)
+	if sessionToken != "" {
+		userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+		if err == nil {
+			return userID, nil
+		}
+	}
+
+	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
+		userID, _, _, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		if err == nil {
+			return userID, nil
+		}
+	}
+
+	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+}
+
 func (s *runtimeConnectService) authenticateAdmin(ctx context.Context, header http.Header) (string, error) {
 	if s.authenticator == nil || s.store == nil {
 		return "", connect.NewError(connect.CodeUnavailable, errors.New("runtime management unavailable"))

@@ -36,6 +36,9 @@ const (
 	// RuntimeServiceListRuntimesProcedure is the fully-qualified name of the RuntimeService's
 	// ListRuntimes RPC.
 	RuntimeServiceListRuntimesProcedure = "/arca.v1.RuntimeService/ListRuntimes"
+	// RuntimeServiceListAvailableRuntimesProcedure is the fully-qualified name of the RuntimeService's
+	// ListAvailableRuntimes RPC.
+	RuntimeServiceListAvailableRuntimesProcedure = "/arca.v1.RuntimeService/ListAvailableRuntimes"
 	// RuntimeServiceCreateRuntimeProcedure is the fully-qualified name of the RuntimeService's
 	// CreateRuntime RPC.
 	RuntimeServiceCreateRuntimeProcedure = "/arca.v1.RuntimeService/CreateRuntime"
@@ -50,6 +53,7 @@ const (
 // RuntimeServiceClient is a client for the arca.v1.RuntimeService service.
 type RuntimeServiceClient interface {
 	ListRuntimes(context.Context, *connect.Request[v1.ListRuntimesRequest]) (*connect.Response[v1.ListRuntimesResponse], error)
+	ListAvailableRuntimes(context.Context, *connect.Request[v1.ListAvailableRuntimesRequest]) (*connect.Response[v1.ListAvailableRuntimesResponse], error)
 	CreateRuntime(context.Context, *connect.Request[v1.CreateRuntimeRequest]) (*connect.Response[v1.CreateRuntimeResponse], error)
 	UpdateRuntime(context.Context, *connect.Request[v1.UpdateRuntimeRequest]) (*connect.Response[v1.UpdateRuntimeResponse], error)
 	DeleteRuntime(context.Context, *connect.Request[v1.DeleteRuntimeRequest]) (*connect.Response[v1.DeleteRuntimeResponse], error)
@@ -70,6 +74,12 @@ func NewRuntimeServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+RuntimeServiceListRuntimesProcedure,
 			connect.WithSchema(runtimeServiceMethods.ByName("ListRuntimes")),
+			connect.WithClientOptions(opts...),
+		),
+		listAvailableRuntimes: connect.NewClient[v1.ListAvailableRuntimesRequest, v1.ListAvailableRuntimesResponse](
+			httpClient,
+			baseURL+RuntimeServiceListAvailableRuntimesProcedure,
+			connect.WithSchema(runtimeServiceMethods.ByName("ListAvailableRuntimes")),
 			connect.WithClientOptions(opts...),
 		),
 		createRuntime: connect.NewClient[v1.CreateRuntimeRequest, v1.CreateRuntimeResponse](
@@ -95,15 +105,21 @@ func NewRuntimeServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // runtimeServiceClient implements RuntimeServiceClient.
 type runtimeServiceClient struct {
-	listRuntimes  *connect.Client[v1.ListRuntimesRequest, v1.ListRuntimesResponse]
-	createRuntime *connect.Client[v1.CreateRuntimeRequest, v1.CreateRuntimeResponse]
-	updateRuntime *connect.Client[v1.UpdateRuntimeRequest, v1.UpdateRuntimeResponse]
-	deleteRuntime *connect.Client[v1.DeleteRuntimeRequest, v1.DeleteRuntimeResponse]
+	listRuntimes          *connect.Client[v1.ListRuntimesRequest, v1.ListRuntimesResponse]
+	listAvailableRuntimes *connect.Client[v1.ListAvailableRuntimesRequest, v1.ListAvailableRuntimesResponse]
+	createRuntime         *connect.Client[v1.CreateRuntimeRequest, v1.CreateRuntimeResponse]
+	updateRuntime         *connect.Client[v1.UpdateRuntimeRequest, v1.UpdateRuntimeResponse]
+	deleteRuntime         *connect.Client[v1.DeleteRuntimeRequest, v1.DeleteRuntimeResponse]
 }
 
 // ListRuntimes calls arca.v1.RuntimeService.ListRuntimes.
 func (c *runtimeServiceClient) ListRuntimes(ctx context.Context, req *connect.Request[v1.ListRuntimesRequest]) (*connect.Response[v1.ListRuntimesResponse], error) {
 	return c.listRuntimes.CallUnary(ctx, req)
+}
+
+// ListAvailableRuntimes calls arca.v1.RuntimeService.ListAvailableRuntimes.
+func (c *runtimeServiceClient) ListAvailableRuntimes(ctx context.Context, req *connect.Request[v1.ListAvailableRuntimesRequest]) (*connect.Response[v1.ListAvailableRuntimesResponse], error) {
+	return c.listAvailableRuntimes.CallUnary(ctx, req)
 }
 
 // CreateRuntime calls arca.v1.RuntimeService.CreateRuntime.
@@ -124,6 +140,7 @@ func (c *runtimeServiceClient) DeleteRuntime(ctx context.Context, req *connect.R
 // RuntimeServiceHandler is an implementation of the arca.v1.RuntimeService service.
 type RuntimeServiceHandler interface {
 	ListRuntimes(context.Context, *connect.Request[v1.ListRuntimesRequest]) (*connect.Response[v1.ListRuntimesResponse], error)
+	ListAvailableRuntimes(context.Context, *connect.Request[v1.ListAvailableRuntimesRequest]) (*connect.Response[v1.ListAvailableRuntimesResponse], error)
 	CreateRuntime(context.Context, *connect.Request[v1.CreateRuntimeRequest]) (*connect.Response[v1.CreateRuntimeResponse], error)
 	UpdateRuntime(context.Context, *connect.Request[v1.UpdateRuntimeRequest]) (*connect.Response[v1.UpdateRuntimeResponse], error)
 	DeleteRuntime(context.Context, *connect.Request[v1.DeleteRuntimeRequest]) (*connect.Response[v1.DeleteRuntimeResponse], error)
@@ -140,6 +157,12 @@ func NewRuntimeServiceHandler(svc RuntimeServiceHandler, opts ...connect.Handler
 		RuntimeServiceListRuntimesProcedure,
 		svc.ListRuntimes,
 		connect.WithSchema(runtimeServiceMethods.ByName("ListRuntimes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	runtimeServiceListAvailableRuntimesHandler := connect.NewUnaryHandler(
+		RuntimeServiceListAvailableRuntimesProcedure,
+		svc.ListAvailableRuntimes,
+		connect.WithSchema(runtimeServiceMethods.ByName("ListAvailableRuntimes")),
 		connect.WithHandlerOptions(opts...),
 	)
 	runtimeServiceCreateRuntimeHandler := connect.NewUnaryHandler(
@@ -164,6 +187,8 @@ func NewRuntimeServiceHandler(svc RuntimeServiceHandler, opts ...connect.Handler
 		switch r.URL.Path {
 		case RuntimeServiceListRuntimesProcedure:
 			runtimeServiceListRuntimesHandler.ServeHTTP(w, r)
+		case RuntimeServiceListAvailableRuntimesProcedure:
+			runtimeServiceListAvailableRuntimesHandler.ServeHTTP(w, r)
 		case RuntimeServiceCreateRuntimeProcedure:
 			runtimeServiceCreateRuntimeHandler.ServeHTTP(w, r)
 		case RuntimeServiceUpdateRuntimeProcedure:
@@ -181,6 +206,10 @@ type UnimplementedRuntimeServiceHandler struct{}
 
 func (UnimplementedRuntimeServiceHandler) ListRuntimes(context.Context, *connect.Request[v1.ListRuntimesRequest]) (*connect.Response[v1.ListRuntimesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.RuntimeService.ListRuntimes is not implemented"))
+}
+
+func (UnimplementedRuntimeServiceHandler) ListAvailableRuntimes(context.Context, *connect.Request[v1.ListAvailableRuntimesRequest]) (*connect.Response[v1.ListAvailableRuntimesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.RuntimeService.ListAvailableRuntimes is not implemented"))
 }
 
 func (UnimplementedRuntimeServiceHandler) CreateRuntime(context.Context, *connect.Request[v1.CreateRuntimeRequest]) (*connect.Response[v1.CreateRuntimeResponse], error) {
