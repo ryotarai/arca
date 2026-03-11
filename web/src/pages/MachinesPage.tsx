@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -188,6 +189,20 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                         </div>
 
                         <div className="flex flex-wrap items-center justify-end gap-2 sm:max-w-md">
+                          {machine.status === 'running' && machine.endpoint !== '' && (machine.userRole === 'admin' || machine.userRole === 'editor') && (
+                            <>
+                              <Button asChild variant="secondary" className="h-9 px-3">
+                                <a href={`https://${machine.endpoint}/__arca/ttyd`} target="_blank" rel="noreferrer">
+                                  <Terminal className="h-4 w-4" /> Terminal
+                                </a>
+                              </Button>
+                              <Button asChild variant="secondary" className="h-9 px-3">
+                                <a href={`https://${machine.endpoint}/__arca/shelley`} target="_blank" rel="noreferrer">
+                                  <Bot className="h-4 w-4" /> Shelley
+                                </a>
+                              </Button>
+                            </>
+                          )}
                           {machine.userRole === 'admin' && machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' && (
                             <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
                               Restart to update

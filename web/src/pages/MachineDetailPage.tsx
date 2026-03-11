@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { ExternalLink, Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SharingDialog } from '@/components/SharingDialog'
@@ -183,6 +184,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [accessRequests, setAccessRequests] = useState<MachineAccessRequest[]>([])
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
+  const shelleyURL = endpointURL != null ? `${endpointURL}/__arca/shelley` : null
   const isRunning = machine?.status === 'running'
   const isAdmin = machine?.userRole === 'admin'
   const isEditor = machine?.userRole === 'editor'
@@ -400,17 +402,27 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     <p className="text-xs text-muted-foreground">Proxied to localhost:11030 inside the machine</p>
                   </div>
                 )}
-                {(isAdmin || isEditor) && isRunning && ttydURL != null && (
-                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                    <p className="text-sm text-muted-foreground">Terminal (ttyd)</p>
-                    <a
-                      href={ttydURL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
-                    >
-                      {ttydURL}
-                    </a>
+                {isRunning && endpointURL != null && (
+                  <div className="flex items-center gap-2">
+                    <Button asChild variant="secondary" className="h-9 px-3">
+                      <a href={endpointURL} target="_blank" rel="noreferrer">
+                        <ExternalLink className="h-4 w-4" /> Endpoint
+                      </a>
+                    </Button>
+                    {(isAdmin || isEditor) && ttydURL != null && (
+                      <Button asChild variant="secondary" className="h-9 px-3">
+                        <a href={ttydURL} target="_blank" rel="noreferrer">
+                          <Terminal className="h-4 w-4" /> Terminal
+                        </a>
+                      </Button>
+                    )}
+                    {(isAdmin || isEditor) && shelleyURL != null && (
+                      <Button asChild variant="secondary" className="h-9 px-3">
+                        <a href={shelleyURL} target="_blank" rel="noreferrer">
+                          <Bot className="h-4 w-4" /> Shelley
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 )}
                 {machine.lastError != null && machine.lastError !== '' && (
