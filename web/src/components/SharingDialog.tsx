@@ -211,6 +211,8 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
                   align="start"
                   sideOffset={4}
                   onOpenAutoFocus={(e) => e.preventDefault()}
+                  onInteractOutside={(e) => e.preventDefault()}
+                  onFocusOutside={(e) => e.preventDefault()}
                 >
                   {searchResults.map((user) => (
                     <button
