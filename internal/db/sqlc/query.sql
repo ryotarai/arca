@@ -690,3 +690,46 @@ SET status = 'stopping',
 WHERE machine_id = sqlc.arg(machine_id)
   AND desired_status = 'running'
   AND status = 'running';
+
+-- name: CreateMachineAccessRequest :exec
+INSERT INTO machine_access_requests (id, machine_id, user_id, status, requested_role, message, created_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(machine_id),
+  sqlc.arg(user_id),
+  'pending',
+  sqlc.arg(requested_role),
+  sqlc.arg(message),
+  sqlc.arg(created_at)
+);
+
+-- name: GetPendingMachineAccessRequest :one
+SELECT id, machine_id, user_id, status, requested_role, message, created_at
+FROM machine_access_requests
+WHERE machine_id = sqlc.arg(machine_id)
+  AND user_id = sqlc.arg(user_id)
+  AND status = 'pending'
+LIMIT 1;
+
+-- name: ListPendingMachineAccessRequestsByMachineID :many
+SELECT r.id, r.machine_id, r.user_id, r.status, r.requested_role, r.message, r.created_at, u.email
+FROM machine_access_requests r
+JOIN users u ON u.id = r.user_id
+WHERE r.machine_id = sqlc.arg(machine_id)
+  AND r.status = 'pending'
+ORDER BY r.created_at ASC;
+
+-- name: ResolveMachineAccessRequest :execrows
+UPDATE machine_access_requests
+SET status = sqlc.arg(status),
+    resolved_by_user_id = sqlc.arg(resolved_by_user_id),
+    resolved_role = sqlc.arg(resolved_role),
+    resolved_at = sqlc.arg(resolved_at)
+WHERE id = sqlc.arg(id)
+  AND status = 'pending';
+
+-- name: GetMachineAccessRequestByID :one
+SELECT id, machine_id, user_id, status, requested_role, message, created_at, resolved_at
+FROM machine_access_requests
+WHERE id = sqlc.arg(id)
+LIMIT 1;

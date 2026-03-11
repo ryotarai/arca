@@ -39,12 +39,24 @@ const (
 	// SharingServiceUpdateMachineSharingProcedure is the fully-qualified name of the SharingService's
 	// UpdateMachineSharing RPC.
 	SharingServiceUpdateMachineSharingProcedure = "/arca.v1.SharingService/UpdateMachineSharing"
+	// SharingServiceRequestMachineAccessProcedure is the fully-qualified name of the SharingService's
+	// RequestMachineAccess RPC.
+	SharingServiceRequestMachineAccessProcedure = "/arca.v1.SharingService/RequestMachineAccess"
+	// SharingServiceListMachineAccessRequestsProcedure is the fully-qualified name of the
+	// SharingService's ListMachineAccessRequests RPC.
+	SharingServiceListMachineAccessRequestsProcedure = "/arca.v1.SharingService/ListMachineAccessRequests"
+	// SharingServiceResolveMachineAccessRequestProcedure is the fully-qualified name of the
+	// SharingService's ResolveMachineAccessRequest RPC.
+	SharingServiceResolveMachineAccessRequestProcedure = "/arca.v1.SharingService/ResolveMachineAccessRequest"
 )
 
 // SharingServiceClient is a client for the arca.v1.SharingService service.
 type SharingServiceClient interface {
 	GetMachineSharing(context.Context, *connect.Request[v1.GetMachineSharingRequest]) (*connect.Response[v1.GetMachineSharingResponse], error)
 	UpdateMachineSharing(context.Context, *connect.Request[v1.UpdateMachineSharingRequest]) (*connect.Response[v1.UpdateMachineSharingResponse], error)
+	RequestMachineAccess(context.Context, *connect.Request[v1.RequestMachineAccessRequest]) (*connect.Response[v1.RequestMachineAccessResponse], error)
+	ListMachineAccessRequests(context.Context, *connect.Request[v1.ListMachineAccessRequestsRequest]) (*connect.Response[v1.ListMachineAccessRequestsResponse], error)
+	ResolveMachineAccessRequest(context.Context, *connect.Request[v1.ResolveMachineAccessRequestRequest]) (*connect.Response[v1.ResolveMachineAccessRequestResponse], error)
 }
 
 // NewSharingServiceClient constructs a client for the arca.v1.SharingService service. By default,
@@ -70,13 +82,34 @@ func NewSharingServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(sharingServiceMethods.ByName("UpdateMachineSharing")),
 			connect.WithClientOptions(opts...),
 		),
+		requestMachineAccess: connect.NewClient[v1.RequestMachineAccessRequest, v1.RequestMachineAccessResponse](
+			httpClient,
+			baseURL+SharingServiceRequestMachineAccessProcedure,
+			connect.WithSchema(sharingServiceMethods.ByName("RequestMachineAccess")),
+			connect.WithClientOptions(opts...),
+		),
+		listMachineAccessRequests: connect.NewClient[v1.ListMachineAccessRequestsRequest, v1.ListMachineAccessRequestsResponse](
+			httpClient,
+			baseURL+SharingServiceListMachineAccessRequestsProcedure,
+			connect.WithSchema(sharingServiceMethods.ByName("ListMachineAccessRequests")),
+			connect.WithClientOptions(opts...),
+		),
+		resolveMachineAccessRequest: connect.NewClient[v1.ResolveMachineAccessRequestRequest, v1.ResolveMachineAccessRequestResponse](
+			httpClient,
+			baseURL+SharingServiceResolveMachineAccessRequestProcedure,
+			connect.WithSchema(sharingServiceMethods.ByName("ResolveMachineAccessRequest")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // sharingServiceClient implements SharingServiceClient.
 type sharingServiceClient struct {
-	getMachineSharing    *connect.Client[v1.GetMachineSharingRequest, v1.GetMachineSharingResponse]
-	updateMachineSharing *connect.Client[v1.UpdateMachineSharingRequest, v1.UpdateMachineSharingResponse]
+	getMachineSharing           *connect.Client[v1.GetMachineSharingRequest, v1.GetMachineSharingResponse]
+	updateMachineSharing        *connect.Client[v1.UpdateMachineSharingRequest, v1.UpdateMachineSharingResponse]
+	requestMachineAccess        *connect.Client[v1.RequestMachineAccessRequest, v1.RequestMachineAccessResponse]
+	listMachineAccessRequests   *connect.Client[v1.ListMachineAccessRequestsRequest, v1.ListMachineAccessRequestsResponse]
+	resolveMachineAccessRequest *connect.Client[v1.ResolveMachineAccessRequestRequest, v1.ResolveMachineAccessRequestResponse]
 }
 
 // GetMachineSharing calls arca.v1.SharingService.GetMachineSharing.
@@ -89,10 +122,28 @@ func (c *sharingServiceClient) UpdateMachineSharing(ctx context.Context, req *co
 	return c.updateMachineSharing.CallUnary(ctx, req)
 }
 
+// RequestMachineAccess calls arca.v1.SharingService.RequestMachineAccess.
+func (c *sharingServiceClient) RequestMachineAccess(ctx context.Context, req *connect.Request[v1.RequestMachineAccessRequest]) (*connect.Response[v1.RequestMachineAccessResponse], error) {
+	return c.requestMachineAccess.CallUnary(ctx, req)
+}
+
+// ListMachineAccessRequests calls arca.v1.SharingService.ListMachineAccessRequests.
+func (c *sharingServiceClient) ListMachineAccessRequests(ctx context.Context, req *connect.Request[v1.ListMachineAccessRequestsRequest]) (*connect.Response[v1.ListMachineAccessRequestsResponse], error) {
+	return c.listMachineAccessRequests.CallUnary(ctx, req)
+}
+
+// ResolveMachineAccessRequest calls arca.v1.SharingService.ResolveMachineAccessRequest.
+func (c *sharingServiceClient) ResolveMachineAccessRequest(ctx context.Context, req *connect.Request[v1.ResolveMachineAccessRequestRequest]) (*connect.Response[v1.ResolveMachineAccessRequestResponse], error) {
+	return c.resolveMachineAccessRequest.CallUnary(ctx, req)
+}
+
 // SharingServiceHandler is an implementation of the arca.v1.SharingService service.
 type SharingServiceHandler interface {
 	GetMachineSharing(context.Context, *connect.Request[v1.GetMachineSharingRequest]) (*connect.Response[v1.GetMachineSharingResponse], error)
 	UpdateMachineSharing(context.Context, *connect.Request[v1.UpdateMachineSharingRequest]) (*connect.Response[v1.UpdateMachineSharingResponse], error)
+	RequestMachineAccess(context.Context, *connect.Request[v1.RequestMachineAccessRequest]) (*connect.Response[v1.RequestMachineAccessResponse], error)
+	ListMachineAccessRequests(context.Context, *connect.Request[v1.ListMachineAccessRequestsRequest]) (*connect.Response[v1.ListMachineAccessRequestsResponse], error)
+	ResolveMachineAccessRequest(context.Context, *connect.Request[v1.ResolveMachineAccessRequestRequest]) (*connect.Response[v1.ResolveMachineAccessRequestResponse], error)
 }
 
 // NewSharingServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -114,12 +165,36 @@ func NewSharingServiceHandler(svc SharingServiceHandler, opts ...connect.Handler
 		connect.WithSchema(sharingServiceMethods.ByName("UpdateMachineSharing")),
 		connect.WithHandlerOptions(opts...),
 	)
+	sharingServiceRequestMachineAccessHandler := connect.NewUnaryHandler(
+		SharingServiceRequestMachineAccessProcedure,
+		svc.RequestMachineAccess,
+		connect.WithSchema(sharingServiceMethods.ByName("RequestMachineAccess")),
+		connect.WithHandlerOptions(opts...),
+	)
+	sharingServiceListMachineAccessRequestsHandler := connect.NewUnaryHandler(
+		SharingServiceListMachineAccessRequestsProcedure,
+		svc.ListMachineAccessRequests,
+		connect.WithSchema(sharingServiceMethods.ByName("ListMachineAccessRequests")),
+		connect.WithHandlerOptions(opts...),
+	)
+	sharingServiceResolveMachineAccessRequestHandler := connect.NewUnaryHandler(
+		SharingServiceResolveMachineAccessRequestProcedure,
+		svc.ResolveMachineAccessRequest,
+		connect.WithSchema(sharingServiceMethods.ByName("ResolveMachineAccessRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.SharingService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SharingServiceGetMachineSharingProcedure:
 			sharingServiceGetMachineSharingHandler.ServeHTTP(w, r)
 		case SharingServiceUpdateMachineSharingProcedure:
 			sharingServiceUpdateMachineSharingHandler.ServeHTTP(w, r)
+		case SharingServiceRequestMachineAccessProcedure:
+			sharingServiceRequestMachineAccessHandler.ServeHTTP(w, r)
+		case SharingServiceListMachineAccessRequestsProcedure:
+			sharingServiceListMachineAccessRequestsHandler.ServeHTTP(w, r)
+		case SharingServiceResolveMachineAccessRequestProcedure:
+			sharingServiceResolveMachineAccessRequestHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -135,4 +210,16 @@ func (UnimplementedSharingServiceHandler) GetMachineSharing(context.Context, *co
 
 func (UnimplementedSharingServiceHandler) UpdateMachineSharing(context.Context, *connect.Request[v1.UpdateMachineSharingRequest]) (*connect.Response[v1.UpdateMachineSharingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SharingService.UpdateMachineSharing is not implemented"))
+}
+
+func (UnimplementedSharingServiceHandler) RequestMachineAccess(context.Context, *connect.Request[v1.RequestMachineAccessRequest]) (*connect.Response[v1.RequestMachineAccessResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SharingService.RequestMachineAccess is not implemented"))
+}
+
+func (UnimplementedSharingServiceHandler) ListMachineAccessRequests(context.Context, *connect.Request[v1.ListMachineAccessRequestsRequest]) (*connect.Response[v1.ListMachineAccessRequestsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SharingService.ListMachineAccessRequests is not implemented"))
+}
+
+func (UnimplementedSharingServiceHandler) ResolveMachineAccessRequest(context.Context, *connect.Request[v1.ResolveMachineAccessRequestRequest]) (*connect.Response[v1.ResolveMachineAccessRequestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.SharingService.ResolveMachineAccessRequest is not implemented"))
 }

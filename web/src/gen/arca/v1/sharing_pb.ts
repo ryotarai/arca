@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/sharing.proto.
  */
 export const file_arca_v1_sharing: GenFile = /*@__PURE__*/
-  fileDesc("ChVhcmNhL3YxL3NoYXJpbmcucHJvdG8SB2FyY2EudjEiRAoUTWFjaGluZVNoYXJpbmdNZW1iZXISDwoHdXNlcl9pZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJIiwKDUdlbmVyYWxBY2Nlc3MSDQoFc2NvcGUYASABKAkSDAoEcm9sZRgCIAEoCSIuChhHZXRNYWNoaW5lU2hhcmluZ1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCSJ7ChlHZXRNYWNoaW5lU2hhcmluZ1Jlc3BvbnNlEi4KB21lbWJlcnMYASADKAsyHS5hcmNhLnYxLk1hY2hpbmVTaGFyaW5nTWVtYmVyEi4KDmdlbmVyYWxfYWNjZXNzGAIgASgLMhYuYXJjYS52MS5HZW5lcmFsQWNjZXNzIpEBChtVcGRhdGVNYWNoaW5lU2hhcmluZ1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCRIuCgdtZW1iZXJzGAIgAygLMh0uYXJjYS52MS5NYWNoaW5lU2hhcmluZ01lbWJlchIuCg5nZW5lcmFsX2FjY2VzcxgDIAEoCzIWLmFyY2EudjEuR2VuZXJhbEFjY2VzcyJ+ChxVcGRhdGVNYWNoaW5lU2hhcmluZ1Jlc3BvbnNlEi4KB21lbWJlcnMYASADKAsyHS5hcmNhLnYxLk1hY2hpbmVTaGFyaW5nTWVtYmVyEi4KDmdlbmVyYWxfYWNjZXNzGAIgASgLMhYuYXJjYS52MS5HZW5lcmFsQWNjZXNzMtEBCg5TaGFyaW5nU2VydmljZRJaChFHZXRNYWNoaW5lU2hhcmluZxIhLmFyY2EudjEuR2V0TWFjaGluZVNoYXJpbmdSZXF1ZXN0GiIuYXJjYS52MS5HZXRNYWNoaW5lU2hhcmluZ1Jlc3BvbnNlEmMKFFVwZGF0ZU1hY2hpbmVTaGFyaW5nEiQuYXJjYS52MS5VcGRhdGVNYWNoaW5lU2hhcmluZ1JlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZU1hY2hpbmVTaGFyaW5nUmVzcG9uc2VCjgEKC2NvbS5hcmNhLnYxQgxTaGFyaW5nUHJvdG9QAVo0Z2l0aHViLmNvbS9yeW90YXJhaS9hcmNhL2ludGVybmFsL2dlbi9hcmNhL3YxO2FyY2F2MaICA0FYWKoCB0FyY2EuVjHKAgdBcmNhXFYx4gITQXJjYVxWMVxHUEJNZXRhZGF0YeoCCEFyY2E6OlYxYgZwcm90bzM");
+  fileDesc("ChVhcmNhL3YxL3NoYXJpbmcucHJvdG8SB2FyY2EudjEiRAoUTWFjaGluZVNoYXJpbmdNZW1iZXISDwoHdXNlcl9pZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJIiwKDUdlbmVyYWxBY2Nlc3MSDQoFc2NvcGUYASABKAkSDAoEcm9sZRgCIAEoCSIuChhHZXRNYWNoaW5lU2hhcmluZ1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCSJ7ChlHZXRNYWNoaW5lU2hhcmluZ1Jlc3BvbnNlEi4KB21lbWJlcnMYASADKAsyHS5hcmNhLnYxLk1hY2hpbmVTaGFyaW5nTWVtYmVyEi4KDmdlbmVyYWxfYWNjZXNzGAIgASgLMhYuYXJjYS52MS5HZW5lcmFsQWNjZXNzIpEBChtVcGRhdGVNYWNoaW5lU2hhcmluZ1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCRIuCgdtZW1iZXJzGAIgAygLMh0uYXJjYS52MS5NYWNoaW5lU2hhcmluZ01lbWJlchIuCg5nZW5lcmFsX2FjY2VzcxgDIAEoCzIWLmFyY2EudjEuR2VuZXJhbEFjY2VzcyJ+ChxVcGRhdGVNYWNoaW5lU2hhcmluZ1Jlc3BvbnNlEi4KB21lbWJlcnMYASADKAsyHS5hcmNhLnYxLk1hY2hpbmVTaGFyaW5nTWVtYmVyEi4KDmdlbmVyYWxfYWNjZXNzGAIgASgLMhYuYXJjYS52MS5HZW5lcmFsQWNjZXNzIqMBChRNYWNoaW5lQWNjZXNzUmVxdWVzdBIKCgJpZBgBIAEoCRISCgptYWNoaW5lX2lkGAIgASgJEg8KB3VzZXJfaWQYAyABKAkSDQoFZW1haWwYBCABKAkSDgoGc3RhdHVzGAUgASgJEhYKDnJlcXVlc3RlZF9yb2xlGAYgASgJEg8KB21lc3NhZ2UYByABKAkSEgoKY3JlYXRlZF9hdBgIIAEoAyJCChtSZXF1ZXN0TWFjaGluZUFjY2Vzc1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCRIPCgdtZXNzYWdlGAIgASgJIh4KHFJlcXVlc3RNYWNoaW5lQWNjZXNzUmVzcG9uc2UiNgogTGlzdE1hY2hpbmVBY2Nlc3NSZXF1ZXN0c1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCSJUCiFMaXN0TWFjaGluZUFjY2Vzc1JlcXVlc3RzUmVzcG9uc2USLwoIcmVxdWVzdHMYASADKAsyHS5hcmNhLnYxLk1hY2hpbmVBY2Nlc3NSZXF1ZXN0IlYKIlJlc29sdmVNYWNoaW5lQWNjZXNzUmVxdWVzdFJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRIOCgZhY3Rpb24YAiABKAkSDAoEcm9sZRgDIAEoCSIlCiNSZXNvbHZlTWFjaGluZUFjY2Vzc1JlcXVlc3RSZXNwb25zZTKkBAoOU2hhcmluZ1NlcnZpY2USWgoRR2V0TWFjaGluZVNoYXJpbmcSIS5hcmNhLnYxLkdldE1hY2hpbmVTaGFyaW5nUmVxdWVzdBoiLmFyY2EudjEuR2V0TWFjaGluZVNoYXJpbmdSZXNwb25zZRJjChRVcGRhdGVNYWNoaW5lU2hhcmluZxIkLmFyY2EudjEuVXBkYXRlTWFjaGluZVNoYXJpbmdSZXF1ZXN0GiUuYXJjYS52MS5VcGRhdGVNYWNoaW5lU2hhcmluZ1Jlc3BvbnNlEmMKFFJlcXVlc3RNYWNoaW5lQWNjZXNzEiQuYXJjYS52MS5SZXF1ZXN0TWFjaGluZUFjY2Vzc1JlcXVlc3QaJS5hcmNhLnYxLlJlcXVlc3RNYWNoaW5lQWNjZXNzUmVzcG9uc2UScgoZTGlzdE1hY2hpbmVBY2Nlc3NSZXF1ZXN0cxIpLmFyY2EudjEuTGlzdE1hY2hpbmVBY2Nlc3NSZXF1ZXN0c1JlcXVlc3QaKi5hcmNhLnYxLkxpc3RNYWNoaW5lQWNjZXNzUmVxdWVzdHNSZXNwb25zZRJ4ChtSZXNvbHZlTWFjaGluZUFjY2Vzc1JlcXVlc3QSKy5hcmNhLnYxLlJlc29sdmVNYWNoaW5lQWNjZXNzUmVxdWVzdFJlcXVlc3QaLC5hcmNhLnYxLlJlc29sdmVNYWNoaW5lQWNjZXNzUmVxdWVzdFJlc3BvbnNlQo4BCgtjb20uYXJjYS52MUIMU2hhcmluZ1Byb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message arca.v1.MachineSharingMember
@@ -150,6 +150,167 @@ export const UpdateMachineSharingResponseSchema: GenMessage<UpdateMachineSharing
   messageDesc(file_arca_v1_sharing, 5);
 
 /**
+ * @generated from message arca.v1.MachineAccessRequest
+ */
+export type MachineAccessRequest = Message<"arca.v1.MachineAccessRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string machine_id = 2;
+   */
+  machineId: string;
+
+  /**
+   * @generated from field: string user_id = 3;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string email = 4;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string status = 5;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string requested_role = 6;
+   */
+  requestedRole: string;
+
+  /**
+   * @generated from field: string message = 7;
+   */
+  message: string;
+
+  /**
+   * @generated from field: int64 created_at = 8;
+   */
+  createdAt: bigint;
+};
+
+/**
+ * Describes the message arca.v1.MachineAccessRequest.
+ * Use `create(MachineAccessRequestSchema)` to create a new message.
+ */
+export const MachineAccessRequestSchema: GenMessage<MachineAccessRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_sharing, 6);
+
+/**
+ * @generated from message arca.v1.RequestMachineAccessRequest
+ */
+export type RequestMachineAccessRequest = Message<"arca.v1.RequestMachineAccessRequest"> & {
+  /**
+   * @generated from field: string machine_id = 1;
+   */
+  machineId: string;
+
+  /**
+   * @generated from field: string message = 2;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message arca.v1.RequestMachineAccessRequest.
+ * Use `create(RequestMachineAccessRequestSchema)` to create a new message.
+ */
+export const RequestMachineAccessRequestSchema: GenMessage<RequestMachineAccessRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_sharing, 7);
+
+/**
+ * @generated from message arca.v1.RequestMachineAccessResponse
+ */
+export type RequestMachineAccessResponse = Message<"arca.v1.RequestMachineAccessResponse"> & {
+};
+
+/**
+ * Describes the message arca.v1.RequestMachineAccessResponse.
+ * Use `create(RequestMachineAccessResponseSchema)` to create a new message.
+ */
+export const RequestMachineAccessResponseSchema: GenMessage<RequestMachineAccessResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_sharing, 8);
+
+/**
+ * @generated from message arca.v1.ListMachineAccessRequestsRequest
+ */
+export type ListMachineAccessRequestsRequest = Message<"arca.v1.ListMachineAccessRequestsRequest"> & {
+  /**
+   * @generated from field: string machine_id = 1;
+   */
+  machineId: string;
+};
+
+/**
+ * Describes the message arca.v1.ListMachineAccessRequestsRequest.
+ * Use `create(ListMachineAccessRequestsRequestSchema)` to create a new message.
+ */
+export const ListMachineAccessRequestsRequestSchema: GenMessage<ListMachineAccessRequestsRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_sharing, 9);
+
+/**
+ * @generated from message arca.v1.ListMachineAccessRequestsResponse
+ */
+export type ListMachineAccessRequestsResponse = Message<"arca.v1.ListMachineAccessRequestsResponse"> & {
+  /**
+   * @generated from field: repeated arca.v1.MachineAccessRequest requests = 1;
+   */
+  requests: MachineAccessRequest[];
+};
+
+/**
+ * Describes the message arca.v1.ListMachineAccessRequestsResponse.
+ * Use `create(ListMachineAccessRequestsResponseSchema)` to create a new message.
+ */
+export const ListMachineAccessRequestsResponseSchema: GenMessage<ListMachineAccessRequestsResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_sharing, 10);
+
+/**
+ * @generated from message arca.v1.ResolveMachineAccessRequestRequest
+ */
+export type ResolveMachineAccessRequestRequest = Message<"arca.v1.ResolveMachineAccessRequestRequest"> & {
+  /**
+   * @generated from field: string request_id = 1;
+   */
+  requestId: string;
+
+  /**
+   * @generated from field: string action = 2;
+   */
+  action: string;
+
+  /**
+   * @generated from field: string role = 3;
+   */
+  role: string;
+};
+
+/**
+ * Describes the message arca.v1.ResolveMachineAccessRequestRequest.
+ * Use `create(ResolveMachineAccessRequestRequestSchema)` to create a new message.
+ */
+export const ResolveMachineAccessRequestRequestSchema: GenMessage<ResolveMachineAccessRequestRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_sharing, 11);
+
+/**
+ * @generated from message arca.v1.ResolveMachineAccessRequestResponse
+ */
+export type ResolveMachineAccessRequestResponse = Message<"arca.v1.ResolveMachineAccessRequestResponse"> & {
+};
+
+/**
+ * Describes the message arca.v1.ResolveMachineAccessRequestResponse.
+ * Use `create(ResolveMachineAccessRequestResponseSchema)` to create a new message.
+ */
+export const ResolveMachineAccessRequestResponseSchema: GenMessage<ResolveMachineAccessRequestResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_sharing, 12);
+
+/**
  * @generated from service arca.v1.SharingService
  */
 export const SharingService: GenService<{
@@ -168,6 +329,30 @@ export const SharingService: GenService<{
     methodKind: "unary";
     input: typeof UpdateMachineSharingRequestSchema;
     output: typeof UpdateMachineSharingResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.SharingService.RequestMachineAccess
+   */
+  requestMachineAccess: {
+    methodKind: "unary";
+    input: typeof RequestMachineAccessRequestSchema;
+    output: typeof RequestMachineAccessResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.SharingService.ListMachineAccessRequests
+   */
+  listMachineAccessRequests: {
+    methodKind: "unary";
+    input: typeof ListMachineAccessRequestsRequestSchema;
+    output: typeof ListMachineAccessRequestsResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.SharingService.ResolveMachineAccessRequest
+   */
+  resolveMachineAccessRequest: {
+    methodKind: "unary";
+    input: typeof ResolveMachineAccessRequestRequestSchema;
+    output: typeof ResolveMachineAccessRequestResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_arca_v1_sharing, 0);

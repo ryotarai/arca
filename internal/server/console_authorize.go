@@ -58,7 +58,11 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 		}
 
 		if !canUserAccessExposure(r.Context(), store, exposure, userID, targetURL.Path) {
-			http.NotFound(w, r)
+			accessDeniedURL := url.URL{Path: "/access-denied"}
+			q := accessDeniedURL.Query()
+			q.Set("machine_id", exposure.MachineID)
+			accessDeniedURL.RawQuery = q.Encode()
+			http.Redirect(w, r, accessDeniedURL.String(), http.StatusFound)
 			return
 		}
 

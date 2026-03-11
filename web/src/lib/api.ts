@@ -35,10 +35,13 @@ import {
 } from '@/gen/arca/v1/tunnel_pb'
 import {
   GetMachineSharingRequestSchema,
+  ListMachineAccessRequestsRequestSchema,
+  RequestMachineAccessRequestSchema,
+  ResolveMachineAccessRequestRequestSchema,
   SharingService,
   UpdateMachineSharingRequestSchema,
 } from '@/gen/arca/v1/sharing_pb'
-import type { GeneralAccess, MachineSharingMember } from '@/gen/arca/v1/sharing_pb'
+import type { GeneralAccess, MachineAccessRequest, MachineSharingMember } from '@/gen/arca/v1/sharing_pb'
 import {
   CompleteUserSetupRequestSchema,
   CreateUserRequestSchema,
@@ -900,4 +903,30 @@ export async function updateMachineSharing(
     members: response.members,
     generalAccess: response.generalAccess,
   }
+}
+
+export async function requestMachineAccess(machineID: string, message?: string): Promise<void> {
+  await sharingClient.requestMachineAccess(
+    create(RequestMachineAccessRequestSchema, {
+      machineId: machineID,
+      message: message ?? '',
+    }),
+  )
+}
+
+export async function listMachineAccessRequests(machineID: string): Promise<MachineAccessRequest[]> {
+  const response = await sharingClient.listMachineAccessRequests(
+    create(ListMachineAccessRequestsRequestSchema, { machineId: machineID }),
+  )
+  return response.requests
+}
+
+export async function resolveMachineAccessRequest(requestID: string, action: string, role: string): Promise<void> {
+  await sharingClient.resolveMachineAccessRequest(
+    create(ResolveMachineAccessRequestRequestSchema, {
+      requestId: requestID,
+      action,
+      role,
+    }),
+  )
 }

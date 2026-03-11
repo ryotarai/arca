@@ -7,6 +7,9 @@ option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
 service SharingService {
   rpc GetMachineSharing(GetMachineSharingRequest) returns (GetMachineSharingResponse);
   rpc UpdateMachineSharing(UpdateMachineSharingRequest) returns (UpdateMachineSharingResponse);
+  rpc RequestMachineAccess(RequestMachineAccessRequest) returns (RequestMachineAccessResponse);
+  rpc ListMachineAccessRequests(ListMachineAccessRequestsRequest) returns (ListMachineAccessRequestsResponse);
+  rpc ResolveMachineAccessRequest(ResolveMachineAccessRequestRequest) returns (ResolveMachineAccessRequestResponse);
 }
 
 message MachineSharingMember {
@@ -39,3 +42,37 @@ message UpdateMachineSharingResponse {
   repeated MachineSharingMember members = 1;
   GeneralAccess general_access = 2;
 }
+
+message MachineAccessRequest {
+  string id = 1;
+  string machine_id = 2;
+  string user_id = 3;
+  string email = 4;
+  string status = 5;
+  string requested_role = 6;
+  string message = 7;
+  int64 created_at = 8;
+}
+
+message RequestMachineAccessRequest {
+  string machine_id = 1;
+  string message = 2;
+}
+
+message RequestMachineAccessResponse {}
+
+message ListMachineAccessRequestsRequest {
+  string machine_id = 1;
+}
+
+message ListMachineAccessRequestsResponse {
+  repeated MachineAccessRequest requests = 1;
+}
+
+message ResolveMachineAccessRequestRequest {
+  string request_id = 1;
+  string action = 2;
+  string role = 3;
+}
+
+message ResolveMachineAccessRequestResponse {}

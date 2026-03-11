@@ -186,6 +186,40 @@ func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) er
 	return err
 }
 
+const createMachineAccessRequest = `-- name: CreateMachineAccessRequest :exec
+INSERT INTO machine_access_requests (id, machine_id, user_id, status, requested_role, message, created_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  'pending',
+  $4,
+  $5,
+  $6
+)
+`
+
+type CreateMachineAccessRequestParams struct {
+	ID            string
+	MachineID     string
+	UserID        string
+	RequestedRole string
+	Message       string
+	CreatedAt     int64
+}
+
+func (q *Queries) CreateMachineAccessRequest(ctx context.Context, arg CreateMachineAccessRequestParams) error {
+	_, err := q.db.ExecContext(ctx, createMachineAccessRequest,
+		arg.ID,
+		arg.MachineID,
+		arg.UserID,
+		arg.RequestedRole,
+		arg.Message,
+		arg.CreatedAt,
+	)
+	return err
+}
+
 const createMachineEvent = `-- name: CreateMachineEvent :exec
 INSERT INTO machine_events (id, machine_id, job_id, level, event_type, message, created_at)
 VALUES (
@@ -611,6 +645,40 @@ func (q *Queries) GetFirstAdminUser(ctx context.Context) (GetFirstAdminUserRow, 
 	return i, err
 }
 
+const getMachineAccessRequestByID = `-- name: GetMachineAccessRequestByID :one
+SELECT id, machine_id, user_id, status, requested_role, message, created_at, resolved_at
+FROM machine_access_requests
+WHERE id = $1
+LIMIT 1
+`
+
+type GetMachineAccessRequestByIDRow struct {
+	ID            string
+	MachineID     string
+	UserID        string
+	Status        string
+	RequestedRole string
+	Message       string
+	CreatedAt     int64
+	ResolvedAt    sql.NullInt64
+}
+
+func (q *Queries) GetMachineAccessRequestByID(ctx context.Context, id string) (GetMachineAccessRequestByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getMachineAccessRequestByID, id)
+	var i GetMachineAccessRequestByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.MachineID,
+		&i.UserID,
+		&i.Status,
+		&i.RequestedRole,
+		&i.Message,
+		&i.CreatedAt,
+		&i.ResolvedAt,
+	)
+	return i, err
+}
+
 const getMachineByID = `-- name: GetMachineByID :one
 SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
 FROM machines m
@@ -861,6 +929,45 @@ func (q *Queries) GetMeta(ctx context.Context, key string) (string, error) {
 	var value string
 	err := row.Scan(&value)
 	return value, err
+}
+
+const getPendingMachineAccessRequest = `-- name: GetPendingMachineAccessRequest :one
+SELECT id, machine_id, user_id, status, requested_role, message, created_at
+FROM machine_access_requests
+WHERE machine_id = $1
+  AND user_id = $2
+  AND status = 'pending'
+LIMIT 1
+`
+
+type GetPendingMachineAccessRequestParams struct {
+	MachineID string
+	UserID    string
+}
+
+type GetPendingMachineAccessRequestRow struct {
+	ID            string
+	MachineID     string
+	UserID        string
+	Status        string
+	RequestedRole string
+	Message       string
+	CreatedAt     int64
+}
+
+func (q *Queries) GetPendingMachineAccessRequest(ctx context.Context, arg GetPendingMachineAccessRequestParams) (GetPendingMachineAccessRequestRow, error) {
+	row := q.db.QueryRowContext(ctx, getPendingMachineAccessRequest, arg.MachineID, arg.UserID)
+	var i GetPendingMachineAccessRequestRow
+	err := row.Scan(
+		&i.ID,
+		&i.MachineID,
+		&i.UserID,
+		&i.Status,
+		&i.RequestedRole,
+		&i.Message,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getRuntimeByID = `-- name: GetRuntimeByID :one
@@ -1436,6 +1543,58 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 	return items, nil
 }
 
+const listPendingMachineAccessRequestsByMachineID = `-- name: ListPendingMachineAccessRequestsByMachineID :many
+SELECT r.id, r.machine_id, r.user_id, r.status, r.requested_role, r.message, r.created_at, u.email
+FROM machine_access_requests r
+JOIN users u ON u.id = r.user_id
+WHERE r.machine_id = $1
+  AND r.status = 'pending'
+ORDER BY r.created_at ASC
+`
+
+type ListPendingMachineAccessRequestsByMachineIDRow struct {
+	ID            string
+	MachineID     string
+	UserID        string
+	Status        string
+	RequestedRole string
+	Message       string
+	CreatedAt     int64
+	Email         string
+}
+
+func (q *Queries) ListPendingMachineAccessRequestsByMachineID(ctx context.Context, machineID string) ([]ListPendingMachineAccessRequestsByMachineIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPendingMachineAccessRequestsByMachineID, machineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPendingMachineAccessRequestsByMachineIDRow
+	for rows.Next() {
+		var i ListPendingMachineAccessRequestsByMachineIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.MachineID,
+			&i.UserID,
+			&i.Status,
+			&i.RequestedRole,
+			&i.Message,
+			&i.CreatedAt,
+			&i.Email,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRunnableMachineJobs = `-- name: ListRunnableMachineJobs :many
 SELECT id, machine_id, kind, attempt
 FROM machine_jobs
@@ -1808,6 +1967,38 @@ func (q *Queries) RequeueMachineJob(ctx context.Context, arg RequeueMachineJobPa
 		arg.ID,
 	)
 	return err
+}
+
+const resolveMachineAccessRequest = `-- name: ResolveMachineAccessRequest :execrows
+UPDATE machine_access_requests
+SET status = $1,
+    resolved_by_user_id = $2,
+    resolved_role = $3,
+    resolved_at = $4
+WHERE id = $5
+  AND status = 'pending'
+`
+
+type ResolveMachineAccessRequestParams struct {
+	Status           string
+	ResolvedByUserID sql.NullString
+	ResolvedRole     string
+	ResolvedAt       sql.NullInt64
+	ID               string
+}
+
+func (q *Queries) ResolveMachineAccessRequest(ctx context.Context, arg ResolveMachineAccessRequestParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, resolveMachineAccessRequest,
+		arg.Status,
+		arg.ResolvedByUserID,
+		arg.ResolvedRole,
+		arg.ResolvedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const revokeArcadSessionByHash = `-- name: RevokeArcadSessionByHash :exec

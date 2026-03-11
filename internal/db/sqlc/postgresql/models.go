@@ -56,6 +56,19 @@ type Machine struct {
 	CreatedAt    time.Time
 }
 
+type MachineAccessRequest struct {
+	ID               string
+	MachineID        string
+	UserID           string
+	Status           string
+	RequestedRole    string
+	ResolvedByUserID sql.NullString
+	ResolvedRole     string
+	Message          string
+	CreatedAt        int64
+	ResolvedAt       sql.NullInt64
+}
+
 type MachineEvent struct {
 	ID        string
 	MachineID string

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -190,4 +191,151 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 			Role:  updatedSharing.GeneralAccessRole,
 		},
 	}), nil
+}
+
+func (s *sharingConnectService) RequestMachineAccess(ctx context.Context, req *connect.Request[arcav1.RequestMachineAccessRequest]) (*connect.Response[arcav1.RequestMachineAccessResponse], error) {
+	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	// Verify machine exists
+	if _, err := s.store.GetMachineByID(ctx, machineID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		log.Printf("request machine access: get machine failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to check machine"))
+	}
+
+	// Verify user does not already have access
+	role := s.store.ResolveMachineRole(ctx, userID, machineID)
+	if role != db.MachineRoleNone {
+		return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("you already have access to this machine"))
+	}
+
+	// Check for existing pending request
+	if _, err := s.store.GetPendingMachineAccessRequest(ctx, machineID, userID); err == nil {
+		return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("access request already pending"))
+	}
+
+	message := strings.TrimSpace(req.Msg.GetMessage())
+	if err := s.store.CreateMachineAccessRequest(ctx, machineID, userID, db.MachineRoleViewer, message); err != nil {
+		log.Printf("create access request failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create access request"))
+	}
+
+	return connect.NewResponse(&arcav1.RequestMachineAccessResponse{}), nil
+}
+
+func (s *sharingConnectService) ListMachineAccessRequests(ctx context.Context, req *connect.Request[arcav1.ListMachineAccessRequestsRequest]) (*connect.Response[arcav1.ListMachineAccessRequestsResponse], error) {
+	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	role := s.store.ResolveMachineRole(ctx, userID, machineID)
+	if role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
+	requests, err := s.store.ListPendingMachineAccessRequests(ctx, machineID)
+	if err != nil {
+		log.Printf("list access requests failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list access requests"))
+	}
+
+	protoRequests := make([]*arcav1.MachineAccessRequest, 0, len(requests))
+	for _, r := range requests {
+		protoRequests = append(protoRequests, &arcav1.MachineAccessRequest{
+			Id:            r.ID,
+			MachineId:     r.MachineID,
+			UserId:        r.UserID,
+			Email:         r.Email,
+			Status:        r.Status,
+			RequestedRole: r.RequestedRole,
+			Message:       r.Message,
+			CreatedAt:     r.CreatedAt,
+		})
+	}
+
+	return connect.NewResponse(&arcav1.ListMachineAccessRequestsResponse{
+		Requests: protoRequests,
+	}), nil
+}
+
+func (s *sharingConnectService) ResolveMachineAccessRequest(ctx context.Context, req *connect.Request[arcav1.ResolveMachineAccessRequestRequest]) (*connect.Response[arcav1.ResolveMachineAccessRequestResponse], error) {
+	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	requestID := strings.TrimSpace(req.Msg.GetRequestId())
+	if requestID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request id is required"))
+	}
+
+	action := strings.TrimSpace(req.Msg.GetAction())
+	if action != "approve" && action != "deny" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("action must be 'approve' or 'deny', got %q", action))
+	}
+
+	// Fetch the access request
+	accessReq, err := s.store.GetMachineAccessRequestByID(ctx, requestID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("access request not found"))
+		}
+		log.Printf("get access request failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get access request"))
+	}
+
+	// Verify caller is admin of the machine
+	role := s.store.ResolveMachineRole(ctx, userID, accessReq.MachineID)
+	if role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
+	resolvedRole := strings.TrimSpace(req.Msg.GetRole())
+	if action == "approve" {
+		if resolvedRole == "" {
+			resolvedRole = db.MachineRoleViewer
+		}
+		if resolvedRole != db.MachineRoleViewer && resolvedRole != db.MachineRoleEditor {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("role must be 'viewer' or 'editor', got %q", resolvedRole))
+		}
+
+		// Grant access
+		if err := s.store.UpsertUserMachine(ctx, accessReq.UserID, accessReq.MachineID, resolvedRole); err != nil {
+			log.Printf("grant machine access failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to grant access"))
+		}
+	}
+
+	status := "approved"
+	if action == "deny" {
+		status = "denied"
+		resolvedRole = ""
+	}
+
+	updated, err := s.store.ResolveMachineAccessRequest(ctx, requestID, status, userID, resolvedRole)
+	if err != nil {
+		log.Printf("resolve access request failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve access request"))
+	}
+	if updated == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("access request not found or already resolved"))
+	}
+
+	return connect.NewResponse(&arcav1.ResolveMachineAccessRequestResponse{}), nil
 }

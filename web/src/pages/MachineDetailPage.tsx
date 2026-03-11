@@ -9,9 +9,12 @@ import {
   listMachineEvents,
   listMachineExposures,
   listAvailableRuntimes,
+  listMachineAccessRequests,
+  resolveMachineAccessRequest,
   startMachine,
   stopMachine,
 } from '@/lib/api'
+import type { MachineAccessRequest } from '@/gen/arca/v1/sharing_pb'
 import { messageFromError } from '@/lib/errors'
 import type { Machine, MachineEvent, RuntimeSummary, User } from '@/lib/types'
 
@@ -82,6 +85,91 @@ function EventLevelBadge({ level }: { level: string }) {
   )
 }
 
+function AccessRequestsPanel({
+  machineID,
+  requests,
+  onResolved,
+}: {
+  machineID: string
+  requests: MachineAccessRequest[]
+  onResolved: (id: string) => void
+}) {
+  const [resolving, setResolving] = useState<string | null>(null)
+  const [roles, setRoles] = useState<Record<string, string>>({})
+  const [panelError, setPanelError] = useState('')
+
+  const handleResolve = async (requestID: string, action: 'approve' | 'deny') => {
+    setResolving(requestID)
+    setPanelError('')
+    try {
+      const role = action === 'approve' ? (roles[requestID] || 'viewer') : ''
+      await resolveMachineAccessRequest(requestID, action, role)
+      onResolved(requestID)
+    } catch (e) {
+      setPanelError(messageFromError(e))
+    } finally {
+      setResolving(null)
+    }
+  }
+
+  return (
+    <Card className="py-0 shadow-sm">
+      <CardHeader className="space-y-2 p-6 pb-3">
+        <CardTitle className="text-xl">Access requests</CardTitle>
+        <CardDescription>Users requesting access to this machine.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 p-6 pt-3">
+        {panelError !== '' && (
+          <p className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
+            {panelError}
+          </p>
+        )}
+        {requests.map((req) => (
+          <div key={req.id} className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">{req.email}</p>
+              {req.message !== '' && (
+                <p className="mt-1 text-xs text-muted-foreground">{req.message}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {new Date(Number(req.createdAt) * 1000).toLocaleString()}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+                value={roles[req.id] || 'viewer'}
+                onChange={(e) => setRoles((prev) => ({ ...prev, [req.id]: e.target.value }))}
+                disabled={resolving === req.id}
+              >
+                <option value="viewer">Viewer — read-only access</option>
+                <option value="editor">Editor — terminal access</option>
+              </select>
+              <Button
+                type="button"
+                size="sm"
+                disabled={resolving === req.id}
+                onClick={() => void handleResolve(req.id, 'approve')}
+              >
+                Approve
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={resolving === req.id}
+                onClick={() => void handleResolve(req.id, 'deny')}
+              >
+                Deny
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const navigate = useNavigate()
@@ -92,6 +180,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [sharingOpen, setSharingOpen] = useState(false)
+  const [accessRequests, setAccessRequests] = useState<MachineAccessRequest[]>([])
   const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const isRunning = machine?.status === 'running'
@@ -128,6 +217,15 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           setEvents(eventItems)
           setRuntimes(runtimeItems)
           setError('')
+          // Fetch access requests for admins
+          if (item.userRole === 'admin') {
+            try {
+              const reqs = await listMachineAccessRequests(machineID)
+              if (!cancelled) setAccessRequests(reqs)
+            } catch {
+              // ignore errors for access requests polling
+            }
+          }
         }
       } catch (e) {
         if (!cancelled) {
@@ -371,6 +469,14 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
             )}
           </CardContent>
         </Card>
+
+        {isAdmin && accessRequests.length > 0 && (
+          <AccessRequestsPanel
+            machineID={machineID}
+            requests={accessRequests}
+            onResolved={(id) => setAccessRequests((prev) => prev.filter((r) => r.id !== id))}
+          />
+        )}
 
         {isAdmin && (
           <Card className="py-0 shadow-sm">

@@ -1475,6 +1475,201 @@ func (s *Store) RequestSystemStopMachine(ctx context.Context, machineID string) 
 	return true, nil
 }
 
+type AccessRequest struct {
+	ID            string
+	MachineID     string
+	UserID        string
+	Email         string
+	Status        string
+	RequestedRole string
+	Message       string
+	CreatedAt     int64
+	ResolvedAt    int64
+}
+
+func (s *Store) CreateMachineAccessRequest(ctx context.Context, machineID, userID, requestedRole, message string) error {
+	id, err := randomID()
+	if err != nil {
+		return err
+	}
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.CreateMachineAccessRequest(ctx, sqlitesqlc.CreateMachineAccessRequestParams{
+			ID:            id,
+			MachineID:     machineID,
+			UserID:        userID,
+			RequestedRole: requestedRole,
+			Message:       message,
+			CreatedAt:     nowUnix,
+		})
+	case DriverPostgres:
+		return s.pgQueries.CreateMachineAccessRequest(ctx, postgresqlsqlc.CreateMachineAccessRequestParams{
+			ID:            id,
+			MachineID:     machineID,
+			UserID:        userID,
+			RequestedRole: requestedRole,
+			Message:       message,
+			CreatedAt:     nowUnix,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) GetPendingMachineAccessRequest(ctx context.Context, machineID, userID string) (AccessRequest, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetPendingMachineAccessRequest(ctx, sqlitesqlc.GetPendingMachineAccessRequestParams{
+			MachineID: machineID,
+			UserID:    userID,
+		})
+		if err != nil {
+			return AccessRequest{}, err
+		}
+		return AccessRequest{
+			ID:            row.ID,
+			MachineID:     row.MachineID,
+			UserID:        row.UserID,
+			Status:        row.Status,
+			RequestedRole: row.RequestedRole,
+			Message:       row.Message,
+			CreatedAt:     row.CreatedAt,
+		}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetPendingMachineAccessRequest(ctx, postgresqlsqlc.GetPendingMachineAccessRequestParams{
+			MachineID: machineID,
+			UserID:    userID,
+		})
+		if err != nil {
+			return AccessRequest{}, err
+		}
+		return AccessRequest{
+			ID:            row.ID,
+			MachineID:     row.MachineID,
+			UserID:        row.UserID,
+			Status:        row.Status,
+			RequestedRole: row.RequestedRole,
+			Message:       row.Message,
+			CreatedAt:     row.CreatedAt,
+		}, nil
+	default:
+		return AccessRequest{}, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ListPendingMachineAccessRequests(ctx context.Context, machineID string) ([]AccessRequest, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListPendingMachineAccessRequestsByMachineID(ctx, machineID)
+		if err != nil {
+			return nil, err
+		}
+		requests := make([]AccessRequest, 0, len(rows))
+		for _, row := range rows {
+			requests = append(requests, AccessRequest{
+				ID:            row.ID,
+				MachineID:     row.MachineID,
+				UserID:        row.UserID,
+				Email:         row.Email,
+				Status:        row.Status,
+				RequestedRole: row.RequestedRole,
+				Message:       row.Message,
+				CreatedAt:     row.CreatedAt,
+			})
+		}
+		return requests, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListPendingMachineAccessRequestsByMachineID(ctx, machineID)
+		if err != nil {
+			return nil, err
+		}
+		requests := make([]AccessRequest, 0, len(rows))
+		for _, row := range rows {
+			requests = append(requests, AccessRequest{
+				ID:            row.ID,
+				MachineID:     row.MachineID,
+				UserID:        row.UserID,
+				Email:         row.Email,
+				Status:        row.Status,
+				RequestedRole: row.RequestedRole,
+				Message:       row.Message,
+				CreatedAt:     row.CreatedAt,
+			})
+		}
+		return requests, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ResolveMachineAccessRequest(ctx context.Context, requestID, status, resolvedByUserID, resolvedRole string) (int64, error) {
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.ResolveMachineAccessRequest(ctx, sqlitesqlc.ResolveMachineAccessRequestParams{
+			Status:           status,
+			ResolvedByUserID: sql.NullString{String: resolvedByUserID, Valid: resolvedByUserID != ""},
+			ResolvedRole:     resolvedRole,
+			ResolvedAt:       sql.NullInt64{Int64: nowUnix, Valid: true},
+			ID:               requestID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.ResolveMachineAccessRequest(ctx, postgresqlsqlc.ResolveMachineAccessRequestParams{
+			Status:           status,
+			ResolvedByUserID: sql.NullString{String: resolvedByUserID, Valid: resolvedByUserID != ""},
+			ResolvedRole:     resolvedRole,
+			ResolvedAt:       sql.NullInt64{Int64: nowUnix, Valid: true},
+			ID:               requestID,
+		})
+	default:
+		return 0, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) GetMachineAccessRequestByID(ctx context.Context, requestID string) (AccessRequest, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetMachineAccessRequestByID(ctx, requestID)
+		if err != nil {
+			return AccessRequest{}, err
+		}
+		var resolvedAt int64
+		if row.ResolvedAt.Valid {
+			resolvedAt = row.ResolvedAt.Int64
+		}
+		return AccessRequest{
+			ID:        row.ID,
+			MachineID: row.MachineID,
+			UserID:    row.UserID,
+			Status:    row.Status,
+			Message:   row.Message,
+			CreatedAt: row.CreatedAt,
+			ResolvedAt: resolvedAt,
+		}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetMachineAccessRequestByID(ctx, requestID)
+		if err != nil {
+			return AccessRequest{}, err
+		}
+		var resolvedAt int64
+		if row.ResolvedAt.Valid {
+			resolvedAt = row.ResolvedAt.Int64
+		}
+		return AccessRequest{
+			ID:        row.ID,
+			MachineID: row.MachineID,
+			UserID:    row.UserID,
+			Status:    row.Status,
+			Message:   row.Message,
+			CreatedAt: row.CreatedAt,
+			ResolvedAt: resolvedAt,
+		}, nil
+	default:
+		return AccessRequest{}, unsupportedDriverError(s.driver)
+	}
+}
+
 func isMachineNameUniqueConstraintError(err error) bool {
 	if err == nil {
 		return false

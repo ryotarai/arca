@@ -14,6 +14,7 @@ import { AdminSettingsPage } from '@/pages/AdminSettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { UserSetupPage } from '@/pages/UserSetupPage'
+import { AccessDeniedPage } from '@/pages/AccessDeniedPage'
 import { AppLayout } from '@/pages/AppLayout'
 
 export function App() {
@@ -124,6 +125,7 @@ export function App() {
       <Route path="/login" element={<LoginPage user={user} onLogin={setUser} oidcEnabled={setupStatus.oidcEnabled} passwordLoginDisabled={setupStatus.passwordLoginDisabled} iapEnabled={setupStatus.iapEnabled} />} />
       <Route path="/login/oidc/callback" element={<OidcCallbackPage user={user} onLogin={setUser} />} />
       <Route path="/users/setup" element={<UserSetupPage user={user} />} />
+      <Route path="/access-denied" element={<AccessDeniedPage />} />
 
       <Route element={<AppLayout user={user} onLogout={handleLogout} />}>
         <Route path="/" element={<Navigate to="/machines" replace />} />
