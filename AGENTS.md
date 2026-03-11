@@ -1,6 +1,8 @@
 # Repository Guidelines
 
-**First**, read and apply the instructions in `AGENTS.local.md` before using any other tools or reading any other files.
+> **This is an open-source project.** Do not add company-specific information (internal URLs, project IDs, credentials, deploy scripts, etc.) to this file or any tracked file. Keep such details in `AGENTS.local.md` or other `*.local.md` files, which are git-ignored.
+
+**First**, read and apply the instructions in `AGENTS.local.md` (if it exists) before using any other tools or reading any other files.
 
 ## Project Structure & Module Organization
 This repository is a Go + React application (`github.com/ryotarai/arca`).
