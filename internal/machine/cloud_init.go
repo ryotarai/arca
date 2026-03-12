@@ -210,7 +210,8 @@ guideline_section_b64="` + agentGuidelineSectionBase64 + `"
 write_agent_guideline_file "${interactive_home}/.claude/CLAUDE.md" "${guideline_section_b64}"
 write_agent_guideline_file "${interactive_home}/.codex/AGENTS.md" "${guideline_section_b64}"
 write_agent_guideline_file "${interactive_home}/.gemini/GEMINI.md" "${guideline_section_b64}"
-chown -R "$interactive_user":arca "${interactive_home}/.claude" "${interactive_home}/.codex" "${interactive_home}/.gemini"
+write_agent_guideline_file "${interactive_home}/.config/AGENTS.md" "${guideline_section_b64}"
+chown -R "$interactive_user":arca "${interactive_home}/.claude" "${interactive_home}/.codex" "${interactive_home}/.gemini" "${interactive_home}/.config"
 
 
 systemctl daemon-reload
