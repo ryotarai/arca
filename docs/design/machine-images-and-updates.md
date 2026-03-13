@@ -162,15 +162,65 @@ CREATE TABLE images (
 
 ### Build process
 
-1. Start a temporary machine from the base OS image (e.g., `ubuntu:24.04`).
-2. Run full arcad provisioning (cloud-init + arcad setup).
-3. Wait for setup completion.
-4. Snapshot the machine as an image:
-   - **LXD**: `lxc publish <container> --alias arca-platform-<version>`
-   - **GCE**: create disk snapshot, then `gcloud compute images create`
-   - **Libvirt**: snapshot qcow2 backing file
-5. Register the image in the `images` table.
-6. Delete the temporary machine.
+The image build uses a special arcad mode (`--mode=image-build`) that runs setup without machine-specific data, then shuts down the machine. This avoids baking secrets or per-machine state into the image.
+
+**What the image contains after build:**
+- System packages, users/groups, sudoers, /workspace
+- cloudflared binary
+- systemd unit files (installed but **not enabled**)
+- Dev tools (Homebrew, Claude Code, etc.)
+- arcad binary (build-time version; overwritten on real machine boot)
+
+**What the image does NOT contain:**
+- `/etc/arca/arcad.env` (no machine tokens, IDs, or control plane URLs)
+- SSH keys
+- `/var/lib/arca/last_boot_id`
+- Enabled systemd services (arca-arcad, ttyd, shelley)
+
+**Build sequence:**
+
+```
+Worker creates temporary machine from bare OS (e.g., ubuntu:24.04)
+  |
+  v
+cloud-init (image-build variant):
+  1. Download arcad binary
+  2. Run: arcad --mode=image-build
+     (does NOT write arcad.env, does NOT enable systemd services)
+  |
+  v
+arcad (image-build mode):
+  1. Run idempotent setup (packages, users, tools, unit files)
+  2. Skip machine-specific steps (SSH keys, env, service enable)
+  3. Setup complete → initiate OS shutdown
+  |
+  v
+Worker detects machine stopped
+  |
+  v
+Worker snapshots the machine:
+  - LXD: lxc publish <container> --alias arca-platform-<version>
+  - GCE: create disk snapshot → gcloud compute images create
+  - Libvirt: snapshot qcow2 backing file
+  |
+  v
+Worker registers image in images table → deletes temporary machine
+```
+
+**Normal machine boot from platform image:**
+
+```
+cloud-init:
+  1. Write /etc/arca/arcad.env (machine ID, token, control plane URL)
+  2. Download latest arcad binary (overwrites image version)
+  3. systemctl enable --now arca-arcad
+  |
+  v
+arcad (normal mode):
+  1. Update check (boot_id based)
+  2. Run idempotent setup (most steps skip, deploys SSH keys, etc.)
+  3. Report ready
+```
 
 ### Usage
 
