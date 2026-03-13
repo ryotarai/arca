@@ -249,9 +249,11 @@ func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines [
 
 	for _, machine := range machines {
 		if machine.Status != db.MachineStatusRunning {
+			slog.Debug("auto-stop skip: not running", "machine_id", machine.ID, "status", machine.Status)
 			continue
 		}
 		if machine.LastActivityAt == 0 {
+			slog.Debug("auto-stop skip: no activity recorded", "machine_id", machine.ID)
 			continue
 		}
 
@@ -268,13 +270,16 @@ func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines [
 
 		timeout := db.GetRuntimeAutoStopTimeoutSeconds(configJSON)
 		if timeout <= 0 {
+			slog.Debug("auto-stop skip: no timeout configured", "machine_id", machine.ID, "timeout", timeout)
 			continue
 		}
 
 		idleDuration := nowUnix - machine.LastActivityAt
 		if idleDuration <= timeout {
+			slog.Debug("auto-stop skip: not idle enough", "machine_id", machine.ID, "idle_seconds", idleDuration, "timeout_seconds", timeout)
 			continue
 		}
+		slog.Debug("auto-stop triggering", "machine_id", machine.ID, "idle_seconds", idleDuration, "timeout_seconds", timeout)
 
 		stopped, stopErr := w.store.RequestSystemStopMachine(ctx, machine.ID)
 		if stopErr != nil {

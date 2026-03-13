@@ -54,3 +54,51 @@ func TestGetRuntimeExposureMethod(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRuntimeAutoStopTimeoutSeconds(t *testing.T) {
+	tests := []struct {
+		name       string
+		configJSON string
+		want       int64
+	}{
+		{
+			name:       "numeric value",
+			configJSON: `{"autoStopTimeoutSeconds":86400}`,
+			want:       86400,
+		},
+		{
+			name:       "string value (protobuf int64 encoding)",
+			configJSON: `{"autoStopTimeoutSeconds":"86400"}`,
+			want:       86400,
+		},
+		{
+			name:       "zero",
+			configJSON: `{"autoStopTimeoutSeconds":0}`,
+			want:       0,
+		},
+		{
+			name:       "missing field",
+			configJSON: `{}`,
+			want:       0,
+		},
+		{
+			name:       "invalid JSON",
+			configJSON: `not json`,
+			want:       0,
+		},
+		{
+			name:       "non-numeric string",
+			configJSON: `{"autoStopTimeoutSeconds":"abc"}`,
+			want:       0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetRuntimeAutoStopTimeoutSeconds(tt.configJSON)
+			if got != tt.want {
+				t.Errorf("GetRuntimeAutoStopTimeoutSeconds() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
