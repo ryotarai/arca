@@ -54,9 +54,8 @@ type Worker struct {
 	reconcileTTL   time.Duration
 	startupTTL     time.Duration
 	stopTTL        time.Duration
-	lastSweep          time.Time
-	lastAutoStopSweep  time.Time
-	maxConcurrency     int
+	lastSweep      time.Time
+	maxConcurrency int
 	sem            chan struct{}
 	wg             sync.WaitGroup
 }
@@ -101,8 +100,7 @@ func (w *Worker) Run(ctx context.Context) {
 		}
 
 		nowUnix := time.Now().Unix()
-		w.maybeReconcile(ctx, nowUnix)
-		w.maybeAutoStop(ctx, nowUnix)
+		w.maybeSweep(ctx, nowUnix)
 		if err := w.store.RecoverExpiredMachineJobs(ctx, nowUnix); err != nil {
 			log.Printf("machine worker recover failed: %v", err)
 		}
@@ -184,7 +182,7 @@ func (w *Worker) runHeartbeat(ctx context.Context, jobID string) {
 	}
 }
 
-func (w *Worker) maybeReconcile(ctx context.Context, nowUnix int64) {
+func (w *Worker) maybeSweep(ctx context.Context, nowUnix int64) {
 	if w.store == nil || w.runtime == nil {
 		return
 	}
@@ -196,10 +194,15 @@ func (w *Worker) maybeReconcile(ctx context.Context, nowUnix int64) {
 
 	machines, err := w.store.ListMachinesByDesiredStatus(ctx, db.MachineDesiredRunning, 200)
 	if err != nil {
-		slog.Error("machine reconcile list failed", "error", err)
+		slog.Error("sweep list failed", "error", err)
 		return
 	}
 
+	w.reconcileMachines(ctx, nowUnix, machines)
+	w.autoStopMachines(ctx, nowUnix, machines)
+}
+
+func (w *Worker) reconcileMachines(ctx context.Context, nowUnix int64, machines []db.Machine) {
 	for _, machine := range machines {
 		running, containerID, runErr := w.runtime.IsRunning(ctx, machine)
 		if runErr != nil {
@@ -239,22 +242,7 @@ func (w *Worker) maybeReconcile(ctx context.Context, nowUnix int64) {
 	}
 }
 
-func (w *Worker) maybeAutoStop(ctx context.Context, nowUnix int64) {
-	if w.store == nil || w.runtime == nil {
-		return
-	}
-	now := time.Now()
-	if !w.lastAutoStopSweep.IsZero() && now.Sub(w.lastAutoStopSweep) < w.reconcileTTL {
-		return
-	}
-	w.lastAutoStopSweep = now
-
-	machines, err := w.store.ListMachinesByDesiredStatus(ctx, db.MachineDesiredRunning, 200)
-	if err != nil {
-		slog.Error("auto-stop list failed", "error", err)
-		return
-	}
-
+func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines []db.Machine) {
 	// Cache runtime configs per runtime_id to avoid N+1 queries
 	runtimeConfigs := make(map[string]string) // runtime_id -> config_json
 
