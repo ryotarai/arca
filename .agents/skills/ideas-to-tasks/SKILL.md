@@ -67,6 +67,9 @@ Use this structure for every generated task file:
 
 ## Planning Rules
 
+- **"Ultrathink" before writing any task file.** Invest significant upfront effort in understanding the codebase, relevant interfaces, data models, and constraints so that the resulting task spec is detailed enough for an implementer to start coding immediately without further research or guesswork.
+- When planning individual tasks, use the **Agent tool to research in parallel** — for example, spawn concurrent agents to explore different parts of the codebase (proto definitions, DB schema, frontend components, existing tests, etc.) that are relevant to different ideas or task groups. Maximize parallelism to gather context efficiently.
+- Each task's `タスク` section must contain **concrete, step-by-step implementation instructions** including: specific files to modify/create, function signatures or API shapes to add, schema changes, UI component names, and expected behavior. Avoid vague steps like "implement the feature" — instead spell out exactly what code changes are needed.
 - Optimize for the best overall delivery plan, not strict one-idea-to-one-file mapping.
 - Merge ideas into one task when they share the same code path, API surface, rollout dependency, or acceptance criteria.
 - Split an idea into multiple tasks when it spans distinct layers, has independent milestones, or would produce an oversized task.
