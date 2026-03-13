@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"log"
+	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
@@ -23,6 +24,12 @@ import (
 )
 
 func main() {
+	var logLevel slog.Level
+	if err := logLevel.UnmarshalText([]byte(os.Getenv("LOG_LEVEL"))); err != nil {
+		logLevel = slog.LevelInfo
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+
 	addr := os.Getenv("SERVER_ADDR")
 	if addr == "" {
 		if port := os.Getenv("PORT"); port != "" {

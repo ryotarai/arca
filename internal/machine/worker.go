@@ -197,6 +197,7 @@ func (w *Worker) maybeSweep(ctx context.Context, nowUnix int64) {
 		slog.Error("sweep list failed", "error", err)
 		return
 	}
+	slog.Debug("sweep running", "machine_count", len(machines))
 
 	w.reconcileMachines(ctx, nowUnix, machines)
 	w.autoStopMachines(ctx, nowUnix, machines)
