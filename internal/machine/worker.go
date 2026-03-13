@@ -54,8 +54,9 @@ type Worker struct {
 	reconcileTTL   time.Duration
 	startupTTL     time.Duration
 	stopTTL        time.Duration
-	lastSweep      time.Time
-	maxConcurrency int
+	lastSweep          time.Time
+	lastAutoStopSweep  time.Time
+	maxConcurrency     int
 	sem            chan struct{}
 	wg             sync.WaitGroup
 }
@@ -243,10 +244,10 @@ func (w *Worker) maybeAutoStop(ctx context.Context, nowUnix int64) {
 		return
 	}
 	now := time.Now()
-	// Piggyback on the same cadence as reconcile (reuse reconcileTTL interval)
-	if !w.lastSweep.IsZero() && now.Sub(w.lastSweep) < w.reconcileTTL {
+	if !w.lastAutoStopSweep.IsZero() && now.Sub(w.lastAutoStopSweep) < w.reconcileTTL {
 		return
 	}
+	w.lastAutoStopSweep = now
 
 	machines, err := w.store.ListMachinesByDesiredStatus(ctx, db.MachineDesiredRunning, 200)
 	if err != nil {
