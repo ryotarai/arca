@@ -1,2 +1,0 @@
-ALTER TABLE machines
-ADD COLUMN runtime TEXT NOT NULL DEFAULT 'libvirt';
