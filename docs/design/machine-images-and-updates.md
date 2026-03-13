@@ -15,7 +15,7 @@ Split responsibilities into three layers:
 | Layer | Responsibility | Update mechanism |
 |-------|---------------|-----------------|
 | **Platform Image** | Pre-installed packages, users, tools | Image rebuild |
-| **cloud-init** | Machine-specific env vars, arcad binary download, service start | Per-machine at first boot |
+| **cloud-init** | Machine-specific env vars, arcad binary download, service start, shutdown (image build) | Per-machine at first boot |
 | **arcad setup** | Idempotent provisioning: packages, users, services, dev tools, SSH keys | Every arcad startup |
 
 ### Key Principles
@@ -26,20 +26,36 @@ Split responsibilities into three layers:
 - **Images are a speed optimization, not a correctness requirement**: arcad's idempotent setup guarantees correctness regardless of image age.
 - **Backward compatibility**: arca server must work with older arcad versions. New API fields are additive and optional.
 
+## arcad Process Architecture
+
+arcad runs as two separate processes to isolate privileges:
+
+| Process | User | Responsibility |
+|---------|------|---------------|
+| `arcad` | root | Self-update, idempotent setup (apt, user creation, systemd units, etc.), service management |
+| `arcad --user` | arcauser | Reverse proxy, HTTP traffic handling |
+
+The root process performs privileged operations (package installation, user/group management, writing to `/etc/`, `systemctl` commands) and then starts the user-mode process. The user-mode process handles inbound traffic with minimal privileges.
+
+Both are managed as separate systemd services:
+- `arca-arcad.service` — root process
+- `arca-arcad-user.service` — user-mode process, started by the root process after setup completes
+
 ## arcad Provisioning Phase
 
-On every startup, arcad runs its provisioning phase before entering normal operation:
+On every startup, the root arcad process runs its provisioning phase before entering normal operation:
 
-1. Install system packages (apt)
-2. Create users and groups (arca, arcad, arcauser)
-3. Configure sudoers
-4. Create /workspace
-5. Download and configure cloudflared
-6. Write systemd unit files (ttyd, shelley)
-7. Deploy SSH keys
-8. Install dev tools (Homebrew, Claude Code, etc.)
-9. Start dependent services
-10. Report ready to server
+1. Self-update check (first operation, see [Update Flow](#arcad-update-flow))
+2. Install system packages (apt)
+3. Create users and groups (arca, arcad, arcauser)
+4. Configure sudoers
+5. Create /workspace
+6. Download and configure cloudflared
+7. Write systemd unit files (ttyd, shelley, arcad-user)
+8. Deploy SSH keys
+9. Install dev tools (Homebrew, Claude Code, etc.)
+10. Start dependent services (including `arcad --user`)
+11. Report ready to server
 
 Each step is idempotent: "ensure X exists / is configured" rather than "create X". Re-running the full sequence on an already-provisioned machine completes in seconds.
 
@@ -49,49 +65,53 @@ Each step is idempotent: "ensure X exists / is configured" rather than "create X
 
 arcad updates only on **machine restart** (user-initiated stop then start). arcad does **not** auto-update while running.
 
-### Distinguishing OS reboot from arcad process restart
+### Distinguishing machine restart from arcad process restart
 
-arcad compares `/proc/sys/kernel/random/boot_id` (unique per OS boot) against a saved value in `/var/lib/arca/last_boot_id`:
+arcad checks for a marker file at `/run/arca/update-checked`. Since `/run` is a tmpfs, it is cleared on every OS/container boot (including LXD container stop/start), making this approach work uniformly across all runtime types (LXD containers, libvirt VMs, GCE instances).
 
-- **Different**: OS was rebooted (machine restart). Enter update phase.
-- **Same**: arcad process was restarted (e.g., crash recovery). Skip update phase.
+- **Marker absent**: machine was restarted. Enter update phase.
+- **Marker present**: arcad process was restarted (e.g., crash recovery). Skip update phase.
+
+Note: `/proc/sys/kernel/random/boot_id` is not used because it reflects the host kernel's boot ID and does not change on LXD container restart.
 
 ### Update sequence
 
+Self-update is the **first operation** arcad performs on startup, before any setup steps. This ensures setup logic always runs at the latest version.
+
 ```
-OS boot
+OS / container boot
   |
   v
-systemd starts arcad
+systemd starts arcad (root)
   |
   v
-arcad reads /proc/sys/kernel/random/boot_id
+arcad checks /run/arca/update-checked
   |
-  +-- matches saved boot_id --> skip update
+  +-- exists --> skip update
   |
-  +-- differs (or no saved boot_id) --> check for update
+  +-- absent --> check for update
         |
         v
       GET /arcad/version (lightweight, returns version string)
         |
-        +-- same version --> save boot_id, continue
+        +-- same version --> write marker, continue
         |
-        +-- different version:
+        +-- different version (or local version is "dev"):
               |
               v
             GET /arcad/download?os=linux&arch=amd64
               |
               v
-            Replace /usr/local/bin/arcad
+            Write to temp file → rename to /usr/local/bin/arcad (atomic)
               |
               v
-            Save boot_id to /var/lib/arca/last_boot_id
+            Write /run/arca/update-checked marker
               |
               v
             systemctl restart arca-arcad
               |
               v
-            New arcad starts --> boot_id matches --> skip update
+            New arcad starts --> marker exists --> skip update
   |
   v
 Run idempotent setup (every startup, regardless of update)
@@ -99,6 +119,16 @@ Run idempotent setup (every startup, regardless of update)
   v
 Report ready (includes arcad_version)
 ```
+
+### Binary replacement
+
+Binary replacement must be **atomic**: write the new binary to a temporary file in the same filesystem, then `rename()` to `/usr/local/bin/arcad`. This prevents corruption if the process is interrupted during the write.
+
+### Versioning
+
+Both arca server and arcad use the same version string, set via Go linker flags (`-ldflags -X ...`) at build time. The `/arcad/version` endpoint returns the version of the arcad binary the server would serve.
+
+When the local version is `(devel)` (local development build), arcad **always** downloads from the server, since it cannot meaningfully compare versions.
 
 ## Version Reporting
 
@@ -162,7 +192,7 @@ CREATE TABLE images (
 
 ### Build process
 
-The image build uses a special arcad mode (`--mode=image-build`) that runs setup without machine-specific data, then shuts down the machine. This avoids baking secrets or per-machine state into the image.
+The image build uses a special arcad mode (`--mode=image-build`) that runs setup without machine-specific data. After arcad completes, cloud-init handles cleanup and shutdown.
 
 **What the image contains after build:**
 - System packages, users/groups, sudoers, /workspace
@@ -174,8 +204,9 @@ The image build uses a special arcad mode (`--mode=image-build`) that runs setup
 **What the image does NOT contain:**
 - `/etc/arca/arcad.env` (no machine tokens, IDs, or control plane URLs)
 - SSH keys
-- `/var/lib/arca/last_boot_id`
-- Enabled systemd services (arca-arcad, ttyd, shelley)
+- `/run/arca/update-checked` (tmpfs, not persisted)
+- Enabled systemd services (arca-arcad, arca-arcad-user, ttyd, shelley)
+- cloud-init state (cleaned before snapshot)
 
 **Build sequence:**
 
@@ -187,15 +218,23 @@ cloud-init (image-build variant):
   1. Download arcad binary
   2. Run: arcad --mode=image-build
      (does NOT write arcad.env, does NOT enable systemd services)
+  3. Wait for arcad to exit
+  4. Run: cloud-init clean (remove cloud-init state so it re-runs on real boot)
+  5. Initiate OS shutdown
   |
   v
 arcad (image-build mode):
   1. Run idempotent setup (packages, users, tools, unit files)
   2. Skip machine-specific steps (SSH keys, env, service enable)
-  3. Setup complete → initiate OS shutdown
+  3. Exit (does NOT shutdown; cloud-init handles that)
   |
   v
-Worker detects machine stopped
+cloud-init continues after arcad exits:
+  4. cloud-init clean
+  5. shutdown
+  |
+  v
+Worker detects machine stopped (timeout: build fails if not stopped within limit)
   |
   v
 Worker snapshots the machine:
@@ -210,16 +249,17 @@ Worker registers image in images table → deletes temporary machine
 **Normal machine boot from platform image:**
 
 ```
-cloud-init:
+cloud-init (runs fresh thanks to cloud-init clean in the image):
   1. Write /etc/arca/arcad.env (machine ID, token, control plane URL)
   2. Download latest arcad binary (overwrites image version)
   3. systemctl enable --now arca-arcad
   |
   v
-arcad (normal mode):
-  1. Update check (boot_id based)
+arcad (normal mode, root):
+  1. Self-update check (marker absent on fresh boot → check version → already latest → write marker)
   2. Run idempotent setup (most steps skip, deploys SSH keys, etc.)
-  3. Report ready
+  3. Start arcad --user and dependent services
+  4. Report ready
 ```
 
 ### Usage
@@ -228,11 +268,15 @@ arcad (normal mode):
 - `CreateMachine` uses the runtime's default image if available, falls back to bare OS if not.
 - arcad's idempotent setup runs regardless, applying any steps not yet in the image.
 
+### Build timeout
+
+Image builds use a generous timeout (configurable, e.g., 15–20 minutes) to account for full setup from bare OS. If the machine does not stop within the timeout, the build is marked as failed and the temporary machine is deleted.
+
 ## Scenarios
 
 ### New machine (no image)
 
-Cloud-init writes env, downloads arcad, starts service. arcad runs full setup from scratch. Slow but always works as a fallback.
+Cloud-init writes env, downloads arcad, starts service. arcad runs full setup from scratch. Slow but always works as a fallback. Readiness timeout should be extended (e.g., 15 minutes) to accommodate full provisioning.
 
 ### New machine (with platform image)
 
@@ -244,7 +288,7 @@ No immediate effect. arcad continues running the old version. On next user-initi
 
 ### Stopped machine, server upgraded, then started
 
-OS boots, arcad starts (old version), detects new boot_id, checks `/arcad/version`, downloads new binary, restarts itself. New arcad runs setup (applies any new steps). Ready.
+OS boots, arcad starts (old version), no update-checked marker in /run → checks `/arcad/version`, downloads new binary, restarts itself. New arcad runs setup (applies any new steps). Ready.
 
 ### Setup logic change (new package, new service)
 
@@ -252,15 +296,32 @@ Shipped with new arcad binary. New machines get it immediately. Existing machine
 
 ### Platform image rebuild
 
-Triggered manually or as part of a release. New machines use the new image. Existing machines are unaffected (arcad update handles the delta).
+Triggered manually by admin via UI/API. New machines use the new image. Existing machines are unaffected (arcad update handles the delta).
 
 ### Setup failure mid-way
 
-arcad retries with exponential backoff. Since all steps are idempotent, partial progress is safe. arcad reports error reason to server; UI shows provisioning status.
+arcad retries failed steps with exponential backoff. Since all steps are idempotent, partial progress is safe. arcad reports error reason to server; UI shows provisioning status.
 
-### arcad process crash (not OS reboot)
+### arcad process crash (not machine reboot)
 
-systemd restarts arcad. boot_id matches saved value, so update phase is skipped. Setup runs (idempotent, fast). Normal operation resumes.
+systemd restarts arcad. Update-checked marker exists in /run, so update phase is skipped. Setup runs (idempotent, fast). Normal operation resumes.
+
+## Rollback
+
+Automatic server/arcad rollback is out of scope. arcad's idempotent setup is additive ("ensure X exists") and does not remove state created by newer versions.
+
+If a rollback is required:
+
+1. **Roll back arca server** to the previous version.
+2. **Restart affected machines** (stop → start). arcad will download the older binary from the server and re-run setup.
+3. **Verify**: check arcad version reported in the UI matches the expected version.
+4. **Manual cleanup** (if needed): if a newer arcad version added files, services, or packages that the older version does not manage, remove them manually via SSH:
+   ```bash
+   # Example: remove a service added by a newer version
+   ssh arcauser@<machine-ip> sudo systemctl disable --now <service-name>
+   ssh arcauser@<machine-ip> sudo rm /etc/systemd/system/<service-name>.service
+   ```
+5. **Rebuild platform images** so new machines use the rolled-back version.
 
 ## Future Work (Out of Scope)
 
