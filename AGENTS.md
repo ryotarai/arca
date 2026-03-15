@@ -61,6 +61,7 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - When a failing test indicates a product bug, fix implementation first; only adjust tests when the expected behavior is incorrect or the test is flaky.
 - When fixing bugs or adding logic with non-obvious edge cases (for example encoding mismatches, boundary conditions, or parsing variations), proactively add unit tests covering those cases without being asked.
 - When changing implementation (API endpoints, backend logic, or UI behavior), proactively add or update E2E tests in `web/e2e/` to cover the changed behavior.
+- After adding or updating E2E tests, always run them proactively without waiting for the user to ask. Run fast tests with `cd web && npx playwright test --project=fast <spec-file>`. When changes affect machine provisioning or LXD, also run `cd web && npx playwright test --project=slow e2e/lxd-provisioning.spec.ts`.
 
 ## Manual Machine Testing via API
 
