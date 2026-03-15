@@ -18,6 +18,18 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080',
     headless: true,
   },
+  projects: [
+    {
+      name: 'fast',
+      testIgnore: /(?:lxd-provisioning|critical-user-journey)\.spec\.ts$/,
+      timeout: 60_000,
+    },
+    {
+      name: 'slow',
+      testMatch: /(?:lxd-provisioning|critical-user-journey)\.spec\.ts$/,
+      timeout: 600_000,
+    },
+  ],
   webServer: {
     command:
       'cd .. && mkdir -p bin .cache/go-build .cache/go-mod && GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod go build -o ./bin/server ./cmd/server && rm -f /tmp/arca-e2e.db && ./bin/server',

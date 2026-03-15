@@ -1,24 +1,17 @@
 import { expect, test } from '@playwright/test'
-import { execFileSync } from 'node:child_process'
+import { loginAsAdmin } from './helpers/auth'
 import {
-  bestEffortDeleteMachine,
   cloudflareIntegrationConfig,
-  loginAsAdmin,
   skipCloudflareIntegrationIfMissing,
   validateCloudflareToken,
+} from './helpers/cloudflare'
+import {
+  bestEffortDeleteMachine,
   waitForMachineByName,
   waitForMachineStatus,
   waitForTTYDAccess,
-} from './helpers'
-
-const e2eDBPath = '/tmp/arca-e2e.db'
-
-function ensureLxdRuntimeInDB() {
-  execFileSync('sqlite3', [
-    e2eDBPath,
-    `INSERT OR IGNORE INTO runtimes (id, name, type, config_json, created_at, updated_at) VALUES ('lxd', 'lxd-default', 'lxd', '{"lxd":{"endpoint":"https://localhost:8443"}}', CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));`,
-  ], { stdio: 'pipe' })
-}
+} from './helpers/machine'
+import { ensureLxdRuntime } from './helpers/runtime'
 
 test.describe('critical user journey', () => {
   skipCloudflareIntegrationIfMissing()
@@ -32,7 +25,7 @@ test.describe('critical user journey', () => {
 
     await validateCloudflareToken(page, configResult.config)
     await loginAsAdmin(page)
-    ensureLxdRuntimeInDB()
+    await ensureLxdRuntime(page)
 
     const machineName = `critical-${Date.now().toString(36)}`
     let machineID = ''
@@ -79,9 +72,8 @@ test.describe('critical user journey', () => {
       await expect(page.getByPlaceholder('edge-libvirt')).toHaveCount(0)
       await expect(page.getByPlaceholder('main-libvirt')).toBeVisible()
 
-      await page.getByRole('link', { name: 'Settings' }).click()
-      await expect(page).toHaveURL('/settings')
-      await expect(page.getByText('Clear stored client secret on save')).toHaveCount(0)
+      await page.getByRole('link', { name: 'Admin settings' }).click()
+      await expect(page).toHaveURL('/admin/settings')
 
       const endpoint = runningMachine.endpoint?.trim() ?? ''
       const ttydStatus = await waitForTTYDAccess(page, endpoint, {

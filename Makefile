@@ -8,7 +8,7 @@ SERVER_BIN ?= $(BIN_DIR)/server
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 
-.PHONY: build build-frontend build-server build-server-dev proto sqlc test go/test web/test run watch
+.PHONY: build build-frontend build-server build-server-dev proto sqlc test go/test web/test web/test-fast web/test-slow run watch
 build: build-frontend build-server
 
 build-frontend: proto
@@ -47,6 +47,12 @@ go/test:
 
 web/test:
 	$(NPM) --prefix $(WEB_DIR) run e2e
+
+web/test-fast:
+	$(NPM) --prefix $(WEB_DIR) run e2e -- --project=fast
+
+web/test-slow:
+	$(NPM) --prefix $(WEB_DIR) run e2e -- --project=slow
 
 run: build-server
 	./$(SERVER_BIN)
