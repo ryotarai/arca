@@ -24,7 +24,7 @@ test.describe('user management', () => {
     await page.locator('#user-email').fill(email)
     await page.getByRole('button', { name: 'Create user' }).click()
 
-    await expect(page.getByText('One-time setup token')).toBeVisible()
+    await expect(page.getByText('One-time setup token', { exact: true })).toBeVisible()
     await expect(page.getByText(email, { exact: true })).toBeVisible()
   })
 
@@ -38,7 +38,7 @@ test.describe('user management', () => {
     await expect(userRow).toBeVisible()
 
     await userRow.getByRole('button', { name: 'Issue setup token' }).click()
-    await expect(page.getByText('One-time setup token')).toBeVisible()
+    await expect(page.getByText('One-time setup token', { exact: true })).toBeVisible()
   })
 
   test('toggle admin role', async ({ page }) => {

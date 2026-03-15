@@ -395,15 +395,15 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	if err != nil {
 		return fmt.Errorf("load setup state: %w", err)
 	}
-	controlPlaneURL, err := controlPlaneURLForMachine(setup)
-	if err != nil {
-		return err
-	}
+	controlPlaneURL := controlPlaneURLFromSetup(setup)
 	// Override control plane URL if the runtime has a server_api_url configured
 	if runtimeCatalog, rtErr := w.store.GetRuntimeByID(ctx, machine.RuntimeID); rtErr == nil {
 		if override := db.GetRuntimeServerAPIURL(runtimeCatalog.ConfigJSON); override != "" {
 			controlPlaneURL = override
 		}
+	}
+	if controlPlaneURL == "" {
+		return fmt.Errorf("server domain is not configured")
 	}
 	ownerUserID, err := w.store.GetMachineOwnerUserID(ctx, machine.ID)
 	if err != nil {
@@ -716,11 +716,11 @@ func sanitizeSubdomainPart(value string) string {
 	return b.String()
 }
 
-func controlPlaneURLForMachine(setup db.SetupState) (string, error) {
+func controlPlaneURLFromSetup(setup db.SetupState) string {
 	if serverDomain := strings.TrimSpace(setup.ServerDomain); serverDomain != "" {
-		return "https://" + serverDomain, nil
+		return "https://" + serverDomain
 	}
-	return "", fmt.Errorf("server domain is not configured")
+	return ""
 }
 
 func (w *Worker) getMachineExposureMethod(ctx context.Context, machine db.Machine) string {
