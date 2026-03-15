@@ -1,4 +1,4 @@
-# Machine Images and Updates
+# Machine Setup and Updates
 
 ## Problem
 
@@ -10,12 +10,9 @@ Every machine currently boots from a bare Ubuntu 24.04 image and runs a full clo
 
 ## Design Overview
 
-Split responsibilities into three layers:
-
 | Layer | Responsibility | Update mechanism |
 |-------|---------------|-----------------|
-| **Platform Image** | Pre-installed packages, users, tools | Image rebuild |
-| **cloud-init** | Machine-specific env vars, arcad binary download, service start, shutdown (image build) | Per-machine at first boot |
+| **cloud-init** | Machine-specific env vars, arcad binary download, service start | Per-machine at first boot |
 | **arcad setup** | Idempotent provisioning: packages, users, services, dev tools, SSH keys | Every arcad startup |
 
 ### Key Principles
@@ -23,7 +20,6 @@ Split responsibilities into three layers:
 - **cloud-init is minimal**: write `/etc/arca/arcad.env`, download arcad, start arcad systemd service. Nothing else.
 - **arcad owns all setup logic**: arcad runs an idempotent provisioning phase on every startup. This makes setup logic updatable with the arcad binary.
 - **All setup steps are idempotent**: each step checks current state and skips if already satisfied. Safe to re-run from any starting point (bare OS, platform image, custom image).
-- **Images are a speed optimization, not a correctness requirement**: arcad's idempotent setup guarantees correctness regardless of image age.
 - **Backward compatibility**: arca server must work with older arcad versions. New API fields are additive and optional.
 
 ## arcad Process Architecture
@@ -164,123 +160,11 @@ Lightweight endpoint for arcad to check whether an update is available without d
 
 Add optional `arcad_version` field (field number 5). Older arcad instances that don't send this field continue to work (empty string, server ignores).
 
-## Platform Images
-
-### Purpose
-
-Pre-built images containing packages, users, tools, and an arcad binary. Machines starting from a platform image skip most of the provisioning phase (steps already satisfied), reducing startup to seconds.
-
-### Scope
-
-Images are **per-runtime**. Each runtime (LXD host, GCE project, libvirt host) manages its own images because images are not portable across runtime types or hosts.
-
-```sql
-CREATE TABLE images (
-    id TEXT PRIMARY KEY,
-    runtime_id TEXT NOT NULL REFERENCES runtimes(id),
-    name TEXT NOT NULL,
-    version TEXT,
-    type TEXT NOT NULL,        -- 'platform' or 'custom'
-    status TEXT NOT NULL,      -- 'building', 'ready', 'failed'
-    source_machine_id TEXT,    -- for custom images: the machine snapshotted
-    platform_ref TEXT,         -- runtime-specific reference (LXD alias, GCE image name, etc.)
-    created_by TEXT,
-    created_at TIMESTAMP,
-    UNIQUE(runtime_id, name)
-);
-```
-
-### Build process
-
-The image build uses a special arcad mode (`--mode=image-build`) that runs setup without machine-specific data. After arcad completes, cloud-init handles cleanup and shutdown.
-
-**What the image contains after build:**
-- System packages, users/groups, sudoers, /workspace
-- cloudflared binary
-- systemd unit files (installed but **not enabled**)
-- Dev tools (Homebrew, Claude Code, etc.)
-- arcad binary (build-time version; overwritten on real machine boot)
-
-**What the image does NOT contain:**
-- `/etc/arca/arcad.env` (no machine tokens, IDs, or control plane URLs)
-- SSH keys
-- `/run/arca/update-checked` (tmpfs, not persisted)
-- Enabled systemd services (arca-arcad, arca-arcad-user, ttyd, shelley)
-- cloud-init state (cleaned before snapshot)
-
-**Build sequence:**
-
-```
-Worker creates temporary machine from bare OS (e.g., ubuntu:24.04)
-  |
-  v
-cloud-init (image-build variant):
-  1. Download arcad binary
-  2. Run: arcad --mode=image-build
-     (does NOT write arcad.env, does NOT enable systemd services)
-  3. Wait for arcad to exit
-  4. Run: cloud-init clean (remove cloud-init state so it re-runs on real boot)
-  5. Initiate OS shutdown
-  |
-  v
-arcad (image-build mode):
-  1. Run idempotent setup (packages, users, tools, unit files)
-  2. Skip machine-specific steps (SSH keys, env, service enable)
-  3. Exit (does NOT shutdown; cloud-init handles that)
-  |
-  v
-cloud-init continues after arcad exits:
-  4. cloud-init clean
-  5. shutdown
-  |
-  v
-Worker detects machine stopped (timeout: build fails if not stopped within limit)
-  |
-  v
-Worker snapshots the machine:
-  - LXD: lxc publish <container> --alias arca-platform-<version>
-  - GCE: create disk snapshot → gcloud compute images create
-  - Libvirt: snapshot qcow2 backing file
-  |
-  v
-Worker registers image in images table → deletes temporary machine
-```
-
-**Normal machine boot from platform image:**
-
-```
-cloud-init (runs fresh thanks to cloud-init clean in the image):
-  1. Write /etc/arca/arcad.env (machine ID, token, control plane URL)
-  2. Download latest arcad binary (overwrites image version)
-  3. systemctl enable --now arca-arcad
-  |
-  v
-arcad (normal mode, root):
-  1. Self-update check (marker absent on fresh boot → check version → already latest → write marker)
-  2. Run idempotent setup (most steps skip, deploys SSH keys, etc.)
-  3. Start arcad --user and dependent services
-  4. Report ready
-```
-
-### Usage
-
-- Each runtime has a `default_image_id` referencing the current platform image.
-- `CreateMachine` uses the runtime's default image if available, falls back to bare OS if not.
-- arcad's idempotent setup runs regardless, applying any steps not yet in the image.
-
-### Build timeout
-
-Image builds use a generous timeout (configurable, e.g., 15–20 minutes) to account for full setup from bare OS. If the machine does not stop within the timeout, the build is marked as failed and the temporary machine is deleted.
-
 ## Scenarios
 
-### New machine (no image)
+### New machine
 
-Cloud-init writes env, downloads arcad, starts service. arcad runs full setup from scratch. Slow but always works as a fallback. Readiness timeout should be extended (e.g., 15 minutes) to accommodate full provisioning.
-
-### New machine (with platform image)
-
-Cloud-init writes env, downloads latest arcad (overwrites image-bundled version), starts service. arcad runs setup; most steps skip because image already has them. Fast.
+Cloud-init writes env, downloads arcad, starts service. arcad runs full setup from scratch. Readiness timeout should accommodate full provisioning (e.g., 15 minutes).
 
 ### Running machine, server upgraded
 
@@ -293,10 +177,6 @@ OS boots, arcad starts (old version), no update-checked marker in /run → check
 ### Setup logic change (new package, new service)
 
 Shipped with new arcad binary. New machines get it immediately. Existing machines get it on next restart when arcad updates. arcad's idempotent setup installs the missing package.
-
-### Platform image rebuild
-
-Triggered manually by admin via UI/API. New machines use the new image. Existing machines are unaffected (arcad update handles the delta).
 
 ### Setup failure mid-way
 
@@ -321,10 +201,10 @@ If a rollback is required:
    ssh arcauser@<machine-ip> sudo systemctl disable --now <service-name>
    ssh arcauser@<machine-ip> sudo rm /etc/systemd/system/<service-name>.service
    ```
-5. **Rebuild platform images** so new machines use the rolled-back version.
+5. **Rebuild platform images** (if applicable) so new machines use the rolled-back version.
 
 ## Future Work (Out of Scope)
 
+- **Platform images**: pre-built images to speed up machine startup. Separate design.
 - **User custom images**: snapshot-based custom images for user-specific setups. Separate design.
 - **Setup progress UI**: arcad reports per-step progress events for UI display.
-- **Image lifecycle management**: garbage collection of old images, retention policies.
