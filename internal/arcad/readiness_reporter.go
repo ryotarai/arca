@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	"github.com/ryotarai/arca/internal/version"
 )
 
 type ReadinessReporter struct {
@@ -41,7 +43,7 @@ func (r *ReadinessReporter) Run(ctx context.Context) {
 		}
 
 		reportCtx, reportCancel := context.WithTimeout(ctx, 5*time.Second)
-		accepted, reportErr := r.client.ReportMachineReadiness(reportCtx, ready, reason, "")
+		accepted, reportErr := r.client.ReportMachineReadiness(reportCtx, ready, reason, "", version.Version)
 		reportCancel()
 		if reportErr != nil {
 			log.Printf("readiness report failed: %v", reportErr)

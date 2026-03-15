@@ -54,7 +54,7 @@ type ControlPlaneClient interface {
 	GetExposureByHost(context.Context, string) (Exposure, error)
 	ExchangeArcadSession(context.Context, string, string) (ArcadSessionClaims, error)
 	ValidateArcadSession(context.Context, string, string, string) (ArcadSessionClaims, error)
-	ReportMachineReadiness(context.Context, bool, string, string) (bool, error)
+	ReportMachineReadiness(ctx context.Context, ready bool, reason, containerID, arcadVersion string) (bool, error)
 	AuthorizeURL(string) string
 }
 
@@ -231,12 +231,13 @@ func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {
 	return c.authorizeURL + "?target=" + url.QueryEscape(target)
 }
 
-func (c *HTTPControlPlaneClient) ReportMachineReadiness(ctx context.Context, ready bool, reason, containerID string) (bool, error) {
+func (c *HTTPControlPlaneClient) ReportMachineReadiness(ctx context.Context, ready bool, reason, containerID, arcadVersion string) (bool, error) {
 	payload := map[string]any{
-		"ready":        ready,
-		"reason":       strings.TrimSpace(reason),
-		"machine_id":   c.machineID,
-		"container_id": strings.TrimSpace(containerID),
+		"ready":         ready,
+		"reason":        strings.TrimSpace(reason),
+		"machine_id":    c.machineID,
+		"container_id":  strings.TrimSpace(containerID),
+		"arcad_version": strings.TrimSpace(arcadVersion),
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {

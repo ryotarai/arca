@@ -121,6 +121,7 @@ type MachineState struct {
 	ReadyReason     string
 	UpdatedAt       int64
 	LastActivityAt  int64
+	ArcadVersion    string
 }
 
 type MachineToken struct {

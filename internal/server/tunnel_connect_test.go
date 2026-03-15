@@ -41,10 +41,11 @@ func TestReportMachineReadiness_AcceptsWhenDesiredRunning(t *testing.T) {
 	}
 
 	req := connect.NewRequest(&arcav1.ReportMachineReadinessRequest{
-		Ready:       true,
-		Reason:      "startup sentinel and tcp endpoints are ready",
-		MachineId:   machine.ID,
-		ContainerId: "container-1",
+		Ready:        true,
+		Reason:       "startup sentinel and tcp endpoints are ready",
+		MachineId:    machine.ID,
+		ContainerId:  "container-1",
+		ArcadVersion: "v0.2.0",
 	})
 	req.Header().Set("Authorization", "Bearer "+machine.MachineToken)
 
@@ -65,6 +66,65 @@ func TestReportMachineReadiness_AcceptsWhenDesiredRunning(t *testing.T) {
 	}
 	if updated.Status != db.MachineStatusRunning {
 		t.Fatalf("status = %q, want %q", updated.Status, db.MachineStatusRunning)
+	}
+	if updated.ArcadVersion != "v0.2.0" {
+		t.Fatalf("arcad_version = %q, want %q", updated.ArcadVersion, "v0.2.0")
+	}
+}
+
+func TestReportMachineReadiness_StoresArcadVersion(t *testing.T) {
+	ctx := context.Background()
+	store, authenticator := newUserServiceForTest(t)
+	service := newTunnelConnectService(store, authenticator)
+
+	userID, _, err := authenticator.Register(ctx, "version-owner@example.com", "owner-password")
+	if err != nil {
+		t.Fatalf("register owner: %v", err)
+	}
+	machine, err := store.CreateMachineWithOwner(ctx, userID, "version-machine", "libvirt", "v1")
+	if err != nil {
+		t.Fatalf("create machine: %v", err)
+	}
+
+	// Report with version.
+	req := connect.NewRequest(&arcav1.ReportMachineReadinessRequest{
+		Ready:        true,
+		Reason:       "ready",
+		MachineId:    machine.ID,
+		ArcadVersion: "v0.3.1",
+	})
+	req.Header().Set("Authorization", "Bearer "+machine.MachineToken)
+	_, err = service.ReportMachineReadiness(ctx, req)
+	if err != nil {
+		t.Fatalf("ReportMachineReadiness failed: %v", err)
+	}
+
+	updated, err := store.GetMachineByID(ctx, machine.ID)
+	if err != nil {
+		t.Fatalf("get machine: %v", err)
+	}
+	if updated.ArcadVersion != "v0.3.1" {
+		t.Fatalf("arcad_version = %q, want %q", updated.ArcadVersion, "v0.3.1")
+	}
+
+	// Report without version (backward compat: should preserve existing).
+	req2 := connect.NewRequest(&arcav1.ReportMachineReadinessRequest{
+		Ready:     true,
+		Reason:    "still ready",
+		MachineId: machine.ID,
+	})
+	req2.Header().Set("Authorization", "Bearer "+machine.MachineToken)
+	_, err = service.ReportMachineReadiness(ctx, req2)
+	if err != nil {
+		t.Fatalf("ReportMachineReadiness (no version) failed: %v", err)
+	}
+
+	updated2, err := store.GetMachineByID(ctx, machine.ID)
+	if err != nil {
+		t.Fatalf("get machine: %v", err)
+	}
+	if updated2.ArcadVersion != "v0.3.1" {
+		t.Fatalf("arcad_version after no-version report = %q, want %q (should be preserved)", updated2.ArcadVersion, "v0.3.1")
 	}
 }
 

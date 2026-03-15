@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/version"
 )
 
 type arcadBinaryHandler struct {
@@ -118,7 +119,8 @@ func buildArcadBinary(ctx context.Context, goos, goarch string) ([]byte, error) 
 	defer os.RemoveAll(tmpDir)
 
 	arcadPath := tmpDir + "/arcad"
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", arcadPath, "./cmd/arcad")
+	ldflags := fmt.Sprintf("-X github.com/ryotarai/arca/internal/version.Version=%s", version.Version)
+	cmd := exec.CommandContext(ctx, "go", "build", "-ldflags", ldflags, "-o", arcadPath, "./cmd/arcad")
 	cmd.Env = append(os.Environ(),
 		"GOOS="+goos,
 		"GOARCH="+goarch,

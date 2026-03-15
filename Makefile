@@ -7,6 +7,9 @@ BIN_DIR ?= bin
 SERVER_BIN ?= $(BIN_DIR)/server
 GOCACHE ?= $(CURDIR)/.cache/go-build
 GOMODCACHE ?= $(CURDIR)/.cache/go-mod
+VERSION ?= dev
+VERSION_PKG := github.com/ryotarai/arca/internal/version
+LDFLAGS := -X $(VERSION_PKG).Version=$(VERSION)
 
 .PHONY: build build-frontend build-server build-server-dev proto sqlc test go/test web/test web/test-fast web/test-slow run watch
 build: build-frontend build-server
@@ -20,11 +23,11 @@ build-frontend: proto
 
 build-server: build-frontend sqlc
 	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
-	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -o $(SERVER_BIN) ./cmd/server
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -ldflags '$(LDFLAGS)' -o $(SERVER_BIN) ./cmd/server
 
 build-server-dev:
 	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
-	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -o $(SERVER_BIN) ./cmd/server
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -ldflags '$(LDFLAGS)' -o $(SERVER_BIN) ./cmd/server
 
 proto:
 	@if command -v $(BUF) >/dev/null 2>&1; then \

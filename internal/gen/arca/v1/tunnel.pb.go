@@ -666,6 +666,7 @@ type ReportMachineReadinessRequest struct {
 	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	MachineId     string                 `protobuf:"bytes,3,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
 	ContainerId   string                 `protobuf:"bytes,4,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	ArcadVersion  string                 `protobuf:"bytes,5,opt,name=arcad_version,json=arcadVersion,proto3" json:"arcad_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -724,6 +725,13 @@ func (x *ReportMachineReadinessRequest) GetMachineId() string {
 func (x *ReportMachineReadinessRequest) GetContainerId() string {
 	if x != nil {
 		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *ReportMachineReadinessRequest) GetArcadVersion() string {
+	if x != nil {
+		return x.ArcadVersion
 	}
 	return ""
 }
@@ -827,13 +835,14 @@ const file_arca_v1_tunnel_proto_rawDesc = "" +
 	"#GetMachineExposureByHostnameRequest\x12\x1a\n" +
 	"\bhostname\x18\x01 \x01(\tR\bhostname\"\\\n" +
 	"$GetMachineExposureByHostnameResponse\x124\n" +
-	"\bexposure\x18\x01 \x01(\v2\x18.arca.v1.MachineExposureR\bexposure\"\x8f\x01\n" +
+	"\bexposure\x18\x01 \x01(\v2\x18.arca.v1.MachineExposureR\bexposure\"\xb4\x01\n" +
 	"\x1dReportMachineReadinessRequest\x12\x14\n" +
 	"\x05ready\x18\x01 \x01(\bR\x05ready\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x03 \x01(\tR\tmachineId\x12!\n" +
-	"\fcontainer_id\x18\x04 \x01(\tR\vcontainerId\"<\n" +
+	"\fcontainer_id\x18\x04 \x01(\tR\vcontainerId\x12#\n" +
+	"\rarcad_version\x18\x05 \x01(\tR\farcadVersion\"<\n" +
 	"\x1eReportMachineReadinessResponse\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted*\xd6\x01\n" +
 	"\x12EndpointVisibility\x12#\n" +

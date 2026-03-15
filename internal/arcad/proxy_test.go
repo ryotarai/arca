@@ -42,7 +42,7 @@ func (s *proxyStubControlPlane) ValidateArcadSession(_ context.Context, _, _, se
 	return ArcadSessionClaims{UserID: s.exchangeClaims.UserID}, nil
 }
 
-func (s *proxyStubControlPlane) ReportMachineReadiness(_ context.Context, _ bool, _, _ string) (bool, error) {
+func (s *proxyStubControlPlane) ReportMachineReadiness(_ context.Context, _ bool, _, _, _ string) (bool, error) {
 	return true, nil
 }
 

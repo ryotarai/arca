@@ -297,7 +297,7 @@ VALUES (
 );
 
 -- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason,
+SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -308,7 +308,7 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -324,7 +324,7 @@ ORDER BY um.created_at ASC
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -367,6 +367,10 @@ SET ready = sqlc.arg(ready),
     container_id = CASE
       WHEN sqlc.arg(container_id) <> '' THEN sqlc.arg(container_id)
       ELSE container_id
+    END,
+    arcad_version = CASE
+      WHEN sqlc.arg(arcad_version) <> '' THEN sqlc.arg(arcad_version)
+      ELSE arcad_version
     END,
     status = CASE
       WHEN sqlc.arg(ready) = TRUE
@@ -486,7 +490,7 @@ SET lease_until = sqlc.arg(lease_until), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND status = 'running' AND lease_owner = sqlc.arg(lease_owner);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.last_activity_at
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)

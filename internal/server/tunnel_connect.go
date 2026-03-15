@@ -175,6 +175,7 @@ func (s *tunnelConnectService) ReportMachineReadiness(ctx context.Context, req *
 		req.Msg.GetReady(),
 		strings.TrimSpace(req.Msg.GetReason()),
 		strings.TrimSpace(req.Msg.GetContainerId()),
+		strings.TrimSpace(req.Msg.GetArcadVersion()),
 	)
 	if err != nil {
 		log.Printf("report machine readiness failed: %v", err)

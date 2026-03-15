@@ -48,6 +48,7 @@ type Machine struct {
 	Ready           bool
 	ReadyReportedAt int64
 	ReadyReason     string
+	ArcadVersion    string
 	MachineToken    string
 	UserRole        string
 	LastActivityAt  int64
@@ -315,6 +316,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				ArcadVersion:    row.ArcadVersion,
 				UserRole:        userRole,
 			})
 		}
@@ -343,6 +345,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				ArcadVersion:    row.ArcadVersion,
 				UserRole:        userRole,
 			})
 		}
@@ -547,6 +550,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			Ready:           row.Ready,
 			ReadyReportedAt: row.ReadyReportedAt,
 			ReadyReason:     row.ReadyReason,
+			ArcadVersion:    row.ArcadVersion,
 			MachineToken:    row.MachineToken,
 		}, nil
 	case DriverPostgres:
@@ -567,6 +571,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			Ready:           row.Ready,
 			ReadyReportedAt: row.ReadyReportedAt,
 			ReadyReason:     row.ReadyReason,
+			ArcadVersion:    row.ArcadVersion,
 			MachineToken:    row.MachineToken,
 		}, nil
 	default:
@@ -597,6 +602,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			Ready:           row.Ready,
 			ReadyReportedAt: row.ReadyReportedAt,
 			ReadyReason:     row.ReadyReason,
+			ArcadVersion:    row.ArcadVersion,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByIDForUser(ctx, postgresqlsqlc.GetMachineByIDForUserParams{
@@ -619,6 +625,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			Ready:           row.Ready,
 			ReadyReportedAt: row.ReadyReportedAt,
 			ReadyReason:     row.ReadyReason,
+			ArcadVersion:    row.ArcadVersion,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -745,6 +752,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				ArcadVersion:    row.ArcadVersion,
 				LastActivityAt:  row.LastActivityAt,
 			})
 		}
@@ -770,6 +778,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				Ready:           row.Ready,
 				ReadyReportedAt: row.ReadyReportedAt,
 				ReadyReason:     row.ReadyReason,
+				ArcadVersion:    row.ArcadVersion,
 				LastActivityAt:  row.LastActivityAt,
 			})
 		}
@@ -779,10 +788,11 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 	}
 }
 
-func (s *Store) ReportMachineReadinessByMachineID(ctx context.Context, machineID string, ready bool, reason, containerID string) (bool, error) {
+func (s *Store) ReportMachineReadinessByMachineID(ctx context.Context, machineID string, ready bool, reason, containerID, arcadVersion string) (bool, error) {
 	nowUnix := time.Now().Unix()
 	reason = strings.TrimSpace(reason)
 	containerID = strings.TrimSpace(containerID)
+	arcadVersion = strings.TrimSpace(arcadVersion)
 	switch s.driver {
 	case DriverSQLite:
 		updated, err := s.sqliteQueries.ReportMachineReadinessByMachineID(ctx, sqlitesqlc.ReportMachineReadinessByMachineIDParams{
@@ -790,6 +800,7 @@ func (s *Store) ReportMachineReadinessByMachineID(ctx context.Context, machineID
 			ReadyReportedAt: nowUnix,
 			ReadyReason:     reason,
 			ContainerID:     containerID,
+			ArcadVersion:    arcadVersion,
 			UpdatedAt:       nowUnix,
 			MachineID:       machineID,
 		})
@@ -800,6 +811,7 @@ func (s *Store) ReportMachineReadinessByMachineID(ctx context.Context, machineID
 			ReadyReportedAt: nowUnix,
 			ReadyReason:     reason,
 			ContainerID:     containerID,
+			ArcadVersion:    arcadVersion,
 			UpdatedAt:       nowUnix,
 			MachineID:       machineID,
 		})

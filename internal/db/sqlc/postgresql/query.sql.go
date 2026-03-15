@@ -706,7 +706,7 @@ func (q *Queries) GetMachineAccessRequestByID(ctx context.Context, id string) (G
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -727,6 +727,7 @@ type GetMachineByIDRow struct {
 	Ready           bool
 	ReadyReportedAt int64
 	ReadyReason     string
+	ArcadVersion    string
 	MachineToken    string
 }
 
@@ -746,13 +747,14 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.Ready,
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
+		&i.ArcadVersion,
 		&i.MachineToken,
 	)
 	return i, err
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -779,6 +781,7 @@ type GetMachineByIDForUserRow struct {
 	Ready           bool
 	ReadyReportedAt int64
 	ReadyReason     string
+	ArcadVersion    string
 }
 
 func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDForUserParams) (GetMachineByIDForUserRow, error) {
@@ -797,6 +800,7 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 		&i.Ready,
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
+		&i.ArcadVersion,
 	)
 	return i, err
 }
@@ -1436,7 +1440,7 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 }
 
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason,
+SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -1460,6 +1464,7 @@ type ListMachinesAccessibleByUserRow struct {
 	Ready           bool
 	ReadyReportedAt int64
 	ReadyReason     string
+	ArcadVersion    string
 	UserRole        string
 	CreatedAt       time.Time
 }
@@ -1486,6 +1491,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 			&i.Ready,
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
+			&i.ArcadVersion,
 			&i.UserRole,
 			&i.CreatedAt,
 		); err != nil {
@@ -1503,7 +1509,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.last_activity_at
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = $1
@@ -1529,6 +1535,7 @@ type ListMachinesByDesiredStatusRow struct {
 	Ready           bool
 	ReadyReportedAt int64
 	ReadyReason     string
+	ArcadVersion    string
 	LastActivityAt  int64
 }
 
@@ -1554,6 +1561,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.Ready,
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
+			&i.ArcadVersion,
 			&i.LastActivityAt,
 		); err != nil {
 			return nil, err
@@ -1901,6 +1909,10 @@ SET ready = $1,
       WHEN $4 <> '' THEN $4
       ELSE container_id
     END,
+    arcad_version = CASE
+      WHEN $5 <> '' THEN $5
+      ELSE arcad_version
+    END,
     status = CASE
       WHEN $1 = TRUE
         AND desired_status = 'running'
@@ -1914,8 +1926,8 @@ SET ready = $1,
       THEN ''
       ELSE last_error
     END,
-    updated_at = $5
-WHERE machine_id = $6
+    updated_at = $6
+WHERE machine_id = $7
   AND (
     $1 = FALSE
     OR desired_status = 'running'
@@ -1927,6 +1939,7 @@ type ReportMachineReadinessByMachineIDParams struct {
 	ReadyReportedAt int64
 	ReadyReason     string
 	ContainerID     interface{}
+	ArcadVersion    interface{}
 	UpdatedAt       int64
 	MachineID       string
 }
@@ -1937,6 +1950,7 @@ func (q *Queries) ReportMachineReadinessByMachineID(ctx context.Context, arg Rep
 		arg.ReadyReportedAt,
 		arg.ReadyReason,
 		arg.ContainerID,
+		arg.ArcadVersion,
 		arg.UpdatedAt,
 		arg.MachineID,
 	)

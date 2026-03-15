@@ -115,6 +115,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Route("/arcad", func(sub chi.Router) {
 			sub.Use(middleware.Timeout(5 * time.Minute))
 			sub.Get("/download", arcadHandler.ServeHTTP)
+			sub.Get("/version", newArcadVersionHandler(deps.Store))
 		})
 	}
 

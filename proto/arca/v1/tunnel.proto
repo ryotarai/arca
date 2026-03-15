@@ -83,6 +83,7 @@ message ReportMachineReadinessRequest {
   string reason = 2;
   string machine_id = 3;
   string container_id = 4;
+  string arcad_version = 5;
 }
 
 message ReportMachineReadinessResponse {

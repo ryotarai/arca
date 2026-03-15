@@ -2,23 +2,17 @@ package server
 
 import (
 	"os"
-	"runtime/debug"
 	"strings"
 
 	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/version"
 )
 
 func currentSetupVersion() string {
 	if value := strings.TrimSpace(os.Getenv("ARCA_SETUP_VERSION")); value != "" {
 		return value
 	}
-	if info, ok := debug.ReadBuildInfo(); ok {
-		version := strings.TrimSpace(info.Main.Version)
-		if version != "" && version != "(devel)" {
-			return version
-		}
-	}
-	return "dev"
+	return version.Version
 }
 
 func machineUpdateRequired(machine db.Machine) bool {

@@ -78,6 +78,15 @@ jobs:
           make build-frontend
           make sqlc
 
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build binary
         env:
           GOOS: ${{ matrix.goos }}
@@ -86,7 +95,7 @@ jobs:
         run: |
           outdir="dist/${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p "$outdir"
-          go build -trimpath -ldflags "-s -w" -o "$outdir/${{ matrix.app }}" "./cmd/${{ matrix.cmd }}"
+          go build -trimpath -ldflags "-s -w -X github.com/ryotarai/arca/internal/version.Version=${{ steps.version.outputs.value }}" -o "$outdir/${{ matrix.app }}" "./cmd/${{ matrix.cmd }}"
 
       - name: Package archive
         run: |

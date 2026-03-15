@@ -73,7 +73,7 @@ func TestReportMachineReadinessAcceptsResponse(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	client := NewHTTPControlPlaneClient(server.URL, "", "m1", "mt_1", server.Client())
-	accepted, err := client.ReportMachineReadiness(context.Background(), true, "ready", "container-1")
+	accepted, err := client.ReportMachineReadiness(context.Background(), true, "ready", "container-1", "v0.1.0")
 	if err != nil {
 		t.Fatalf("ReportMachineReadiness failed: %v", err)
 	}
