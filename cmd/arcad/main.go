@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"net/url"
@@ -15,11 +16,31 @@ import (
 )
 
 func main() {
+	userMode := flag.Bool("user", false, "run in user mode (reverse proxy, no setup)")
+	flag.Parse()
+
 	cfg, err := arcad.ConfigFromEnv()
 	if err != nil {
 		log.Fatalf("invalid config: %v", err)
 	}
 
+	// If not explicitly user mode but not running as root, fall back to user
+	// mode for backward compatibility with old service files that run as
+	// User=arcad.
+	if !*userMode && os.Getuid() != 0 {
+		log.Printf("not running as root, falling back to user mode")
+		*userMode = true
+	}
+
+	if *userMode {
+		runUserMode(cfg)
+	} else {
+		runRootMode(cfg)
+	}
+}
+
+// runUserMode runs the reverse proxy and readiness reporter (existing behavior).
+func runUserMode(cfg arcad.Config) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -42,7 +63,7 @@ func main() {
 
 	errCh := make(chan error, 2)
 	go func() {
-		log.Printf("arcad listening on %s", cfg.ListenAddr)
+		log.Printf("arcad (user) listening on %s", cfg.ListenAddr)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
@@ -80,6 +101,35 @@ func main() {
 		_ = httpServer.Shutdown(shutdownCtx)
 		log.Fatalf("arcad failed: %v", err)
 	}
+}
+
+// runRootMode runs the self-update check, idempotent setup, and then idles.
+func runRootMode(cfg arcad.Config) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	log.Printf("arcad (root) starting")
+
+	httpClient := &http.Client{Timeout: 60 * time.Second}
+
+	// Self-update check (first operation).
+	restarted, err := arcad.CheckAndUpdate(ctx, cfg, httpClient)
+	if err != nil {
+		log.Printf("self-update error: %v", err)
+	}
+	if restarted {
+		return
+	}
+
+	// Run idempotent setup.
+	setupCfg := arcad.SetupConfigFromEnv()
+	if err := arcad.RunSetup(ctx, setupCfg); err != nil {
+		log.Fatalf("setup failed: %v", err)
+	}
+
+	// Idle until signalled.
+	log.Printf("arcad (root) setup complete, waiting for signal")
+	<-ctx.Done()
 }
 
 func splitCSV(value string) []string {

@@ -9,7 +9,7 @@ import (
 	"github.com/ryotarai/arca/internal/db"
 )
 
-func TestCloudInitUserData_IncludesAndExecutesStartupScript(t *testing.T) {
+func TestCloudInitUserData_MinimalStructure(t *testing.T) {
 	t.Parallel()
 
 	cloudInit := cloudInitUserData(db.Machine{ID: "machine-123456789abc"}, RuntimeStartOptions{
@@ -19,6 +19,7 @@ func TestCloudInitUserData_IncludesAndExecutesStartupScript(t *testing.T) {
 		MachineToken:          "test-token-123",
 	})
 
+	// User startup script is included.
 	startupScript, ok := cloudInitFileContent(cloudInit, "/usr/local/bin/arca-user-startup.sh")
 	if !ok {
 		t.Fatalf("cloud-init does not include startup script file")
@@ -27,42 +28,49 @@ func TestCloudInitUserData_IncludesAndExecutesStartupScript(t *testing.T) {
 		t.Fatalf("startup script content is not propagated")
 	}
 
-	bootstrapScript, ok := cloudInitFileContent(cloudInit, "/usr/local/bin/arca-bootstrap.sh")
+	// Install script downloads arcad binary.
+	installScript, ok := cloudInitFileContent(cloudInit, "/usr/local/bin/arca-install.sh")
 	if !ok {
-		t.Fatalf("cloud-init does not include bootstrap script")
+		t.Fatalf("cloud-init does not include install script")
 	}
-	if !strings.Contains(bootstrapScript, "/usr/bin/env bash /usr/local/bin/arca-user-startup.sh") {
-		t.Fatalf("bootstrap script does not execute startup script")
+	if !strings.Contains(installScript, "/arcad/download?os=linux&arch=${goarch}") {
+		t.Fatalf("install script does not download arcad binary")
 	}
-	if !strings.Contains(bootstrapScript, "id -u \"$daemon_user\"") {
-		t.Fatalf("bootstrap script does not provision daemon user")
+	if !strings.Contains(installScript, "systemctl enable --now arca-arcad.service") {
+		t.Fatalf("install script does not start arcad service")
 	}
-	if !strings.Contains(bootstrapScript, "id -u \"$interactive_user\"") {
-		t.Fatalf("bootstrap script does not provision interactive user")
+
+	// arcad root service runs without User= (as root).
+	if !strings.Contains(cloudInit, "arca-arcad.service") {
+		t.Fatalf("cloud-init does not include arcad service file")
 	}
-	if !strings.Contains(bootstrapScript, "authorized_keys") {
-		t.Fatalf("bootstrap script does not provision authorized_keys")
+	if !strings.Contains(cloudInit, "ExecStart=/usr/local/bin/arcad") {
+		t.Fatalf("arcad service does not start arcad binary")
 	}
-	if !strings.Contains(bootstrapScript, "/arcad/download?os=linux&arch=${goarch}") {
-		t.Fatalf("bootstrap script does not download arcad binary via curl")
+
+	// Env file includes required variables.
+	envFile, ok := cloudInitFileContent(cloudInit, "/etc/arca/arcad.env")
+	if !ok {
+		t.Fatalf("cloud-init does not include env file")
 	}
-	for _, path := range []string{
-		"${interactive_home}/.claude/CLAUDE.md",
-		"${interactive_home}/.codex/AGENTS.md",
-		"${interactive_home}/.gemini/GEMINI.md",
+	for _, key := range []string{
+		"ARCAD_CONTROL_PLANE_URL=",
+		"ARCAD_MACHINE_TOKEN=",
+		"ARCA_DAEMON_USER=",
+		"ARCA_INTERACTIVE_USER=",
+		"ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64=",
 	} {
-		if !strings.Contains(bootstrapScript, path) {
-			t.Fatalf("bootstrap script does not provision guideline file %s", path)
+		if !strings.Contains(envFile, key) {
+			t.Fatalf("env file missing %s", key)
 		}
 	}
-	if !strings.Contains(cloudInit, "User=arcad") {
-		t.Fatalf("arcad service must run as daemon user")
+
+	// Cloud-init should NOT include old bootstrap or provisioning scripts.
+	if _, ok := cloudInitFileContent(cloudInit, "/usr/local/bin/arca-bootstrap.sh"); ok {
+		t.Fatalf("cloud-init should not include old bootstrap script (setup is in arcad)")
 	}
-	if !strings.Contains(cloudInit, "User=arcauser") {
-		t.Fatalf("ttyd service must run as interactive user")
-	}
-	if !strings.Contains(cloudInit, "-U arcauser:arca") {
-		t.Fatalf("ttyd auth user/group must match provisioned account and group")
+	if _, ok := cloudInitFileContent(cloudInit, "/usr/local/bin/arca-machine-install.sh"); ok {
+		t.Fatalf("cloud-init should not include old install script")
 	}
 }
 
