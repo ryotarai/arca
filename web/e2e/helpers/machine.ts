@@ -53,11 +53,25 @@ function asMachineRecord(input: unknown): MachineRecord | null {
   }
 }
 
+export type CreateMachineResult = {
+  id: string
+  machineToken: string
+}
+
 export async function createMachineViaAPI(
   page: Page,
   name: string,
   runtimeId?: string,
 ): Promise<string> {
+  const result = await createMachineWithTokenViaAPI(page, name, runtimeId)
+  return result.id
+}
+
+export async function createMachineWithTokenViaAPI(
+  page: Page,
+  name: string,
+  runtimeId?: string,
+): Promise<CreateMachineResult> {
   const data: Record<string, unknown> = { name }
   if (runtimeId) {
     data.runtimeId = runtimeId
@@ -65,10 +79,15 @@ export async function createMachineViaAPI(
 
   const response = await page.request.post('/arca.v1.MachineService/CreateMachine', { data })
   expect(response.ok()).toBeTruthy()
-  const payload = (await response.json()) as { machine?: { id?: string } }
+  const payload = (await response.json()) as {
+    machine?: { id?: string }
+    machineToken?: string
+  }
   const machineID = payload.machine?.id?.trim() ?? ''
+  const machineToken = payload.machineToken?.trim() ?? ''
   expect(machineID).not.toBe('')
-  return machineID
+  expect(machineToken).not.toBe('')
+  return { id: machineID, machineToken }
 }
 
 export async function waitForMachineByName(

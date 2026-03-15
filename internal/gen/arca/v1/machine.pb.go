@@ -34,6 +34,7 @@ type Machine struct {
 	Ready           bool                   `protobuf:"varint,9,opt,name=ready,proto3" json:"ready,omitempty"`
 	ReadyReportedAt int64                  `protobuf:"varint,10,opt,name=ready_reported_at,json=readyReportedAt,proto3" json:"ready_reported_at,omitempty"`
 	UserRole        string                 `protobuf:"bytes,11,opt,name=user_role,json=userRole,proto3" json:"user_role,omitempty"`
+	ArcadVersion    string                 `protobuf:"bytes,12,opt,name=arcad_version,json=arcadVersion,proto3" json:"arcad_version,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -141,6 +142,13 @@ func (x *Machine) GetReadyReportedAt() int64 {
 func (x *Machine) GetUserRole() string {
 	if x != nil {
 		return x.UserRole
+	}
+	return ""
+}
+
+func (x *Machine) GetArcadVersion() string {
+	if x != nil {
+		return x.ArcadVersion
 	}
 	return ""
 }
@@ -969,7 +977,7 @@ var File_arca_v1_machine_proto protoreflect.FileDescriptor
 
 const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
-	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xce\x02\n" +
+	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xf3\x02\n" +
 	"\aMachine\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -984,7 +992,8 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x05ready\x18\t \x01(\bR\x05ready\x12*\n" +
 	"\x11ready_reported_at\x18\n" +
 	" \x01(\x03R\x0freadyReportedAt\x12\x1b\n" +
-	"\tuser_role\x18\v \x01(\tR\buserRole\"\x15\n" +
+	"\tuser_role\x18\v \x01(\tR\buserRole\x12#\n" +
+	"\rarcad_version\x18\f \x01(\tR\farcadVersion\"\x15\n" +
 	"\x13ListMachinesRequest\"D\n" +
 	"\x14ListMachinesResponse\x12,\n" +
 	"\bmachines\x18\x01 \x03(\v2\x10.arca.v1.MachineR\bmachines\"2\n" +

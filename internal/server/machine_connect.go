@@ -375,6 +375,7 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 		Ready:           machine.Ready,
 		ReadyReportedAt: machine.ReadyReportedAt,
 		UserRole:        machine.UserRole,
+		ArcadVersion:    machine.ArcadVersion,
 	}
 }
 

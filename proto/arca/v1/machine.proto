@@ -27,6 +27,7 @@ message Machine {
   bool ready = 9;
   int64 ready_reported_at = 10;
   string user_role = 11;
+  string arcad_version = 12;
 }
 
 message ListMachinesRequest {}
