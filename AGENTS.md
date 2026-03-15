@@ -59,6 +59,8 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - When debugging machines or runtimes, prefer SSH access to the target machine and collect logs/runtime state directly; discover IP with `sudo virsh list` and `sudo virsh domifaddr arca-machine-xxx`, then connect via `ssh arcauser@IPADDR`.
 - If tests fail, automatically attempt a fix and re-run tests without waiting for an extra user prompt.
 - When a failing test indicates a product bug, fix implementation first; only adjust tests when the expected behavior is incorrect or the test is flaky.
+- When fixing bugs or adding logic with non-obvious edge cases (for example encoding mismatches, boundary conditions, or parsing variations), proactively add unit tests covering those cases without being asked.
+- When changing implementation (API endpoints, backend logic, or UI behavior), proactively add or update E2E tests in `web/e2e/` to cover the changed behavior.
 
 ## Manual Machine Testing via API
 
@@ -140,6 +142,10 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - Split unrelated changes into separate commits.
 - In PRs, include purpose, key changes, test results (`make test`), linked issues, and screenshots for UI changes.
 - Confirm regenerated artifacts and docs updates when behavior or operations change.
+
+## Machine Provisioning Design Principles
+- **All setup steps must be idempotent**: every provisioning step arcad executes must be safe to re-run. Steps check current state and skip if already satisfied. This guarantees correctness regardless of whether the machine started from a bare OS image, a platform image, or a user custom image.
+- **Backward compatibility with older arcad**: when changing arca server APIs or behavior, maintain compatibility with older arcad versions. Older arcad instances must continue to function; new fields should be additive and optional.
 
 ## Agent Workflow
 - Prefer root-cause fixes over workaround patches. Do not introduce server-side or temporary fallback behavior as a quick fix when the issue is in another layer unless the user explicitly asks for that tradeoff.
