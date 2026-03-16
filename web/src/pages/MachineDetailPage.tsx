@@ -24,6 +24,7 @@ type MachineDetailPageProps = {
   onLogout: () => Promise<void>
 }
 
+const pollingIntervalMs = 60000
 const pollingRequestTimeoutMs = 2500
 const restartWaitTimeoutMs = 60000
 const restartWaitIntervalMs = 1500
@@ -239,7 +240,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
           setLoading(false)
           timer = window.setTimeout(() => {
             void run()
-          }, 3000)
+          }, pollingIntervalMs)
         }
       }
     }
