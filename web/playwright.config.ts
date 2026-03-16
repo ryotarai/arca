@@ -8,6 +8,8 @@ const shouldSkipCloudflareValidation =
   process.env.ARCA_SKIP_CLOUDFLARE_VALIDATION ?? (hasCloudflareConfig ? '0' : '1')
 
 export default defineConfig({
+  globalSetup: './e2e/global-setup.ts',
+  globalTeardown: './e2e/global-teardown.ts',
   workers: 1,
   testDir: './e2e',
   timeout: 30_000,
