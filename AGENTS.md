@@ -149,6 +149,7 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - **Backward compatibility with older arcad**: when changing arca server APIs or behavior, maintain compatibility with older arcad versions. Older arcad instances must continue to function; new fields should be additive and optional.
 
 ## Agent Workflow
+- Proactively update CLAUDE.md when you discover new patterns, conventions, or project-specific knowledge that would help future sessions. Keep it accurate and current as the codebase evolves.
 - Prefer root-cause fixes over workaround patches. Do not introduce server-side or temporary fallback behavior as a quick fix when the issue is in another layer unless the user explicitly asks for that tradeoff.
 - For state transitions and destructive operations (for example delete/teardown), prefer idempotent, reconcile-driven designs: persist intent first (desired state), let workers/reconcile loops converge actual state, and make each step retry-safe so progress survives process crashes or restarts.
 - Before creating a commit, run relevant verification for the changed scope (at minimum build/run checks for runtime changes, and tests when applicable).
