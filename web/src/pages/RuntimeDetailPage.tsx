@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { listAvailableRuntimes, listRuntimes } from '@/lib/api'
+import { deleteRuntime, listAvailableRuntimes, listRuntimes } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
 
@@ -20,11 +21,13 @@ function formatUnix(unix: number): string {
 
 export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
   const { runtimeID } = useParams()
+  const navigate = useNavigate()
   const isAdmin = user?.role === 'admin'
   const [runtime, setRuntime] = useState<RuntimeCatalogItem | null>(null)
   const [summary, setSummary] = useState<RuntimeSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (user == null || runtimeID == null || runtimeID === '') {
@@ -71,6 +74,22 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
     return <Navigate to={isAdmin ? '/runtimes' : '/machines'} replace />
   }
 
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this runtime?')) {
+      return
+    }
+    setDeleting(true)
+    setError('')
+    try {
+      await deleteRuntime(runtimeID)
+      navigate('/runtimes')
+    } catch (err) {
+      setError(messageFromError(err))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <main className="min-h-dvh px-6 py-10">
       <section className="mx-auto w-full max-w-3xl space-y-6">
@@ -81,11 +100,22 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
             <p className="mt-1 text-xs text-muted-foreground">{runtimeID}</p>
           </div>
           <div className="flex items-center gap-3">
+            {isAdmin && (
+              <>
+                <Button asChild variant="secondary">
+                  <Link to={`/runtimes/${runtimeID}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </Link>
+                </Button>
+                <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </>
+            )}
             <Button asChild type="button" variant="secondary">
               <Link to={isAdmin ? '/runtimes' : '/machines'}>Back</Link>
-            </Button>
-            <Button type="button" variant="secondary" onClick={onLogout}>
-              Logout
             </Button>
           </div>
         </header>
