@@ -303,8 +303,11 @@ FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN user_machines um ON um.machine_id = m.id AND um.user_id = sqlc.arg(user_id)
 LEFT JOIN machine_sharing sh ON sh.machine_id = m.id
+LEFT JOIN machine_group_access mga ON mga.machine_id = m.id
+LEFT JOIN user_group_members ugm ON ugm.group_id = mga.group_id AND ugm.user_id = sqlc.arg(user_id)
 WHERE um.user_id = sqlc.arg(user_id)
   OR (sh.general_access_scope = 'arca_users' AND sh.general_access_role != 'none')
+  OR ugm.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
@@ -771,3 +774,86 @@ SELECT user_id, slack_enabled, slack_user_id
 FROM user_notification_settings
 WHERE slack_enabled = true
   AND slack_user_id != '';
+
+-- name: ListUserGroups :many
+SELECT g.id, g.name, g.created_at,
+  (SELECT COUNT(*) FROM user_group_members m WHERE m.group_id = g.id) AS member_count
+FROM user_groups g
+ORDER BY g.name ASC;
+
+-- name: GetUserGroup :one
+SELECT id, name, created_at
+FROM user_groups
+WHERE id = sqlc.arg(id)
+LIMIT 1;
+
+-- name: CreateUserGroup :exec
+INSERT INTO user_groups (id, name)
+VALUES (sqlc.arg(id), sqlc.arg(name));
+
+-- name: DeleteUserGroup :execrows
+DELETE FROM user_groups
+WHERE id = sqlc.arg(id);
+
+-- name: ListUserGroupMembers :many
+SELECT m.group_id, m.user_id, u.email
+FROM user_group_members m
+JOIN users u ON u.id = m.user_id
+WHERE m.group_id = sqlc.arg(group_id)
+ORDER BY u.email ASC;
+
+-- name: AddUserGroupMember :exec
+INSERT INTO user_group_members (group_id, user_id)
+VALUES (sqlc.arg(group_id), sqlc.arg(user_id))
+ON CONFLICT (group_id, user_id) DO NOTHING;
+
+-- name: RemoveUserGroupMember :execrows
+DELETE FROM user_group_members
+WHERE group_id = sqlc.arg(group_id)
+  AND user_id = sqlc.arg(user_id);
+
+-- name: ListUserGroupsByUserID :many
+SELECT g.id, g.name
+FROM user_groups g
+JOIN user_group_members m ON m.group_id = g.id
+WHERE m.user_id = sqlc.arg(user_id)
+ORDER BY g.name ASC;
+
+-- name: ListMachineGroupAccess :many
+SELECT mga.machine_id, mga.group_id, mga.role, g.name AS group_name
+FROM machine_group_access mga
+JOIN user_groups g ON g.id = mga.group_id
+WHERE mga.machine_id = sqlc.arg(machine_id)
+ORDER BY g.name ASC;
+
+-- name: UpsertMachineGroupAccess :exec
+INSERT INTO machine_group_access (machine_id, group_id, role)
+VALUES (sqlc.arg(machine_id), sqlc.arg(group_id), sqlc.arg(role))
+ON CONFLICT (machine_id, group_id) DO UPDATE
+SET role = excluded.role;
+
+-- name: DeleteMachineGroupAccess :execrows
+DELETE FROM machine_group_access
+WHERE machine_id = sqlc.arg(machine_id)
+  AND group_id = sqlc.arg(group_id);
+
+-- name: GetMachineGroupRoleByUserID :one
+SELECT mga.role
+FROM machine_group_access mga
+JOIN user_group_members ugm ON ugm.group_id = mga.group_id
+WHERE mga.machine_id = sqlc.arg(machine_id)
+  AND ugm.user_id = sqlc.arg(user_id)
+ORDER BY CASE mga.role
+  WHEN 'admin' THEN 1
+  WHEN 'editor' THEN 2
+  WHEN 'viewer' THEN 3
+  ELSE 4
+END ASC
+LIMIT 1;
+
+-- name: SearchUserGroups :many
+SELECT id, name
+FROM user_groups
+WHERE LOWER(name) LIKE '%' || LOWER(sqlc.arg(query)) || '%'
+ORDER BY name ASC
+LIMIT sqlc.arg(limit_count);

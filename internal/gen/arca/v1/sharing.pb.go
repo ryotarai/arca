@@ -177,17 +177,78 @@ func (x *GetMachineSharingRequest) GetMachineId() string {
 	return ""
 }
 
+type MachineSharingGroup struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GroupId       string                 `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachineSharingGroup) Reset() {
+	*x = MachineSharingGroup{}
+	mi := &file_arca_v1_sharing_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineSharingGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineSharingGroup) ProtoMessage() {}
+
+func (x *MachineSharingGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_sharing_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineSharingGroup.ProtoReflect.Descriptor instead.
+func (*MachineSharingGroup) Descriptor() ([]byte, []int) {
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *MachineSharingGroup) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+func (x *MachineSharingGroup) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *MachineSharingGroup) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
 type GetMachineSharingResponse struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Members       []*MachineSharingMember `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
 	GeneralAccess *GeneralAccess          `protobuf:"bytes,2,opt,name=general_access,json=generalAccess,proto3" json:"general_access,omitempty"`
+	Groups        []*MachineSharingGroup  `protobuf:"bytes,3,rep,name=groups,proto3" json:"groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetMachineSharingResponse) Reset() {
 	*x = GetMachineSharingResponse{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[3]
+	mi := &file_arca_v1_sharing_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -199,7 +260,7 @@ func (x *GetMachineSharingResponse) String() string {
 func (*GetMachineSharingResponse) ProtoMessage() {}
 
 func (x *GetMachineSharingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[3]
+	mi := &file_arca_v1_sharing_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -212,7 +273,7 @@ func (x *GetMachineSharingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMachineSharingResponse.ProtoReflect.Descriptor instead.
 func (*GetMachineSharingResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{3}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetMachineSharingResponse) GetMembers() []*MachineSharingMember {
@@ -229,18 +290,26 @@ func (x *GetMachineSharingResponse) GetGeneralAccess() *GeneralAccess {
 	return nil
 }
 
+func (x *GetMachineSharingResponse) GetGroups() []*MachineSharingGroup {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
 type UpdateMachineSharingRequest struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	MachineId     string                  `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
 	Members       []*MachineSharingMember `protobuf:"bytes,2,rep,name=members,proto3" json:"members,omitempty"`
 	GeneralAccess *GeneralAccess          `protobuf:"bytes,3,opt,name=general_access,json=generalAccess,proto3" json:"general_access,omitempty"`
+	Groups        []*MachineSharingGroup  `protobuf:"bytes,4,rep,name=groups,proto3" json:"groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateMachineSharingRequest) Reset() {
 	*x = UpdateMachineSharingRequest{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[4]
+	mi := &file_arca_v1_sharing_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -252,7 +321,7 @@ func (x *UpdateMachineSharingRequest) String() string {
 func (*UpdateMachineSharingRequest) ProtoMessage() {}
 
 func (x *UpdateMachineSharingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[4]
+	mi := &file_arca_v1_sharing_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -265,7 +334,7 @@ func (x *UpdateMachineSharingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMachineSharingRequest.ProtoReflect.Descriptor instead.
 func (*UpdateMachineSharingRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{4}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UpdateMachineSharingRequest) GetMachineId() string {
@@ -289,17 +358,25 @@ func (x *UpdateMachineSharingRequest) GetGeneralAccess() *GeneralAccess {
 	return nil
 }
 
+func (x *UpdateMachineSharingRequest) GetGroups() []*MachineSharingGroup {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
 type UpdateMachineSharingResponse struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Members       []*MachineSharingMember `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
 	GeneralAccess *GeneralAccess          `protobuf:"bytes,2,opt,name=general_access,json=generalAccess,proto3" json:"general_access,omitempty"`
+	Groups        []*MachineSharingGroup  `protobuf:"bytes,3,rep,name=groups,proto3" json:"groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateMachineSharingResponse) Reset() {
 	*x = UpdateMachineSharingResponse{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[5]
+	mi := &file_arca_v1_sharing_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +388,7 @@ func (x *UpdateMachineSharingResponse) String() string {
 func (*UpdateMachineSharingResponse) ProtoMessage() {}
 
 func (x *UpdateMachineSharingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[5]
+	mi := &file_arca_v1_sharing_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +401,7 @@ func (x *UpdateMachineSharingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMachineSharingResponse.ProtoReflect.Descriptor instead.
 func (*UpdateMachineSharingResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{5}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateMachineSharingResponse) GetMembers() []*MachineSharingMember {
@@ -337,6 +414,13 @@ func (x *UpdateMachineSharingResponse) GetMembers() []*MachineSharingMember {
 func (x *UpdateMachineSharingResponse) GetGeneralAccess() *GeneralAccess {
 	if x != nil {
 		return x.GeneralAccess
+	}
+	return nil
+}
+
+func (x *UpdateMachineSharingResponse) GetGroups() []*MachineSharingGroup {
+	if x != nil {
+		return x.Groups
 	}
 	return nil
 }
@@ -357,7 +441,7 @@ type MachineAccessRequest struct {
 
 func (x *MachineAccessRequest) Reset() {
 	*x = MachineAccessRequest{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[6]
+	mi := &file_arca_v1_sharing_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +453,7 @@ func (x *MachineAccessRequest) String() string {
 func (*MachineAccessRequest) ProtoMessage() {}
 
 func (x *MachineAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[6]
+	mi := &file_arca_v1_sharing_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +466,7 @@ func (x *MachineAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineAccessRequest.ProtoReflect.Descriptor instead.
 func (*MachineAccessRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{6}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *MachineAccessRequest) GetId() string {
@@ -451,7 +535,7 @@ type RequestMachineAccessRequest struct {
 
 func (x *RequestMachineAccessRequest) Reset() {
 	*x = RequestMachineAccessRequest{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[7]
+	mi := &file_arca_v1_sharing_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -463,7 +547,7 @@ func (x *RequestMachineAccessRequest) String() string {
 func (*RequestMachineAccessRequest) ProtoMessage() {}
 
 func (x *RequestMachineAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[7]
+	mi := &file_arca_v1_sharing_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -476,7 +560,7 @@ func (x *RequestMachineAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestMachineAccessRequest.ProtoReflect.Descriptor instead.
 func (*RequestMachineAccessRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RequestMachineAccessRequest) GetMachineId() string {
@@ -501,7 +585,7 @@ type RequestMachineAccessResponse struct {
 
 func (x *RequestMachineAccessResponse) Reset() {
 	*x = RequestMachineAccessResponse{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[8]
+	mi := &file_arca_v1_sharing_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -513,7 +597,7 @@ func (x *RequestMachineAccessResponse) String() string {
 func (*RequestMachineAccessResponse) ProtoMessage() {}
 
 func (x *RequestMachineAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[8]
+	mi := &file_arca_v1_sharing_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -526,7 +610,7 @@ func (x *RequestMachineAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestMachineAccessResponse.ProtoReflect.Descriptor instead.
 func (*RequestMachineAccessResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{9}
 }
 
 type ListMachineAccessRequestsRequest struct {
@@ -538,7 +622,7 @@ type ListMachineAccessRequestsRequest struct {
 
 func (x *ListMachineAccessRequestsRequest) Reset() {
 	*x = ListMachineAccessRequestsRequest{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[9]
+	mi := &file_arca_v1_sharing_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -550,7 +634,7 @@ func (x *ListMachineAccessRequestsRequest) String() string {
 func (*ListMachineAccessRequestsRequest) ProtoMessage() {}
 
 func (x *ListMachineAccessRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[9]
+	mi := &file_arca_v1_sharing_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -563,7 +647,7 @@ func (x *ListMachineAccessRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMachineAccessRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListMachineAccessRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{9}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListMachineAccessRequestsRequest) GetMachineId() string {
@@ -582,7 +666,7 @@ type ListMachineAccessRequestsResponse struct {
 
 func (x *ListMachineAccessRequestsResponse) Reset() {
 	*x = ListMachineAccessRequestsResponse{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[10]
+	mi := &file_arca_v1_sharing_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -594,7 +678,7 @@ func (x *ListMachineAccessRequestsResponse) String() string {
 func (*ListMachineAccessRequestsResponse) ProtoMessage() {}
 
 func (x *ListMachineAccessRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[10]
+	mi := &file_arca_v1_sharing_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -607,7 +691,7 @@ func (x *ListMachineAccessRequestsResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListMachineAccessRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListMachineAccessRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{10}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListMachineAccessRequestsResponse) GetRequests() []*MachineAccessRequest {
@@ -628,7 +712,7 @@ type ResolveMachineAccessRequestRequest struct {
 
 func (x *ResolveMachineAccessRequestRequest) Reset() {
 	*x = ResolveMachineAccessRequestRequest{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[11]
+	mi := &file_arca_v1_sharing_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -640,7 +724,7 @@ func (x *ResolveMachineAccessRequestRequest) String() string {
 func (*ResolveMachineAccessRequestRequest) ProtoMessage() {}
 
 func (x *ResolveMachineAccessRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[11]
+	mi := &file_arca_v1_sharing_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -653,7 +737,7 @@ func (x *ResolveMachineAccessRequestRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ResolveMachineAccessRequestRequest.ProtoReflect.Descriptor instead.
 func (*ResolveMachineAccessRequestRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{11}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ResolveMachineAccessRequestRequest) GetRequestId() string {
@@ -685,7 +769,7 @@ type ResolveMachineAccessRequestResponse struct {
 
 func (x *ResolveMachineAccessRequestResponse) Reset() {
 	*x = ResolveMachineAccessRequestResponse{}
-	mi := &file_arca_v1_sharing_proto_msgTypes[12]
+	mi := &file_arca_v1_sharing_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -697,7 +781,7 @@ func (x *ResolveMachineAccessRequestResponse) String() string {
 func (*ResolveMachineAccessRequestResponse) ProtoMessage() {}
 
 func (x *ResolveMachineAccessRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_sharing_proto_msgTypes[12]
+	mi := &file_arca_v1_sharing_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -710,7 +794,7 @@ func (x *ResolveMachineAccessRequestResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ResolveMachineAccessRequestResponse.ProtoReflect.Descriptor instead.
 func (*ResolveMachineAccessRequestResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{12}
+	return file_arca_v1_sharing_proto_rawDescGZIP(), []int{13}
 }
 
 var File_arca_v1_sharing_proto protoreflect.FileDescriptor
@@ -727,18 +811,25 @@ const file_arca_v1_sharing_proto_rawDesc = "" +
 	"\x04role\x18\x02 \x01(\tR\x04role\"9\n" +
 	"\x18GetMachineSharingRequest\x12\x1d\n" +
 	"\n" +
-	"machine_id\x18\x01 \x01(\tR\tmachineId\"\x93\x01\n" +
+	"machine_id\x18\x01 \x01(\tR\tmachineId\"X\n" +
+	"\x13MachineSharingGroup\x12\x19\n" +
+	"\bgroup_id\x18\x01 \x01(\tR\agroupId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04role\x18\x03 \x01(\tR\x04role\"\xc9\x01\n" +
 	"\x19GetMachineSharingResponse\x127\n" +
 	"\amembers\x18\x01 \x03(\v2\x1d.arca.v1.MachineSharingMemberR\amembers\x12=\n" +
-	"\x0egeneral_access\x18\x02 \x01(\v2\x16.arca.v1.GeneralAccessR\rgeneralAccess\"\xb4\x01\n" +
+	"\x0egeneral_access\x18\x02 \x01(\v2\x16.arca.v1.GeneralAccessR\rgeneralAccess\x124\n" +
+	"\x06groups\x18\x03 \x03(\v2\x1c.arca.v1.MachineSharingGroupR\x06groups\"\xea\x01\n" +
 	"\x1bUpdateMachineSharingRequest\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\x127\n" +
 	"\amembers\x18\x02 \x03(\v2\x1d.arca.v1.MachineSharingMemberR\amembers\x12=\n" +
-	"\x0egeneral_access\x18\x03 \x01(\v2\x16.arca.v1.GeneralAccessR\rgeneralAccess\"\x96\x01\n" +
+	"\x0egeneral_access\x18\x03 \x01(\v2\x16.arca.v1.GeneralAccessR\rgeneralAccess\x124\n" +
+	"\x06groups\x18\x04 \x03(\v2\x1c.arca.v1.MachineSharingGroupR\x06groups\"\xcc\x01\n" +
 	"\x1cUpdateMachineSharingResponse\x127\n" +
 	"\amembers\x18\x01 \x03(\v2\x1d.arca.v1.MachineSharingMemberR\amembers\x12=\n" +
-	"\x0egeneral_access\x18\x02 \x01(\v2\x16.arca.v1.GeneralAccessR\rgeneralAccess\"\xec\x01\n" +
+	"\x0egeneral_access\x18\x02 \x01(\v2\x16.arca.v1.GeneralAccessR\rgeneralAccess\x124\n" +
+	"\x06groups\x18\x03 \x03(\v2\x1c.arca.v1.MachineSharingGroupR\x06groups\"\xec\x01\n" +
 	"\x14MachineAccessRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -786,45 +877,49 @@ func file_arca_v1_sharing_proto_rawDescGZIP() []byte {
 	return file_arca_v1_sharing_proto_rawDescData
 }
 
-var file_arca_v1_sharing_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_arca_v1_sharing_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_arca_v1_sharing_proto_goTypes = []any{
 	(*MachineSharingMember)(nil),                // 0: arca.v1.MachineSharingMember
 	(*GeneralAccess)(nil),                       // 1: arca.v1.GeneralAccess
 	(*GetMachineSharingRequest)(nil),            // 2: arca.v1.GetMachineSharingRequest
-	(*GetMachineSharingResponse)(nil),           // 3: arca.v1.GetMachineSharingResponse
-	(*UpdateMachineSharingRequest)(nil),         // 4: arca.v1.UpdateMachineSharingRequest
-	(*UpdateMachineSharingResponse)(nil),        // 5: arca.v1.UpdateMachineSharingResponse
-	(*MachineAccessRequest)(nil),                // 6: arca.v1.MachineAccessRequest
-	(*RequestMachineAccessRequest)(nil),         // 7: arca.v1.RequestMachineAccessRequest
-	(*RequestMachineAccessResponse)(nil),        // 8: arca.v1.RequestMachineAccessResponse
-	(*ListMachineAccessRequestsRequest)(nil),    // 9: arca.v1.ListMachineAccessRequestsRequest
-	(*ListMachineAccessRequestsResponse)(nil),   // 10: arca.v1.ListMachineAccessRequestsResponse
-	(*ResolveMachineAccessRequestRequest)(nil),  // 11: arca.v1.ResolveMachineAccessRequestRequest
-	(*ResolveMachineAccessRequestResponse)(nil), // 12: arca.v1.ResolveMachineAccessRequestResponse
+	(*MachineSharingGroup)(nil),                 // 3: arca.v1.MachineSharingGroup
+	(*GetMachineSharingResponse)(nil),           // 4: arca.v1.GetMachineSharingResponse
+	(*UpdateMachineSharingRequest)(nil),         // 5: arca.v1.UpdateMachineSharingRequest
+	(*UpdateMachineSharingResponse)(nil),        // 6: arca.v1.UpdateMachineSharingResponse
+	(*MachineAccessRequest)(nil),                // 7: arca.v1.MachineAccessRequest
+	(*RequestMachineAccessRequest)(nil),         // 8: arca.v1.RequestMachineAccessRequest
+	(*RequestMachineAccessResponse)(nil),        // 9: arca.v1.RequestMachineAccessResponse
+	(*ListMachineAccessRequestsRequest)(nil),    // 10: arca.v1.ListMachineAccessRequestsRequest
+	(*ListMachineAccessRequestsResponse)(nil),   // 11: arca.v1.ListMachineAccessRequestsResponse
+	(*ResolveMachineAccessRequestRequest)(nil),  // 12: arca.v1.ResolveMachineAccessRequestRequest
+	(*ResolveMachineAccessRequestResponse)(nil), // 13: arca.v1.ResolveMachineAccessRequestResponse
 }
 var file_arca_v1_sharing_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.GetMachineSharingResponse.members:type_name -> arca.v1.MachineSharingMember
 	1,  // 1: arca.v1.GetMachineSharingResponse.general_access:type_name -> arca.v1.GeneralAccess
-	0,  // 2: arca.v1.UpdateMachineSharingRequest.members:type_name -> arca.v1.MachineSharingMember
-	1,  // 3: arca.v1.UpdateMachineSharingRequest.general_access:type_name -> arca.v1.GeneralAccess
-	0,  // 4: arca.v1.UpdateMachineSharingResponse.members:type_name -> arca.v1.MachineSharingMember
-	1,  // 5: arca.v1.UpdateMachineSharingResponse.general_access:type_name -> arca.v1.GeneralAccess
-	6,  // 6: arca.v1.ListMachineAccessRequestsResponse.requests:type_name -> arca.v1.MachineAccessRequest
-	2,  // 7: arca.v1.SharingService.GetMachineSharing:input_type -> arca.v1.GetMachineSharingRequest
-	4,  // 8: arca.v1.SharingService.UpdateMachineSharing:input_type -> arca.v1.UpdateMachineSharingRequest
-	7,  // 9: arca.v1.SharingService.RequestMachineAccess:input_type -> arca.v1.RequestMachineAccessRequest
-	9,  // 10: arca.v1.SharingService.ListMachineAccessRequests:input_type -> arca.v1.ListMachineAccessRequestsRequest
-	11, // 11: arca.v1.SharingService.ResolveMachineAccessRequest:input_type -> arca.v1.ResolveMachineAccessRequestRequest
-	3,  // 12: arca.v1.SharingService.GetMachineSharing:output_type -> arca.v1.GetMachineSharingResponse
-	5,  // 13: arca.v1.SharingService.UpdateMachineSharing:output_type -> arca.v1.UpdateMachineSharingResponse
-	8,  // 14: arca.v1.SharingService.RequestMachineAccess:output_type -> arca.v1.RequestMachineAccessResponse
-	10, // 15: arca.v1.SharingService.ListMachineAccessRequests:output_type -> arca.v1.ListMachineAccessRequestsResponse
-	12, // 16: arca.v1.SharingService.ResolveMachineAccessRequest:output_type -> arca.v1.ResolveMachineAccessRequestResponse
-	12, // [12:17] is the sub-list for method output_type
-	7,  // [7:12] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	3,  // 2: arca.v1.GetMachineSharingResponse.groups:type_name -> arca.v1.MachineSharingGroup
+	0,  // 3: arca.v1.UpdateMachineSharingRequest.members:type_name -> arca.v1.MachineSharingMember
+	1,  // 4: arca.v1.UpdateMachineSharingRequest.general_access:type_name -> arca.v1.GeneralAccess
+	3,  // 5: arca.v1.UpdateMachineSharingRequest.groups:type_name -> arca.v1.MachineSharingGroup
+	0,  // 6: arca.v1.UpdateMachineSharingResponse.members:type_name -> arca.v1.MachineSharingMember
+	1,  // 7: arca.v1.UpdateMachineSharingResponse.general_access:type_name -> arca.v1.GeneralAccess
+	3,  // 8: arca.v1.UpdateMachineSharingResponse.groups:type_name -> arca.v1.MachineSharingGroup
+	7,  // 9: arca.v1.ListMachineAccessRequestsResponse.requests:type_name -> arca.v1.MachineAccessRequest
+	2,  // 10: arca.v1.SharingService.GetMachineSharing:input_type -> arca.v1.GetMachineSharingRequest
+	5,  // 11: arca.v1.SharingService.UpdateMachineSharing:input_type -> arca.v1.UpdateMachineSharingRequest
+	8,  // 12: arca.v1.SharingService.RequestMachineAccess:input_type -> arca.v1.RequestMachineAccessRequest
+	10, // 13: arca.v1.SharingService.ListMachineAccessRequests:input_type -> arca.v1.ListMachineAccessRequestsRequest
+	12, // 14: arca.v1.SharingService.ResolveMachineAccessRequest:input_type -> arca.v1.ResolveMachineAccessRequestRequest
+	4,  // 15: arca.v1.SharingService.GetMachineSharing:output_type -> arca.v1.GetMachineSharingResponse
+	6,  // 16: arca.v1.SharingService.UpdateMachineSharing:output_type -> arca.v1.UpdateMachineSharingResponse
+	9,  // 17: arca.v1.SharingService.RequestMachineAccess:output_type -> arca.v1.RequestMachineAccessResponse
+	11, // 18: arca.v1.SharingService.ListMachineAccessRequests:output_type -> arca.v1.ListMachineAccessRequestsResponse
+	13, // 19: arca.v1.SharingService.ResolveMachineAccessRequest:output_type -> arca.v1.ResolveMachineAccessRequestResponse
+	15, // [15:20] is the sub-list for method output_type
+	10, // [10:15] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_sharing_proto_init() }
@@ -838,7 +933,7 @@ func file_arca_v1_sharing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_sharing_proto_rawDesc), len(file_arca_v1_sharing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

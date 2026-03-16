@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service GroupService {
+  rpc ListGroups(ListGroupsRequest) returns (ListGroupsResponse);
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+  rpc DeleteGroup(DeleteGroupRequest) returns (DeleteGroupResponse);
+  rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
+  rpc AddGroupMember(AddGroupMemberRequest) returns (AddGroupMemberResponse);
+  rpc RemoveGroupMember(RemoveGroupMemberRequest) returns (RemoveGroupMemberResponse);
+  rpc SearchGroups(SearchGroupsRequest) returns (SearchGroupsResponse);
+}
+
+message UserGroup {
+  string id = 1;
+  string name = 2;
+  int32 member_count = 3;
+}
+
+message UserGroupMember {
+  string user_id = 1;
+  string email = 2;
+}
+
+message ListGroupsRequest {}
+
+message ListGroupsResponse {
+  repeated UserGroup groups = 1;
+}
+
+message CreateGroupRequest {
+  string name = 1;
+}
+
+message CreateGroupResponse {
+  UserGroup group = 1;
+}
+
+message DeleteGroupRequest {
+  string group_id = 1;
+}
+
+message DeleteGroupResponse {}
+
+message GetGroupRequest {
+  string group_id = 1;
+}
+
+message GetGroupResponse {
+  UserGroup group = 1;
+  repeated UserGroupMember members = 2;
+}
+
+message AddGroupMemberRequest {
+  string group_id = 1;
+  string user_id = 2;
+}
+
+message AddGroupMemberResponse {}
+
+message RemoveGroupMemberRequest {
+  string group_id = 1;
+  string user_id = 2;
+}
+
+message RemoveGroupMemberResponse {}
+
+message SearchGroupsRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchGroupsResponse {
+  repeated UserGroup groups = 1;
+}

@@ -62,12 +62,29 @@ func (s *sharingConnectService) GetMachineSharing(ctx context.Context, req *conn
 		})
 	}
 
+	// Load group access
+	groupAccess, err := s.store.ListMachineGroupAccess(ctx, machineID)
+	if err != nil {
+		log.Printf("list machine group access failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list group access"))
+	}
+
+	protoGroups := make([]*arcav1.MachineSharingGroup, 0, len(groupAccess))
+	for _, ga := range groupAccess {
+		protoGroups = append(protoGroups, &arcav1.MachineSharingGroup{
+			GroupId: ga.GroupID,
+			Name:    ga.GroupName,
+			Role:    ga.Role,
+		})
+	}
+
 	return connect.NewResponse(&arcav1.GetMachineSharingResponse{
 		Members: protoMembers,
 		GeneralAccess: &arcav1.GeneralAccess{
 			Scope: sharing.GeneralAccessScope,
 			Role:  sharing.GeneralAccessRole,
 		},
+		Groups: protoGroups,
 	}), nil
 }
 
@@ -160,6 +177,40 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 		}
 	}
 
+	// Sync groups: build desired state from request
+	requestedGroups := req.Msg.GetGroups()
+	currentGroupAccess, err := s.store.ListMachineGroupAccess(ctx, machineID)
+	if err != nil {
+		log.Printf("list machine group access for sync failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to sync groups"))
+	}
+
+	requestedGroupSet := make(map[string]string) // groupID -> role
+	for _, g := range requestedGroups {
+		gid := strings.TrimSpace(g.GroupId)
+		r := strings.TrimSpace(g.Role)
+		if gid == "" || r == "" {
+			continue
+		}
+		requestedGroupSet[gid] = r
+	}
+
+	// Remove groups not in request
+	for _, current := range currentGroupAccess {
+		if _, ok := requestedGroupSet[current.GroupID]; !ok {
+			if err := s.store.DeleteMachineGroupAccess(ctx, machineID, current.GroupID); err != nil {
+				log.Printf("remove machine group access failed: %v", err)
+			}
+		}
+	}
+
+	// Upsert requested groups
+	for gid, r := range requestedGroupSet {
+		if err := s.store.UpsertMachineGroupAccess(ctx, machineID, gid, r); err != nil {
+			log.Printf("upsert machine group access failed: %v", err)
+		}
+	}
+
 	// Read back
 	updatedMembers, err := s.store.ListUserMachinesByMachineID(ctx, machineID)
 	if err != nil {
@@ -184,12 +235,29 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 		})
 	}
 
+	// Read back groups
+	updatedGroupAccess, err := s.store.ListMachineGroupAccess(ctx, machineID)
+	if err != nil {
+		log.Printf("list updated machine group access failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list updated group access"))
+	}
+
+	protoGroups := make([]*arcav1.MachineSharingGroup, 0, len(updatedGroupAccess))
+	for _, ga := range updatedGroupAccess {
+		protoGroups = append(protoGroups, &arcav1.MachineSharingGroup{
+			GroupId: ga.GroupID,
+			Name:    ga.GroupName,
+			Role:    ga.Role,
+		})
+	}
+
 	return connect.NewResponse(&arcav1.UpdateMachineSharingResponse{
 		Members: protoMembers,
 		GeneralAccess: &arcav1.GeneralAccess{
 			Scope: updatedSharing.GeneralAccessScope,
 			Role:  updatedSharing.GeneralAccessRole,
 		},
+		Groups: protoGroups,
 	}), nil
 }
 

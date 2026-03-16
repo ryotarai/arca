@@ -11,6 +11,22 @@ import (
 	"time"
 )
 
+const addUserGroupMember = `-- name: AddUserGroupMember :exec
+INSERT INTO user_group_members (group_id, user_id)
+VALUES (?1, ?2)
+ON CONFLICT (group_id, user_id) DO NOTHING
+`
+
+type AddUserGroupMemberParams struct {
+	GroupID string
+	UserID  string
+}
+
+func (q *Queries) AddUserGroupMember(ctx context.Context, arg AddUserGroupMemberParams) error {
+	_, err := q.db.ExecContext(ctx, addUserGroupMember, arg.GroupID, arg.UserID)
+	return err
+}
+
 const claimMachineJob = `-- name: ClaimMachineJob :execrows
 UPDATE machine_jobs
 SET status = 'running',
@@ -381,6 +397,21 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	return err
 }
 
+const createUserGroup = `-- name: CreateUserGroup :exec
+INSERT INTO user_groups (id, name)
+VALUES (?1, ?2)
+`
+
+type CreateUserGroupParams struct {
+	ID   string
+	Name string
+}
+
+func (q *Queries) CreateUserGroup(ctx context.Context, arg CreateUserGroupParams) error {
+	_, err := q.db.ExecContext(ctx, createUserGroup, arg.ID, arg.Name)
+	return err
+}
+
 const createUserMachine = `-- name: CreateUserMachine :exec
 INSERT INTO user_machines (user_id, machine_id, role)
 VALUES (?1, ?2, ?3)
@@ -453,6 +484,25 @@ func (q *Queries) DeleteMachineByID(ctx context.Context, machineID string) (int6
 	return result.RowsAffected()
 }
 
+const deleteMachineGroupAccess = `-- name: DeleteMachineGroupAccess :execrows
+DELETE FROM machine_group_access
+WHERE machine_id = ?1
+  AND group_id = ?2
+`
+
+type DeleteMachineGroupAccessParams struct {
+	MachineID string
+	GroupID   string
+}
+
+func (q *Queries) DeleteMachineGroupAccess(ctx context.Context, arg DeleteMachineGroupAccessParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteMachineGroupAccess, arg.MachineID, arg.GroupID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteMachineIfNoUsers = `-- name: DeleteMachineIfNoUsers :exec
 DELETE FROM machines
 WHERE id = ?1
@@ -475,6 +525,19 @@ WHERE id = ?1
 
 func (q *Queries) DeleteRuntimeByID(ctx context.Context, id string) (int64, error) {
 	result, err := q.db.ExecContext(ctx, deleteRuntimeByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteUserGroup = `-- name: DeleteUserGroup :execrows
+DELETE FROM user_groups
+WHERE id = ?1
+`
+
+func (q *Queries) DeleteUserGroup(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUserGroup, id)
 	if err != nil {
 		return 0, err
 	}
@@ -855,6 +918,33 @@ func (q *Queries) GetMachineExposureByMachineIDAndName(ctx context.Context, arg 
 	return i, err
 }
 
+const getMachineGroupRoleByUserID = `-- name: GetMachineGroupRoleByUserID :one
+SELECT mga.role
+FROM machine_group_access mga
+JOIN user_group_members ugm ON ugm.group_id = mga.group_id
+WHERE mga.machine_id = ?1
+  AND ugm.user_id = ?2
+ORDER BY CASE mga.role
+  WHEN 'admin' THEN 1
+  WHEN 'editor' THEN 2
+  WHEN 'viewer' THEN 3
+  ELSE 4
+END ASC
+LIMIT 1
+`
+
+type GetMachineGroupRoleByUserIDParams struct {
+	MachineID string
+	UserID    string
+}
+
+func (q *Queries) GetMachineGroupRoleByUserID(ctx context.Context, arg GetMachineGroupRoleByUserIDParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getMachineGroupRoleByUserID, arg.MachineID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
 const getMachineIDByActiveTokenHash = `-- name: GetMachineIDByActiveTokenHash :one
 SELECT machine_id
 FROM machine_tokens
@@ -1117,6 +1207,20 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.Role,
 		&i.CreatedAt,
 	)
+	return i, err
+}
+
+const getUserGroup = `-- name: GetUserGroup :one
+SELECT id, name, created_at
+FROM user_groups
+WHERE id = ?1
+LIMIT 1
+`
+
+func (q *Queries) GetUserGroup(ctx context.Context, id string) (UserGroup, error) {
+	row := q.db.QueryRowContext(ctx, getUserGroup, id)
+	var i UserGroup
+	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
 	return i, err
 }
 
@@ -1459,6 +1563,49 @@ func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID
 	return items, nil
 }
 
+const listMachineGroupAccess = `-- name: ListMachineGroupAccess :many
+SELECT mga.machine_id, mga.group_id, mga.role, g.name AS group_name
+FROM machine_group_access mga
+JOIN user_groups g ON g.id = mga.group_id
+WHERE mga.machine_id = ?1
+ORDER BY g.name ASC
+`
+
+type ListMachineGroupAccessRow struct {
+	MachineID string
+	GroupID   string
+	Role      string
+	GroupName string
+}
+
+func (q *Queries) ListMachineGroupAccess(ctx context.Context, machineID string) ([]ListMachineGroupAccessRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineGroupAccess, machineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMachineGroupAccessRow
+	for rows.Next() {
+		var i ListMachineGroupAccessRow
+		if err := rows.Scan(
+			&i.MachineID,
+			&i.GroupID,
+			&i.Role,
+			&i.GroupName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
 SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
@@ -1466,8 +1613,11 @@ FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN user_machines um ON um.machine_id = m.id AND um.user_id = ?1
 LEFT JOIN machine_sharing sh ON sh.machine_id = m.id
+LEFT JOIN machine_group_access mga ON mga.machine_id = m.id
+LEFT JOIN user_group_members ugm ON ugm.group_id = mga.group_id AND ugm.user_id = ?1
 WHERE um.user_id = ?1
   OR (sh.general_access_scope = 'arca_users' AND sh.general_access_role != 'none')
+  OR ugm.user_id = ?1
 ORDER BY m.created_at DESC
 `
 
@@ -1773,6 +1923,121 @@ func (q *Queries) ListRuntimes(ctx context.Context) ([]Runtime, error) {
 	return items, nil
 }
 
+const listUserGroupMembers = `-- name: ListUserGroupMembers :many
+SELECT m.group_id, m.user_id, u.email
+FROM user_group_members m
+JOIN users u ON u.id = m.user_id
+WHERE m.group_id = ?1
+ORDER BY u.email ASC
+`
+
+type ListUserGroupMembersRow struct {
+	GroupID string
+	UserID  string
+	Email   string
+}
+
+func (q *Queries) ListUserGroupMembers(ctx context.Context, groupID string) ([]ListUserGroupMembersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserGroupMembers, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserGroupMembersRow
+	for rows.Next() {
+		var i ListUserGroupMembersRow
+		if err := rows.Scan(&i.GroupID, &i.UserID, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserGroups = `-- name: ListUserGroups :many
+SELECT g.id, g.name, g.created_at,
+  (SELECT COUNT(*) FROM user_group_members m WHERE m.group_id = g.id) AS member_count
+FROM user_groups g
+ORDER BY g.name ASC
+`
+
+type ListUserGroupsRow struct {
+	ID          string
+	Name        string
+	CreatedAt   time.Time
+	MemberCount int64
+}
+
+func (q *Queries) ListUserGroups(ctx context.Context) ([]ListUserGroupsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserGroups)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserGroupsRow
+	for rows.Next() {
+		var i ListUserGroupsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.MemberCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserGroupsByUserID = `-- name: ListUserGroupsByUserID :many
+SELECT g.id, g.name
+FROM user_groups g
+JOIN user_group_members m ON m.group_id = g.id
+WHERE m.user_id = ?1
+ORDER BY g.name ASC
+`
+
+type ListUserGroupsByUserIDRow struct {
+	ID   string
+	Name string
+}
+
+func (q *Queries) ListUserGroupsByUserID(ctx context.Context, userID string) ([]ListUserGroupsByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserGroupsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserGroupsByUserIDRow
+	for rows.Next() {
+		var i ListUserGroupsByUserIDRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserMachinesByMachineID = `-- name: ListUserMachinesByMachineID :many
 SELECT um.user_id, um.machine_id, um.role, u.email
 FROM user_machines um
@@ -1956,6 +2221,25 @@ func (q *Queries) RecoverExpiredMachineJobs(ctx context.Context, arg RecoverExpi
 	return result.RowsAffected()
 }
 
+const removeUserGroupMember = `-- name: RemoveUserGroupMember :execrows
+DELETE FROM user_group_members
+WHERE group_id = ?1
+  AND user_id = ?2
+`
+
+type RemoveUserGroupMemberParams struct {
+	GroupID string
+	UserID  string
+}
+
+func (q *Queries) RemoveUserGroupMember(ctx context.Context, arg RemoveUserGroupMemberParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, removeUserGroupMember, arg.GroupID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const reportMachineReadinessByMachineID = `-- name: ReportMachineReadinessByMachineID :execrows
 UPDATE machine_states
 SET ready = ?1,
@@ -2127,6 +2411,47 @@ WHERE token_hash = ?1
 func (q *Queries) RevokeSessionByTokenHash(ctx context.Context, tokenHash string) error {
 	_, err := q.db.ExecContext(ctx, revokeSessionByTokenHash, tokenHash)
 	return err
+}
+
+const searchUserGroups = `-- name: SearchUserGroups :many
+SELECT id, name
+FROM user_groups
+WHERE LOWER(name) LIKE '%' || LOWER(?1) || '%'
+ORDER BY name ASC
+LIMIT ?2
+`
+
+type SearchUserGroupsParams struct {
+	Query      string
+	LimitCount int64
+}
+
+type SearchUserGroupsRow struct {
+	ID   string
+	Name string
+}
+
+func (q *Queries) SearchUserGroups(ctx context.Context, arg SearchUserGroupsParams) ([]SearchUserGroupsRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchUserGroups, arg.Query, arg.LimitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchUserGroupsRow
+	for rows.Next() {
+		var i SearchUserGroupsRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const searchUsersByEmail = `-- name: SearchUsersByEmail :many
@@ -2461,6 +2786,24 @@ func (q *Queries) UpsertMachineExposure(ctx context.Context, arg UpsertMachineEx
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
+	return err
+}
+
+const upsertMachineGroupAccess = `-- name: UpsertMachineGroupAccess :exec
+INSERT INTO machine_group_access (machine_id, group_id, role)
+VALUES (?1, ?2, ?3)
+ON CONFLICT (machine_id, group_id) DO UPDATE
+SET role = excluded.role
+`
+
+type UpsertMachineGroupAccessParams struct {
+	MachineID string
+	GroupID   string
+	Role      string
+}
+
+func (q *Queries) UpsertMachineGroupAccess(ctx context.Context, arg UpsertMachineGroupAccessParams) error {
+	_, err := q.db.ExecContext(ctx, upsertMachineGroupAccess, arg.MachineID, arg.GroupID, arg.Role)
 	return err
 }
 

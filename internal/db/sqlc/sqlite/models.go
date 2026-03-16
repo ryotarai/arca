@@ -89,6 +89,12 @@ type MachineExposure struct {
 	UpdatedAt int64
 }
 
+type MachineGroupAccess struct {
+	MachineID string
+	GroupID   string
+	Role      string
+}
+
 type MachineJob struct {
 	ID         string
 	MachineID  string
@@ -177,6 +183,17 @@ type User struct {
 	PasswordSetupRequired bool
 	Role                  string
 	CreatedAt             time.Time
+}
+
+type UserGroup struct {
+	ID        string
+	Name      string
+	CreatedAt time.Time
+}
+
+type UserGroupMember struct {
+	GroupID string
+	UserID  string
 }
 
 type UserMachine struct {

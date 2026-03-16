@@ -16,6 +16,7 @@ import { SetupPage } from '@/pages/SetupPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { UserSetupPage } from '@/pages/UserSetupPage'
 import { AccessDeniedPage } from '@/pages/AccessDeniedPage'
+import { GroupsPage } from '@/pages/GroupsPage'
 import { AppLayout } from '@/pages/AppLayout'
 
 export function App() {
@@ -134,6 +135,7 @@ export function App() {
         <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />
         <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
         <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
+        <Route path="/groups" element={<GroupsPage user={user} onLogout={handleLogout} />} />
         <Route path="/runtimes" element={<RuntimesListPage user={user} onLogout={handleLogout} />} />
         <Route path="/runtimes/new" element={<RuntimeFormPage user={user} onLogout={handleLogout} />} />
         <Route path="/runtimes/:runtimeID" element={<RuntimeDetailPage user={user} onLogout={handleLogout} />} />

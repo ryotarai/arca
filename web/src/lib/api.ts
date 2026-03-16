@@ -42,6 +42,17 @@ import {
   UpdateMachineSharingRequestSchema,
 } from '@/gen/arca/v1/sharing_pb'
 import {
+  AddGroupMemberRequestSchema,
+  CreateGroupRequestSchema,
+  DeleteGroupRequestSchema,
+  GetGroupRequestSchema,
+  GroupService,
+  ListGroupsRequestSchema,
+  RemoveGroupMemberRequestSchema,
+  SearchGroupsRequestSchema,
+} from '@/gen/arca/v1/group_pb'
+import type { UserGroup, UserGroupMember } from '@/gen/arca/v1/group_pb'
+import {
   GetSlackConfigRequestSchema,
   GetUserNotificationSettingsRequestSchema,
   NotificationService,
@@ -49,7 +60,7 @@ import {
   UpdateSlackConfigRequestSchema,
   UpdateUserNotificationSettingsRequestSchema,
 } from '@/gen/arca/v1/notification_pb'
-import type { GeneralAccess, MachineAccessRequest, MachineSharingMember } from '@/gen/arca/v1/sharing_pb'
+import type { GeneralAccess, MachineAccessRequest, MachineSharingGroup, MachineSharingMember } from '@/gen/arca/v1/sharing_pb'
 import {
   CompleteUserSetupRequestSchema,
   CreateUserRequestSchema,
@@ -90,6 +101,7 @@ const runtimeClient = createClient(RuntimeService, connectTransport)
 const tunnelClient = createClient(TunnelService, connectTransport)
 const userClient = createClient(UserService, connectTransport)
 const sharingClient = createClient(SharingService, connectTransport)
+const groupClient = createClient(GroupService, connectTransport)
 const notificationClient = createClient(NotificationService, connectTransport)
 
 type PollingOptions = {
@@ -876,6 +888,7 @@ export async function listMachineExposures(machineID: string): Promise<MachineEx
 export async function getMachineSharing(machineID: string): Promise<{
   members: MachineSharingMember[]
   generalAccess: GeneralAccess | undefined
+  groups: MachineSharingGroup[]
 }> {
   const response = await sharingClient.getMachineSharing(
     create(GetMachineSharingRequestSchema, { machineId: machineID }),
@@ -883,6 +896,7 @@ export async function getMachineSharing(machineID: string): Promise<{
   return {
     members: response.members,
     generalAccess: response.generalAccess,
+    groups: response.groups,
   }
 }
 
@@ -897,20 +911,24 @@ export async function updateMachineSharing(
   machineID: string,
   members: { userId: string; email: string; role: string }[],
   generalAccess: { scope: string; role: string },
+  groups?: { groupId: string; name: string; role: string }[],
 ): Promise<{
   members: MachineSharingMember[]
   generalAccess: GeneralAccess | undefined
+  groups: MachineSharingGroup[]
 }> {
   const response = await sharingClient.updateMachineSharing(
     create(UpdateMachineSharingRequestSchema, {
       machineId: machineID,
       members,
       generalAccess,
+      groups: groups ?? [],
     }),
   )
   return {
     members: response.members,
     generalAccess: response.generalAccess,
+    groups: response.groups,
   }
 }
 
@@ -938,6 +956,45 @@ export async function resolveMachineAccessRequest(requestID: string, action: str
       role,
     }),
   )
+}
+
+// Group API
+export async function listGroups(): Promise<UserGroup[]> {
+  const response = await groupClient.listGroups(create(ListGroupsRequestSchema))
+  return response.groups
+}
+
+export async function createGroup(name: string): Promise<UserGroup> {
+  const response = await groupClient.createGroup(create(CreateGroupRequestSchema, { name }))
+  if (response.group == null) {
+    throw new Error('request failed')
+  }
+  return response.group
+}
+
+export async function deleteGroup(groupID: string): Promise<void> {
+  await groupClient.deleteGroup(create(DeleteGroupRequestSchema, { groupId: groupID }))
+}
+
+export async function getGroup(groupID: string): Promise<{ group: UserGroup; members: UserGroupMember[] }> {
+  const response = await groupClient.getGroup(create(GetGroupRequestSchema, { groupId: groupID }))
+  if (response.group == null) {
+    throw new Error('request failed')
+  }
+  return { group: response.group, members: response.members }
+}
+
+export async function addGroupMember(groupID: string, userID: string): Promise<void> {
+  await groupClient.addGroupMember(create(AddGroupMemberRequestSchema, { groupId: groupID, userId: userID }))
+}
+
+export async function removeGroupMember(groupID: string, userID: string): Promise<void> {
+  await groupClient.removeGroupMember(create(RemoveGroupMemberRequestSchema, { groupId: groupID, userId: userID }))
+}
+
+export async function searchGroups(query: string, limit = 10): Promise<UserGroup[]> {
+  const response = await groupClient.searchGroups(create(SearchGroupsRequestSchema, { query, limit }))
+  return response.groups
 }
 
 export type SlackConfigData = {

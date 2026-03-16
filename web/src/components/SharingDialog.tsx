@@ -8,12 +8,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getMachineSharing, searchUsers, updateMachineSharing } from '@/lib/api'
+import { getMachineSharing, searchGroups, searchUsers, updateMachineSharing } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 
 type Member = {
   userId: string
   email: string
+  role: string
+}
+
+type GroupAccess = {
+  groupId: string
+  name: string
   role: string
 }
 
@@ -36,6 +42,14 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
+  // Group sharing state
+  const [groupAccessList, setGroupAccessList] = useState<GroupAccess[]>([])
+  const [groupSearch, setGroupSearch] = useState('')
+  const [groupSearchResults, setGroupSearchResults] = useState<{ id: string; name: string }[]>([])
+  const [showGroupDropdown, setShowGroupDropdown] = useState(false)
+  const groupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const groupWrapperRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!open || machineID === '') return
 
@@ -49,6 +63,9 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
         if (cancelled) return
         setMembers(
           sharing.members.map((m) => ({ userId: m.userId, email: m.email, role: m.role })),
+        )
+        setGroupAccessList(
+          sharing.groups.map((g) => ({ groupId: g.groupId, name: g.name, role: g.role })),
         )
         setGeneralAccessScope(sharing.generalAccess?.scope ?? 'none')
         setGeneralAccessRole(sharing.generalAccess?.role ?? 'none')
@@ -68,6 +85,9 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
       setNewEmail('')
       setSearchResults([])
       setShowDropdown(false)
+      setGroupSearch('')
+      setGroupSearchResults([])
+      setShowGroupDropdown(false)
     }
   }, [open])
 
@@ -133,6 +153,46 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
     setMembers((prev) => prev.map((m) => (m.email === email ? { ...m, role } : m)))
   }
 
+  const handleGroupSearchChange = (value: string) => {
+    setGroupSearch(value)
+    if (groupDebounceRef.current) {
+      clearTimeout(groupDebounceRef.current)
+    }
+    const trimmed = value.trim()
+    if (trimmed.length < 1) {
+      setGroupSearchResults([])
+      setShowGroupDropdown(false)
+      return
+    }
+    groupDebounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchGroups(trimmed, 10)
+        const existingIDs = new Set(groupAccessList.map((g) => g.groupId))
+        const filtered = results.map((g) => ({ id: g.id, name: g.name })).filter((r) => !existingIDs.has(r.id))
+        setGroupSearchResults(filtered)
+        setShowGroupDropdown(filtered.length > 0)
+      } catch {
+        setGroupSearchResults([])
+        setShowGroupDropdown(false)
+      }
+    }, 300)
+  }
+
+  const handleSelectGroup = (group: { id: string; name: string }) => {
+    setGroupAccessList((prev) => [...prev, { groupId: group.id, name: group.name, role: 'viewer' }])
+    setGroupSearch('')
+    setGroupSearchResults([])
+    setShowGroupDropdown(false)
+  }
+
+  const handleRemoveGroup = (groupId: string) => {
+    setGroupAccessList((prev) => prev.filter((g) => g.groupId !== groupId))
+  }
+
+  const handleGroupRoleChange = (groupId: string, role: string) => {
+    setGroupAccessList((prev) => prev.map((g) => (g.groupId === groupId ? { ...g, role } : g)))
+  }
+
   const handleGeneralAccessChange = (value: string) => {
     if (value === 'none') {
       setGeneralAccessScope('none')
@@ -151,9 +211,13 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
         machineID,
         members,
         { scope: generalAccessScope, role: generalAccessRole },
+        groupAccessList,
       )
       setMembers(
         result.members.map((m) => ({ userId: m.userId, email: m.email, role: m.role })),
+      )
+      setGroupAccessList(
+        result.groups.map((g) => ({ groupId: g.groupId, name: g.name, role: g.role })),
       )
       setGeneralAccessScope(result.generalAccess?.scope ?? 'none')
       setGeneralAccessRole(result.generalAccess?.role ?? 'none')
@@ -248,6 +312,80 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
                           variant="secondary"
                           className="h-8 px-2 text-xs"
                           onClick={() => handleRemoveMember(member.email)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="relative" ref={groupWrapperRef}>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Add group by name"
+                    value={groupSearch}
+                    onChange={(e) => handleGroupSearchChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setShowGroupDropdown(false)
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (!groupWrapperRef.current?.contains(e.relatedTarget as Node)) {
+                        setShowGroupDropdown(false)
+                      }
+                    }}
+                    className="flex-1"
+                    autoComplete="off"
+                  />
+                </div>
+                {showGroupDropdown && groupSearchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
+                    {groupSearchResults.map((group) => (
+                      <button
+                        key={group.id}
+                        type="button"
+                        className="w-full rounded-sm px-2 py-1.5 text-sm text-left text-popover-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          handleSelectGroup(group)
+                        }}
+                      >
+                        {group.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {groupAccessList.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Groups</p>
+                  {groupAccessList.map((group) => (
+                    <div
+                      key={group.groupId}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2"
+                    >
+                      <span className="text-sm text-foreground truncate">{group.name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <select
+                          value={group.role}
+                          onChange={(e) => handleGroupRoleChange(group.groupId, e.target.value)}
+                          className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="editor">Editor</option>
+                          <option value="viewer">Viewer</option>
+                        </select>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="h-8 px-2 text-xs"
+                          onClick={() => handleRemoveGroup(group.groupId)}
                         >
                           Remove
                         </Button>

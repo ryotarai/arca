@@ -1193,6 +1193,11 @@ func (s *Store) ResolveMachineRole(ctx context.Context, userID, machineID string
 	if err == nil && role != "" {
 		return role
 	}
+	// Check group-based access
+	groupRole, err := s.GetMachineGroupRoleByUserID(ctx, machineID, userID)
+	if err == nil && groupRole != "" {
+		return groupRole
+	}
 	// Check general access for arca users
 	sharing, err := s.GetMachineSharing(ctx, machineID)
 	if err != nil {

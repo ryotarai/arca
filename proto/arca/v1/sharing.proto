@@ -27,20 +27,29 @@ message GetMachineSharingRequest {
   string machine_id = 1;
 }
 
+message MachineSharingGroup {
+  string group_id = 1;
+  string name = 2;
+  string role = 3;
+}
+
 message GetMachineSharingResponse {
   repeated MachineSharingMember members = 1;
   GeneralAccess general_access = 2;
+  repeated MachineSharingGroup groups = 3;
 }
 
 message UpdateMachineSharingRequest {
   string machine_id = 1;
   repeated MachineSharingMember members = 2;
   GeneralAccess general_access = 3;
+  repeated MachineSharingGroup groups = 4;
 }
 
 message UpdateMachineSharingResponse {
   repeated MachineSharingMember members = 1;
   GeneralAccess general_access = 2;
+  repeated MachineSharingGroup groups = 3;
 }
 
 message MachineAccessRequest {

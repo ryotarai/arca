@@ -1,4 +1,4 @@
-import { Blocks, Cpu, Settings, Users } from 'lucide-react'
+import { Blocks, Cpu, Group, Settings, Users } from 'lucide-react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +33,7 @@ const navItems = [
 const adminNavItems = [
   { to: '/runtimes', label: 'Runtimes', icon: Blocks },
   { to: '/users', label: 'Users', icon: Users },
+  { to: '/groups', label: 'Groups', icon: Group },
   { to: '/admin/settings', label: 'Admin settings', icon: Settings },
 ]
 

@@ -14,6 +14,7 @@ test.describe('navigation', () => {
     await expect(page.getByRole('link', { name: 'User settings' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Runtimes' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Users' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Groups' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Admin settings' })).toBeVisible()
   })
 
@@ -36,6 +37,7 @@ test.describe('navigation', () => {
       // Admin links should not be visible
       await expect(ctx.page.getByRole('link', { name: 'Runtimes' })).toHaveCount(0)
       await expect(ctx.page.getByRole('link', { name: 'Users' })).toHaveCount(0)
+      await expect(ctx.page.getByRole('link', { name: 'Groups' })).toHaveCount(0)
       await expect(ctx.page.getByRole('link', { name: 'Admin settings' })).toHaveCount(0)
     } finally {
       await ctx.close()
@@ -65,6 +67,10 @@ test.describe('navigation', () => {
     await expect(page).toHaveURL('/users')
     await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible()
 
+    await page.getByRole('link', { name: 'Groups' }).click()
+    await expect(page).toHaveURL('/groups')
+    await expect(page.getByRole('heading', { name: 'Groups' })).toBeVisible()
+
     await page.getByRole('link', { name: 'Admin settings' }).click()
     await expect(page).toHaveURL('/admin/settings')
     await expect(page.getByRole('heading', { name: 'Admin settings' })).toBeVisible()
@@ -92,6 +98,10 @@ test.describe('navigation', () => {
       await expect(ctx.page.getByRole('heading', { name: 'Runtimes' })).toHaveCount(0)
 
       await ctx.page.goto('/users')
+      // Non-admin is redirected to /machines
+      await expect(ctx.page).toHaveURL('/machines')
+
+      await ctx.page.goto('/groups')
       // Non-admin is redirected to /machines
       await expect(ctx.page).toHaveURL('/machines')
 
