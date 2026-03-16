@@ -186,6 +186,14 @@ type UserMachine struct {
 	CreatedAt time.Time
 }
 
+type UserNotificationSetting struct {
+	UserID       string
+	SlackEnabled bool
+	SlackUserID  string
+	CreatedAt    int64
+	UpdatedAt    int64
+}
+
 type UserSetting struct {
 	UserID            string
 	SshPublicKeysJson string

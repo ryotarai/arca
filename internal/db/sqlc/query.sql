@@ -745,3 +745,29 @@ SELECT id, machine_id, user_id, status, requested_role, message, created_at, res
 FROM machine_access_requests
 WHERE id = sqlc.arg(id)
 LIMIT 1;
+
+-- name: GetUserNotificationSettings :one
+SELECT user_id, slack_enabled, slack_user_id, created_at, updated_at
+FROM user_notification_settings
+WHERE user_id = sqlc.arg(user_id)
+LIMIT 1;
+
+-- name: UpsertUserNotificationSettings :exec
+INSERT INTO user_notification_settings (user_id, slack_enabled, slack_user_id, created_at, updated_at)
+VALUES (
+  sqlc.arg(user_id),
+  sqlc.arg(slack_enabled),
+  sqlc.arg(slack_user_id),
+  sqlc.arg(created_at),
+  sqlc.arg(updated_at)
+)
+ON CONFLICT (user_id) DO UPDATE
+SET slack_enabled = excluded.slack_enabled,
+    slack_user_id = excluded.slack_user_id,
+    updated_at = excluded.updated_at;
+
+-- name: ListNotificationEnabledUsers :many
+SELECT user_id, slack_enabled, slack_user_id
+FROM user_notification_settings
+WHERE slack_enabled = true
+  AND slack_user_id != '';

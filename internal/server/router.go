@@ -14,6 +14,7 @@ import (
 	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/gen/arca/v1/arcav1connect"
+	"github.com/ryotarai/arca/internal/notification"
 )
 
 type Dependencies struct {
@@ -24,6 +25,7 @@ type Dependencies struct {
 	Cloudflare    *cloudflare.Client
 	ConsoleTunnel *ConsoleTunnelManager
 	MachineProxy  *MachineProxyHandler
+	Slack         *notification.SlackService
 }
 
 type HealthChecker interface {
@@ -102,6 +104,10 @@ func NewRouter(deps Dependencies) http.Handler {
 	}
 	if deps.Store != nil {
 		path, handler := arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store, deps.Authenticator))
+		r.Mount(path, handler)
+	}
+	if deps.Store != nil && deps.Authenticator != nil && deps.Slack != nil {
+		path, handler := arcav1connect.NewNotificationServiceHandler(newNotificationConnectService(deps.Store, deps.Authenticator, deps.Slack))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil {
