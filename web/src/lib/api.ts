@@ -41,6 +41,14 @@ import {
   SharingService,
   UpdateMachineSharingRequestSchema,
 } from '@/gen/arca/v1/sharing_pb'
+import {
+  GetSlackConfigRequestSchema,
+  GetUserNotificationSettingsRequestSchema,
+  NotificationService,
+  TestSlackNotificationRequestSchema,
+  UpdateSlackConfigRequestSchema,
+  UpdateUserNotificationSettingsRequestSchema,
+} from '@/gen/arca/v1/notification_pb'
 import type { GeneralAccess, MachineAccessRequest, MachineSharingMember } from '@/gen/arca/v1/sharing_pb'
 import {
   CompleteUserSetupRequestSchema,
@@ -82,6 +90,7 @@ const runtimeClient = createClient(RuntimeService, connectTransport)
 const tunnelClient = createClient(TunnelService, connectTransport)
 const userClient = createClient(UserService, connectTransport)
 const sharingClient = createClient(SharingService, connectTransport)
+const notificationClient = createClient(NotificationService, connectTransport)
 
 type PollingOptions = {
   timeoutMs?: number
@@ -929,4 +938,73 @@ export async function resolveMachineAccessRequest(requestID: string, action: str
       role,
     }),
   )
+}
+
+export type SlackConfigData = {
+  enabled: boolean
+  botToken: string
+  defaultChannelId: string
+  botTokenConfigured: boolean
+}
+
+export async function getSlackConfig(): Promise<SlackConfigData> {
+  const response = await notificationClient.getSlackConfig(create(GetSlackConfigRequestSchema))
+  return {
+    enabled: response.config?.enabled ?? false,
+    botToken: response.config?.botToken ?? '',
+    defaultChannelId: response.config?.defaultChannelId ?? '',
+    botTokenConfigured: response.config?.botTokenConfigured ?? false,
+  }
+}
+
+export async function updateSlackConfig(config: { enabled: boolean; botToken: string; defaultChannelId: string }): Promise<SlackConfigData> {
+  const response = await notificationClient.updateSlackConfig(
+    create(UpdateSlackConfigRequestSchema, {
+      config: {
+        enabled: config.enabled,
+        botToken: config.botToken,
+        defaultChannelId: config.defaultChannelId,
+      },
+    }),
+  )
+  return {
+    enabled: response.config?.enabled ?? false,
+    botToken: response.config?.botToken ?? '',
+    defaultChannelId: response.config?.defaultChannelId ?? '',
+    botTokenConfigured: response.config?.botTokenConfigured ?? false,
+  }
+}
+
+export async function testSlackNotification(channelId?: string): Promise<void> {
+  await notificationClient.testSlackNotification(
+    create(TestSlackNotificationRequestSchema, { channelId: channelId ?? '' }),
+  )
+}
+
+export type UserNotificationSettingsData = {
+  slackEnabled: boolean
+  slackUserId: string
+}
+
+export async function getUserNotificationSettings(): Promise<UserNotificationSettingsData> {
+  const response = await notificationClient.getUserNotificationSettings(create(GetUserNotificationSettingsRequestSchema))
+  return {
+    slackEnabled: response.settings?.slackEnabled ?? true,
+    slackUserId: response.settings?.slackUserId ?? '',
+  }
+}
+
+export async function updateUserNotificationSettings(settings: { slackEnabled: boolean; slackUserId: string }): Promise<UserNotificationSettingsData> {
+  const response = await notificationClient.updateUserNotificationSettings(
+    create(UpdateUserNotificationSettingsRequestSchema, {
+      settings: {
+        slackEnabled: settings.slackEnabled,
+        slackUserId: settings.slackUserId,
+      },
+    }),
+  )
+  return {
+    slackEnabled: response.settings?.slackEnabled ?? true,
+    slackUserId: response.settings?.slackUserId ?? '',
+  }
 }

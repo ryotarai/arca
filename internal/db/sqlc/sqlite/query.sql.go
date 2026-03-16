@@ -1140,6 +1140,26 @@ func (q *Queries) GetUserMachineRole(ctx context.Context, arg GetUserMachineRole
 	return role, err
 }
 
+const getUserNotificationSettings = `-- name: GetUserNotificationSettings :one
+SELECT user_id, slack_enabled, slack_user_id, created_at, updated_at
+FROM user_notification_settings
+WHERE user_id = ?1
+LIMIT 1
+`
+
+func (q *Queries) GetUserNotificationSettings(ctx context.Context, userID string) (UserNotificationSetting, error) {
+	row := q.db.QueryRowContext(ctx, getUserNotificationSettings, userID)
+	var i UserNotificationSetting
+	err := row.Scan(
+		&i.UserID,
+		&i.SlackEnabled,
+		&i.SlackUserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserSettingsByUserID = `-- name: GetUserSettingsByUserID :one
 SELECT u.id AS user_id,
        COALESCE(s.ssh_public_keys_json, '[]') AS ssh_public_keys_json
@@ -1564,6 +1584,42 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.ArcadVersion,
 			&i.LastActivityAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNotificationEnabledUsers = `-- name: ListNotificationEnabledUsers :many
+SELECT user_id, slack_enabled, slack_user_id
+FROM user_notification_settings
+WHERE slack_enabled = true
+  AND slack_user_id != ''
+`
+
+type ListNotificationEnabledUsersRow struct {
+	UserID       string
+	SlackEnabled bool
+	SlackUserID  string
+}
+
+func (q *Queries) ListNotificationEnabledUsers(ctx context.Context) ([]ListNotificationEnabledUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listNotificationEnabledUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListNotificationEnabledUsersRow
+	for rows.Next() {
+		var i ListNotificationEnabledUsersRow
+		if err := rows.Scan(&i.UserID, &i.SlackEnabled, &i.SlackUserID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -2550,6 +2606,40 @@ type UpsertUserMachineParams struct {
 
 func (q *Queries) UpsertUserMachine(ctx context.Context, arg UpsertUserMachineParams) error {
 	_, err := q.db.ExecContext(ctx, upsertUserMachine, arg.UserID, arg.MachineID, arg.Role)
+	return err
+}
+
+const upsertUserNotificationSettings = `-- name: UpsertUserNotificationSettings :exec
+INSERT INTO user_notification_settings (user_id, slack_enabled, slack_user_id, created_at, updated_at)
+VALUES (
+  ?1,
+  ?2,
+  ?3,
+  ?4,
+  ?5
+)
+ON CONFLICT (user_id) DO UPDATE
+SET slack_enabled = excluded.slack_enabled,
+    slack_user_id = excluded.slack_user_id,
+    updated_at = excluded.updated_at
+`
+
+type UpsertUserNotificationSettingsParams struct {
+	UserID       string
+	SlackEnabled bool
+	SlackUserID  string
+	CreatedAt    int64
+	UpdatedAt    int64
+}
+
+func (q *Queries) UpsertUserNotificationSettings(ctx context.Context, arg UpsertUserNotificationSettingsParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserNotificationSettings,
+		arg.UserID,
+		arg.SlackEnabled,
+		arg.SlackUserID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	return err
 }
 

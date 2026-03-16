@@ -20,6 +20,7 @@ import (
 	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/machine"
+	"github.com/ryotarai/arca/internal/notification"
 	"github.com/ryotarai/arca/internal/server"
 )
 
@@ -84,7 +85,9 @@ func main() {
 	}
 	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{})
 	ipCache := machine.NewMachineIPCache(runtime, store, 5*time.Minute)
+	slackService := notification.NewSlackService(store)
 	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency)
+	machineWorker.SetNotifier(slackService)
 	workerDone := make(chan struct{})
 	go func() {
 		machineWorker.Run(ctx)
@@ -94,7 +97,7 @@ func main() {
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy, Slack: slackService}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

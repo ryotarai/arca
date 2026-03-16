@@ -43,11 +43,25 @@ type RuntimeStartOptions struct {
 	InteractiveSSHPubKeys []string
 }
 
+// Notifier sends notifications for machine lifecycle events.
+type Notifier interface {
+	NotifyMachineEvent(ctx context.Context, ownerUserID string, event NotificationEvent)
+}
+
+// NotificationEvent describes a machine event for notification dispatch.
+type NotificationEvent struct {
+	MachineID   string
+	MachineName string
+	EventType   string
+	Message     string
+}
+
 type Worker struct {
 	store          *db.Store
 	runtime        Runtime
 	cfClient       *cloudflare.Client
 	ipCache        *MachineIPCache
+	notifier       Notifier
 	workerID       string
 	pollInterval   time.Duration
 	leaseTTL       time.Duration
@@ -58,6 +72,11 @@ type Worker struct {
 	maxConcurrency int
 	sem            chan struct{}
 	wg             sync.WaitGroup
+}
+
+// SetNotifier sets the notifier used for dispatching machine event notifications.
+func (w *Worker) SetNotifier(n Notifier) {
+	w.notifier = n
 }
 
 const (
@@ -935,6 +954,13 @@ func (w *Worker) deleteMachineTunnel(ctx context.Context, machineID string) erro
 	return nil
 }
 
+// notifyEventTypes lists the event types that trigger Slack notifications.
+var notifyEventTypes = map[string]bool{
+	"ready":       true,
+	"auto_stop":   true,
+	"job_failed":  true,
+}
+
 func (w *Worker) emitEvent(ctx context.Context, machineID, jobID, level, eventType, message string) {
 	if w.store == nil || strings.TrimSpace(machineID) == "" {
 		return
@@ -948,6 +974,39 @@ func (w *Worker) emitEvent(ctx context.Context, machineID, jobID, level, eventTy
 	}); err != nil {
 		slog.Warn("record machine event failed", "machine_id", machineID, "job_id", jobID, "event_type", eventType, "error", err)
 	}
+
+	if w.notifier != nil && notifyEventTypes[eventType] {
+		go w.dispatchNotification(machineID, eventType, message)
+	}
+}
+
+func (w *Worker) dispatchNotification(machineID, eventType, message string) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Warn("notification dispatch panicked", "machine_id", machineID, "error", r)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	ownerUserID, err := w.store.GetMachineOwnerUserID(ctx, machineID)
+	if err != nil {
+		slog.Debug("notification: could not find machine owner", "machine_id", machineID, "error", err)
+		return
+	}
+
+	machineName := machineID
+	if m, err := w.store.GetMachineByID(ctx, machineID); err == nil {
+		machineName = m.Name
+	}
+
+	w.notifier.NotifyMachineEvent(ctx, ownerUserID, NotificationEvent{
+		MachineID:   machineID,
+		MachineName: machineName,
+		EventType:   eventType,
+		Message:     message,
+	})
 }
 
 func isActiveTunnelConnectionError(err cloudflare.APIError) bool {

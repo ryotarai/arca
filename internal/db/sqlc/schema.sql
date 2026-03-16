@@ -224,3 +224,11 @@ CREATE TABLE IF NOT EXISTS machine_access_requests (
 );
 CREATE INDEX IF NOT EXISTS idx_machine_access_requests_machine_status
   ON machine_access_requests(machine_id, status);
+
+CREATE TABLE IF NOT EXISTS user_notification_settings (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  slack_enabled BOOLEAN NOT NULL DEFAULT true,
+  slack_user_id TEXT NOT NULL DEFAULT '',
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { updateDomainSettings } from '@/lib/api'
+import { updateDomainSettings, getSlackConfig, updateSlackConfig, testSlackNotification } from '@/lib/api'
+import type { SlackConfigData } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { ServerExposureMethod, SetupStatus, User } from '@/lib/types'
 
@@ -370,7 +371,156 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
             {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
           </CardContent>
         </Card>
+
+        <SlackSettingsCard />
       </section>
     </main>
+  )
+}
+
+function SlackSettingsCard() {
+  const [slackEnabled, setSlackEnabled] = useState(false)
+  const [slackBotToken, setSlackBotToken] = useState('')
+  const [slackDefaultChannelId, setSlackDefaultChannelId] = useState('')
+  const [slackBotTokenConfigured, setSlackBotTokenConfigured] = useState(false)
+  const [slackLoading, setSlackLoading] = useState(true)
+  const [slackSaving, setSlackSaving] = useState(false)
+  const [slackTesting, setSlackTesting] = useState(false)
+  const [slackError, setSlackError] = useState('')
+  const [slackSaved, setSlackSaved] = useState(false)
+  const [slackTestResult, setSlackTestResult] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const config: SlackConfigData = await getSlackConfig()
+        if (cancelled) return
+        setSlackEnabled(config.enabled)
+        setSlackDefaultChannelId(config.defaultChannelId)
+        setSlackBotTokenConfigured(config.botTokenConfigured)
+      } catch (e) {
+        if (!cancelled) setSlackError(messageFromError(e))
+      } finally {
+        if (!cancelled) setSlackLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [])
+
+  const submitSlack = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSlackError('')
+    setSlackSaved(false)
+    setSlackSaving(true)
+    try {
+      const result = await updateSlackConfig({
+        enabled: slackEnabled,
+        botToken: slackBotToken,
+        defaultChannelId: slackDefaultChannelId.trim(),
+      })
+      setSlackBotTokenConfigured(result.botTokenConfigured)
+      setSlackDefaultChannelId(result.defaultChannelId)
+      setSlackEnabled(result.enabled)
+      setSlackBotToken('')
+      setSlackSaved(true)
+    } catch (e) {
+      setSlackError(messageFromError(e))
+    } finally {
+      setSlackSaving(false)
+    }
+  }
+
+  const handleTestSlack = async () => {
+    setSlackTestResult('')
+    setSlackTesting(true)
+    try {
+      await testSlackNotification(slackDefaultChannelId.trim())
+      setSlackTestResult('Test notification sent successfully.')
+    } catch (e) {
+      setSlackTestResult(messageFromError(e))
+    } finally {
+      setSlackTesting(false)
+    }
+  }
+
+  return (
+    <Card className="py-0 shadow-sm">
+      <CardHeader className="space-y-2 p-6 pb-3">
+        <CardTitle className="text-xl">Slack notifications</CardTitle>
+        <CardDescription>
+          Send machine lifecycle notifications (ready, auto-stop, failures) to users via Slack.
+          Requires a Slack App with <code>chat:write</code> bot token scope.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-6 pt-3">
+        {slackLoading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : (
+          <form className="space-y-4" onSubmit={submitSlack}>
+            <label className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={slackEnabled}
+                onChange={(e) => setSlackEnabled(e.target.checked)}
+              />
+              Enable Slack notifications
+            </label>
+
+            <div className="space-y-2">
+              <Label htmlFor="settings-slack-bot-token">Bot token</Label>
+              <Input
+                id="settings-slack-bot-token"
+                type="password"
+                value={slackBotToken}
+                onChange={(e) => setSlackBotToken(e.target.value)}
+                className="h-10"
+                placeholder={slackBotTokenConfigured ? 'Leave empty to keep current token' : 'xoxb-...'}
+              />
+              <p className="text-xs text-muted-foreground">
+                Bot User OAuth Token from your Slack App settings.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="settings-slack-channel-id">Default channel ID</Label>
+              <Input
+                id="settings-slack-channel-id"
+                value={slackDefaultChannelId}
+                onChange={(e) => setSlackDefaultChannelId(e.target.value)}
+                className="h-10"
+                placeholder="C0123456789"
+              />
+              <p className="text-xs text-muted-foreground">
+                Fallback channel for test notifications. User notifications are sent as DMs to each user's Slack ID.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button type="submit" className="h-10 flex-1" disabled={slackSaving}>
+                {slackSaving ? 'Saving...' : 'Save Slack settings'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-10"
+                disabled={slackTesting || !slackBotTokenConfigured}
+                onClick={handleTestSlack}
+              >
+                {slackTesting ? 'Sending...' : 'Send test'}
+              </Button>
+            </div>
+          </form>
+        )}
+        {slackSaved && <p className="mt-3 text-sm text-emerald-300">Slack settings updated.</p>}
+        {slackError !== '' && <p className="mt-3 text-sm text-red-300">{slackError}</p>}
+        {slackTestResult !== '' && (
+          <p className={`mt-3 text-sm ${slackTestResult.startsWith('Test notification') ? 'text-emerald-300' : 'text-red-300'}`}>
+            {slackTestResult}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
 }

@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service NotificationService {
+  rpc GetSlackConfig(GetSlackConfigRequest) returns (GetSlackConfigResponse);
+  rpc UpdateSlackConfig(UpdateSlackConfigRequest) returns (UpdateSlackConfigResponse);
+  rpc TestSlackNotification(TestSlackNotificationRequest) returns (TestSlackNotificationResponse);
+  rpc GetUserNotificationSettings(GetUserNotificationSettingsRequest) returns (GetUserNotificationSettingsResponse);
+  rpc UpdateUserNotificationSettings(UpdateUserNotificationSettingsRequest) returns (UpdateUserNotificationSettingsResponse);
+}
+
+message SlackConfig {
+  bool enabled = 1;
+  string bot_token = 2;
+  string default_channel_id = 3;
+  bool bot_token_configured = 4;
+}
+
+message GetSlackConfigRequest {}
+
+message GetSlackConfigResponse {
+  SlackConfig config = 1;
+}
+
+message UpdateSlackConfigRequest {
+  SlackConfig config = 1;
+}
+
+message UpdateSlackConfigResponse {
+  SlackConfig config = 1;
+}
+
+message TestSlackNotificationRequest {
+  string channel_id = 1;
+}
+
+message TestSlackNotificationResponse {}
+
+message UserNotificationSettings {
+  bool slack_enabled = 1;
+  string slack_user_id = 2;
+}
+
+message GetUserNotificationSettingsRequest {}
+
+message GetUserNotificationSettingsResponse {
+  UserNotificationSettings settings = 1;
+}
+
+message UpdateUserNotificationSettingsRequest {
+  UserNotificationSettings settings = 1;
+}
+
+message UpdateUserNotificationSettingsResponse {
+  UserNotificationSettings settings = 1;
+}
