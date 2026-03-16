@@ -41,6 +41,7 @@ type Machine struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	OptionsJSON     string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -112,7 +113,7 @@ type MachineEventInput struct {
 
 var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
 
-func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtimeID, setupVersion string) (Machine, error) {
+func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtimeID, setupVersion string, optionsJSON ...string) (Machine, error) {
 	machineID, err := randomID()
 	if err != nil {
 		return Machine{}, err
@@ -129,6 +130,10 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 	nowUnix := time.Now().Unix()
 	runtimeID = NormalizeMachineRuntime(runtimeID)
 	setupVersion = strings.TrimSpace(setupVersion)
+	opts := "{}"
+	if len(optionsJSON) > 0 && optionsJSON[0] != "" {
+		opts = optionsJSON[0]
+	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -152,7 +157,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 	switch s.driver {
 	case DriverSQLite:
 		q := s.sqliteQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion}); err != nil {
+		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion, OptionsJson: opts}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -212,7 +217,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion}); err != nil {
+		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion, OptionsJson: opts}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -284,6 +289,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		RuntimeID:     runtimeID,
 		SetupVersion:  setupVersion,
 		Endpoint:      "",
+		OptionsJSON:   opts,
 		Status:        MachineStatusPending,
 		DesiredStatus: MachineDesiredRunning,
 		MachineToken:  machineToken,
@@ -309,6 +315,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 				SetupVersion:    strings.TrimSpace(row.SetupVersion),
 				Endpoint:        strings.TrimSpace(row.Endpoint),
+				OptionsJSON:     row.OptionsJson,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -338,6 +345,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 				SetupVersion:    strings.TrimSpace(row.SetupVersion),
 				Endpoint:        strings.TrimSpace(row.Endpoint),
+				OptionsJSON:     row.OptionsJson,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -400,6 +408,25 @@ func (s *Store) UpdateMachineRuntimeByIDForOwner(ctx context.Context, userID, ma
 			SetupVersion: setupVersion,
 			MachineID:    machineID,
 			UserID:       userID,
+		})
+		return updated > 0, err
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpdateMachineOptionsByID(ctx context.Context, machineID, optionsJSON string) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		updated, err := s.sqliteQueries.UpdateMachineOptionsByID(ctx, sqlitesqlc.UpdateMachineOptionsByIDParams{
+			OptionsJson: optionsJSON,
+			MachineID:   machineID,
+		})
+		return updated > 0, err
+	case DriverPostgres:
+		updated, err := s.pgQueries.UpdateMachineOptionsByID(ctx, postgresqlsqlc.UpdateMachineOptionsByIDParams{
+			OptionsJson: optionsJSON,
+			MachineID:   machineID,
 		})
 		return updated > 0, err
 	default:
@@ -543,6 +570,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			OptionsJSON:     row.OptionsJson,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -564,6 +592,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			OptionsJSON:     row.OptionsJson,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -595,6 +624,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			OptionsJSON:     row.OptionsJson,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -618,6 +648,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
+			OptionsJSON:     row.OptionsJson,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -745,6 +776,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				ID:              row.ID,
 				Name:            row.Name,
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				OptionsJSON:     row.OptionsJson,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -771,6 +803,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				ID:              row.ID,
 				Name:            row.Name,
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
+				OptionsJSON:     row.OptionsJson,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,

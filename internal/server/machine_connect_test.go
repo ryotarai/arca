@@ -208,7 +208,7 @@ type machineStoreStub struct {
 	getMachineByIDForUserFunc func(context.Context, string, string) (db.Machine, error)
 }
 
-func (s *machineStoreStub) CreateMachineWithOwner(context.Context, string, string, string, string) (db.Machine, error) {
+func (s *machineStoreStub) CreateMachineWithOwner(_ context.Context, _, _, _, _ string, _ ...string) (db.Machine, error) {
 	panic("CreateMachineWithOwner should not be called in this test")
 }
 

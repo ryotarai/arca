@@ -59,6 +59,7 @@ message GceRuntimeConfig {
   int64 disk_size_gb = 8;
   string image_project = 9;
   string image_family = 10;
+  repeated string allowed_machine_types = 11;
 }
 
 message LxdRuntimeConfig {

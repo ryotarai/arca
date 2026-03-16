@@ -31,6 +31,7 @@ type RuntimeFormState = {
   gceDiskSizeGb: string
   gceImageProject: string
   gceImageFamily: string
+  gceAllowedMachineTypes: string
   lxdEndpoint: string
   lxdStartupScript: string
   exposureMethod: MachineExposureMethodType
@@ -66,6 +67,7 @@ function emptyRuntimeForm(): RuntimeFormState {
     gceDiskSizeGb: '',
     gceImageProject: '',
     gceImageFamily: '',
+    gceAllowedMachineTypes: '',
     lxdEndpoint: '',
     lxdStartupScript: '',
     exposureMethod: 'cloudflare_tunnel',
@@ -136,6 +138,10 @@ function validateRuntimeForm(form: RuntimeFormState): string | null {
 
 function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
   if (form.type === 'gce') {
+    const allowedMachineTypes = form.gceAllowedMachineTypes
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter((s) => s !== '')
     return {
       type: 'gce',
       project: form.gceProject.trim(),
@@ -148,6 +154,7 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
       diskSizeGb: form.gceDiskSizeGb.trim() !== '' ? parseInt(form.gceDiskSizeGb.trim(), 10) || 0 : 0,
       imageProject: form.gceImageProject.trim(),
       imageFamily: form.gceImageFamily.trim(),
+      allowedMachineTypes,
     }
   }
   if (form.type === 'lxd') {
@@ -206,6 +213,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
       gceDiskSizeGb: runtime.config.diskSizeGb ? String(runtime.config.diskSizeGb) : '',
       gceImageProject: runtime.config.imageProject,
       gceImageFamily: runtime.config.imageFamily,
+      gceAllowedMachineTypes: (runtime.config.allowedMachineTypes ?? []).join(', '),
       ...exposureFields,
     }
   }
@@ -412,6 +420,17 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                     <div className="space-y-2">
                       <Label htmlFor="runtime-gce-image-family">Image family (optional)</Label>
                       <Input id="runtime-gce-image-family" value={form.gceImageFamily} onChange={(event) => setForm((current) => ({ ...current, gceImageFamily: event.target.value }))} className="h-10" placeholder="ubuntu-2404-lts-amd64" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="runtime-gce-allowed-machine-types">Allowed machine types (optional)</Label>
+                      <Input
+                        id="runtime-gce-allowed-machine-types"
+                        value={form.gceAllowedMachineTypes}
+                        onChange={(event) => setForm((current) => ({ ...current, gceAllowedMachineTypes: event.target.value }))}
+                        className="h-10"
+                        placeholder="e2-medium, e2-standard-2, e2-standard-4"
+                      />
+                      <p className="text-xs text-muted-foreground">Comma-separated list of machine types users can choose when creating machines. Leave empty to allow any type.</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="runtime-gce-startup-script">Startup script (Bash, optional)</Label>

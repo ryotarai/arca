@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMachine, listAvailableRuntimes } from '@/lib/api'
+import { createMachine, listAvailableRuntimes, listRuntimes } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { RuntimeSummary, User } from '@/lib/types'
+import type { RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
 
 type CreateMachinePageProps = {
   user: User | null
@@ -18,6 +18,8 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const [name, setName] = useState('')
   const [selectedRuntimeID, setSelectedRuntimeID] = useState('')
   const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
+  const [runtimeDetails, setRuntimeDetails] = useState<RuntimeCatalogItem[]>([])
+  const [machineType, setMachineType] = useState('')
   const [loadingRuntimes, setLoadingRuntimes] = useState(true)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -33,11 +35,12 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       setLoadingRuntimes(true)
       setError('')
       try {
-        const items = await listAvailableRuntimes()
+        const [items, details] = await Promise.all([listAvailableRuntimes(), listRuntimes()])
         if (cancelled) {
           return
         }
         setRuntimes(items)
+        setRuntimeDetails(details)
         setSelectedRuntimeID((current) => {
           if (current !== '' && items.some((runtime) => runtime.id === current)) {
             return current
@@ -81,7 +84,11 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     setCreating(true)
     setError('')
     try {
-      const created = await createMachine(trimmedName, selectedRuntimeID)
+      const options: Record<string, string> = {}
+      if (machineType.trim() !== '') {
+        options.machine_type = machineType.trim()
+      }
+      const created = await createMachine(trimmedName, selectedRuntimeID, Object.keys(options).length > 0 ? options : undefined)
       await navigate(`/machines/${created.id}`)
     } catch (e) {
       setError(messageFromError(e))
@@ -149,6 +156,45 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                   ))}
                 </select>
               </div>
+
+              {(() => {
+                const selectedRuntime = runtimeDetails.find((r) => r.id === selectedRuntimeID)
+                if (selectedRuntime == null || selectedRuntime.type !== 'gce') return null
+                const gceConfig = selectedRuntime.config
+                if (gceConfig.type !== 'gce') return null
+                const allowed = gceConfig.allowedMachineTypes ?? []
+                const defaultMT = gceConfig.machineType || ''
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor="create-machine-type">Machine type</Label>
+                    {allowed.length > 0 ? (
+                      <select
+                        id="create-machine-type"
+                        value={machineType || defaultMT}
+                        onChange={(event) => setMachineType(event.target.value)}
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                      >
+                        {allowed.map((mt) => (
+                          <option key={mt} value={mt}>
+                            {mt}{mt === defaultMT ? ' (default)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        id="create-machine-type"
+                        value={machineType}
+                        onChange={(event) => setMachineType(event.target.value)}
+                        className="h-10"
+                        placeholder={defaultMT || 'e2-standard-2'}
+                      />
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {allowed.length > 0 ? 'Select a machine type for this GCE instance.' : 'Leave empty to use the runtime default.'}
+                    </p>
+                  </div>
+                )
+              })()}
 
               {runtimes.length === 0 && !loadingRuntimes && (
                 <p className="text-sm text-amber-300">Create at least one runtime in the runtime catalog before creating machines.</p>

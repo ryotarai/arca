@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
@@ -102,7 +105,23 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 	if err != nil {
 		return nil, err
 	}
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion())
+
+	options := req.Msg.GetOptions()
+	optionsJSON := "{}"
+	if len(options) > 0 {
+		if machineType := strings.TrimSpace(options["machine_type"]); machineType != "" {
+			if err := s.validateMachineType(ctx, runtimeID, machineType); err != nil {
+				return nil, err
+			}
+		}
+		data, jsonErr := json.Marshal(options)
+		if jsonErr != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid options"))
+		}
+		optionsJSON = string(data)
+	}
+
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion(), optionsJSON)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
@@ -115,7 +134,73 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 }
 
 func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.Request[arcav1.UpdateMachineRequest]) (*connect.Response[arcav1.UpdateMachineResponse], error) {
-	return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("machine name cannot be changed"))
+	userID, err := s.authenticate(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	if role := s.resolveMachineRole(ctx, userID, machineID); role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
+	options := req.Msg.GetOptions()
+	if len(options) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("options are required"))
+	}
+
+	// Verify machine is stopped
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		log.Printf("get machine failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
+	}
+
+	if machine.Status != db.MachineStatusStopped {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("machine must be stopped to update options"))
+	}
+
+	// Validate machine_type if provided
+	if machineType := strings.TrimSpace(options["machine_type"]); machineType != "" {
+		if err := s.validateMachineType(ctx, machine.RuntimeID, machineType); err != nil {
+			return nil, err
+		}
+	}
+
+	// Merge options with existing
+	existing := parseMachineOptions(machine.OptionsJSON)
+	for k, v := range options {
+		existing[k] = v
+	}
+
+	data, jsonErr := json.Marshal(existing)
+	if jsonErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encode options"))
+	}
+
+	if s.dbStore == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
+	}
+	if _, err := s.dbStore.UpdateMachineOptionsByID(ctx, machineID, string(data)); err != nil {
+		log.Printf("update machine options failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update machine options"))
+	}
+
+	updated, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		log.Printf("fetch updated machine failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
+	}
+	updated.UserRole = db.MachineRoleAdmin
+
+	return connect.NewResponse(&arcav1.UpdateMachineResponse{Machine: toMachineMessage(updated)}), nil
 }
 
 func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.Request[arcav1.StartMachineRequest]) (*connect.Response[arcav1.StartMachineResponse], error) {
@@ -376,7 +461,54 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 		ReadyReportedAt: machine.ReadyReportedAt,
 		UserRole:        machine.UserRole,
 		ArcadVersion:    machine.ArcadVersion,
+		Options:         parseMachineOptions(machine.OptionsJSON),
 	}
+}
+
+func parseMachineOptions(optionsJSON string) map[string]string {
+	optionsJSON = strings.TrimSpace(optionsJSON)
+	if optionsJSON == "" || optionsJSON == "{}" {
+		return nil
+	}
+	var opts map[string]string
+	if err := json.Unmarshal([]byte(optionsJSON), &opts); err != nil {
+		return nil
+	}
+	if len(opts) == 0 {
+		return nil
+	}
+	return opts
+}
+
+func (s *machineConnectService) validateMachineType(ctx context.Context, runtimeID, machineType string) error {
+	runtime, err := s.store.GetRuntimeByID(ctx, runtimeID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime not found"))
+		}
+		log.Printf("get runtime failed: %v", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+	}
+
+	config := &arcav1.RuntimeConfig{}
+	if err := protojson.Unmarshal([]byte(runtime.ConfigJSON), config); err != nil {
+		log.Printf("decode runtime config failed: %v", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to decode runtime config"))
+	}
+
+	gce := config.GetGce()
+	if gce == nil {
+		return nil // non-GCE runtime, no validation needed
+	}
+
+	allowed := gce.GetAllowedMachineTypes()
+	if len(allowed) == 0 {
+		return nil // empty list means any type is allowed
+	}
+	if !slices.Contains(allowed, machineType) {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("machine type is not allowed for this runtime"))
+	}
+	return nil
 }
 
 func toMachineEventMessage(event db.MachineEvent) *arcav1.MachineEvent {

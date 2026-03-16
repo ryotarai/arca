@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS machines (
   runtime_id TEXT NOT NULL DEFAULT 'libvirt',
   setup_version TEXT NOT NULL DEFAULT '',
   endpoint TEXT NOT NULL DEFAULT '',
+  options_json TEXT NOT NULL DEFAULT '{}',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -35,6 +35,7 @@ type Machine struct {
 	ReadyReportedAt int64                  `protobuf:"varint,10,opt,name=ready_reported_at,json=readyReportedAt,proto3" json:"ready_reported_at,omitempty"`
 	UserRole        string                 `protobuf:"bytes,11,opt,name=user_role,json=userRole,proto3" json:"user_role,omitempty"`
 	ArcadVersion    string                 `protobuf:"bytes,12,opt,name=arcad_version,json=arcadVersion,proto3" json:"arcad_version,omitempty"`
+	Options         map[string]string      `protobuf:"bytes,13,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -151,6 +152,13 @@ func (x *Machine) GetArcadVersion() string {
 		return x.ArcadVersion
 	}
 	return ""
+}
+
+func (x *Machine) GetOptions() map[string]string {
+	if x != nil {
+		return x.Options
+	}
+	return nil
 }
 
 type ListMachinesRequest struct {
@@ -325,6 +333,7 @@ type CreateMachineRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	RuntimeId     string                 `protobuf:"bytes,2,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
+	Options       map[string]string      `protobuf:"bytes,3,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -371,6 +380,13 @@ func (x *CreateMachineRequest) GetRuntimeId() string {
 		return x.RuntimeId
 	}
 	return ""
+}
+
+func (x *CreateMachineRequest) GetOptions() map[string]string {
+	if x != nil {
+		return x.Options
+	}
+	return nil
 }
 
 type CreateMachineResponse struct {
@@ -429,6 +445,7 @@ type UpdateMachineRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Options       map[string]string      `protobuf:"bytes,3,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -475,6 +492,13 @@ func (x *UpdateMachineRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *UpdateMachineRequest) GetOptions() map[string]string {
+	if x != nil {
+		return x.Options
+	}
+	return nil
 }
 
 type UpdateMachineResponse struct {
@@ -977,7 +1001,7 @@ var File_arca_v1_machine_proto protoreflect.FileDescriptor
 
 const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
-	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xf3\x02\n" +
+	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xe8\x03\n" +
 	"\aMachine\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -993,7 +1017,11 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x11ready_reported_at\x18\n" +
 	" \x01(\x03R\x0freadyReportedAt\x12\x1b\n" +
 	"\tuser_role\x18\v \x01(\tR\buserRole\x12#\n" +
-	"\rarcad_version\x18\f \x01(\tR\farcadVersion\"\x15\n" +
+	"\rarcad_version\x18\f \x01(\tR\farcadVersion\x127\n" +
+	"\aoptions\x18\r \x03(\v2\x1d.arca.v1.Machine.OptionsEntryR\aoptions\x1a:\n" +
+	"\fOptionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x15\n" +
 	"\x13ListMachinesRequest\"D\n" +
 	"\x14ListMachinesResponse\x12,\n" +
 	"\bmachines\x18\x01 \x03(\v2\x10.arca.v1.MachineR\bmachines\"2\n" +
@@ -1001,18 +1029,26 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\"@\n" +
 	"\x12GetMachineResponse\x12*\n" +
-	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"I\n" +
+	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"\xcb\x01\n" +
 	"\x14CreateMachineRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
-	"runtime_id\x18\x02 \x01(\tR\truntimeId\"h\n" +
+	"runtime_id\x18\x02 \x01(\tR\truntimeId\x12D\n" +
+	"\aoptions\x18\x03 \x03(\v2*.arca.v1.CreateMachineRequest.OptionsEntryR\aoptions\x1a:\n" +
+	"\fOptionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"h\n" +
 	"\x15CreateMachineResponse\x12*\n" +
 	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\x12#\n" +
-	"\rmachine_token\x18\x02 \x01(\tR\fmachineToken\"I\n" +
+	"\rmachine_token\x18\x02 \x01(\tR\fmachineToken\"\xcb\x01\n" +
 	"\x14UpdateMachineRequest\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"C\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12D\n" +
+	"\aoptions\x18\x03 \x03(\v2*.arca.v1.UpdateMachineRequest.OptionsEntryR\aoptions\x1a:\n" +
+	"\fOptionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"C\n" +
 	"\x15UpdateMachineResponse\x12*\n" +
 	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"S\n" +
 	"\x13StartMachineRequest\x12\x1d\n" +
@@ -1072,7 +1108,7 @@ func file_arca_v1_machine_proto_rawDescGZIP() []byte {
 	return file_arca_v1_machine_proto_rawDescData
 }
 
-var file_arca_v1_machine_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_arca_v1_machine_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_arca_v1_machine_proto_goTypes = []any{
 	(*Machine)(nil),                   // 0: arca.v1.Machine
 	(*ListMachinesRequest)(nil),       // 1: arca.v1.ListMachinesRequest
@@ -1092,36 +1128,42 @@ var file_arca_v1_machine_proto_goTypes = []any{
 	(*MachineEvent)(nil),              // 15: arca.v1.MachineEvent
 	(*ListMachineEventsRequest)(nil),  // 16: arca.v1.ListMachineEventsRequest
 	(*ListMachineEventsResponse)(nil), // 17: arca.v1.ListMachineEventsResponse
+	nil,                               // 18: arca.v1.Machine.OptionsEntry
+	nil,                               // 19: arca.v1.CreateMachineRequest.OptionsEntry
+	nil,                               // 20: arca.v1.UpdateMachineRequest.OptionsEntry
 }
 var file_arca_v1_machine_proto_depIdxs = []int32{
-	0,  // 0: arca.v1.ListMachinesResponse.machines:type_name -> arca.v1.Machine
-	0,  // 1: arca.v1.GetMachineResponse.machine:type_name -> arca.v1.Machine
-	0,  // 2: arca.v1.CreateMachineResponse.machine:type_name -> arca.v1.Machine
-	0,  // 3: arca.v1.UpdateMachineResponse.machine:type_name -> arca.v1.Machine
-	0,  // 4: arca.v1.StartMachineResponse.machine:type_name -> arca.v1.Machine
-	0,  // 5: arca.v1.StopMachineResponse.machine:type_name -> arca.v1.Machine
-	15, // 6: arca.v1.ListMachineEventsResponse.events:type_name -> arca.v1.MachineEvent
-	1,  // 7: arca.v1.MachineService.ListMachines:input_type -> arca.v1.ListMachinesRequest
-	3,  // 8: arca.v1.MachineService.GetMachine:input_type -> arca.v1.GetMachineRequest
-	5,  // 9: arca.v1.MachineService.CreateMachine:input_type -> arca.v1.CreateMachineRequest
-	7,  // 10: arca.v1.MachineService.UpdateMachine:input_type -> arca.v1.UpdateMachineRequest
-	9,  // 11: arca.v1.MachineService.StartMachine:input_type -> arca.v1.StartMachineRequest
-	11, // 12: arca.v1.MachineService.StopMachine:input_type -> arca.v1.StopMachineRequest
-	13, // 13: arca.v1.MachineService.DeleteMachine:input_type -> arca.v1.DeleteMachineRequest
-	16, // 14: arca.v1.MachineService.ListMachineEvents:input_type -> arca.v1.ListMachineEventsRequest
-	2,  // 15: arca.v1.MachineService.ListMachines:output_type -> arca.v1.ListMachinesResponse
-	4,  // 16: arca.v1.MachineService.GetMachine:output_type -> arca.v1.GetMachineResponse
-	6,  // 17: arca.v1.MachineService.CreateMachine:output_type -> arca.v1.CreateMachineResponse
-	8,  // 18: arca.v1.MachineService.UpdateMachine:output_type -> arca.v1.UpdateMachineResponse
-	10, // 19: arca.v1.MachineService.StartMachine:output_type -> arca.v1.StartMachineResponse
-	12, // 20: arca.v1.MachineService.StopMachine:output_type -> arca.v1.StopMachineResponse
-	14, // 21: arca.v1.MachineService.DeleteMachine:output_type -> arca.v1.DeleteMachineResponse
-	17, // 22: arca.v1.MachineService.ListMachineEvents:output_type -> arca.v1.ListMachineEventsResponse
-	15, // [15:23] is the sub-list for method output_type
-	7,  // [7:15] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	18, // 0: arca.v1.Machine.options:type_name -> arca.v1.Machine.OptionsEntry
+	0,  // 1: arca.v1.ListMachinesResponse.machines:type_name -> arca.v1.Machine
+	0,  // 2: arca.v1.GetMachineResponse.machine:type_name -> arca.v1.Machine
+	19, // 3: arca.v1.CreateMachineRequest.options:type_name -> arca.v1.CreateMachineRequest.OptionsEntry
+	0,  // 4: arca.v1.CreateMachineResponse.machine:type_name -> arca.v1.Machine
+	20, // 5: arca.v1.UpdateMachineRequest.options:type_name -> arca.v1.UpdateMachineRequest.OptionsEntry
+	0,  // 6: arca.v1.UpdateMachineResponse.machine:type_name -> arca.v1.Machine
+	0,  // 7: arca.v1.StartMachineResponse.machine:type_name -> arca.v1.Machine
+	0,  // 8: arca.v1.StopMachineResponse.machine:type_name -> arca.v1.Machine
+	15, // 9: arca.v1.ListMachineEventsResponse.events:type_name -> arca.v1.MachineEvent
+	1,  // 10: arca.v1.MachineService.ListMachines:input_type -> arca.v1.ListMachinesRequest
+	3,  // 11: arca.v1.MachineService.GetMachine:input_type -> arca.v1.GetMachineRequest
+	5,  // 12: arca.v1.MachineService.CreateMachine:input_type -> arca.v1.CreateMachineRequest
+	7,  // 13: arca.v1.MachineService.UpdateMachine:input_type -> arca.v1.UpdateMachineRequest
+	9,  // 14: arca.v1.MachineService.StartMachine:input_type -> arca.v1.StartMachineRequest
+	11, // 15: arca.v1.MachineService.StopMachine:input_type -> arca.v1.StopMachineRequest
+	13, // 16: arca.v1.MachineService.DeleteMachine:input_type -> arca.v1.DeleteMachineRequest
+	16, // 17: arca.v1.MachineService.ListMachineEvents:input_type -> arca.v1.ListMachineEventsRequest
+	2,  // 18: arca.v1.MachineService.ListMachines:output_type -> arca.v1.ListMachinesResponse
+	4,  // 19: arca.v1.MachineService.GetMachine:output_type -> arca.v1.GetMachineResponse
+	6,  // 20: arca.v1.MachineService.CreateMachine:output_type -> arca.v1.CreateMachineResponse
+	8,  // 21: arca.v1.MachineService.UpdateMachine:output_type -> arca.v1.UpdateMachineResponse
+	10, // 22: arca.v1.MachineService.StartMachine:output_type -> arca.v1.StartMachineResponse
+	12, // 23: arca.v1.MachineService.StopMachine:output_type -> arca.v1.StopMachineResponse
+	14, // 24: arca.v1.MachineService.DeleteMachine:output_type -> arca.v1.DeleteMachineResponse
+	17, // 25: arca.v1.MachineService.ListMachineEvents:output_type -> arca.v1.ListMachineEventsResponse
+	18, // [18:26] is the sub-list for method output_type
+	10, // [10:18] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_machine_proto_init() }
@@ -1135,7 +1177,7 @@ func file_arca_v1_machine_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_machine_proto_rawDesc), len(file_arca_v1_machine_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -10,14 +10,16 @@ import {
   listMachineEvents,
   listMachineExposures,
   listAvailableRuntimes,
+  listRuntimes,
   listMachineAccessRequests,
   resolveMachineAccessRequest,
   startMachine,
   stopMachine,
+  updateMachineOptions,
 } from '@/lib/api'
 import type { MachineAccessRequest } from '@/gen/arca/v1/sharing_pb'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, MachineEvent, RuntimeSummary, User } from '@/lib/types'
+import type { Machine, MachineEvent, RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -178,6 +180,10 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [machine, setMachine] = useState<Machine | null>(null)
   const [events, setEvents] = useState<MachineEvent[]>([])
   const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
+  const [runtimeDetails, setRuntimeDetails] = useState<RuntimeCatalogItem[]>([])
+  const [editingMachineType, setEditingMachineType] = useState(false)
+  const [editMachineType, setEditMachineType] = useState('')
+  const [savingMachineType, setSavingMachineType] = useState(false)
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -209,16 +215,18 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const [item, eventItems, exposureItems, runtimeItems] = await Promise.all([
+        const [item, eventItems, exposureItems, runtimeItems, runtimeDetailItems] = await Promise.all([
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineExposures(machineID),
           listAvailableRuntimes(),
+          listRuntimes(),
         ])
         if (!cancelled) {
           setMachine(item)
           setEvents(eventItems)
           setRuntimes(runtimeItems)
+          setRuntimeDetails(runtimeDetailItems)
           setError('')
           // Fetch access requests for admins
           if (item.userRole === 'admin') {
@@ -383,6 +391,82 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                     )}
                   </div>
                 )}
+                {(() => {
+                  const rt = runtimeDetails.find((r) => r.id === machine.runtimeId)
+                  if (rt == null || rt.type !== 'gce' || rt.config.type !== 'gce') return null
+                  const currentMT = machine.options?.machine_type || rt.config.machineType || 'e2-standard-2'
+                  const isStopped = machine.status === 'stopped'
+                  const allowed = rt.config.allowedMachineTypes ?? []
+
+                  const handleSaveMachineType = async () => {
+                    setSavingMachineType(true)
+                    setError('')
+                    try {
+                      const updated = await updateMachineOptions(machineID, { machine_type: editMachineType.trim() })
+                      setMachine(updated)
+                      setEditingMachineType(false)
+                    } catch (e) {
+                      setError(messageFromError(e))
+                    } finally {
+                      setSavingMachineType(false)
+                    }
+                  }
+
+                  return (
+                    <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                      <p className="text-sm text-muted-foreground">Machine type</p>
+                      {editingMachineType ? (
+                        <div className="flex items-center gap-2">
+                          {allowed.length > 0 ? (
+                            <select
+                              value={editMachineType}
+                              onChange={(e) => setEditMachineType(e.target.value)}
+                              className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                              disabled={savingMachineType}
+                            >
+                              {allowed.map((mt) => (
+                                <option key={mt} value={mt}>{mt}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={editMachineType}
+                              onChange={(e) => setEditMachineType(e.target.value)}
+                              className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                              disabled={savingMachineType}
+                              placeholder={currentMT}
+                            />
+                          )}
+                          <Button type="button" size="sm" disabled={savingMachineType || editMachineType.trim() === ''} onClick={() => void handleSaveMachineType()}>
+                            {savingMachineType ? 'Saving...' : 'Save'}
+                          </Button>
+                          <Button type="button" variant="secondary" size="sm" disabled={savingMachineType} onClick={() => setEditingMachineType(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{currentMT}</p>
+                          {isAdmin && isStopped && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => {
+                                setEditMachineType(currentMT)
+                                setEditingMachineType(true)
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Status</p>
                   <div className="flex items-center gap-2">

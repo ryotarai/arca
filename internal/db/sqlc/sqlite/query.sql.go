@@ -181,8 +181,8 @@ func (q *Queries) CreateAuthTicket(ctx context.Context, arg CreateAuthTicketPara
 }
 
 const createMachine = `-- name: CreateMachine :exec
-INSERT INTO machines (id, name, runtime_id, setup_version)
-VALUES (?1, ?2, ?3, ?4)
+INSERT INTO machines (id, name, runtime_id, setup_version, options_json)
+VALUES (?1, ?2, ?3, ?4, ?5)
 `
 
 type CreateMachineParams struct {
@@ -190,6 +190,7 @@ type CreateMachineParams struct {
 	Name         string
 	RuntimeID    string
 	SetupVersion string
+	OptionsJson  string
 }
 
 func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) error {
@@ -198,6 +199,7 @@ func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) er
 		arg.Name,
 		arg.RuntimeID,
 		arg.SetupVersion,
+		arg.OptionsJson,
 	)
 	return err
 }
@@ -769,7 +771,7 @@ func (q *Queries) GetMachineAccessRequestByID(ctx context.Context, id string) (G
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -783,6 +785,7 @@ type GetMachineByIDRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	OptionsJson     string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -803,6 +806,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.RuntimeID,
 		&i.SetupVersion,
 		&i.Endpoint,
+		&i.OptionsJson,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -817,7 +821,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -837,6 +841,7 @@ type GetMachineByIDForUserRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	OptionsJson     string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -856,6 +861,7 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 		&i.RuntimeID,
 		&i.SetupVersion,
 		&i.Endpoint,
+		&i.OptionsJson,
 		&i.Status,
 		&i.DesiredStatus,
 		&i.ContainerID,
@@ -1607,7 +1613,7 @@ func (q *Queries) ListMachineGroupAccess(ctx context.Context, machineID string) 
 }
 
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -1627,6 +1633,7 @@ type ListMachinesAccessibleByUserRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	OptionsJson     string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -1654,6 +1661,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 			&i.RuntimeID,
 			&i.SetupVersion,
 			&i.Endpoint,
+			&i.OptionsJson,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,
@@ -1679,7 +1687,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = ?1
@@ -1698,6 +1706,7 @@ type ListMachinesByDesiredStatusRow struct {
 	RuntimeID       string
 	SetupVersion    string
 	Endpoint        string
+	OptionsJson     string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -1724,6 +1733,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.RuntimeID,
 			&i.SetupVersion,
 			&i.Endpoint,
+			&i.OptionsJson,
 			&i.Status,
 			&i.DesiredStatus,
 			&i.ContainerID,
@@ -2549,6 +2559,25 @@ type UpdateMachineNameByIDForOwnerParams struct {
 
 func (q *Queries) UpdateMachineNameByIDForOwner(ctx context.Context, arg UpdateMachineNameByIDForOwnerParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateMachineNameByIDForOwner, arg.Name, arg.MachineID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateMachineOptionsByID = `-- name: UpdateMachineOptionsByID :execrows
+UPDATE machines
+SET options_json = ?1
+WHERE id = ?2
+`
+
+type UpdateMachineOptionsByIDParams struct {
+	OptionsJson string
+	MachineID   string
+}
+
+func (q *Queries) UpdateMachineOptionsByID(ctx context.Context, arg UpdateMachineOptionsByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateMachineOptionsByID, arg.OptionsJson, arg.MachineID)
 	if err != nil {
 		return 0, err
 	}

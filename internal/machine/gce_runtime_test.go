@@ -13,10 +13,11 @@ type fakeGceComputeClient struct {
 	instances map[string]*gceInstance
 	ops       map[string]*gceOperation
 
-	inserted []*gceInsertInstanceRequest
-	started  []string
-	stopped  []string
-	deleted  []string
+	inserted         []*gceInsertInstanceRequest
+	started          []string
+	stopped          []string
+	deleted          []string
+	machineTypesCalls []struct{ instance, machineType string }
 }
 
 func newFakeGceComputeClient() *fakeGceComputeClient {
@@ -81,6 +82,14 @@ func (f *fakeGceComputeClient) DeleteInstance(_ context.Context, _, _, instance 
 	}
 	delete(f.instances, instance)
 	return &gceOperation{Name: "delete-op"}, nil
+}
+
+func (f *fakeGceComputeClient) SetMachineType(_ context.Context, _, _, instance, machineType string) (*gceOperation, error) {
+	f.machineTypesCalls = append(f.machineTypesCalls, struct{ instance, machineType string }{instance, machineType})
+	if current, ok := f.instances[instance]; ok {
+		current.MachineType = machineType
+	}
+	return &gceOperation{Name: "setMachineType-op"}, nil
 }
 
 func (f *fakeGceComputeClient) WaitZoneOperation(_ context.Context, _, _, operation string) (*gceOperation, error) {
@@ -284,6 +293,143 @@ func TestGceRuntime_EnsureDeletedDeletesInstance(t *testing.T) {
 	}
 	if !reflect.DeepEqual(fakeClient.deleted, []string{"instance-a"}) {
 		t.Fatalf("delete calls = %#v", fakeClient.deleted)
+	}
+}
+
+func TestGceRuntime_EnsureRunningUsesOptionsMachineType(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
+		Project:             "project-a",
+		Zone:                "us-central1-a",
+		Network:             "main",
+		Subnetwork:          "main-subnet",
+		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+		MachineType:         "e2-standard-2",
+		Client:              fakeClient,
+	})
+	if err != nil {
+		t.Fatalf("new runtime: %v", err)
+	}
+
+	machine := db.Machine{
+		ID:          "machine-opttest12345",
+		RuntimeID:   "rt-gce",
+		OptionsJSON: `{"machine_type":"e2-medium"}`,
+	}
+	_, err = runtime.EnsureRunning(context.Background(), machine, RuntimeStartOptions{})
+	if err != nil {
+		t.Fatalf("ensure running: %v", err)
+	}
+	if len(fakeClient.inserted) != 1 {
+		t.Fatalf("insert calls = %d, want 1", len(fakeClient.inserted))
+	}
+	if fakeClient.inserted[0].MachineType != "zones/us-central1-a/machineTypes/e2-medium" {
+		t.Fatalf("machine type = %q, want e2-medium", fakeClient.inserted[0].MachineType)
+	}
+}
+
+func TestGceRuntime_EnsureRunningSetsMachineTypeOnTerminated(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	fakeClient.instances["instance-mt"] = &gceInstance{
+		Name:        "instance-mt",
+		Status:      "TERMINATED",
+		MachineType: "zones/us-central1-a/machineTypes/e2-standard-2",
+	}
+
+	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
+		Project:             "project-a",
+		Zone:                "us-central1-a",
+		Network:             "main",
+		Subnetwork:          "main-subnet",
+		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+		MachineType:         "e2-standard-2",
+		Client:              fakeClient,
+	})
+	if err != nil {
+		t.Fatalf("new runtime: %v", err)
+	}
+
+	machine := db.Machine{
+		ID:          "machine-ignored",
+		ContainerID: "instance-mt",
+		OptionsJSON: `{"machine_type":"e2-medium"}`,
+	}
+	_, err = runtime.EnsureRunning(context.Background(), machine, RuntimeStartOptions{})
+	if err != nil {
+		t.Fatalf("ensure running: %v", err)
+	}
+	if len(fakeClient.machineTypesCalls) != 1 {
+		t.Fatalf("setMachineType calls = %d, want 1", len(fakeClient.machineTypesCalls))
+	}
+	if !strings.Contains(fakeClient.machineTypesCalls[0].machineType, "e2-medium") {
+		t.Fatalf("setMachineType machineType = %q", fakeClient.machineTypesCalls[0].machineType)
+	}
+}
+
+func TestGceRuntime_EnsureRunningSkipsSetMachineTypeWhenUnchanged(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	fakeClient.instances["instance-same"] = &gceInstance{
+		Name:        "instance-same",
+		Status:      "TERMINATED",
+		MachineType: "zones/us-central1-a/machineTypes/e2-standard-2",
+	}
+
+	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
+		Project:             "project-a",
+		Zone:                "us-central1-a",
+		Network:             "main",
+		Subnetwork:          "main-subnet",
+		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+		MachineType:         "e2-standard-2",
+		Client:              fakeClient,
+	})
+	if err != nil {
+		t.Fatalf("new runtime: %v", err)
+	}
+
+	machine := db.Machine{
+		ID:          "machine-ignored",
+		ContainerID: "instance-same",
+		OptionsJSON: `{"machine_type":"e2-standard-2"}`,
+	}
+	_, err = runtime.EnsureRunning(context.Background(), machine, RuntimeStartOptions{})
+	if err != nil {
+		t.Fatalf("ensure running: %v", err)
+	}
+	if len(fakeClient.machineTypesCalls) != 0 {
+		t.Fatalf("setMachineType calls = %d, want 0 (same type)", len(fakeClient.machineTypesCalls))
+	}
+}
+
+func TestMachineTypeFromOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		optionsJSON string
+		defaultType string
+		want        string
+	}{
+		{"empty options", "", "e2-standard-2", "e2-standard-2"},
+		{"empty json", "{}", "e2-standard-2", "e2-standard-2"},
+		{"with machine_type", `{"machine_type":"e2-medium"}`, "e2-standard-2", "e2-medium"},
+		{"whitespace machine_type", `{"machine_type":"  "}`, "e2-standard-2", "e2-standard-2"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := db.Machine{OptionsJSON: tt.optionsJSON}
+			got := machineTypeFromOptions(m, tt.defaultType)
+			if got != tt.want {
+				t.Fatalf("machineTypeFromOptions() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 

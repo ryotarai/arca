@@ -343,6 +343,7 @@ type GceRuntimeConfig struct {
 	DiskSizeGb          int64                  `protobuf:"varint,8,opt,name=disk_size_gb,json=diskSizeGb,proto3" json:"disk_size_gb,omitempty"`
 	ImageProject        string                 `protobuf:"bytes,9,opt,name=image_project,json=imageProject,proto3" json:"image_project,omitempty"`
 	ImageFamily         string                 `protobuf:"bytes,10,opt,name=image_family,json=imageFamily,proto3" json:"image_family,omitempty"`
+	AllowedMachineTypes []string               `protobuf:"bytes,11,rep,name=allowed_machine_types,json=allowedMachineTypes,proto3" json:"allowed_machine_types,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -445,6 +446,13 @@ func (x *GceRuntimeConfig) GetImageFamily() string {
 		return x.ImageFamily
 	}
 	return ""
+}
+
+func (x *GceRuntimeConfig) GetAllowedMachineTypes() []string {
+	if x != nil {
+		return x.AllowedMachineTypes
+	}
+	return nil
 }
 
 type LxdRuntimeConfig struct {
@@ -1239,7 +1247,7 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x18\n" +
 	"\anetwork\x18\x02 \x01(\tR\anetwork\x12!\n" +
 	"\fstorage_pool\x18\x03 \x01(\tR\vstoragePool\x12%\n" +
-	"\x0estartup_script\x18\x04 \x01(\tR\rstartupScript\"\xe2\x02\n" +
+	"\x0estartup_script\x18\x04 \x01(\tR\rstartupScript\"\x96\x03\n" +
 	"\x10GceRuntimeConfig\x12\x18\n" +
 	"\aproject\x18\x01 \x01(\tR\aproject\x12\x12\n" +
 	"\x04zone\x18\x02 \x01(\tR\x04zone\x12\x18\n" +
@@ -1254,7 +1262,8 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"diskSizeGb\x12#\n" +
 	"\rimage_project\x18\t \x01(\tR\fimageProject\x12!\n" +
 	"\fimage_family\x18\n" +
-	" \x01(\tR\vimageFamily\"U\n" +
+	" \x01(\tR\vimageFamily\x122\n" +
+	"\x15allowed_machine_types\x18\v \x03(\tR\x13allowedMachineTypes\"U\n" +
 	"\x10LxdRuntimeConfig\x12\x1a\n" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12%\n" +
 	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\xd1\x02\n" +

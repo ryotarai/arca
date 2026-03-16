@@ -18,6 +18,21 @@ import (
 	"github.com/ryotarai/arca/internal/db"
 )
 
+func machineTypeFromOptions(machine db.Machine, defaultType string) string {
+	optionsJSON := strings.TrimSpace(machine.OptionsJSON)
+	if optionsJSON == "" || optionsJSON == "{}" {
+		return defaultType
+	}
+	var opts map[string]string
+	if err := json.Unmarshal([]byte(optionsJSON), &opts); err != nil {
+		return defaultType
+	}
+	if mt := strings.TrimSpace(opts["machine_type"]); mt != "" {
+		return mt
+	}
+	return defaultType
+}
+
 const (
 	defaultGceMachineType        = "e2-standard-2"
 	defaultGceDiskSizeGB   int64 = 40
@@ -63,6 +78,7 @@ type gceComputeClient interface {
 	StartInstance(context.Context, string, string, string) (*gceOperation, error)
 	StopInstance(context.Context, string, string, string) (*gceOperation, error)
 	DeleteInstance(context.Context, string, string, string) (*gceOperation, error)
+	SetMachineType(context.Context, string, string, string, string) (*gceOperation, error)
 	WaitZoneOperation(context.Context, string, string, string) (*gceOperation, error)
 }
 
@@ -73,6 +89,7 @@ type gceRESTClient struct {
 type gceInstance struct {
 	Name              string `json:"name"`
 	Status            string `json:"status"`
+	MachineType       string `json:"machineType"`
 	NetworkInterfaces []struct {
 		NetworkIP     string `json:"networkIP"`
 		AccessConfigs []struct {
@@ -227,10 +244,12 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	if err != nil {
 		return "", err
 	}
+	effectiveMachineType := machineTypeFromOptions(machine, r.machineType)
+
 	if !found {
 		opts.StartupScript = r.startupScript
 		cloudInit := cloudInitUserData(machine, opts)
-		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit))
+		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit, effectiveMachineType))
 		if err != nil {
 			return "", fmt.Errorf("create gce instance %q: %w", instanceName, err)
 		}
@@ -249,6 +268,10 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 		}
 		fallthrough
 	case "TERMINATED", "SUSPENDED":
+		// Change machine type before starting if needed
+		if err := r.setMachineTypeIfNeeded(ctx, client, instanceName, effectiveMachineType); err != nil {
+			return "", err
+		}
 		startOp, err := client.StartInstance(ctx, r.project, r.zone, instanceName)
 		if err != nil {
 			return "", fmt.Errorf("start gce instance %q: %w", instanceName, err)
@@ -448,10 +471,30 @@ func (r *GceRuntime) waitForTerminated(ctx context.Context, client gceComputeCli
 	}
 }
 
-func (r *GceRuntime) instanceSpec(instanceName, cloudInit string) *gceInsertInstanceRequest {
+func (r *GceRuntime) setMachineTypeIfNeeded(ctx context.Context, client gceComputeClient, instanceName, desiredMachineType string) error {
+	instance, found, err := r.getInstance(ctx, client, instanceName)
+	if err != nil || !found {
+		return err
+	}
+	// Extract current machine type from the full resource URL (e.g. "zones/us-central1-a/machineTypes/e2-standard-2")
+	currentType := instance.MachineType
+	if idx := strings.LastIndex(currentType, "/"); idx >= 0 {
+		currentType = currentType[idx+1:]
+	}
+	if currentType == desiredMachineType {
+		return nil
+	}
+	op, err := client.SetMachineType(ctx, r.project, r.zone, instanceName, fmt.Sprintf("zones/%s/machineTypes/%s", r.zone, desiredMachineType))
+	if err != nil {
+		return fmt.Errorf("set machine type on gce instance %q: %w", instanceName, err)
+	}
+	return r.waitOperation(ctx, client, op, "setMachineType")
+}
+
+func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType string) *gceInsertInstanceRequest {
 	req := &gceInsertInstanceRequest{
 		Name:        instanceName,
-		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", r.zone, r.machineType),
+		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", r.zone, machineType),
 	}
 	req.Disks = []struct {
 		AutoDelete       bool   `json:"autoDelete"`
@@ -555,6 +598,16 @@ func (c *gceRESTClient) StartInstance(ctx context.Context, project, zone, instan
 func (c *gceRESTClient) StopInstance(ctx context.Context, project, zone, instance string) (*gceOperation, error) {
 	var out gceOperation
 	err := c.doJSON(ctx, http.MethodPost, fmt.Sprintf("/compute/v1/projects/%s/zones/%s/instances/%s/stop", url.PathEscape(project), url.PathEscape(zone), url.PathEscape(instance)), nil, &out)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *gceRESTClient) SetMachineType(ctx context.Context, project, zone, instance, machineType string) (*gceOperation, error) {
+	var out gceOperation
+	body := map[string]string{"machineType": machineType}
+	err := c.doJSON(ctx, http.MethodPost, fmt.Sprintf("/compute/v1/projects/%s/zones/%s/instances/%s/setMachineType", url.PathEscape(project), url.PathEscape(zone), url.PathEscape(instance)), body, &out)
 	if err != nil {
 		return nil, err
 	}

@@ -345,8 +345,8 @@ export async function listMachines(options: PollingOptions = {}): Promise<Machin
   return response.machines
 }
 
-export async function createMachine(name: string, runtimeID: string): Promise<Machine> {
-  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID })) 
+export async function createMachine(name: string, runtimeID: string, options?: Record<string, string>): Promise<Machine> {
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID, options: options ?? {} }))
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -366,14 +366,18 @@ export async function getMachine(id: string, options: PollingOptions = {}): Prom
   return response.machine
 }
 
-export async function updateMachine(id: string, name: string): Promise<Machine> {
+export async function updateMachine(id: string, name: string, options?: Record<string, string>): Promise<Machine> {
   const response = await machineClient.updateMachine(
-    create(UpdateMachineRequestSchema, { machineId: id, name }),
+    create(UpdateMachineRequestSchema, { machineId: id, name, options: options ?? {} }),
   )
   if (response.machine == null) {
     throw new Error('request failed')
   }
   return response.machine
+}
+
+export async function updateMachineOptions(id: string, options: Record<string, string>): Promise<Machine> {
+  return updateMachine(id, '', options)
 }
 
 export async function startMachine(id: string, runtimeID?: string): Promise<Machine> {
@@ -435,7 +439,7 @@ function toRuntimeCatalogItem(input: {
       | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string; startupScript: string } }
       | {
           case: 'gce'
-          value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string; machineType: string; diskSizeGb: bigint; imageProject: string; imageFamily: string }
+          value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string; machineType: string; diskSizeGb: bigint; imageProject: string; imageFamily: string; allowedMachineTypes: string[] }
         }
       | { case: 'lxd'; value: { endpoint: string; startupScript: string } }
       | { case: undefined; value?: undefined }
@@ -470,6 +474,7 @@ function toRuntimeCatalogItem(input: {
       diskSizeGb: Number(gce?.diskSizeGb ?? 0),
       imageProject: gce?.imageProject ?? '',
       imageFamily: gce?.imageFamily ?? '',
+      allowedMachineTypes: gce?.allowedMachineTypes ?? [],
     }
   } else if (runtimeType === 'lxd') {
     const lxd = input.config?.provider.case === 'lxd' ? input.config.provider.value : undefined
@@ -533,6 +538,7 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
         diskSizeGb: BigInt(config.diskSizeGb || 0),
         imageProject: config.imageProject,
         imageFamily: config.imageFamily,
+        allowedMachineTypes: config.allowedMachineTypes ?? [],
       },
     }
   } else if (type === 'lxd') {

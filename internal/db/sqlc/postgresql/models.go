@@ -53,6 +53,7 @@ type Machine struct {
 	RuntimeID    string
 	SetupVersion string
 	Endpoint     string
+	OptionsJson  string
 	CreatedAt    time.Time
 }
 

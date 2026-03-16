@@ -28,6 +28,7 @@ message Machine {
   int64 ready_reported_at = 10;
   string user_role = 11;
   string arcad_version = 12;
+  map<string, string> options = 13;
 }
 
 message ListMachinesRequest {}
@@ -47,6 +48,7 @@ message GetMachineResponse {
 message CreateMachineRequest {
   string name = 1;
   string runtime_id = 2;
+  map<string, string> options = 3;
 }
 
 message CreateMachineResponse {
@@ -57,6 +59,7 @@ message CreateMachineResponse {
 message UpdateMachineRequest {
   string machine_id = 1;
   string name = 2;
+  map<string, string> options = 3;
 }
 
 message UpdateMachineResponse {

@@ -329,6 +329,7 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 		diskSizeGb := gce.GetDiskSizeGb()
 		imageProject := strings.TrimSpace(gce.GetImageProject())
 		imageFamily := strings.TrimSpace(gce.GetImageFamily())
+		allowedMachineTypes := gce.GetAllowedMachineTypes()
 		return validatedRuntimeRequest{
 			name:        normalizedName,
 			runtimeType: db.RuntimeTypeGCE,
@@ -345,6 +346,7 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						DiskSizeGb:          diskSizeGb,
 						ImageProject:        imageProject,
 						ImageFamily:         imageFamily,
+						AllowedMachineTypes: allowedMachineTypes,
 					},
 				},
 				Exposure:                exposureConfig,

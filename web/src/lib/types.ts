@@ -83,6 +83,7 @@ export type RuntimeCatalogConfig =
       diskSizeGb: number
       imageProject: string
       imageFamily: string
+      allowedMachineTypes: string[]
     }
   | {
       type: 'lxd'
