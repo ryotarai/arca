@@ -48,15 +48,18 @@ test.describe('LXD provisioning (proxy via server)', () => {
       // Verify endpoint is set
       expect(runningMachine.endpoint?.trim() ?? '').not.toEqual('')
 
-      // Test proxy via server access: send request to server with Host header
+      // Test proxy via server access: send request to server with Host header.
+      // The request may return 200 (authenticated), 302 (auth redirect), or
+      // 401/403 (rejected). Any of these confirms the proxy is routing correctly.
       const machineEndpoint = runningMachine.endpoint!.trim()
       const serverBaseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080'
       const resp = await page.request.get(`${serverBaseURL}/__arca/ttyd/`, {
         headers: { Host: machineEndpoint },
         failOnStatusCode: false,
+        maxRedirects: 0,
         timeout: 20_000,
       })
-      expect([200, 401, 403]).toContain(resp.status())
+      expect([200, 302, 401, 403]).toContain(resp.status())
 
       // Verify UI shows running status and endpoint
       await page.goto(`/machines/${machineID}`)
@@ -87,9 +90,11 @@ test.describe('LXD provisioning (proxy via server)', () => {
       await page.getByRole('button', { name: 'Delete' }).click()
       await expect(page).toHaveURL('/machines')
 
-      // Verify machine is gone from list
-      await page.goto('/machines')
-      await expect(page.locator('li', { hasText: machineName })).toHaveCount(0)
+      // Verify machine is gone from list (deletion is async, poll until removed)
+      await expect(async () => {
+        await page.goto('/machines')
+        await expect(page.locator('li', { hasText: machineName })).toHaveCount(0)
+      }).toPass({ timeout: 60_000 })
       machineID = '' // Already deleted
     } finally {
       if (machineID !== '') {

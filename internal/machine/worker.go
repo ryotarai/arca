@@ -212,6 +212,11 @@ func (w *Worker) reconcileMachines(ctx context.Context, nowUnix int64, machines 
 		}
 
 		if running {
+			// Skip machines in "starting" state — the start job is responsible
+			// for transitioning to "running" after readiness is confirmed.
+			if machine.Status == db.MachineStatusStarting {
+				continue
+			}
 			if machine.Status != db.MachineStatusRunning || machine.ContainerID != containerID {
 				if err := w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusRunning, db.MachineDesiredRunning, containerID, ""); err != nil {
 					slog.Warn("machine reconcile runtime state update failed", "machine_id", machine.ID, "error", err)

@@ -35,7 +35,7 @@ export default defineConfig({
       'cd .. && mkdir -p bin .cache/go-build .cache/go-mod && GOCACHE=$(pwd)/.cache/go-build GOMODCACHE=$(pwd)/.cache/go-mod go build -o ./bin/server ./cmd/server && rm -f /tmp/arca-e2e.db && ./bin/server',
     env: {
       ...process.env,
-      SERVER_ADDR: '127.0.0.1:18080',
+      SERVER_ADDR: '0.0.0.0:18080',
       DB_DSN: 'file:/tmp/arca-e2e.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)',
       ARCA_SKIP_SETUP: '1',
       ARCA_SKIP_CLOUDFLARE_VALIDATION: shouldSkipCloudflareValidation,
