@@ -54,6 +54,18 @@ const (
 	UserServiceUpdateUserSettingsProcedure = "/arca.v1.UserService/UpdateUserSettings"
 	// UserServiceSearchUsersProcedure is the fully-qualified name of the UserService's SearchUsers RPC.
 	UserServiceSearchUsersProcedure = "/arca.v1.UserService/SearchUsers"
+	// UserServiceListUserLLMModelsProcedure is the fully-qualified name of the UserService's
+	// ListUserLLMModels RPC.
+	UserServiceListUserLLMModelsProcedure = "/arca.v1.UserService/ListUserLLMModels"
+	// UserServiceCreateUserLLMModelProcedure is the fully-qualified name of the UserService's
+	// CreateUserLLMModel RPC.
+	UserServiceCreateUserLLMModelProcedure = "/arca.v1.UserService/CreateUserLLMModel"
+	// UserServiceUpdateUserLLMModelProcedure is the fully-qualified name of the UserService's
+	// UpdateUserLLMModel RPC.
+	UserServiceUpdateUserLLMModelProcedure = "/arca.v1.UserService/UpdateUserLLMModel"
+	// UserServiceDeleteUserLLMModelProcedure is the fully-qualified name of the UserService's
+	// DeleteUserLLMModel RPC.
+	UserServiceDeleteUserLLMModelProcedure = "/arca.v1.UserService/DeleteUserLLMModel"
 )
 
 // UserServiceClient is a client for the arca.v1.UserService service.
@@ -66,6 +78,10 @@ type UserServiceClient interface {
 	GetUserSettings(context.Context, *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error)
 	UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error)
 	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
+	ListUserLLMModels(context.Context, *connect.Request[v1.ListUserLLMModelsRequest]) (*connect.Response[v1.ListUserLLMModelsResponse], error)
+	CreateUserLLMModel(context.Context, *connect.Request[v1.CreateUserLLMModelRequest]) (*connect.Response[v1.CreateUserLLMModelResponse], error)
+	UpdateUserLLMModel(context.Context, *connect.Request[v1.UpdateUserLLMModelRequest]) (*connect.Response[v1.UpdateUserLLMModelResponse], error)
+	DeleteUserLLMModel(context.Context, *connect.Request[v1.DeleteUserLLMModelRequest]) (*connect.Response[v1.DeleteUserLLMModelResponse], error)
 }
 
 // NewUserServiceClient constructs a client for the arca.v1.UserService service. By default, it uses
@@ -127,6 +143,30 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("SearchUsers")),
 			connect.WithClientOptions(opts...),
 		),
+		listUserLLMModels: connect.NewClient[v1.ListUserLLMModelsRequest, v1.ListUserLLMModelsResponse](
+			httpClient,
+			baseURL+UserServiceListUserLLMModelsProcedure,
+			connect.WithSchema(userServiceMethods.ByName("ListUserLLMModels")),
+			connect.WithClientOptions(opts...),
+		),
+		createUserLLMModel: connect.NewClient[v1.CreateUserLLMModelRequest, v1.CreateUserLLMModelResponse](
+			httpClient,
+			baseURL+UserServiceCreateUserLLMModelProcedure,
+			connect.WithSchema(userServiceMethods.ByName("CreateUserLLMModel")),
+			connect.WithClientOptions(opts...),
+		),
+		updateUserLLMModel: connect.NewClient[v1.UpdateUserLLMModelRequest, v1.UpdateUserLLMModelResponse](
+			httpClient,
+			baseURL+UserServiceUpdateUserLLMModelProcedure,
+			connect.WithSchema(userServiceMethods.ByName("UpdateUserLLMModel")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteUserLLMModel: connect.NewClient[v1.DeleteUserLLMModelRequest, v1.DeleteUserLLMModelResponse](
+			httpClient,
+			baseURL+UserServiceDeleteUserLLMModelProcedure,
+			connect.WithSchema(userServiceMethods.ByName("DeleteUserLLMModel")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -140,6 +180,10 @@ type userServiceClient struct {
 	getUserSettings     *connect.Client[v1.GetUserSettingsRequest, v1.GetUserSettingsResponse]
 	updateUserSettings  *connect.Client[v1.UpdateUserSettingsRequest, v1.UpdateUserSettingsResponse]
 	searchUsers         *connect.Client[v1.SearchUsersRequest, v1.SearchUsersResponse]
+	listUserLLMModels   *connect.Client[v1.ListUserLLMModelsRequest, v1.ListUserLLMModelsResponse]
+	createUserLLMModel  *connect.Client[v1.CreateUserLLMModelRequest, v1.CreateUserLLMModelResponse]
+	updateUserLLMModel  *connect.Client[v1.UpdateUserLLMModelRequest, v1.UpdateUserLLMModelResponse]
+	deleteUserLLMModel  *connect.Client[v1.DeleteUserLLMModelRequest, v1.DeleteUserLLMModelResponse]
 }
 
 // ListUsers calls arca.v1.UserService.ListUsers.
@@ -182,6 +226,26 @@ func (c *userServiceClient) SearchUsers(ctx context.Context, req *connect.Reques
 	return c.searchUsers.CallUnary(ctx, req)
 }
 
+// ListUserLLMModels calls arca.v1.UserService.ListUserLLMModels.
+func (c *userServiceClient) ListUserLLMModels(ctx context.Context, req *connect.Request[v1.ListUserLLMModelsRequest]) (*connect.Response[v1.ListUserLLMModelsResponse], error) {
+	return c.listUserLLMModels.CallUnary(ctx, req)
+}
+
+// CreateUserLLMModel calls arca.v1.UserService.CreateUserLLMModel.
+func (c *userServiceClient) CreateUserLLMModel(ctx context.Context, req *connect.Request[v1.CreateUserLLMModelRequest]) (*connect.Response[v1.CreateUserLLMModelResponse], error) {
+	return c.createUserLLMModel.CallUnary(ctx, req)
+}
+
+// UpdateUserLLMModel calls arca.v1.UserService.UpdateUserLLMModel.
+func (c *userServiceClient) UpdateUserLLMModel(ctx context.Context, req *connect.Request[v1.UpdateUserLLMModelRequest]) (*connect.Response[v1.UpdateUserLLMModelResponse], error) {
+	return c.updateUserLLMModel.CallUnary(ctx, req)
+}
+
+// DeleteUserLLMModel calls arca.v1.UserService.DeleteUserLLMModel.
+func (c *userServiceClient) DeleteUserLLMModel(ctx context.Context, req *connect.Request[v1.DeleteUserLLMModelRequest]) (*connect.Response[v1.DeleteUserLLMModelResponse], error) {
+	return c.deleteUserLLMModel.CallUnary(ctx, req)
+}
+
 // UserServiceHandler is an implementation of the arca.v1.UserService service.
 type UserServiceHandler interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
@@ -192,6 +256,10 @@ type UserServiceHandler interface {
 	GetUserSettings(context.Context, *connect.Request[v1.GetUserSettingsRequest]) (*connect.Response[v1.GetUserSettingsResponse], error)
 	UpdateUserSettings(context.Context, *connect.Request[v1.UpdateUserSettingsRequest]) (*connect.Response[v1.UpdateUserSettingsResponse], error)
 	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
+	ListUserLLMModels(context.Context, *connect.Request[v1.ListUserLLMModelsRequest]) (*connect.Response[v1.ListUserLLMModelsResponse], error)
+	CreateUserLLMModel(context.Context, *connect.Request[v1.CreateUserLLMModelRequest]) (*connect.Response[v1.CreateUserLLMModelResponse], error)
+	UpdateUserLLMModel(context.Context, *connect.Request[v1.UpdateUserLLMModelRequest]) (*connect.Response[v1.UpdateUserLLMModelResponse], error)
+	DeleteUserLLMModel(context.Context, *connect.Request[v1.DeleteUserLLMModelRequest]) (*connect.Response[v1.DeleteUserLLMModelResponse], error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -249,6 +317,30 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("SearchUsers")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceListUserLLMModelsHandler := connect.NewUnaryHandler(
+		UserServiceListUserLLMModelsProcedure,
+		svc.ListUserLLMModels,
+		connect.WithSchema(userServiceMethods.ByName("ListUserLLMModels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceCreateUserLLMModelHandler := connect.NewUnaryHandler(
+		UserServiceCreateUserLLMModelProcedure,
+		svc.CreateUserLLMModel,
+		connect.WithSchema(userServiceMethods.ByName("CreateUserLLMModel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceUpdateUserLLMModelHandler := connect.NewUnaryHandler(
+		UserServiceUpdateUserLLMModelProcedure,
+		svc.UpdateUserLLMModel,
+		connect.WithSchema(userServiceMethods.ByName("UpdateUserLLMModel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceDeleteUserLLMModelHandler := connect.NewUnaryHandler(
+		UserServiceDeleteUserLLMModelProcedure,
+		svc.DeleteUserLLMModel,
+		connect.WithSchema(userServiceMethods.ByName("DeleteUserLLMModel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceListUsersProcedure:
@@ -267,6 +359,14 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceUpdateUserSettingsHandler.ServeHTTP(w, r)
 		case UserServiceSearchUsersProcedure:
 			userServiceSearchUsersHandler.ServeHTTP(w, r)
+		case UserServiceListUserLLMModelsProcedure:
+			userServiceListUserLLMModelsHandler.ServeHTTP(w, r)
+		case UserServiceCreateUserLLMModelProcedure:
+			userServiceCreateUserLLMModelHandler.ServeHTTP(w, r)
+		case UserServiceUpdateUserLLMModelProcedure:
+			userServiceUpdateUserLLMModelHandler.ServeHTTP(w, r)
+		case UserServiceDeleteUserLLMModelProcedure:
+			userServiceDeleteUserLLMModelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -306,4 +406,20 @@ func (UnimplementedUserServiceHandler) UpdateUserSettings(context.Context, *conn
 
 func (UnimplementedUserServiceHandler) SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.SearchUsers is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) ListUserLLMModels(context.Context, *connect.Request[v1.ListUserLLMModelsRequest]) (*connect.Response[v1.ListUserLLMModelsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.ListUserLLMModels is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) CreateUserLLMModel(context.Context, *connect.Request[v1.CreateUserLLMModelRequest]) (*connect.Response[v1.CreateUserLLMModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.CreateUserLLMModel is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) UpdateUserLLMModel(context.Context, *connect.Request[v1.UpdateUserLLMModelRequest]) (*connect.Response[v1.UpdateUserLLMModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.UpdateUserLLMModel is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) DeleteUserLLMModel(context.Context, *connect.Request[v1.DeleteUserLLMModelRequest]) (*connect.Response[v1.DeleteUserLLMModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.DeleteUserLLMModel is not implemented"))
 }

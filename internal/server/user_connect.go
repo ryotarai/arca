@@ -5,12 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/ryotarai/arca/internal/auth"
+	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 	"golang.org/x/crypto/ssh"
@@ -19,10 +22,11 @@ import (
 type userConnectService struct {
 	store         *db.Store
 	authenticator Authenticator
+	encryptor     *crypto.Encryptor
 }
 
-func newUserConnectService(store *db.Store, authenticator Authenticator) *userConnectService {
-	return &userConnectService{store: store, authenticator: authenticator}
+func newUserConnectService(store *db.Store, authenticator Authenticator, encryptor *crypto.Encryptor) *userConnectService {
+	return &userConnectService{store: store, authenticator: authenticator, encryptor: encryptor}
 }
 
 func (s *userConnectService) ListUsers(ctx context.Context, req *connect.Request[arcav1.ListUsersRequest]) (*connect.Response[arcav1.ListUsersResponse], error) {
@@ -320,6 +324,228 @@ func (s *userConnectService) authenticateUser(ctx context.Context, header http.H
 	}
 
 	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+}
+
+var validEndpointTypes = map[string]bool{
+	"openai_chat":     true,
+	"openai_response": true,
+	"anthropic":       true,
+	"google_gemini":   true,
+}
+
+func (s *userConnectService) ListUserLLMModels(ctx context.Context, req *connect.Request[arcav1.ListUserLLMModelsRequest]) (*connect.Response[arcav1.ListUserLLMModelsResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	models, err := s.store.ListUserLLMModels(ctx, userID)
+	if err != nil {
+		log.Printf("list user llm models failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list LLM models"))
+	}
+
+	items := make([]*arcav1.LLMModel, 0, len(models))
+	for _, m := range models {
+		items = append(items, toLLMModelMessage(m))
+	}
+	return connect.NewResponse(&arcav1.ListUserLLMModelsResponse{Models: items}), nil
+}
+
+func (s *userConnectService) CreateUserLLMModel(ctx context.Context, req *connect.Request[arcav1.CreateUserLLMModelRequest]) (*connect.Response[arcav1.CreateUserLLMModelResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	if s.encryptor == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("encryption not configured; set ARCA_ENCRYPTION_KEY"))
+	}
+
+	configName := strings.TrimSpace(req.Msg.GetConfigName())
+	if configName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("config_name is required"))
+	}
+	endpointType := strings.TrimSpace(req.Msg.GetEndpointType())
+	if !validEndpointTypes[endpointType] {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("endpoint_type must be one of: openai_chat, openai_response, anthropic, google_gemini"))
+	}
+	modelName := strings.TrimSpace(req.Msg.GetModelName())
+	if modelName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("model_name is required"))
+	}
+	apiKey := req.Msg.GetApiKey()
+
+	encryptedKey := ""
+	if apiKey != "" {
+		encryptedKey, err = s.encryptor.Encrypt(apiKey)
+		if err != nil {
+			log.Printf("encrypt api key failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encrypt API key"))
+		}
+	}
+
+	id := uuid.New().String()
+	model := db.UserLLMModel{
+		ID:               id,
+		UserID:           userID,
+		ConfigName:       configName,
+		EndpointType:     endpointType,
+		CustomEndpoint:   strings.TrimSpace(req.Msg.GetCustomEndpoint()),
+		ModelName:        modelName,
+		APIKeyEncrypted:  encryptedKey,
+		MaxContextTokens: int64(req.Msg.GetMaxContextTokens()),
+	}
+
+	if err := s.store.CreateUserLLMModel(ctx, model); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
+			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("config_name already exists"))
+		}
+		log.Printf("create user llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create LLM model"))
+	}
+
+	created, err := s.store.GetUserLLMModel(ctx, id, userID)
+	if err != nil {
+		log.Printf("get created llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load created LLM model"))
+	}
+
+	return connect.NewResponse(&arcav1.CreateUserLLMModelResponse{
+		Model: toLLMModelMessageFromFull(created),
+	}), nil
+}
+
+func (s *userConnectService) UpdateUserLLMModel(ctx context.Context, req *connect.Request[arcav1.UpdateUserLLMModelRequest]) (*connect.Response[arcav1.UpdateUserLLMModelResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	if s.encryptor == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("encryption not configured; set ARCA_ENCRYPTION_KEY"))
+	}
+
+	id := strings.TrimSpace(req.Msg.GetId())
+	if id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
+	}
+
+	existing, err := s.store.GetUserLLMModel(ctx, id, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
+		}
+		log.Printf("get user llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load LLM model"))
+	}
+
+	configName := strings.TrimSpace(req.Msg.GetConfigName())
+	if configName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("config_name is required"))
+	}
+	endpointType := strings.TrimSpace(req.Msg.GetEndpointType())
+	if !validEndpointTypes[endpointType] {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("endpoint_type must be one of: openai_chat, openai_response, anthropic, google_gemini"))
+	}
+	modelName := strings.TrimSpace(req.Msg.GetModelName())
+	if modelName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("model_name is required"))
+	}
+
+	apiKey := req.Msg.GetApiKey()
+	encryptedKey := existing.APIKeyEncrypted
+	if apiKey != "" {
+		encryptedKey, err = s.encryptor.Encrypt(apiKey)
+		if err != nil {
+			log.Printf("encrypt api key failed: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encrypt API key"))
+		}
+	}
+
+	model := db.UserLLMModel{
+		ID:               id,
+		UserID:           userID,
+		ConfigName:       configName,
+		EndpointType:     endpointType,
+		CustomEndpoint:   strings.TrimSpace(req.Msg.GetCustomEndpoint()),
+		ModelName:        modelName,
+		APIKeyEncrypted:  encryptedKey,
+		MaxContextTokens: int64(req.Msg.GetMaxContextTokens()),
+	}
+
+	updated, err := s.store.UpdateUserLLMModel(ctx, model)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
+			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("config_name already exists"))
+		}
+		log.Printf("update user llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update LLM model"))
+	}
+	if !updated {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
+	}
+
+	result, err := s.store.GetUserLLMModel(ctx, id, userID)
+	if err != nil {
+		log.Printf("get updated llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load updated LLM model"))
+	}
+
+	return connect.NewResponse(&arcav1.UpdateUserLLMModelResponse{
+		Model: toLLMModelMessageFromFull(result),
+	}), nil
+}
+
+func (s *userConnectService) DeleteUserLLMModel(ctx context.Context, req *connect.Request[arcav1.DeleteUserLLMModelRequest]) (*connect.Response[arcav1.DeleteUserLLMModelResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	id := strings.TrimSpace(req.Msg.GetId())
+	if id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
+	}
+
+	deleted, err := s.store.DeleteUserLLMModel(ctx, id, userID)
+	if err != nil {
+		log.Printf("delete user llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete LLM model"))
+	}
+	if !deleted {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
+	}
+
+	return connect.NewResponse(&arcav1.DeleteUserLLMModelResponse{}), nil
+}
+
+func toLLMModelMessage(m db.UserLLMModelSummary) *arcav1.LLMModel {
+	return &arcav1.LLMModel{
+		Id:               m.ID,
+		ConfigName:       m.ConfigName,
+		EndpointType:     m.EndpointType,
+		CustomEndpoint:   m.CustomEndpoint,
+		ModelName:        m.ModelName,
+		HasApiKey:        true, // API key is always present in summary (we don't know if it's empty from summary)
+		MaxContextTokens: int32(m.MaxContextTokens),
+		CreatedAt:        fmt.Sprintf("%d", m.CreatedAt),
+		UpdatedAt:        fmt.Sprintf("%d", m.UpdatedAt),
+	}
+}
+
+func toLLMModelMessageFromFull(m db.UserLLMModel) *arcav1.LLMModel {
+	return &arcav1.LLMModel{
+		Id:               m.ID,
+		ConfigName:       m.ConfigName,
+		EndpointType:     m.EndpointType,
+		CustomEndpoint:   m.CustomEndpoint,
+		ModelName:        m.ModelName,
+		HasApiKey:        m.APIKeyEncrypted != "",
+		MaxContextTokens: int32(m.MaxContextTokens),
+		CreatedAt:        fmt.Sprintf("%d", m.CreatedAt),
+		UpdatedAt:        fmt.Sprintf("%d", m.UpdatedAt),
+	}
 }
 
 func normalizeSSHPublicKeys(input []string) ([]string, error) {

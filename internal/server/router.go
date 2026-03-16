@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ryotarai/arca/internal/cloudflare"
+	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/gen/arca/v1/arcav1connect"
 	"github.com/ryotarai/arca/internal/notification"
@@ -26,6 +27,7 @@ type Dependencies struct {
 	ConsoleTunnel *ConsoleTunnelManager
 	MachineProxy  *MachineProxyHandler
 	Slack         *notification.SlackService
+	Encryptor     *crypto.Encryptor
 }
 
 type HealthChecker interface {
@@ -85,7 +87,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.Store != nil {
-		path, handler := arcav1connect.NewUserServiceHandler(newUserConnectService(deps.Store, deps.Authenticator))
+		path, handler := arcav1connect.NewUserServiceHandler(newUserConnectService(deps.Store, deps.Authenticator, deps.Encryptor))
 		r.Mount(path, handler)
 
 		path, handler = arcav1connect.NewRuntimeServiceHandler(newRuntimeConnectService(deps.Store, deps.Authenticator))

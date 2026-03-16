@@ -50,7 +50,7 @@ func authRequest[T any](msg T, sessionToken string) *connect.Request[T] {
 func TestUserConnectService_AdminOnlyOperations(t *testing.T) {
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
-	service := newUserConnectService(store, authenticator)
+	service := newUserConnectService(store, authenticator, nil)
 
 	adminID, _, err := authenticator.Register(ctx, "admin@example.com", "admin-password")
 	if err != nil {
@@ -144,7 +144,7 @@ func TestUserConnectService_AdminOnlyOperations(t *testing.T) {
 func TestUserConnectService_UserSettings(t *testing.T) {
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
-	service := newUserConnectService(store, authenticator)
+	service := newUserConnectService(store, authenticator, nil)
 
 	if _, _, err := authenticator.Register(ctx, "member@example.com", "member-password"); err != nil {
 		t.Fatalf("register member: %v", err)

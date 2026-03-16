@@ -64,14 +64,19 @@ import type { GeneralAccess, MachineAccessRequest, MachineSharingGroup, MachineS
 import {
   CompleteUserSetupRequestSchema,
   CreateUserRequestSchema,
+  CreateUserLLMModelRequestSchema,
+  DeleteUserLLMModelRequestSchema,
   GetUserSettingsRequestSchema,
   IssueUserSetupTokenRequestSchema,
+  ListUserLLMModelsRequestSchema,
   ListUsersRequestSchema as ListManagedUsersRequestSchema,
   SearchUsersRequestSchema,
+  UpdateUserLLMModelRequestSchema,
   UpdateUserSettingsRequestSchema,
   UpdateUserRoleRequestSchema,
   UserService,
 } from '@/gen/arca/v1/user_pb'
+import type { LLMModel } from '@/gen/arca/v1/user_pb'
 import { ApiError, parseApiErrorPayload } from '@/lib/errors'
 import type {
   Machine,
@@ -1070,4 +1075,66 @@ export async function updateUserNotificationSettings(settings: { slackEnabled: b
     slackEnabled: response.settings?.slackEnabled ?? true,
     slackUserId: response.settings?.slackUserId ?? '',
   }
+}
+
+// LLM Model API
+export type { LLMModel }
+
+export async function listUserLLMModels(): Promise<LLMModel[]> {
+  const response = await userClient.listUserLLMModels(create(ListUserLLMModelsRequestSchema))
+  return response.models
+}
+
+export async function createUserLLMModel(params: {
+  configName: string
+  endpointType: string
+  customEndpoint: string
+  modelName: string
+  apiKey: string
+  maxContextTokens: number
+}): Promise<LLMModel> {
+  const response = await userClient.createUserLLMModel(
+    create(CreateUserLLMModelRequestSchema, {
+      configName: params.configName,
+      endpointType: params.endpointType,
+      customEndpoint: params.customEndpoint,
+      modelName: params.modelName,
+      apiKey: params.apiKey,
+      maxContextTokens: params.maxContextTokens,
+    }),
+  )
+  if (response.model == null) {
+    throw new Error('request failed')
+  }
+  return response.model
+}
+
+export async function updateUserLLMModel(params: {
+  id: string
+  configName: string
+  endpointType: string
+  customEndpoint: string
+  modelName: string
+  apiKey: string
+  maxContextTokens: number
+}): Promise<LLMModel> {
+  const response = await userClient.updateUserLLMModel(
+    create(UpdateUserLLMModelRequestSchema, {
+      id: params.id,
+      configName: params.configName,
+      endpointType: params.endpointType,
+      customEndpoint: params.customEndpoint,
+      modelName: params.modelName,
+      apiKey: params.apiKey,
+      maxContextTokens: params.maxContextTokens,
+    }),
+  )
+  if (response.model == null) {
+    throw new Error('request failed')
+  }
+  return response.model
+}
+
+export async function deleteUserLLMModel(id: string): Promise<void> {
+  await userClient.deleteUserLLMModel(create(DeleteUserLLMModelRequestSchema, { id }))
 }

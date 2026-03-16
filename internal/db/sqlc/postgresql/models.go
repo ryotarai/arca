@@ -197,6 +197,19 @@ type UserGroupMember struct {
 	UserID  string
 }
 
+type UserLlmModel struct {
+	ID               string
+	UserID           string
+	ConfigName       string
+	EndpointType     string
+	CustomEndpoint   string
+	ModelName        string
+	ApiKeyEncrypted  string
+	MaxContextTokens int32
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
 type UserMachine struct {
 	UserID    string
 	MachineID string

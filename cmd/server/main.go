@@ -18,6 +18,7 @@ import (
 
 	"github.com/ryotarai/arca/internal/auth"
 	"github.com/ryotarai/arca/internal/cloudflare"
+	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/machine"
 	"github.com/ryotarai/arca/internal/notification"
@@ -94,10 +95,20 @@ func main() {
 		close(workerDone)
 	}()
 
+	var encryptor *crypto.Encryptor
+	if encKey := os.Getenv("ARCA_ENCRYPTION_KEY"); encKey != "" {
+		var encErr error
+		encryptor, encErr = crypto.NewEncryptor(encKey)
+		if encErr != nil {
+			log.Fatalf("invalid ARCA_ENCRYPTION_KEY: %v", encErr)
+		}
+		log.Printf("API key encryption enabled")
+	}
+
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy, Slack: slackService}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -2,9 +2,21 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getUserSettings, updateUserSettings, getUserNotificationSettings, updateUserNotificationSettings } from '@/lib/api'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  getUserSettings,
+  updateUserSettings,
+  getUserNotificationSettings,
+  updateUserNotificationSettings,
+  listUserLLMModels,
+  createUserLLMModel,
+  updateUserLLMModel,
+  deleteUserLLMModel,
+} from '@/lib/api'
+import type { LLMModel } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { User } from '@/lib/types'
 
@@ -125,9 +137,313 @@ export function SettingsPage({ user, onLogout }: SettingsPageProps) {
           </CardContent>
         </Card>
 
+        <LLMModelsCard userId={user.id} />
+
         <NotificationSettingsCard userId={user.id} />
       </section>
     </main>
+  )
+}
+
+const ENDPOINT_TYPES = [
+  { value: 'openai_chat', label: 'OpenAI Chat API' },
+  { value: 'openai_response', label: 'OpenAI Response API' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'google_gemini', label: 'Google Gemini' },
+] as const
+
+type LLMFormData = {
+  configName: string
+  endpointType: string
+  customEndpoint: string
+  modelName: string
+  apiKey: string
+  maxContextTokens: string
+}
+
+const emptyForm: LLMFormData = {
+  configName: '',
+  endpointType: 'openai_chat',
+  customEndpoint: '',
+  modelName: '',
+  apiKey: '',
+  maxContextTokens: '0',
+}
+
+function endpointTypeLabel(value: string): string {
+  return ENDPOINT_TYPES.find((t) => t.value === value)?.label ?? value
+}
+
+function LLMModelsCard({ userId }: { userId: string }) {
+  const [models, setModels] = useState<LLMModel[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState<LLMFormData>(emptyForm)
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  const loadModels = async () => {
+    try {
+      const result = await listUserLLMModels()
+      setModels(result)
+      setError('')
+    } catch (e) {
+      setError(messageFromError(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const result = await listUserLLMModels()
+        if (!cancelled) {
+          setModels(result)
+        }
+      } catch (e) {
+        if (!cancelled) setError(messageFromError(e))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [userId])
+
+  const openCreate = () => {
+    setEditingId(null)
+    setForm(emptyForm)
+    setFormError('')
+    setDialogOpen(true)
+  }
+
+  const openEdit = (model: LLMModel) => {
+    setEditingId(model.id)
+    setForm({
+      configName: model.configName,
+      endpointType: model.endpointType,
+      customEndpoint: model.customEndpoint,
+      modelName: model.modelName,
+      apiKey: '',
+      maxContextTokens: String(model.maxContextTokens),
+    })
+    setFormError('')
+    setDialogOpen(true)
+  }
+
+  const submitForm = async () => {
+    setFormError('')
+    setSaving(true)
+    try {
+      const params = {
+        configName: form.configName.trim(),
+        endpointType: form.endpointType,
+        customEndpoint: form.customEndpoint.trim(),
+        modelName: form.modelName.trim(),
+        apiKey: form.apiKey,
+        maxContextTokens: parseInt(form.maxContextTokens, 10) || 0,
+      }
+
+      if (editingId != null) {
+        await updateUserLLMModel({ id: editingId, ...params })
+      } else {
+        await createUserLLMModel(params)
+      }
+      setDialogOpen(false)
+      await loadModels()
+    } catch (e) {
+      setFormError(messageFromError(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteUserLLMModel(id)
+      setDeleteConfirmId(null)
+      await loadModels()
+    } catch (e) {
+      setError(messageFromError(e))
+      setDeleteConfirmId(null)
+    }
+  }
+
+  return (
+    <>
+      <Card className="py-0 shadow-sm">
+        <CardHeader className="space-y-2 p-6 pb-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-xl">LLM Models</CardTitle>
+              <CardDescription>
+                Configure LLM model endpoints for your machines.
+              </CardDescription>
+            </div>
+            <Button type="button" size="sm" onClick={openCreate}>Add model</Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6 pt-3">
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : models.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No LLM models configured yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {models.map((model) => (
+                <div
+                  key={model.id}
+                  className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">{model.configName}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {endpointTypeLabel(model.endpointType)} &middot; {model.modelName}
+                      {model.maxContextTokens > 0 && ` \u00b7 ${model.maxContextTokens.toLocaleString()} tokens`}
+                      {model.customEndpoint && ` \u00b7 ${model.customEndpoint}`}
+                    </p>
+                  </div>
+                  <div className="ml-3 flex items-center gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(model)}>
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-400 hover:text-red-300"
+                      onClick={() => setDeleteConfirmId(model.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingId != null ? 'Edit LLM Model' : 'Add LLM Model'}</DialogTitle>
+            <DialogDescription>
+              {editingId != null
+                ? 'Update the LLM model configuration. Leave API key empty to keep the existing key.'
+                : 'Configure a new LLM model endpoint.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="llm-config-name">Config name</Label>
+              <Input
+                id="llm-config-name"
+                value={form.configName}
+                onChange={(e) => setForm({ ...form, configName: e.target.value })}
+                placeholder="my-gpt4"
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="llm-endpoint-type">Endpoint type</Label>
+              <Select
+                value={form.endpointType}
+                onValueChange={(value) => setForm({ ...form, endpointType: value })}
+                disabled={saving}
+              >
+                <SelectTrigger id="llm-endpoint-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ENDPOINT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="llm-custom-endpoint">Custom endpoint (optional)</Label>
+              <Input
+                id="llm-custom-endpoint"
+                value={form.customEndpoint}
+                onChange={(e) => setForm({ ...form, customEndpoint: e.target.value })}
+                placeholder="https://api.example.com/v1"
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="llm-model-name">Model name</Label>
+              <Input
+                id="llm-model-name"
+                value={form.modelName}
+                onChange={(e) => setForm({ ...form, modelName: e.target.value })}
+                placeholder="gpt-4o"
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="llm-api-key">API key{editingId != null ? ' (leave empty to keep existing)' : ''}</Label>
+              <Input
+                id="llm-api-key"
+                type="password"
+                value={form.apiKey}
+                onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                placeholder={editingId != null ? '(unchanged)' : 'sk-...'}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="llm-max-context-tokens">Max context tokens</Label>
+              <Input
+                id="llm-max-context-tokens"
+                type="number"
+                value={form.maxContextTokens}
+                onChange={(e) => setForm({ ...form, maxContextTokens: e.target.value })}
+                placeholder="0"
+                min={0}
+                disabled={saving}
+              />
+            </div>
+            {formError !== '' && <p className="text-sm text-red-300">{formError}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={submitForm} disabled={saving}>
+              {saving ? 'Saving...' : editingId != null ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirmId != null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete LLM Model</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this LLM model configuration? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => { if (deleteConfirmId != null) void handleDelete(deleteConfirmId) }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

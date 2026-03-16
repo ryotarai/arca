@@ -862,3 +862,54 @@ LIMIT sqlc.arg(limit_count);
 UPDATE machines
 SET options_json = sqlc.arg(options_json)
 WHERE id = sqlc.arg(machine_id);
+
+-- name: ListUserLLMModels :many
+SELECT id, user_id, config_name, endpoint_type, custom_endpoint, model_name, max_context_tokens, created_at, updated_at
+FROM user_llm_models
+WHERE user_id = sqlc.arg(user_id)
+ORDER BY created_at ASC;
+
+-- name: GetUserLLMModel :one
+SELECT id, user_id, config_name, endpoint_type, custom_endpoint, model_name, api_key_encrypted, max_context_tokens, created_at, updated_at
+FROM user_llm_models
+WHERE id = sqlc.arg(id)
+  AND user_id = sqlc.arg(user_id)
+LIMIT 1;
+
+-- name: CreateUserLLMModel :exec
+INSERT INTO user_llm_models (id, user_id, config_name, endpoint_type, custom_endpoint, model_name, api_key_encrypted, max_context_tokens, created_at, updated_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(user_id),
+  sqlc.arg(config_name),
+  sqlc.arg(endpoint_type),
+  sqlc.arg(custom_endpoint),
+  sqlc.arg(model_name),
+  sqlc.arg(api_key_encrypted),
+  sqlc.arg(max_context_tokens),
+  sqlc.arg(created_at),
+  sqlc.arg(updated_at)
+);
+
+-- name: UpdateUserLLMModel :execrows
+UPDATE user_llm_models
+SET config_name = sqlc.arg(config_name),
+    endpoint_type = sqlc.arg(endpoint_type),
+    custom_endpoint = sqlc.arg(custom_endpoint),
+    model_name = sqlc.arg(model_name),
+    api_key_encrypted = sqlc.arg(api_key_encrypted),
+    max_context_tokens = sqlc.arg(max_context_tokens),
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id)
+  AND user_id = sqlc.arg(user_id);
+
+-- name: DeleteUserLLMModel :execrows
+DELETE FROM user_llm_models
+WHERE id = sqlc.arg(id)
+  AND user_id = sqlc.arg(user_id);
+
+-- name: ListUserLLMModelsWithAPIKey :many
+SELECT id, user_id, config_name, endpoint_type, custom_endpoint, model_name, api_key_encrypted, max_context_tokens, created_at, updated_at
+FROM user_llm_models
+WHERE user_id = sqlc.arg(user_id)
+ORDER BY created_at ASC;

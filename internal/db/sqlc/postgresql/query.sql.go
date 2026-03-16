@@ -414,6 +414,51 @@ func (q *Queries) CreateUserGroup(ctx context.Context, arg CreateUserGroupParams
 	return err
 }
 
+const createUserLLMModel = `-- name: CreateUserLLMModel :exec
+INSERT INTO user_llm_models (id, user_id, config_name, endpoint_type, custom_endpoint, model_name, api_key_encrypted, max_context_tokens, created_at, updated_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7,
+  $8,
+  $9,
+  $10
+)
+`
+
+type CreateUserLLMModelParams struct {
+	ID               string
+	UserID           string
+	ConfigName       string
+	EndpointType     string
+	CustomEndpoint   string
+	ModelName        string
+	ApiKeyEncrypted  string
+	MaxContextTokens int32
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
+func (q *Queries) CreateUserLLMModel(ctx context.Context, arg CreateUserLLMModelParams) error {
+	_, err := q.db.ExecContext(ctx, createUserLLMModel,
+		arg.ID,
+		arg.UserID,
+		arg.ConfigName,
+		arg.EndpointType,
+		arg.CustomEndpoint,
+		arg.ModelName,
+		arg.ApiKeyEncrypted,
+		arg.MaxContextTokens,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const createUserMachine = `-- name: CreateUserMachine :exec
 INSERT INTO user_machines (user_id, machine_id, role)
 VALUES ($1, $2, $3)
@@ -540,6 +585,25 @@ WHERE id = $1
 
 func (q *Queries) DeleteUserGroup(ctx context.Context, id string) (int64, error) {
 	result, err := q.db.ExecContext(ctx, deleteUserGroup, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteUserLLMModel = `-- name: DeleteUserLLMModel :execrows
+DELETE FROM user_llm_models
+WHERE id = $1
+  AND user_id = $2
+`
+
+type DeleteUserLLMModelParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) DeleteUserLLMModel(ctx context.Context, arg DeleteUserLLMModelParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUserLLMModel, arg.ID, arg.UserID)
 	if err != nil {
 		return 0, err
 	}
@@ -1227,6 +1291,37 @@ func (q *Queries) GetUserGroup(ctx context.Context, id string) (UserGroup, error
 	row := q.db.QueryRowContext(ctx, getUserGroup, id)
 	var i UserGroup
 	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return i, err
+}
+
+const getUserLLMModel = `-- name: GetUserLLMModel :one
+SELECT id, user_id, config_name, endpoint_type, custom_endpoint, model_name, api_key_encrypted, max_context_tokens, created_at, updated_at
+FROM user_llm_models
+WHERE id = $1
+  AND user_id = $2
+LIMIT 1
+`
+
+type GetUserLLMModelParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) GetUserLLMModel(ctx context.Context, arg GetUserLLMModelParams) (UserLlmModel, error) {
+	row := q.db.QueryRowContext(ctx, getUserLLMModel, arg.ID, arg.UserID)
+	var i UserLlmModel
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ConfigName,
+		&i.EndpointType,
+		&i.CustomEndpoint,
+		&i.ModelName,
+		&i.ApiKeyEncrypted,
+		&i.MaxContextTokens,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
@@ -2048,6 +2143,99 @@ func (q *Queries) ListUserGroupsByUserID(ctx context.Context, userID string) ([]
 	return items, nil
 }
 
+const listUserLLMModels = `-- name: ListUserLLMModels :many
+SELECT id, user_id, config_name, endpoint_type, custom_endpoint, model_name, max_context_tokens, created_at, updated_at
+FROM user_llm_models
+WHERE user_id = $1
+ORDER BY created_at ASC
+`
+
+type ListUserLLMModelsRow struct {
+	ID               string
+	UserID           string
+	ConfigName       string
+	EndpointType     string
+	CustomEndpoint   string
+	ModelName        string
+	MaxContextTokens int32
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
+func (q *Queries) ListUserLLMModels(ctx context.Context, userID string) ([]ListUserLLMModelsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserLLMModels, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserLLMModelsRow
+	for rows.Next() {
+		var i ListUserLLMModelsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ConfigName,
+			&i.EndpointType,
+			&i.CustomEndpoint,
+			&i.ModelName,
+			&i.MaxContextTokens,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserLLMModelsWithAPIKey = `-- name: ListUserLLMModelsWithAPIKey :many
+SELECT id, user_id, config_name, endpoint_type, custom_endpoint, model_name, api_key_encrypted, max_context_tokens, created_at, updated_at
+FROM user_llm_models
+WHERE user_id = $1
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListUserLLMModelsWithAPIKey(ctx context.Context, userID string) ([]UserLlmModel, error) {
+	rows, err := q.db.QueryContext(ctx, listUserLLMModelsWithAPIKey, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserLlmModel
+	for rows.Next() {
+		var i UserLlmModel
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ConfigName,
+			&i.EndpointType,
+			&i.CustomEndpoint,
+			&i.ModelName,
+			&i.ApiKeyEncrypted,
+			&i.MaxContextTokens,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserMachinesByMachineID = `-- name: ListUserMachinesByMachineID :many
 SELECT um.user_id, um.machine_id, um.role, u.email
 FROM user_machines um
@@ -2714,6 +2902,49 @@ func (q *Queries) UpdateRuntimeByID(ctx context.Context, arg UpdateRuntimeByIDPa
 		arg.ConfigJson,
 		arg.UpdatedAt,
 		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserLLMModel = `-- name: UpdateUserLLMModel :execrows
+UPDATE user_llm_models
+SET config_name = $1,
+    endpoint_type = $2,
+    custom_endpoint = $3,
+    model_name = $4,
+    api_key_encrypted = $5,
+    max_context_tokens = $6,
+    updated_at = $7
+WHERE id = $8
+  AND user_id = $9
+`
+
+type UpdateUserLLMModelParams struct {
+	ConfigName       string
+	EndpointType     string
+	CustomEndpoint   string
+	ModelName        string
+	ApiKeyEncrypted  string
+	MaxContextTokens int32
+	UpdatedAt        int64
+	ID               string
+	UserID           string
+}
+
+func (q *Queries) UpdateUserLLMModel(ctx context.Context, arg UpdateUserLLMModelParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserLLMModel,
+		arg.ConfigName,
+		arg.EndpointType,
+		arg.CustomEndpoint,
+		arg.ModelName,
+		arg.ApiKeyEncrypted,
+		arg.MaxContextTokens,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.UserID,
 	)
 	if err != nil {
 		return 0, err
