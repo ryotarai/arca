@@ -16,6 +16,8 @@ RUN npm --prefix web run build
 # === Go builder stage ===
 FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS builder
 
+ARG VERSION=dev
+
 WORKDIR /src
 
 # Cache Go dependencies
@@ -29,11 +31,11 @@ COPY . .
 COPY --from=frontend /src/internal/server/ui/dist/ ./internal/server/ui/dist/
 
 # Build server binary (amd64 for Cloud Run)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o /out/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w -X github.com/ryotarai/arca/internal/version.Version=${VERSION}" -o /out/server ./cmd/server
 
 # Build arcad binaries for both architectures
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o /out/arcad/arcad_linux_amd64 ./cmd/arcad
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o /out/arcad/arcad_linux_arm64 ./cmd/arcad
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w -X github.com/ryotarai/arca/internal/version.Version=${VERSION}" -o /out/arcad/arcad_linux_amd64 ./cmd/arcad
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "-s -w -X github.com/ryotarai/arca/internal/version.Version=${VERSION}" -o /out/arcad/arcad_linux_arm64 ./cmd/arcad
 
 # === Runtime stage ===
 FROM --platform=linux/amd64 gcr.io/distroless/static-debian12:nonroot
