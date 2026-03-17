@@ -137,6 +137,10 @@ Regenerate from sources instead:
 - UI: edit `web/src/*`, then run `make build-frontend`.
 - `internal/server/ui/dist/*` is build output and should not be committed.
 
+## Branch Strategy
+- The `main` branch is protected — direct pushes are not allowed.
+- Always create a feature branch and open a pull request to merge changes into `main`.
+
 ## Commit & Pull Request Guidelines
 Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: ...`).
 - Keep subjects specific and action-oriented.
