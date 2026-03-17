@@ -153,6 +153,8 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - **Backward compatibility with older arcad**: when changing arca server APIs or behavior, maintain compatibility with older arcad versions. Older arcad instances must continue to function; new fields should be additive and optional.
 
 ## Agent Workflow
+- Always run `git fetch origin` before referencing or operating on `origin/main` (or any remote branch) to ensure you have the latest state.
+- Before creating a commit, verify the current branch (`git branch --show-current`) to ensure you are on the intended branch. If the branch has already been merged (check with `gh pr list --head <branch> --state merged`), switch to a new feature branch from `origin/main` instead of committing to the stale branch.
 - Proactively update CLAUDE.md when you discover new patterns, conventions, or project-specific knowledge that would help future sessions. Keep it accurate and current as the codebase evolves.
 - Prefer root-cause fixes over workaround patches. Do not introduce server-side or temporary fallback behavior as a quick fix when the issue is in another layer unless the user explicitly asks for that tradeoff.
 - For state transitions and destructive operations (for example delete/teardown), prefer idempotent, reconcile-driven designs: persist intent first (desired state), let workers/reconcile loops converge actual state, and make each step retry-safe so progress survives process crashes or restarts.
