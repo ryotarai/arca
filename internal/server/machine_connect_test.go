@@ -251,7 +251,7 @@ func (s *machineStoreStub) UpdateMachineNameByIDForOwner(context.Context, string
 	panic("UpdateMachineNameByIDForOwner should not be called in this test")
 }
 
-func (s *machineStoreStub) UpdateMachineRuntimeByIDForOwner(context.Context, string, string, string, string) (bool, error) {
+func (s *machineStoreStub) UpdateMachineRuntimeByIDForOwner(context.Context, string, string, string, string, string, string) (bool, error) {
 	panic("UpdateMachineRuntimeByIDForOwner should not be called in this test")
 }
 

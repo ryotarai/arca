@@ -55,12 +55,13 @@ func newMachineConnectService(authenticator Authenticator, store MachineStore, d
 }
 
 func (s *machineConnectService) ListMachines(ctx context.Context, req *connect.Request[arcav1.ListMachinesRequest]) (*connect.Response[arcav1.ListMachinesResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	isAdmin := authResult.Role == "admin"
 
-	machines, err := s.store.ListMachinesByUser(ctx, userID)
+	machines, err := s.store.ListMachinesByUser(ctx, authResult.UserID)
 	if err != nil {
 		log.Printf("list machines failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list machines"))
@@ -68,17 +69,19 @@ func (s *machineConnectService) ListMachines(ctx context.Context, req *connect.R
 
 	items := make([]*arcav1.Machine, 0, len(machines))
 	for _, machine := range machines {
-		items = append(items, toMachineMessage(machine))
+		items = append(items, toMachineMessageWithAdmin(machine, isAdmin))
 	}
 
 	return connect.NewResponse(&arcav1.ListMachinesResponse{Machines: items}), nil
 }
 
 func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Request[arcav1.GetMachineRequest]) (*connect.Response[arcav1.GetMachineResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
+	isAdmin := authResult.Role == "admin"
 
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
@@ -98,7 +101,7 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 				m, mErr := s.dbStore.GetMachineByID(ctx, machineID)
 				if mErr == nil {
 					m.UserRole = role
-					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessage(m)}), nil
+					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(m, isAdmin)}), nil
 				}
 			}
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
@@ -108,7 +111,7 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 	}
 	machine.UserRole = role
 
-	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessage(machine)}), nil
+	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(machine, isAdmin)}), nil
 }
 
 func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.Request[arcav1.CreateMachineRequest]) (*connect.Response[arcav1.CreateMachineResponse], error) {
@@ -126,6 +129,13 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 	runtimeID, err := s.resolveCreateRuntimeID(ctx, req.Msg.GetRuntimeId())
 	if err != nil {
 		return nil, err
+	}
+
+	// Snapshot runtime config at creation time
+	runtime, err := s.store.GetRuntimeByID(ctx, runtimeID)
+	if err != nil {
+		log.Printf("get runtime for snapshot failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
 	}
 
 	options := req.Msg.GetOptions()
@@ -155,7 +165,7 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		}
 	}
 
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion(), optionsJSON, customImageID)
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion(), optionsJSON, customImageID, runtime.Type, runtime.ConfigJSON)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
@@ -166,7 +176,8 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 
 	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.create", "machine", machine.ID, fmt.Sprintf(`{"name":%q}`, name))
 
-	return connect.NewResponse(&arcav1.CreateMachineResponse{Machine: toMachineMessage(machine), MachineToken: machine.MachineToken}), nil
+	isAdmin := authResult.Role == "admin"
+	return connect.NewResponse(&arcav1.CreateMachineResponse{Machine: toMachineMessageWithAdmin(machine, isAdmin), MachineToken: machine.MachineToken}), nil
 }
 
 func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.Request[arcav1.UpdateMachineRequest]) (*connect.Response[arcav1.UpdateMachineResponse], error) {
@@ -273,7 +284,13 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 	}
 
 	if strings.TrimSpace(runtimeID) != strings.TrimSpace(machine.RuntimeID) {
-		runtimeUpdated, updateErr := s.store.UpdateMachineRuntimeByIDForOwner(ctx, userID, machineID, runtimeID, currentSetupVersion())
+		// Re-snapshot runtime config when switching runtimes
+		rt, rtErr := s.store.GetRuntimeByID(ctx, runtimeID)
+		if rtErr != nil {
+			log.Printf("get runtime for snapshot failed: %v", rtErr)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+		}
+		runtimeUpdated, updateErr := s.store.UpdateMachineRuntimeByIDForOwner(ctx, userID, machineID, runtimeID, currentSetupVersion(), rt.Type, rt.ConfigJSON)
 		if updateErr != nil {
 			log.Printf("set machine runtime id failed: %v", updateErr)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to select runtime"))
@@ -504,7 +521,11 @@ func (s *machineConnectService) resolveMachineRole(ctx context.Context, userID, 
 }
 
 func toMachineMessage(machine db.Machine) *arcav1.Machine {
-	return &arcav1.Machine{
+	return toMachineMessageWithAdmin(machine, false)
+}
+
+func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.Machine {
+	msg := &arcav1.Machine{
 		Id:              machine.ID,
 		Name:            machine.Name,
 		Status:          machine.Status,
@@ -518,7 +539,12 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 		UserRole:        machine.UserRole,
 		ArcadVersion:    machine.ArcadVersion,
 		Options:         parseMachineOptions(machine.OptionsJSON),
+		RuntimeType:     machine.RuntimeType,
 	}
+	if includeConfig {
+		msg.RuntimeConfigJson = machine.RuntimeConfigJSON
+	}
+	return msg
 }
 
 func parseMachineOptions(optionsJSON string) map[string]string {

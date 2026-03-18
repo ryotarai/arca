@@ -389,6 +389,9 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                         {runtimes.find((r) => r.id === machine.runtimeId)?.name ?? machine.runtimeId}
                       </Link>
                     )}
+                    {machine.runtimeType && (
+                      <p className="text-xs text-muted-foreground">Type: {machine.runtimeType}</p>
+                    )}
                   </div>
                 )}
                 {(() => {

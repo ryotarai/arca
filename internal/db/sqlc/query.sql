@@ -194,8 +194,8 @@ DELETE FROM arcad_sessions
 WHERE user_id = sqlc.arg(user_id);
 
 -- name: CreateMachine :exec
-INSERT INTO machines (id, name, runtime_id, setup_version, options_json, custom_image_id)
-VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(runtime_id), sqlc.arg(setup_version), sqlc.arg(options_json), sqlc.arg(custom_image_id));
+INSERT INTO machines (id, name, runtime_id, runtime_type, runtime_config_json, setup_version, options_json, custom_image_id)
+VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(runtime_id), sqlc.arg(runtime_type), sqlc.arg(runtime_config_json), sqlc.arg(setup_version), sqlc.arg(options_json), sqlc.arg(custom_image_id));
 
 -- name: ListRuntimes :many
 SELECT id, name, type, config_json, created_at, updated_at
@@ -255,6 +255,8 @@ WHERE id = sqlc.arg(machine_id)
 -- name: UpdateMachineRuntimeByIDForOwner :execrows
 UPDATE machines
 SET runtime_id = sqlc.arg(runtime_id),
+    runtime_type = sqlc.arg(runtime_type),
+    runtime_config_json = sqlc.arg(runtime_config_json),
     setup_version = sqlc.arg(setup_version)
 WHERE id = sqlc.arg(machine_id)
   AND EXISTS (
@@ -297,7 +299,7 @@ VALUES (
 );
 
 -- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -311,7 +313,7 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -327,7 +329,7 @@ ORDER BY um.created_at ASC
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -493,7 +495,7 @@ SET lease_until = sqlc.arg(lease_until), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND status = 'running' AND lease_owner = sqlc.arg(lease_owner);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)

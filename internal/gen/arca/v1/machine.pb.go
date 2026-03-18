@@ -22,22 +22,24 @@ const (
 )
 
 type Machine struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Status          string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	DesiredStatus   string                 `protobuf:"bytes,4,opt,name=desired_status,json=desiredStatus,proto3" json:"desired_status,omitempty"`
-	LastError       string                 `protobuf:"bytes,5,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
-	Endpoint        string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	RuntimeId       string                 `protobuf:"bytes,7,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
-	UpdateRequired  bool                   `protobuf:"varint,8,opt,name=update_required,json=updateRequired,proto3" json:"update_required,omitempty"`
-	Ready           bool                   `protobuf:"varint,9,opt,name=ready,proto3" json:"ready,omitempty"`
-	ReadyReportedAt int64                  `protobuf:"varint,10,opt,name=ready_reported_at,json=readyReportedAt,proto3" json:"ready_reported_at,omitempty"`
-	UserRole        string                 `protobuf:"bytes,11,opt,name=user_role,json=userRole,proto3" json:"user_role,omitempty"`
-	ArcadVersion    string                 `protobuf:"bytes,12,opt,name=arcad_version,json=arcadVersion,proto3" json:"arcad_version,omitempty"`
-	Options         map[string]string      `protobuf:"bytes,13,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Status            string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	DesiredStatus     string                 `protobuf:"bytes,4,opt,name=desired_status,json=desiredStatus,proto3" json:"desired_status,omitempty"`
+	LastError         string                 `protobuf:"bytes,5,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	Endpoint          string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	RuntimeId         string                 `protobuf:"bytes,7,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
+	UpdateRequired    bool                   `protobuf:"varint,8,opt,name=update_required,json=updateRequired,proto3" json:"update_required,omitempty"`
+	Ready             bool                   `protobuf:"varint,9,opt,name=ready,proto3" json:"ready,omitempty"`
+	ReadyReportedAt   int64                  `protobuf:"varint,10,opt,name=ready_reported_at,json=readyReportedAt,proto3" json:"ready_reported_at,omitempty"`
+	UserRole          string                 `protobuf:"bytes,11,opt,name=user_role,json=userRole,proto3" json:"user_role,omitempty"`
+	ArcadVersion      string                 `protobuf:"bytes,12,opt,name=arcad_version,json=arcadVersion,proto3" json:"arcad_version,omitempty"`
+	Options           map[string]string      `protobuf:"bytes,13,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	RuntimeType       string                 `protobuf:"bytes,14,opt,name=runtime_type,json=runtimeType,proto3" json:"runtime_type,omitempty"`
+	RuntimeConfigJson string                 `protobuf:"bytes,15,opt,name=runtime_config_json,json=runtimeConfigJson,proto3" json:"runtime_config_json,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Machine) Reset() {
@@ -159,6 +161,20 @@ func (x *Machine) GetOptions() map[string]string {
 		return x.Options
 	}
 	return nil
+}
+
+func (x *Machine) GetRuntimeType() string {
+	if x != nil {
+		return x.RuntimeType
+	}
+	return ""
+}
+
+func (x *Machine) GetRuntimeConfigJson() string {
+	if x != nil {
+		return x.RuntimeConfigJson
+	}
+	return ""
 }
 
 type ListMachinesRequest struct {
@@ -1009,7 +1025,7 @@ var File_arca_v1_machine_proto protoreflect.FileDescriptor
 
 const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
-	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xe8\x03\n" +
+	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xbb\x04\n" +
 	"\aMachine\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -1026,7 +1042,9 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	" \x01(\x03R\x0freadyReportedAt\x12\x1b\n" +
 	"\tuser_role\x18\v \x01(\tR\buserRole\x12#\n" +
 	"\rarcad_version\x18\f \x01(\tR\farcadVersion\x127\n" +
-	"\aoptions\x18\r \x03(\v2\x1d.arca.v1.Machine.OptionsEntryR\aoptions\x1a:\n" +
+	"\aoptions\x18\r \x03(\v2\x1d.arca.v1.Machine.OptionsEntryR\aoptions\x12!\n" +
+	"\fruntime_type\x18\x0e \x01(\tR\vruntimeType\x12.\n" +
+	"\x13runtime_config_json\x18\x0f \x01(\tR\x11runtimeConfigJson\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x15\n" +
