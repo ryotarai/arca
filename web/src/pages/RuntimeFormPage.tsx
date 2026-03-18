@@ -27,10 +27,7 @@ type RuntimeFormState = {
   gceSubnetwork: string
   gceServiceAccountEmail: string
   gceStartupScript: string
-  gceMachineType: string
   gceDiskSizeGb: string
-  gceImageProject: string
-  gceImageFamily: string
   gceAllowedMachineTypes: string
   lxdEndpoint: string
   lxdStartupScript: string
@@ -60,10 +57,7 @@ function emptyRuntimeForm(): RuntimeFormState {
     gceSubnetwork: '',
     gceServiceAccountEmail: '',
     gceStartupScript: '',
-    gceMachineType: '',
     gceDiskSizeGb: '',
-    gceImageProject: '',
-    gceImageFamily: '',
     gceAllowedMachineTypes: '',
     lxdEndpoint: '',
     lxdStartupScript: '',
@@ -108,6 +102,13 @@ function validateRuntimeForm(form: RuntimeFormState): string | null {
     ) {
       return 'GCE config requires project, zone, network, subnetwork, and service account email.'
     }
+    const machineTypes = form.gceAllowedMachineTypes
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter((s) => s !== '')
+    if (machineTypes.length === 0) {
+      return 'GCE config requires at least one machine type.'
+    }
     return null
   }
 
@@ -144,10 +145,7 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
       subnetwork: form.gceSubnetwork.trim(),
       serviceAccountEmail: form.gceServiceAccountEmail.trim(),
       startupScript: form.gceStartupScript,
-      machineType: form.gceMachineType.trim(),
       diskSizeGb: form.gceDiskSizeGb.trim() !== '' ? parseInt(form.gceDiskSizeGb.trim(), 10) || 0 : 0,
-      imageProject: form.gceImageProject.trim(),
-      imageFamily: form.gceImageFamily.trim(),
       allowedMachineTypes,
     }
   }
@@ -197,10 +195,7 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
       gceSubnetwork: runtime.config.subnetwork,
       gceServiceAccountEmail: runtime.config.serviceAccountEmail,
       gceStartupScript: runtime.config.startupScript,
-      gceMachineType: runtime.config.machineType,
       gceDiskSizeGb: runtime.config.diskSizeGb ? String(runtime.config.diskSizeGb) : '',
-      gceImageProject: runtime.config.imageProject,
-      gceImageFamily: runtime.config.imageFamily,
       gceAllowedMachineTypes: (runtime.config.allowedMachineTypes ?? []).join(', '),
       ...exposureFields,
     }
@@ -394,23 +389,11 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                       <Input id="runtime-gce-service-account-email" value={form.gceServiceAccountEmail} onChange={(event) => setForm((current) => ({ ...current, gceServiceAccountEmail: event.target.value }))} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-machine-type">Machine type (optional)</Label>
-                      <Input id="runtime-gce-machine-type" value={form.gceMachineType} onChange={(event) => setForm((current) => ({ ...current, gceMachineType: event.target.value }))} className="h-10" placeholder="e2-standard-2" />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="runtime-gce-disk-size-gb">Disk size in GB (optional)</Label>
                       <Input id="runtime-gce-disk-size-gb" type="number" value={form.gceDiskSizeGb} onChange={(event) => setForm((current) => ({ ...current, gceDiskSizeGb: event.target.value }))} className="h-10" placeholder="40" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-image-project">VM image project (optional)</Label>
-                      <Input id="runtime-gce-image-project" value={form.gceImageProject} onChange={(event) => setForm((current) => ({ ...current, gceImageProject: event.target.value }))} className="h-10" placeholder="ubuntu-os-cloud" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-image-family">Image family (optional)</Label>
-                      <Input id="runtime-gce-image-family" value={form.gceImageFamily} onChange={(event) => setForm((current) => ({ ...current, gceImageFamily: event.target.value }))} className="h-10" placeholder="ubuntu-2404-lts-amd64" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-allowed-machine-types">Allowed machine types (optional)</Label>
+                      <Label htmlFor="runtime-gce-allowed-machine-types">Machine types</Label>
                       <Input
                         id="runtime-gce-allowed-machine-types"
                         value={form.gceAllowedMachineTypes}
@@ -418,7 +401,7 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                         className="h-10"
                         placeholder="e2-medium, e2-standard-2, e2-standard-4"
                       />
-                      <p className="text-xs text-muted-foreground">Comma-separated list of machine types users can choose when creating machines. Leave empty to allow any type.</p>
+                      <p className="text-xs text-muted-foreground">Required. Comma-separated list of machine types users can choose when creating machines.</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="runtime-gce-startup-script">Startup script (Bash, optional)</Label>

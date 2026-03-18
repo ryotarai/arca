@@ -95,6 +95,7 @@ test.describe('runtime catalog', () => {
     await page.getByLabel('Network').first().fill('vpc-main')
     await page.getByLabel('Subnetwork').fill('subnet-main')
     await page.getByLabel('Service account email').fill('svc@example.iam.gserviceaccount.com')
+    await page.getByLabel('Machine types').fill('e2-standard-2')
     await page.getByRole('button', { name: 'Save runtime' }).click()
 
     // Redirected back to detail; verify type changed

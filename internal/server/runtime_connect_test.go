@@ -190,6 +190,7 @@ func TestRuntimeConnectService_CRUD(t *testing.T) {
 					Subnetwork:          "subnet-main",
 					ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
 					StartupScript:       "echo gce startup",
+					AllowedMachineTypes: []string{"e2-standard-2"},
 				},
 			},
 		},
