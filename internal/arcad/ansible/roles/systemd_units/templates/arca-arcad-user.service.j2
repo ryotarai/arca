@@ -1,0 +1,15 @@
+[Unit]
+Description=Arca daemon (user)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/arca/arcad.env
+ExecStart=/usr/local/bin/arcad --user
+Restart=always
+User={{ daemon_user }}
+Group=arca
+
+[Install]
+WantedBy=multi-user.target

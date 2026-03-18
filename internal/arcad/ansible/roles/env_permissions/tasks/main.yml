@@ -1,0 +1,7 @@
+---
+- name: Set env file permissions
+  ansible.builtin.file:
+    path: /etc/arca/arcad.env
+    owner: root
+    group: arca
+    mode: "0640"

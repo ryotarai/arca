@@ -1,0 +1,47 @@
+---
+- name: Deploy arca-arcad-user service unit
+  ansible.builtin.template:
+    src: arca-arcad-user.service.j2
+    dest: /etc/systemd/system/arca-arcad-user.service
+    mode: "0644"
+  notify: reload systemd
+
+- name: Deploy arca-ttyd service unit
+  ansible.builtin.template:
+    src: arca-ttyd.service.j2
+    dest: /etc/systemd/system/arca-ttyd.service
+    mode: "0644"
+  notify: reload systemd
+
+- name: Deploy arca-shelley service unit
+  ansible.builtin.template:
+    src: arca-shelley.service.j2
+    dest: /etc/systemd/system/arca-shelley.service
+    mode: "0644"
+  notify: reload systemd
+
+- name: Flush handlers to reload systemd before enabling services
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and restart services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: restarted
+    daemon_reload: no
+  loop:
+    - arca-arcad-user.service
+    - arca-ttyd.service
+    - arca-shelley.service
+
+- name: Wait for services to become active
+  ansible.builtin.command: "systemctl is-active --quiet {{ item }}"
+  register: service_active
+  retries: 60
+  delay: 1
+  until: service_active.rc == 0
+  changed_when: false
+  loop:
+    - arca-arcad-user.service
+    - arca-ttyd.service
+    - arca-shelley.service

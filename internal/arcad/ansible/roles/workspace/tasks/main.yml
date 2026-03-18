@@ -1,0 +1,7 @@
+---
+- name: Configure workspace directory
+  ansible.builtin.file:
+    path: /workspace
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0700"

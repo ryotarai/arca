@@ -1,0 +1,26 @@
+---
+- name: Create .ssh directory
+  ansible.builtin.file:
+    path: "/home/{{ interactive_user }}/.ssh"
+    state: directory
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0700"
+
+- name: Deploy authorized_keys
+  ansible.builtin.copy:
+    content: "{{ authorized_keys_b64 | b64decode }}"
+    dest: "/home/{{ interactive_user }}/.ssh/authorized_keys"
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0600"
+  when: authorized_keys_b64 | length > 0
+
+- name: Deploy empty authorized_keys when no keys provided
+  ansible.builtin.copy:
+    content: ""
+    dest: "/home/{{ interactive_user }}/.ssh/authorized_keys"
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0600"
+  when: authorized_keys_b64 | length == 0

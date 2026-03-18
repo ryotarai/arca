@@ -1,0 +1,24 @@
+---
+- name: Install system packages
+  ansible.builtin.apt:
+    name:
+      - bash
+      - ca-certificates
+      - curl
+      - git
+      - jq
+      - python3
+      - tmux
+      - ttyd
+      - build-essential
+      - sudo
+    state: present
+    update_cache: yes
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: Create provisioned marker file
+  ansible.builtin.copy:
+    content: "1"
+    dest: /var/lib/arca/provisioned
+    mode: "0644"

@@ -1,0 +1,32 @@
+---
+- name: Create arca system group
+  ansible.builtin.group:
+    name: arca
+    system: yes
+    state: present
+
+- name: Create daemon user
+  ansible.builtin.user:
+    name: "{{ daemon_user }}"
+    system: yes
+    group: arca
+    home: /nonexistent
+    create_home: no
+    shell: /usr/sbin/nologin
+    state: present
+
+- name: Create interactive user
+  ansible.builtin.user:
+    name: "{{ interactive_user }}"
+    group: arca
+    home: "/home/{{ interactive_user }}"
+    create_home: yes
+    shell: /bin/bash
+    state: present
+
+- name: Set interactive user home directory ownership
+  ansible.builtin.file:
+    path: "/home/{{ interactive_user }}"
+    owner: "{{ interactive_user }}"
+    group: arca
+    recurse: yes

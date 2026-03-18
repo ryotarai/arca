@@ -1,0 +1,16 @@
+[Unit]
+Description=Arca Shelley
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/arca/arcad.env
+WorkingDirectory=/home/{{ interactive_user }}
+ExecStart=/usr/local/bin/shelley -db {{ shelley_db_path }} serve -port {{ shelley_port }} -base-path {{ shelley_base_path }}
+Restart=always
+User={{ interactive_user }}
+Group=arca
+
+[Install]
+WantedBy=multi-user.target
