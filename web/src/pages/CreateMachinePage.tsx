@@ -113,8 +113,13 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     setError('')
     try {
       const options: Record<string, string> = {}
-      if (machineType.trim() !== '') {
-        options.machine_type = machineType.trim()
+      const selectedRuntime = runtimeDetails.find((r) => r.id === selectedRuntimeID)
+      const effectiveMachineType = machineType.trim() ||
+        (selectedRuntime?.type === 'gce' && selectedRuntime.config.type === 'gce'
+          ? (selectedRuntime.config.allowedMachineTypes ?? [])[0] ?? ''
+          : '')
+      if (effectiveMachineType !== '') {
+        options.machine_type = effectiveMachineType
       }
       const created = await createMachine(
         trimmedName,
@@ -196,34 +201,24 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                 const gceConfig = selectedRuntime.config
                 if (gceConfig.type !== 'gce') return null
                 const allowed = gceConfig.allowedMachineTypes ?? []
-                const defaultMT = gceConfig.machineType || ''
+                if (allowed.length === 0) return null
                 return (
                   <div className="space-y-2">
                     <Label htmlFor="create-machine-type">Machine type</Label>
-                    {allowed.length > 0 ? (
-                      <select
-                        id="create-machine-type"
-                        value={machineType || defaultMT}
-                        onChange={(event) => setMachineType(event.target.value)}
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-                      >
-                        {allowed.map((mt) => (
-                          <option key={mt} value={mt}>
-                            {mt}{mt === defaultMT ? ' (default)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <Input
-                        id="create-machine-type"
-                        value={machineType}
-                        onChange={(event) => setMachineType(event.target.value)}
-                        className="h-10"
-                        placeholder={defaultMT || 'e2-standard-2'}
-                      />
-                    )}
+                    <select
+                      id="create-machine-type"
+                      value={machineType || allowed[0]}
+                      onChange={(event) => setMachineType(event.target.value)}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      {allowed.map((mt) => (
+                        <option key={mt} value={mt}>
+                          {mt}
+                        </option>
+                      ))}
+                    </select>
                     <p className="text-xs text-muted-foreground">
-                      {allowed.length > 0 ? 'Select a machine type for this GCE instance.' : 'Leave empty to use the runtime default.'}
+                      Select a machine type for this GCE instance.
                     </p>
                   </div>
                 )

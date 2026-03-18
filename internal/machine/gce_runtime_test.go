@@ -116,7 +116,7 @@ func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
 		t.Fatalf("new runtime: %v", err)
 	}
 
-	machine := db.Machine{ID: "machine-123456789abc", RuntimeID: "rt-gce"}
+	machine := db.Machine{ID: "machine-123456789abc", RuntimeID: "rt-gce", OptionsJSON: `{"machine_type":"e2-standard-2"}`}
 	instanceID, err := runtime.EnsureRunning(context.Background(), machine, RuntimeStartOptions{})
 	if err != nil {
 		t.Fatalf("ensure running: %v", err)
@@ -165,7 +165,7 @@ func TestGceRuntime_EnsureRunningStartsTerminatedInstance(t *testing.T) {
 		t.Fatalf("new runtime: %v", err)
 	}
 
-	machine := db.Machine{ID: "machine-ignored", ContainerID: "instance-a"}
+	machine := db.Machine{ID: "machine-ignored", ContainerID: "instance-a", OptionsJSON: `{"machine_type":"e2-standard-2"}`}
 	instanceID, err := runtime.EnsureRunning(context.Background(), machine, RuntimeStartOptions{})
 	if err != nil {
 		t.Fatalf("ensure running: %v", err)
@@ -306,7 +306,6 @@ func TestGceRuntime_EnsureRunningUsesOptionsMachineType(t *testing.T) {
 		Network:             "main",
 		Subnetwork:          "main-subnet",
 		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
-		MachineType:         "e2-standard-2",
 		Client:              fakeClient,
 	})
 	if err != nil {
@@ -346,7 +345,6 @@ func TestGceRuntime_EnsureRunningSetsMachineTypeOnTerminated(t *testing.T) {
 		Network:             "main",
 		Subnetwork:          "main-subnet",
 		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
-		MachineType:         "e2-standard-2",
 		Client:              fakeClient,
 	})
 	if err != nil {
@@ -386,7 +384,6 @@ func TestGceRuntime_EnsureRunningSkipsSetMachineTypeWhenUnchanged(t *testing.T) 
 		Network:             "main",
 		Subnetwork:          "main-subnet",
 		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
-		MachineType:         "e2-standard-2",
 		Client:              fakeClient,
 	})
 	if err != nil {
@@ -413,19 +410,28 @@ func TestMachineTypeFromOptions(t *testing.T) {
 	tests := []struct {
 		name        string
 		optionsJSON string
-		defaultType string
 		want        string
+		wantErr     bool
 	}{
-		{"empty options", "", "e2-standard-2", "e2-standard-2"},
-		{"empty json", "{}", "e2-standard-2", "e2-standard-2"},
-		{"with machine_type", `{"machine_type":"e2-medium"}`, "e2-standard-2", "e2-medium"},
-		{"whitespace machine_type", `{"machine_type":"  "}`, "e2-standard-2", "e2-standard-2"},
+		{"empty options", "", "", true},
+		{"empty json", "{}", "", true},
+		{"with machine_type", `{"machine_type":"e2-medium"}`, "e2-medium", false},
+		{"whitespace machine_type", `{"machine_type":"  "}`, "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := db.Machine{OptionsJSON: tt.optionsJSON}
-			got := machineTypeFromOptions(m, tt.defaultType)
+			got, err := machineTypeFromOptions(m)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("machineTypeFromOptions() expected error, got %q", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("machineTypeFromOptions() unexpected error: %v", err)
+			}
 			if got != tt.want {
 				t.Fatalf("machineTypeFromOptions() = %q, want %q", got, tt.want)
 			}

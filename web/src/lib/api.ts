@@ -443,7 +443,7 @@ function toRuntimeCatalogItem(input: {
       | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string; startupScript: string } }
       | {
           case: 'gce'
-          value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string; machineType: string; diskSizeGb: bigint; imageProject: string; imageFamily: string; allowedMachineTypes: string[] }
+          value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string; diskSizeGb: bigint; allowedMachineTypes: string[] }
         }
       | { case: 'lxd'; value: { endpoint: string; startupScript: string } }
       | { case: undefined; value?: undefined }
@@ -471,10 +471,7 @@ function toRuntimeCatalogItem(input: {
       subnetwork: gce?.subnetwork ?? '',
       serviceAccountEmail: gce?.serviceAccountEmail ?? '',
       startupScript: gce?.startupScript ?? '',
-      machineType: gce?.machineType ?? '',
       diskSizeGb: Number(gce?.diskSizeGb ?? 0),
-      imageProject: gce?.imageProject ?? '',
-      imageFamily: gce?.imageFamily ?? '',
       allowedMachineTypes: gce?.allowedMachineTypes ?? [],
     }
   } else if (runtimeType === 'lxd') {
@@ -532,10 +529,7 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
         subnetwork: config.subnetwork,
         serviceAccountEmail: config.serviceAccountEmail,
         startupScript: config.startupScript,
-        machineType: config.machineType,
         diskSizeGb: BigInt(config.diskSizeGb || 0),
-        imageProject: config.imageProject,
-        imageFamily: config.imageFamily,
         allowedMachineTypes: config.allowedMachineTypes ?? [],
       },
     }

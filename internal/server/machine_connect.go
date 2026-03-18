@@ -631,7 +631,7 @@ func (s *machineConnectService) validateMachineType(ctx context.Context, runtime
 
 	allowed := gce.GetAllowedMachineTypes()
 	if len(allowed) == 0 {
-		return nil // empty list means any type is allowed
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime has no allowed machine types configured"))
 	}
 	if !slices.Contains(allowed, machineType) {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("machine type is not allowed for this runtime"))

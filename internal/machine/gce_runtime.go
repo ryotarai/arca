@@ -18,19 +18,19 @@ import (
 	"github.com/ryotarai/arca/internal/db"
 )
 
-func machineTypeFromOptions(machine db.Machine, defaultType string) string {
+func machineTypeFromOptions(machine db.Machine) (string, error) {
 	optionsJSON := strings.TrimSpace(machine.OptionsJSON)
 	if optionsJSON == "" || optionsJSON == "{}" {
-		return defaultType
+		return "", fmt.Errorf("machine_type is required in machine options")
 	}
 	var opts map[string]string
 	if err := json.Unmarshal([]byte(optionsJSON), &opts); err != nil {
-		return defaultType
+		return "", fmt.Errorf("machine_type is required in machine options")
 	}
 	if mt := strings.TrimSpace(opts["machine_type"]); mt != "" {
-		return mt
+		return mt, nil
 	}
-	return defaultType
+	return "", fmt.Errorf("machine_type is required in machine options")
 }
 
 func parseMachineOptionsMap(machine db.Machine) map[string]string {
@@ -46,10 +46,9 @@ func parseMachineOptionsMap(machine db.Machine) map[string]string {
 }
 
 const (
-	defaultGceMachineType        = "e2-standard-2"
-	defaultGceDiskSizeGB   int64 = 40
-	defaultGceImageProject       = "ubuntu-os-cloud"
-	defaultGceImageFamily        = "ubuntu-2404-lts-amd64"
+	defaultGceDiskSizeGB         int64 = 40
+	defaultGceImageProject             = "ubuntu-os-cloud"
+	defaultGceImageFamily              = "ubuntu-2404-lts-amd64"
 )
 
 type GceRuntime struct {
@@ -59,10 +58,7 @@ type GceRuntime struct {
 	subnetwork          string
 	serviceAccountEmail string
 	startupScript       string
-	machineType         string
 	diskSizeGB          int64
-	imageProject        string
-	imageFamily         string
 	clientFactory func(context.Context) (gceComputeClient, error)
 
 	mu     sync.Mutex
@@ -76,10 +72,7 @@ type GceRuntimeOptions struct {
 	Subnetwork          string
 	ServiceAccountEmail string
 	StartupScript       string
-	MachineType         string
 	DiskSizeGB          int64
-	ImageProject        string
-	ImageFamily         string
 	Client        gceComputeClient
 	ClientFactory func(context.Context) (gceComputeClient, error)
 }
@@ -204,21 +197,9 @@ func NewGceRuntimeWithOptions(options GceRuntimeOptions) (*GceRuntime, error) {
 		startupScript = ""
 	}
 
-	machineType := strings.TrimSpace(options.MachineType)
-	if machineType == "" {
-		machineType = defaultGceMachineType
-	}
 	diskSizeGB := options.DiskSizeGB
 	if diskSizeGB <= 0 {
 		diskSizeGB = defaultGceDiskSizeGB
-	}
-	imageProject := strings.TrimSpace(options.ImageProject)
-	if imageProject == "" {
-		imageProject = defaultGceImageProject
-	}
-	imageFamily := strings.TrimSpace(options.ImageFamily)
-	if imageFamily == "" {
-		imageFamily = defaultGceImageFamily
 	}
 	runtime := &GceRuntime{
 		project:             project,
@@ -227,10 +208,7 @@ func NewGceRuntimeWithOptions(options GceRuntimeOptions) (*GceRuntime, error) {
 		subnetwork:          subnetwork,
 		serviceAccountEmail: serviceAccountEmail,
 		startupScript:       startupScript,
-		machineType:         machineType,
 		diskSizeGB:          diskSizeGB,
-		imageProject:        imageProject,
-		imageFamily:         imageFamily,
 	}
 
 	switch {
@@ -256,7 +234,10 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	if err != nil {
 		return "", err
 	}
-	effectiveMachineType := machineTypeFromOptions(machine, r.machineType)
+	effectiveMachineType, err := machineTypeFromOptions(machine)
+	if err != nil {
+		return "", err
+	}
 
 	if !found {
 		opts.StartupScript = r.startupScript
@@ -514,7 +495,7 @@ func (r *GceRuntime) resolveImage(machine db.Machine) (string, string) {
 			}
 		}
 	}
-	return r.imageProject, r.imageFamily
+	return defaultGceImageProject, defaultGceImageFamily
 }
 
 func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType, imageProject, imageFamily string) *gceInsertInstanceRequest {

@@ -17,7 +17,6 @@ test.describe('machine options', () => {
           network: 'default',
           subnetwork: 'default',
           serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
-          machineType: 'e2-standard-2',
           allowedMachineTypes: ['e2-medium', 'e2-standard-2', 'e2-standard-4'],
         },
         exposure: {
@@ -69,7 +68,6 @@ test.describe('machine options', () => {
           network: 'default',
           subnetwork: 'default',
           serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
-          machineType: 'e2-standard-2',
           allowedMachineTypes: ['e2-medium', 'e2-standard-2'],
         },
         exposure: {
@@ -121,7 +119,6 @@ test.describe('machine options', () => {
           network: 'default',
           subnetwork: 'default',
           serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
-          machineType: 'e2-standard-2',
           allowedMachineTypes: ['e2-medium', 'e2-standard-2'],
         },
         exposure: {
@@ -154,42 +151,34 @@ test.describe('machine options', () => {
     expect(payload.message).toContain('not allowed')
   })
 
-  test('create machine allows any type when allowedMachineTypes is empty', async ({ page }) => {
+  test('create machine rejects empty allowedMachineTypes in runtime config', async ({ page }) => {
     await loginAsAdmin(page)
 
-    const runtime = await createRuntimeViaAPI(page, {
-      name: `gce-any-${Date.now()}`,
-      type: 'gce',
-      config: {
-        gce: {
-          project: 'test-project',
-          zone: 'us-central1-a',
-          network: 'default',
-          subnetwork: 'default',
-          serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
-          machineType: 'e2-standard-2',
-        },
-        exposure: {
-          method: 2,
-          domainPrefix: 'arca-',
-          baseDomain: 'localhost',
-          connectivity: 1,
-        },
-      },
-    })
-
-    const resp = await page.request.post('/arca.v1.MachineService/CreateMachine', {
+    const resp = await page.request.post('/arca.v1.RuntimeService/CreateRuntime', {
       data: {
-        name: `any-test-${Date.now()}`,
-        runtimeId: runtime.id,
-        options: { machine_type: 'n1-standard-96' },
+        name: `gce-empty-mt-${Date.now()}`,
+        type: 2,
+        config: {
+          gce: {
+            project: 'test-project',
+            zone: 'us-central1-a',
+            network: 'default',
+            subnetwork: 'default',
+            serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
+          },
+          exposure: {
+            method: 2,
+            domainPrefix: 'arca-',
+            baseDomain: 'localhost',
+            connectivity: 1,
+          },
+        },
       },
+      failOnStatusCode: false,
     })
-    expect(resp.ok()).toBeTruthy()
-    const payload = (await resp.json()) as {
-      machine?: { options?: Record<string, string> }
-    }
-    expect(payload.machine?.options?.machine_type).toBe('n1-standard-96')
+    expect(resp.ok()).toBeFalsy()
+    const payload = (await resp.json()) as { message?: string }
+    expect(payload.message).toContain('allowed machine type')
   })
 
   test('create machine form shows machine type for GCE runtime', async ({ page }) => {
@@ -205,7 +194,6 @@ test.describe('machine options', () => {
           network: 'default',
           subnetwork: 'default',
           serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
-          machineType: 'e2-standard-2',
           allowedMachineTypes: ['e2-medium', 'e2-standard-2'],
         },
         exposure: {
