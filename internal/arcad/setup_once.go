@@ -10,27 +10,17 @@ import (
 // and configure the environment, but skips steps that start services or
 // require a running control plane. This is designed for Packer image builds
 // where dependencies should be pre-installed.
-func RunSetupOnce(ctx context.Context, setupCfg SetupConfig) error {
-	steps := []struct {
-		name string
-		fn   func(context.Context, SetupConfig) error
-	}{
-		{"create directories", stepCreateDirectories},
-		{"create users and groups", stepCreateUsersAndGroups},
-		{"install system packages", stepInstallPackages},
-		{"configure sudoers", stepConfigureSudoers},
-		{"configure workspace", stepConfigureWorkspace},
-		{"download cloudflared", stepDownloadCloudflared},
-		{"download shelley", stepDownloadShelley},
-		{"create shelley data dir", stepCreateShelleyDataDir},
-		{"install dev tools", stepInstallDevTools},
+func RunSetupOnce(ctx context.Context, _ SetupConfig) error {
+	log.Printf("setup-once: ensuring ansible is installed")
+	if err := ensureAnsible(ctx); err != nil {
+		return fmt.Errorf("ensure ansible: %w", err)
 	}
 
-	for _, step := range steps {
-		log.Printf("setup-once: %s", step.name)
-		if err := step.fn(ctx, setupCfg); err != nil {
-			return fmt.Errorf("setup-once step %q failed: %w", step.name, err)
-		}
+	log.Printf("setup-once: running ansible playbook (skip runtime-only roles)")
+	if err := extractAndRunPlaybook(ctx,
+		"runtime_only",
+	); err != nil {
+		return fmt.Errorf("ansible playbook: %w", err)
 	}
 
 	log.Printf("setup-once: complete")

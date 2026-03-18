@@ -1,0 +1,27 @@
+---
+- name: Check if shelley exists
+  ansible.builtin.stat:
+    path: /usr/local/bin/shelley
+  register: shelley_stat
+
+- name: Set architecture mapping for shelley
+  ansible.builtin.set_fact:
+    shelley_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+  when: shelley_binary_url_base | length > 0
+
+- name: Download shelley
+  ansible.builtin.get_url:
+    url: "{{ shelley_binary_url_base }}_{{ shelley_arch }}"
+    dest: /usr/local/bin/shelley
+    mode: "0755"
+  when:
+    - shelley_binary_url_base | length > 0
+    - not shelley_stat.stat.exists
+
+- name: Create shelley data directory
+  ansible.builtin.file:
+    path: "{{ shelley_db_path | dirname }}"
+    state: directory
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0755"

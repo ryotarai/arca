@@ -1,0 +1,7 @@
+---
+- name: Configure sudoers for interactive user
+  ansible.builtin.template:
+    src: 90-arcauser.j2
+    dest: /etc/sudoers.d/90-arcauser
+    mode: "0440"
+    validate: visudo -cf %s

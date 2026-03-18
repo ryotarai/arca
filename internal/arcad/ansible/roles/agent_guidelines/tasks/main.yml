@@ -1,0 +1,54 @@
+---
+- name: Create agent guideline directories
+  ansible.builtin.file:
+    path: "/home/{{ interactive_user }}/{{ item.dir }}"
+    state: directory
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0755"
+  loop:
+    - { dir: ".claude", file: "CLAUDE.md" }
+    - { dir: ".codex", file: "AGENTS.md" }
+    - { dir: ".gemini", file: "GEMINI.md" }
+    - { dir: ".config", file: "AGENTS.md" }
+
+- name: Ensure agent guideline files exist
+  ansible.builtin.copy:
+    content: ""
+    dest: "/home/{{ interactive_user }}/{{ item.dir }}/{{ item.file }}"
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0644"
+    force: no
+  loop:
+    - { dir: ".claude", file: "CLAUDE.md" }
+    - { dir: ".codex", file: "AGENTS.md" }
+    - { dir: ".gemini", file: "GEMINI.md" }
+    - { dir: ".config", file: "AGENTS.md" }
+
+- name: Write agent guidelines managed block
+  ansible.builtin.blockinfile:
+    path: "/home/{{ interactive_user }}/{{ item.dir }}/{{ item.file }}"
+    marker: "<!-- ARCA:AGENT_GUIDELINE_{mark} -->"
+    marker_begin: "START"
+    marker_end: "END"
+    block: |
+      # Arca Agent Guidelines
+
+      This section is managed by Arca and is safe to re-generate.
+
+      - Run your application HTTP server on `:11030`.
+      - Endpoint URL inside this machine: `{{ agent_endpoint_url }}`.
+      - Requests to the endpoint URL are delivered to port `11030` on this machine.
+      - The server process is started and supervised by `systemd`.
+      - Visibility scope (`owner only`, `specific users`, `all arca users`, `internet public`) is configured in the arca app (server).
+
+      You can add your own notes outside this managed block.
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0644"
+  loop:
+    - { dir: ".claude", file: "CLAUDE.md" }
+    - { dir: ".codex", file: "AGENTS.md" }
+    - { dir: ".gemini", file: "GEMINI.md" }
+    - { dir: ".config", file: "AGENTS.md" }

@@ -1,0 +1,46 @@
+---
+- name: Check if Homebrew is installed
+  ansible.builtin.stat:
+    path: /home/linuxbrew/.linuxbrew/bin/brew
+  register: brew_stat
+
+- name: Install Homebrew
+  ansible.builtin.shell: |
+    CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  become_user: "{{ interactive_user }}"
+  when: not brew_stat.stat.exists
+  ignore_errors: yes
+
+- name: Re-check if Homebrew is installed
+  ansible.builtin.stat:
+    path: /home/linuxbrew/.linuxbrew/bin/brew
+  register: brew_stat_after
+
+- name: Add brew shellenv to .bashrc
+  ansible.builtin.lineinfile:
+    path: "/home/{{ interactive_user }}/.bashrc"
+    line: 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
+    create: yes
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0644"
+  when: brew_stat_after.stat.exists
+
+- name: Install brew formula packages
+  ansible.builtin.shell: |
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --formula {{ item }} >/dev/null 2>&1 || brew install {{ item }}
+  become_user: "{{ interactive_user }}"
+  loop:
+    - codex
+    - gemini-cli
+  when: brew_stat_after.stat.exists
+  ignore_errors: yes
+
+- name: Install brew cask packages
+  ansible.builtin.shell: |
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --cask {{ item }} >/dev/null 2>&1 || brew install --cask {{ item }}
+  become_user: "{{ interactive_user }}"
+  loop:
+    - claude-code
+  when: brew_stat_after.stat.exists
+  ignore_errors: yes

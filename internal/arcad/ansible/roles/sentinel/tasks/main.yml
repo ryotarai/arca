@@ -1,0 +1,6 @@
+---
+- name: Touch startup sentinel
+  ansible.builtin.copy:
+    content: "1"
+    dest: "{{ startup_sentinel }}"
+    mode: "0644"

@@ -1,0 +1,20 @@
+[Unit]
+Description=Arca ttyd
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/arca/arcad.env
+RuntimeDirectory=arca
+RuntimeDirectoryMode=0770
+UMask=0007
+WorkingDirectory=/home/{{ interactive_user }}
+ExecStartPre=/usr/bin/rm -f {{ ttyd_socket }}
+ExecStart=/usr/bin/ttyd -W -i {{ ttyd_socket }} -U {{ interactive_user }}:arca -b {{ ttyd_base_path }} tmux new-session -A -s arca
+Restart=always
+User={{ interactive_user }}
+Group=arca
+
+[Install]
+WantedBy=multi-user.target

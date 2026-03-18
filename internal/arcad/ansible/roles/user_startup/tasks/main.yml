@@ -1,0 +1,9 @@
+---
+- name: Check if user startup script exists
+  ansible.builtin.stat:
+    path: "{{ user_startup_script }}"
+  register: startup_script_stat
+
+- name: Run user startup script
+  ansible.builtin.shell: "/usr/bin/env bash {{ user_startup_script }}"
+  when: startup_script_stat.stat.exists
