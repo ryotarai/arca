@@ -33,6 +33,14 @@ func TestValidateMachineName(t *testing.T) {
 		{name: "reserved dash", input: "dash", wantError: "name is reserved"},
 		{name: "reserved api", input: "api", wantError: "name is reserved"},
 		{name: "reserved system", input: "system", wantError: "name is reserved"},
+		{name: "reserved www", input: "www", wantError: "name is reserved"},
+		{name: "reserved mail", input: "mail", wantError: "name is reserved"},
+		{name: "reserved login", input: "login", wantError: "name is reserved"},
+		{name: "reserved staging", input: "staging", wantError: "name is reserved"},
+		{name: "reserved cdn", input: "cdn", wantError: "name is reserved"},
+		{name: "reserved grafana", input: "grafana", wantError: "name is reserved"},
+		{name: "reserved docs", input: "docs", wantError: "name is reserved"},
+		{name: "reserved localhost", input: "localhost", wantError: "name is reserved"},
 		{name: "reserved arca prefix", input: "arca-demo", wantError: "name cannot start with arca-"},
 	}
 
