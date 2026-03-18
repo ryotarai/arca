@@ -69,16 +69,14 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 			}
 
 			if err := store.UpsertSetupState(ctx, SetupState{
-				Completed:          true,
-				BaseDomain:         "example.com",
-				DomainPrefix:       "arca-",
-				CloudflareAPIToken: "cf-token",
-				CloudflareZoneID:   "zone-id",
-				MachineRuntime:     "libvirt",
-				OIDCEnabled:        true,
-				OIDCIssuerURL:      "https://accounts.google.com",
-				OIDCClientID:       "client-id",
-				OIDCClientSecret:   "client-secret",
+				Completed:      true,
+				BaseDomain:     "example.com",
+				DomainPrefix:   "arca-",
+				MachineRuntime: "libvirt",
+				OIDCEnabled:    true,
+				OIDCIssuerURL:  "https://accounts.google.com",
+				OIDCClientID:   "client-id",
+				OIDCClientSecret: "client-secret",
 				OIDCAllowedEmailDomains: []string{
 					"example.com",
 				},
@@ -89,7 +87,7 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 			if err != nil {
 				t.Fatalf("get setup state: %v", err)
 			}
-			if !setup.Completed || setup.CloudflareZoneID != "zone-id" || setup.MachineRuntime != "libvirt" {
+			if !setup.Completed || setup.MachineRuntime != "libvirt" {
 				t.Fatalf("unexpected setup state: %+v", setup)
 			}
 			if !setup.OIDCEnabled || setup.OIDCIssuerURL != "https://accounts.google.com" || setup.OIDCClientID != "client-id" || setup.OIDCClientSecret != "client-secret" {
@@ -144,23 +142,6 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 			}
 			if _, err := store.VerifyAndConsumeAuthTicket(ctx, created.MachineToken, ticket, time.Now().Unix()); !errors.Is(err, sql.ErrNoRows) {
 				t.Fatalf("expected consumed ticket failure, got %v", err)
-			}
-
-			if err := store.UpsertMachineTunnel(ctx, MachineTunnel{
-				MachineID:   created.ID,
-				AccountID:   "account-1",
-				TunnelID:    "tunnel-1",
-				TunnelName:  "machine-one",
-				TunnelToken: "token-1",
-			}); err != nil {
-				t.Fatalf("upsert machine tunnel: %v", err)
-			}
-			tunnel, err := store.GetMachineTunnelByMachineID(ctx, created.ID)
-			if err != nil {
-				t.Fatalf("get machine tunnel: %v", err)
-			}
-			if tunnel.TunnelID != "tunnel-1" || tunnel.AccountID != "account-1" {
-				t.Fatalf("unexpected tunnel: %+v", tunnel)
 			}
 
 			firstExposure, err := store.UpsertMachineExposure(ctx, created.ID, "ssh", "ssh.example.com", "http://localhost:2222")

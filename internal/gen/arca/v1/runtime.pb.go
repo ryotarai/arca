@@ -76,22 +76,19 @@ func (RuntimeType) EnumDescriptor() ([]byte, []int) {
 type MachineExposureMethod int32
 
 const (
-	MachineExposureMethod_MACHINE_EXPOSURE_METHOD_UNSPECIFIED       MachineExposureMethod = 0
-	MachineExposureMethod_MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL MachineExposureMethod = 1
-	MachineExposureMethod_MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER  MachineExposureMethod = 2
+	MachineExposureMethod_MACHINE_EXPOSURE_METHOD_UNSPECIFIED      MachineExposureMethod = 0
+	MachineExposureMethod_MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER MachineExposureMethod = 2
 )
 
 // Enum value maps for MachineExposureMethod.
 var (
 	MachineExposureMethod_name = map[int32]string{
 		0: "MACHINE_EXPOSURE_METHOD_UNSPECIFIED",
-		1: "MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL",
 		2: "MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER",
 	}
 	MachineExposureMethod_value = map[string]int32{
-		"MACHINE_EXPOSURE_METHOD_UNSPECIFIED":       0,
-		"MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL": 1,
-		"MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER":  2,
+		"MACHINE_EXPOSURE_METHOD_UNSPECIFIED":      0,
+		"MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER": 2,
 	}
 )
 
@@ -172,16 +169,13 @@ func (MachineConnectivity) EnumDescriptor() ([]byte, []int) {
 }
 
 type MachineExposureConfig struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Method              MachineExposureMethod  `protobuf:"varint,1,opt,name=method,proto3,enum=arca.v1.MachineExposureMethod" json:"method,omitempty"`
-	DomainPrefix        string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
-	BaseDomain          string                 `protobuf:"bytes,3,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
-	CloudflareApiToken  string                 `protobuf:"bytes,4,opt,name=cloudflare_api_token,json=cloudflareApiToken,proto3" json:"cloudflare_api_token,omitempty"`
-	CloudflareAccountId string                 `protobuf:"bytes,5,opt,name=cloudflare_account_id,json=cloudflareAccountId,proto3" json:"cloudflare_account_id,omitempty"`
-	CloudflareZoneId    string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
-	Connectivity        MachineConnectivity    `protobuf:"varint,7,opt,name=connectivity,proto3,enum=arca.v1.MachineConnectivity" json:"connectivity,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Method        MachineExposureMethod  `protobuf:"varint,1,opt,name=method,proto3,enum=arca.v1.MachineExposureMethod" json:"method,omitempty"`
+	DomainPrefix  string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	BaseDomain    string                 `protobuf:"bytes,3,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
+	Connectivity  MachineConnectivity    `protobuf:"varint,7,opt,name=connectivity,proto3,enum=arca.v1.MachineConnectivity" json:"connectivity,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MachineExposureConfig) Reset() {
@@ -231,27 +225,6 @@ func (x *MachineExposureConfig) GetDomainPrefix() string {
 func (x *MachineExposureConfig) GetBaseDomain() string {
 	if x != nil {
 		return x.BaseDomain
-	}
-	return ""
-}
-
-func (x *MachineExposureConfig) GetCloudflareApiToken() string {
-	if x != nil {
-		return x.CloudflareApiToken
-	}
-	return ""
-}
-
-func (x *MachineExposureConfig) GetCloudflareAccountId() string {
-	if x != nil {
-		return x.CloudflareAccountId
-	}
-	return ""
-}
-
-func (x *MachineExposureConfig) GetCloudflareZoneId() string {
-	if x != nil {
-		return x.CloudflareZoneId
 	}
 	return ""
 }
@@ -1233,16 +1206,13 @@ var File_arca_v1_runtime_proto protoreflect.FileDescriptor
 
 const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\n" +
-	"\x15arca/v1/runtime.proto\x12\aarca.v1\"\xeb\x02\n" +
+	"\x15arca/v1/runtime.proto\x12\aarca.v1\"\xe9\x01\n" +
 	"\x15MachineExposureConfig\x126\n" +
 	"\x06method\x18\x01 \x01(\x0e2\x1e.arca.v1.MachineExposureMethodR\x06method\x12#\n" +
 	"\rdomain_prefix\x18\x02 \x01(\tR\fdomainPrefix\x12\x1f\n" +
 	"\vbase_domain\x18\x03 \x01(\tR\n" +
-	"baseDomain\x120\n" +
-	"\x14cloudflare_api_token\x18\x04 \x01(\tR\x12cloudflareApiToken\x122\n" +
-	"\x15cloudflare_account_id\x18\x05 \x01(\tR\x13cloudflareAccountId\x12,\n" +
-	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12@\n" +
-	"\fconnectivity\x18\a \x01(\x0e2\x1c.arca.v1.MachineConnectivityR\fconnectivity\"\x8c\x01\n" +
+	"baseDomain\x12@\n" +
+	"\fconnectivity\x18\a \x01(\x0e2\x1c.arca.v1.MachineConnectivityR\fconnectivityJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\a\"\x8c\x01\n" +
 	"\x14LibvirtRuntimeConfig\x12\x10\n" +
 	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x18\n" +
 	"\anetwork\x18\x02 \x01(\tR\anetwork\x12!\n" +
@@ -1317,11 +1287,10 @@ const file_arca_v1_runtime_proto_rawDesc = "" +
 	"\x18RUNTIME_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14RUNTIME_TYPE_LIBVIRT\x10\x01\x12\x14\n" +
 	"\x10RUNTIME_TYPE_GCE\x10\x02\x12\x14\n" +
-	"\x10RUNTIME_TYPE_LXD\x10\x03*\x9d\x01\n" +
+	"\x10RUNTIME_TYPE_LXD\x10\x03*t\n" +
 	"\x15MachineExposureMethod\x12'\n" +
-	"#MACHINE_EXPOSURE_METHOD_UNSPECIFIED\x10\x00\x12-\n" +
-	")MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL\x10\x01\x12,\n" +
-	"(MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER\x10\x02*\x84\x01\n" +
+	"#MACHINE_EXPOSURE_METHOD_UNSPECIFIED\x10\x00\x12,\n" +
+	"(MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER\x10\x02\"\x04\b\x01\x10\x01*\x84\x01\n" +
 	"\x13MachineConnectivity\x12$\n" +
 	" MACHINE_CONNECTIVITY_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fMACHINE_CONNECTIVITY_PRIVATE_IP\x10\x01\x12\"\n" +

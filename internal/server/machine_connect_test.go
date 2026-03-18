@@ -89,7 +89,7 @@ func TestListMachinesPropagatesUpdateRequired(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := newMachineConnectService(auth, store, nil, nil)
+	svc := newMachineConnectService(auth, store, nil)
 
 	req := connect.NewRequest(&arcav1.ListMachinesRequest{})
 	req.Header().Set("Cookie", sessionCookieName+"=session-token")
@@ -135,7 +135,7 @@ func TestGetMachinePropagatesUpdateRequired(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := newMachineConnectService(auth, store, nil, nil)
+	svc := newMachineConnectService(auth, store, nil)
 
 	req := connect.NewRequest(&arcav1.GetMachineRequest{MachineId: "machine-1"})
 	req.Header().Set("Cookie", sessionCookieName+"=session-token")
@@ -265,10 +265,6 @@ func (s *machineStoreStub) DeleteMachineByIDForOwner(context.Context, string, st
 
 func (s *machineStoreStub) DeleteMachineByID(context.Context, string) (bool, error) {
 	panic("DeleteMachineByID should not be called in this test")
-}
-
-func (s *machineStoreStub) GetMachineTunnelByMachineID(context.Context, string) (db.MachineTunnel, error) {
-	panic("GetMachineTunnelByMachineID should not be called in this test")
 }
 
 func (s *machineStoreStub) GetRuntimeByID(context.Context, string) (db.RuntimeCatalog, error) {

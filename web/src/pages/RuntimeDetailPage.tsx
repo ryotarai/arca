@@ -148,7 +148,7 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Machine exposure</p>
-                  <p className="text-sm text-foreground">Method: {runtime.exposure.method === 'proxy_via_server' ? 'proxy via server' : 'cloudflare tunnel'}</p>
+                  <p className="text-sm text-foreground">Method: Proxy via Server</p>
                   {runtime.exposure.domainPrefix !== '' && <p className="text-sm text-foreground">Domain prefix: {runtime.exposure.domainPrefix}</p>}
                   {runtime.exposure.baseDomain !== '' && <p className="text-sm text-foreground">Base domain: {runtime.exposure.baseDomain}</p>}
                   {runtime.exposure.connectivity !== '' && <p className="text-sm text-foreground">Connectivity: {runtime.exposure.connectivity}</p>}

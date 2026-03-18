@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ryotarai/arca/internal/auth"
-	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/gen/arca/v1/arcav1connect"
@@ -20,13 +19,11 @@ import (
 )
 
 type Dependencies struct {
-	HealthChecker HealthChecker
-	Authenticator Authenticator
-	MachineStore  MachineStore
-	Store         *db.Store
-	Cloudflare    *cloudflare.Client
-	ConsoleTunnel *ConsoleTunnelManager
-	MachineProxy  *MachineProxyHandler
+	HealthChecker    HealthChecker
+	Authenticator    Authenticator
+	MachineStore     MachineStore
+	Store            *db.Store
+	MachineProxy     *MachineProxyHandler
 	Slack            *notification.SlackService
 	Encryptor        *crypto.Encryptor
 	LLMTokenExecutor *LLMTokenExecutor
@@ -63,7 +60,6 @@ type MachineStore interface {
 	RequestDeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByID(context.Context, string) (bool, error)
-	GetMachineTunnelByMachineID(context.Context, string) (db.MachineTunnel, error)
 	GetRuntimeByID(context.Context, string) (db.RuntimeCatalog, error)
 }
 
@@ -86,7 +82,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {
-		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore, deps.Cloudflare, deps.Store))
+		path, handler := arcav1connect.NewMachineServiceHandler(newMachineConnectService(deps.Authenticator, deps.MachineStore, deps.Store))
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.Store != nil {
@@ -103,15 +99,15 @@ func NewRouter(deps Dependencies) http.Handler {
 		path, handler = arcav1connect.NewGroupServiceHandler(newGroupConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
-	if deps.Store != nil && deps.Cloudflare != nil && deps.Authenticator != nil {
-		path, handler := arcav1connect.NewSetupServiceHandler(newSetupConnectService(deps.Store, deps.Authenticator, deps.Cloudflare, deps.ConsoleTunnel))
+	if deps.Store != nil && deps.Authenticator != nil {
+		path, handler := arcav1connect.NewSetupServiceHandler(newSetupConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 
 		path, handler = arcav1connect.NewTicketServiceHandler(newTicketConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil {
-		path, handler := arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store, deps.Authenticator, deps.Encryptor, deps.LLMTokenExecutor))
+		path, handler := arcav1connect.NewExposureServiceHandler(newExposureConnectService(deps.Store, deps.Authenticator, deps.Encryptor, deps.LLMTokenExecutor))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil && deps.Slack != nil {

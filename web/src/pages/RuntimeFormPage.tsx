@@ -37,9 +37,6 @@ type RuntimeFormState = {
   exposureMethod: MachineExposureMethodType
   exposureDomainPrefix: string
   exposureBaseDomain: string
-  exposureCloudflareApiToken: string
-  exposureCloudflareAccountId: string
-  exposureCloudflareZoneId: string
   exposureConnectivity: 'private_ip' | 'public_ip' | ''
   serverApiUrl: string
   autoStopTimeoutHours: string
@@ -70,12 +67,9 @@ function emptyRuntimeForm(): RuntimeFormState {
     gceAllowedMachineTypes: '',
     lxdEndpoint: '',
     lxdStartupScript: '',
-    exposureMethod: 'cloudflare_tunnel',
+    exposureMethod: 'proxy_via_server',
     exposureDomainPrefix: '',
     exposureBaseDomain: '',
-    exposureCloudflareApiToken: '',
-    exposureCloudflareAccountId: '',
-    exposureCloudflareZoneId: '',
     exposureConnectivity: '',
     serverApiUrl: '',
     autoStopTimeoutHours: '',
@@ -178,9 +172,6 @@ function toExposureConfig(form: RuntimeFormState): MachineExposureConfig {
     method: form.exposureMethod,
     domainPrefix: form.exposureDomainPrefix.trim(),
     baseDomain: form.exposureBaseDomain.trim(),
-    cloudflareApiToken: form.exposureCloudflareApiToken,
-    cloudflareAccountId: form.exposureCloudflareAccountId.trim(),
-    cloudflareZoneId: form.exposureCloudflareZoneId.trim(),
     connectivity: form.exposureConnectivity,
   }
 }
@@ -190,9 +181,6 @@ function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
     exposureMethod: runtime.exposure.method,
     exposureDomainPrefix: runtime.exposure.domainPrefix,
     exposureBaseDomain: runtime.exposure.baseDomain,
-    exposureCloudflareApiToken: '',
-    exposureCloudflareAccountId: runtime.exposure.cloudflareAccountId,
-    exposureCloudflareZoneId: runtime.exposure.cloudflareZoneId,
     exposureConnectivity: runtime.exposure.connectivity,
     serverApiUrl: runtime.serverApiUrl,
     autoStopTimeoutHours: runtime.autoStopTimeoutSeconds > 0 ? String(runtime.autoStopTimeoutSeconds / 3600) : '',
@@ -492,25 +480,9 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
 
                 <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
                   <p className="text-sm font-medium text-foreground">Machine exposure</p>
-                  <div className="space-y-2">
-                    <Label htmlFor="runtime-exposure-method">Method</Label>
-                    <select
-                      id="runtime-exposure-method"
-                      value={form.exposureMethod}
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, exposureMethod: event.target.value as MachineExposureMethodType }))
-                      }
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="cloudflare_tunnel">Cloudflare Tunnel</option>
-                      <option value="proxy_via_server">Proxy via server</option>
-                    </select>
-                    <p className="text-xs text-muted-foreground">
-                      {form.exposureMethod === 'cloudflare_tunnel'
-                        ? 'Each machine gets a Cloudflare Tunnel for direct access.'
-                        : 'Machine traffic is reverse-proxied through the Arca server.'}
-                    </p>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Machine traffic is reverse-proxied through the Arca server.
+                  </p>
                   <div className="space-y-2">
                     <Label htmlFor="runtime-exposure-domain-prefix">Domain prefix</Label>
                     <Input id="runtime-exposure-domain-prefix" value={form.exposureDomainPrefix} onChange={(event) => setForm((current) => ({ ...current, exposureDomainPrefix: event.target.value }))} className="h-10" placeholder="arca-" />
@@ -519,40 +491,22 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                     <Label htmlFor="runtime-exposure-base-domain">Base domain</Label>
                     <Input id="runtime-exposure-base-domain" value={form.exposureBaseDomain} onChange={(event) => setForm((current) => ({ ...current, exposureBaseDomain: event.target.value }))} className="h-10" placeholder="example.com" />
                   </div>
-                  {form.exposureMethod === 'proxy_via_server' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="runtime-exposure-connectivity">Connectivity</Label>
-                      <select
-                        id="runtime-exposure-connectivity"
-                        value={form.exposureConnectivity}
-                        onChange={(event) =>
-                          setForm((current) => ({ ...current, exposureConnectivity: event.target.value as 'private_ip' | 'public_ip' | '' }))
-                        }
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <option value="">Not set</option>
-                        <option value="private_ip">Private IP</option>
-                        {form.type === 'gce' && <option value="public_ip">Public IP</option>}
-                      </select>
-                      <p className="text-xs text-muted-foreground">How the server reaches machine IPs for reverse proxying.</p>
-                    </div>
-                  )}
-                  {form.exposureMethod === 'cloudflare_tunnel' && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="runtime-exposure-cf-account-id">Cloudflare account ID</Label>
-                        <Input id="runtime-exposure-cf-account-id" value={form.exposureCloudflareAccountId} onChange={(event) => setForm((current) => ({ ...current, exposureCloudflareAccountId: event.target.value }))} className="h-10" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="runtime-exposure-cf-zone-id">Cloudflare zone ID</Label>
-                        <Input id="runtime-exposure-cf-zone-id" value={form.exposureCloudflareZoneId} onChange={(event) => setForm((current) => ({ ...current, exposureCloudflareZoneId: event.target.value }))} className="h-10" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="runtime-exposure-cf-api-token">Cloudflare API token</Label>
-                        <Input id="runtime-exposure-cf-api-token" type="password" value={form.exposureCloudflareApiToken} onChange={(event) => setForm((current) => ({ ...current, exposureCloudflareApiToken: event.target.value }))} className="h-10" placeholder={isEdit ? 'Leave empty to keep current token' : ''} />
-                      </div>
-                    </>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="runtime-exposure-connectivity">Connectivity</Label>
+                    <select
+                      id="runtime-exposure-connectivity"
+                      value={form.exposureConnectivity}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, exposureConnectivity: event.target.value as 'private_ip' | 'public_ip' | '' }))
+                      }
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">Not set</option>
+                      <option value="private_ip">Private IP</option>
+                      {form.type === 'gce' && <option value="public_ip">Public IP</option>}
+                    </select>
+                    <p className="text-xs text-muted-foreground">How the server reaches machine IPs for reverse proxying.</p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

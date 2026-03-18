@@ -12,7 +12,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/ryotarai/arca/internal/auth"
-	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
@@ -20,8 +19,6 @@ import (
 type setupConnectService struct {
 	store         *db.Store
 	authenticator Authenticator
-	cf            *cloudflare.Client
-	consoleTunnel *ConsoleTunnelManager
 }
 
 var (
@@ -29,8 +26,8 @@ var (
 	domainPrefixPattern = regexp.MustCompile(`^[a-z0-9-]*$`)
 )
 
-func newSetupConnectService(store *db.Store, authenticator Authenticator, cf *cloudflare.Client, consoleTunnel *ConsoleTunnelManager) *setupConnectService {
-	return &setupConnectService{store: store, authenticator: authenticator, cf: cf, consoleTunnel: consoleTunnel}
+func newSetupConnectService(store *db.Store, authenticator Authenticator) *setupConnectService {
+	return &setupConnectService{store: store, authenticator: authenticator}
 }
 
 func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Request[arcav1.GetSetupStatusRequest]) (*connect.Response[arcav1.GetSetupStatusResponse], error) {
@@ -46,7 +43,6 @@ func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Req
 			Status: &arcav1.SetupStatus{
 				Completed:                      true,
 				AdminConfigured:                true,
-				CloudflareConfigured:           true,
 				MachineRuntime:                 db.MachineRuntimeLibvirt,
 				InternetPublicExposureDisabled: internetPublicExposureDisabled,
 			},
@@ -94,67 +90,6 @@ func (s *setupConnectService) VerifySetupPassword(ctx context.Context, req *conn
 	return connect.NewResponse(&arcav1.VerifySetupPasswordResponse{Valid: valid}), nil
 }
 
-func (s *setupConnectService) ValidateCloudflareToken(ctx context.Context, req *connect.Request[arcav1.ValidateCloudflareTokenRequest]) (*connect.Response[arcav1.ValidateCloudflareTokenResponse], error) {
-	if s.cf == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("cloudflare client unavailable"))
-	}
-
-	token := strings.TrimSpace(req.Msg.GetApiToken())
-	accountID := strings.TrimSpace(req.Msg.GetAccountId())
-	if token == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("api token is required"))
-	}
-	if accountID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("account id is required"))
-	}
-
-	if shouldSkipCloudflareValidation() {
-		return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{Valid: true, Message: "token verification skipped"}), nil
-	}
-
-	verification, verifyErr := s.cf.VerifyToken(ctx, token)
-	valid := false
-	message := ""
-	if verifyErr == nil {
-		if !strings.EqualFold(verification.Status, "active") {
-			return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{
-				Valid:   false,
-				Message: "token is not active",
-			}), nil
-		}
-		if err := s.cf.VerifyAccountToken(ctx, token, accountID); err == nil {
-			valid = true
-			message = "token verified"
-		} else {
-			message = "token is not a valid account token for the provided account id"
-		}
-	} else if err := s.cf.VerifyAccountToken(ctx, token, accountID); err == nil {
-		valid = true
-		message = "account token verified"
-	} else {
-		message = verifyErr.Error()
-	}
-	return connect.NewResponse(&arcav1.ValidateCloudflareTokenResponse{Valid: valid, Message: message}), nil
-}
-
-func serverExposureMethodFromProto(method arcav1.ServerExposureMethod) string {
-	switch method {
-	case arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_MANUAL:
-		return db.ServerExposureMethodManual
-	default:
-		return db.ServerExposureMethodCloudflareTunnel
-	}
-}
-
-func serverExposureMethodToProto(method string) arcav1.ServerExposureMethod {
-	switch db.NormalizeServerExposureMethod(method) {
-	case db.ServerExposureMethodManual:
-		return arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_MANUAL
-	default:
-		return arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL
-	}
-}
-
 func validateServerDomain(domain string) (string, error) {
 	value := strings.ToLower(strings.TrimSpace(domain))
 	if value == "" {
@@ -200,40 +135,9 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("admin email and password are required"))
 	}
 
-	serverExposureMethod := serverExposureMethodFromProto(req.Msg.GetServerExposureMethod())
-
-	cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken())
-	zoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId())
-
-	// Server domain: required for manual, optional for cloudflare_tunnel (derived from tunnel)
-	var serverDomain string
-	if serverExposureMethod == db.ServerExposureMethodManual {
-		var domainErr error
-		serverDomain, domainErr = validateServerDomain(req.Msg.GetServerDomain())
-		if domainErr != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, domainErr)
-		}
-	} else {
-		serverDomain = strings.ToLower(strings.TrimSpace(req.Msg.GetServerDomain()))
-	}
-
-	if serverExposureMethod == db.ServerExposureMethodCloudflareTunnel {
-		if s.cf == nil {
-			return nil, connect.NewError(connect.CodeUnavailable, errors.New("cloudflare client unavailable"))
-		}
-		if cfToken == "" || zoneID == "" {
-			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token and zone id are required for cloudflare tunnel exposure"))
-		}
-		if !shouldSkipCloudflareValidation() {
-			verification, verifyErr := s.cf.VerifyToken(ctx, cfToken)
-			if verifyErr == nil {
-				if !strings.EqualFold(verification.Status, "active") {
-					return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token is not active"))
-				}
-			} else if err := s.cf.VerifyZoneAccess(ctx, cfToken, zoneID); err != nil {
-				return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cloudflare token verification failed"))
-			}
-		}
+	serverDomain, domainErr := validateServerDomain(req.Msg.GetServerDomain())
+	if domainErr != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, domainErr)
 	}
 
 	adminUserID, _, err := s.authenticator.Register(ctx, email, password)
@@ -255,17 +159,14 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	}
 
 	state := db.SetupState{
-		Completed:            true,
-		HasAdmin:             true,
-		CloudflareAPIToken:   cfToken,
-		MachineRuntime:       normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
-		CloudflareZoneID:     zoneID,
-		ServerExposureMethod: serverExposureMethod,
-		ServerDomain:         serverDomain,
-		OIDCEnabled:          current.OIDCEnabled,
-		OIDCIssuerURL:        current.OIDCIssuerURL,
-		OIDCClientID:         current.OIDCClientID,
-		OIDCClientSecret:     current.OIDCClientSecret,
+		Completed:      true,
+		HasAdmin:       true,
+		MachineRuntime: normalizeMachineRuntime(req.Msg.GetMachineRuntime()),
+		ServerDomain:   serverDomain,
+		OIDCEnabled:    current.OIDCEnabled,
+		OIDCIssuerURL:  current.OIDCIssuerURL,
+		OIDCClientID:   current.OIDCClientID,
+		OIDCClientSecret: current.OIDCClientSecret,
 		OIDCAllowedEmailDomains: append([]string(nil),
 			current.OIDCAllowedEmailDomains...,
 		),
@@ -277,13 +178,6 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
-	if serverExposureMethod == db.ServerExposureMethodCloudflareTunnel && s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
-		if _, err := s.consoleTunnel.EnsureExposed(ctx, state); err != nil {
-			log.Printf("ensure console tunnel failed: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
-		}
-	}
-
 	return connect.NewResponse(&arcav1.CompleteSetupResponse{Status: setupStatusMessage(state)}), nil
 }
 
@@ -309,22 +203,12 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 	}
 	current.InternetPublicExposureDisabled = req.Msg.GetDisableInternetPublicExposure()
 
-	// Server exposure settings
-	if req.Msg.GetServerExposureMethod() != arcav1.ServerExposureMethod_SERVER_EXPOSURE_METHOD_UNSPECIFIED {
-		current.ServerExposureMethod = serverExposureMethodFromProto(req.Msg.GetServerExposureMethod())
-	}
 	if serverDomain := strings.TrimSpace(req.Msg.GetServerDomain()); serverDomain != "" {
 		validated, domErr := validateServerDomain(serverDomain)
 		if domErr != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, domErr)
 		}
 		current.ServerDomain = validated
-	}
-	if cfToken := strings.TrimSpace(req.Msg.GetCloudflareApiToken()); cfToken != "" {
-		current.CloudflareAPIToken = cfToken
-	}
-	if cfZoneID := strings.TrimSpace(req.Msg.GetCloudflareZoneId()); cfZoneID != "" {
-		current.CloudflareZoneID = cfZoneID
 	}
 
 	oidcIssuerURL, err := validateOIDCIssuerURL(req.Msg.GetOidcIssuerUrl())
@@ -374,13 +258,6 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		log.Printf("persist setup state failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
-	if current.ServerExposureMethod == db.ServerExposureMethodCloudflareTunnel && s.consoleTunnel != nil && !shouldSkipCloudflareValidation() {
-		if _, err := s.consoleTunnel.EnsureExposed(ctx, current); err != nil {
-			log.Printf("ensure console tunnel failed: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to expose console endpoint"))
-		}
-	}
-
 	return connect.NewResponse(&arcav1.UpdateDomainSettingsResponse{Status: setupStatusMessage(current)}), nil
 }
 
@@ -388,8 +265,6 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 	return &arcav1.SetupStatus{
 		Completed:                      state.Completed,
 		AdminConfigured:                state.HasAdmin,
-		CloudflareConfigured:           strings.TrimSpace(state.CloudflareAPIToken) != "",
-		CloudflareZoneId:               state.CloudflareZoneID,
 		MachineRuntime:                 normalizeMachineRuntime(state.MachineRuntime),
 		InternetPublicExposureDisabled: state.InternetPublicExposureDisabled,
 		OidcEnabled:                    state.OIDCEnabled,
@@ -397,7 +272,6 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		OidcClientId:                   state.OIDCClientID,
 		OidcClientSecretConfigured:     strings.TrimSpace(state.OIDCClientSecret) != "",
 		OidcAllowedEmailDomains:        append([]string(nil), state.OIDCAllowedEmailDomains...),
-		ServerExposureMethod:           serverExposureMethodToProto(state.ServerExposureMethod),
 		ServerDomain:                   state.ServerDomain,
 		PasswordLoginDisabled:          state.PasswordLoginDisabled,
 		IapEnabled:                     state.IAPEnabled,
@@ -522,11 +396,6 @@ func (s *setupConnectService) authenticateAdmin(ctx context.Context, header http
 	}
 
 	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-}
-
-func shouldSkipCloudflareValidation() bool {
-	value := strings.ToLower(strings.TrimSpace(os.Getenv("ARCA_SKIP_CLOUDFLARE_VALIDATION")))
-	return value == "1" || value == "true" || value == "yes"
 }
 
 func shouldSkipSetup() bool {

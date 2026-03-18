@@ -155,7 +155,6 @@ CREATE TABLE IF NOT EXISTS setup_state (
   completed BOOLEAN NOT NULL DEFAULT FALSE,
   base_domain TEXT NOT NULL DEFAULT '',
   domain_prefix TEXT NOT NULL DEFAULT '',
-  cloudflare_api_token TEXT NOT NULL DEFAULT '',
   updated_at BIGINT NOT NULL DEFAULT 0
 );
 
@@ -183,16 +182,6 @@ CREATE TABLE IF NOT EXISTS auth_tickets (
 
 CREATE INDEX IF NOT EXISTS idx_auth_tickets_machine_id ON auth_tickets(machine_id);
 CREATE INDEX IF NOT EXISTS idx_auth_tickets_expires_at ON auth_tickets(expires_at);
-
-CREATE TABLE IF NOT EXISTS machine_tunnels (
-  machine_id TEXT PRIMARY KEY REFERENCES machines(id) ON DELETE CASCADE,
-  account_id TEXT NOT NULL,
-  tunnel_id TEXT NOT NULL UNIQUE,
-  tunnel_name TEXT NOT NULL,
-  tunnel_token TEXT NOT NULL,
-  created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL
-);
 
 CREATE TABLE IF NOT EXISTS machine_exposures (
   id TEXT PRIMARY KEY,

@@ -2,15 +2,15 @@
 // @generated from file arca/v1/setup.proto (package arca.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file arca/v1/setup.proto.
  */
 export const file_arca_v1_setup: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxIr4ECgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIdChVjbG91ZGZsYXJlX2NvbmZpZ3VyZWQYAyABKAgSGgoSY2xvdWRmbGFyZV96b25lX2lkGAYgASgJEhcKD21hY2hpbmVfcnVudGltZRgIIAEoCRIpCiFpbnRlcm5ldF9wdWJsaWNfZXhwb3N1cmVfZGlzYWJsZWQYCSABKAgSFAoMb2lkY19lbmFibGVkGAogASgIEhcKD29pZGNfaXNzdWVyX3VybBgLIAEoCRIWCg5vaWRjX2NsaWVudF9pZBgMIAEoCRIlCh1vaWRjX2NsaWVudF9zZWNyZXRfY29uZmlndXJlZBgNIAEoCBIiChpvaWRjX2FsbG93ZWRfZW1haWxfZG9tYWlucxgOIAMoCRI9ChZzZXJ2ZXJfZXhwb3N1cmVfbWV0aG9kGA8gASgOMh0uYXJjYS52MS5TZXJ2ZXJFeHBvc3VyZU1ldGhvZBIVCg1zZXJ2ZXJfZG9tYWluGBAgASgJEh8KF3Bhc3N3b3JkX2xvZ2luX2Rpc2FibGVkGBEgASgIEhMKC2lhcF9lbmFibGVkGBIgASgIEhQKDGlhcF9hdWRpZW5jZRgTIAEoCRIdChVpYXBfYXV0b19wcm92aXNpb25pbmcYFCABKAgSHgoWb2lkY19hdXRvX3Byb3Zpc2lvbmluZxgVIAEoCEoECAQQBUoECAUQBkoECAcQCCIXChVHZXRTZXR1cFN0YXR1c1JlcXVlc3QiPgoWR2V0U2V0dXBTdGF0dXNSZXNwb25zZRIkCgZzdGF0dXMYASABKAsyFC5hcmNhLnYxLlNldHVwU3RhdHVzIjQKGlZlcmlmeVNldHVwUGFzc3dvcmRSZXF1ZXN0EhYKDnNldHVwX3Bhc3N3b3JkGAEgASgJIiwKG1ZlcmlmeVNldHVwUGFzc3dvcmRSZXNwb25zZRINCgV2YWxpZBgBIAEoCCJHCh5WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlcXVlc3QSEQoJYXBpX3Rva2VuGAEgASgJEhIKCmFjY291bnRfaWQYAiABKAkiQQofVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXNwb25zZRINCgV2YWxpZBgBIAEoCBIPCgdtZXNzYWdlGAIgASgJIpYCChRDb21wbGV0ZVNldHVwUmVxdWVzdBITCgthZG1pbl9lbWFpbBgBIAEoCRIWCg5hZG1pbl9wYXNzd29yZBgCIAEoCRIcChRjbG91ZGZsYXJlX2FwaV90b2tlbhgEIAEoCRIaChJjbG91ZGZsYXJlX3pvbmVfaWQYBiABKAkSFwoPbWFjaGluZV9ydW50aW1lGAggASgJEj0KFnNlcnZlcl9leHBvc3VyZV9tZXRob2QYCSABKA4yHS5hcmNhLnYxLlNlcnZlckV4cG9zdXJlTWV0aG9kEhUKDXNlcnZlcl9kb21haW4YCiABKAkSFgoOc2V0dXBfcGFzc3dvcmQYCyABKAlKBAgDEARKBAgFEAZKBAgHEAgiPQoVQ29tcGxldGVTZXR1cFJlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMisAQKG1VwZGF0ZURvbWFpblNldHRpbmdzUmVxdWVzdBIXCg9tYWNoaW5lX3J1bnRpbWUYAyABKAkSKAogZGlzYWJsZV9pbnRlcm5ldF9wdWJsaWNfZXhwb3N1cmUYBCABKAgSFAoMb2lkY19lbmFibGVkGAUgASgIEhcKD29pZGNfaXNzdWVyX3VybBgGIAEoCRIWCg5vaWRjX2NsaWVudF9pZBgHIAEoCRIaChJvaWRjX2NsaWVudF9zZWNyZXQYCCABKAkSIgoab2lkY19hbGxvd2VkX2VtYWlsX2RvbWFpbnMYCSADKAkSIAoYY2xlYXJfb2lkY19jbGllbnRfc2VjcmV0GAogASgIEj0KFnNlcnZlcl9leHBvc3VyZV9tZXRob2QYCyABKA4yHS5hcmNhLnYxLlNlcnZlckV4cG9zdXJlTWV0aG9kEhUKDXNlcnZlcl9kb21haW4YDCABKAkSHAoUY2xvdWRmbGFyZV9hcGlfdG9rZW4YDSABKAkSGgoSY2xvdWRmbGFyZV96b25lX2lkGA4gASgJEh8KF3Bhc3N3b3JkX2xvZ2luX2Rpc2FibGVkGA8gASgIEhMKC2lhcF9lbmFibGVkGBAgASgIEhQKDGlhcF9hdWRpZW5jZRgRIAEoCRIdChVpYXBfYXV0b19wcm92aXNpb25pbmcYEiABKAgSHgoWb2lkY19hdXRvX3Byb3Zpc2lvbmluZxgTIAEoCEoECAEQAkoECAIQAyJEChxVcGRhdGVEb21haW5TZXR0aW5nc1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMqjwEKFFNlcnZlckV4cG9zdXJlTWV0aG9kEiYKIlNFUlZFUl9FWFBPU1VSRV9NRVRIT0RfVU5TUEVDSUZJRUQQABIsCihTRVJWRVJfRVhQT1NVUkVfTUVUSE9EX0NMT1VERkxBUkVfVFVOTkVMEAESIQodU0VSVkVSX0VYUE9TVVJFX01FVEhPRF9NQU5VQUwQAjLmAwoMU2V0dXBTZXJ2aWNlElEKDkdldFNldHVwU3RhdHVzEh4uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1JlcXVlc3QaHy5hcmNhLnYxLkdldFNldHVwU3RhdHVzUmVzcG9uc2USYAoTVmVyaWZ5U2V0dXBQYXNzd29yZBIjLmFyY2EudjEuVmVyaWZ5U2V0dXBQYXNzd29yZFJlcXVlc3QaJC5hcmNhLnYxLlZlcmlmeVNldHVwUGFzc3dvcmRSZXNwb25zZRJsChdWYWxpZGF0ZUNsb3VkZmxhcmVUb2tlbhInLmFyY2EudjEuVmFsaWRhdGVDbG91ZGZsYXJlVG9rZW5SZXF1ZXN0GiguYXJjYS52MS5WYWxpZGF0ZUNsb3VkZmxhcmVUb2tlblJlc3BvbnNlEk4KDUNvbXBsZXRlU2V0dXASHS5hcmNhLnYxLkNvbXBsZXRlU2V0dXBSZXF1ZXN0Gh4uYXJjYS52MS5Db21wbGV0ZVNldHVwUmVzcG9uc2USYwoUVXBkYXRlRG9tYWluU2V0dGluZ3MSJC5hcmNhLnYxLlVwZGF0ZURvbWFpblNldHRpbmdzUmVxdWVzdBolLmFyY2EudjEuVXBkYXRlRG9tYWluU2V0dGluZ3NSZXNwb25zZUKMAQoLY29tLmFyY2EudjFCClNldHVwUHJvdG9QAVo0Z2l0aHViLmNvbS9yeW90YXJhaS9hcmNhL2ludGVybmFsL2dlbi9hcmNhL3YxO2FyY2F2MaICA0FYWKoCB0FyY2EuVjHKAgdBcmNhXFYx4gITQXJjYVxWMVxHUEJNZXRhZGF0YeoCCEFyY2E6OlYxYgZwcm90bzM");
+  fileDesc("ChNhcmNhL3YxL3NldHVwLnByb3RvEgdhcmNhLnYxItYDCgtTZXR1cFN0YXR1cxIRCgljb21wbGV0ZWQYASABKAgSGAoQYWRtaW5fY29uZmlndXJlZBgCIAEoCBIXCg9tYWNoaW5lX3J1bnRpbWUYCCABKAkSKQohaW50ZXJuZXRfcHVibGljX2V4cG9zdXJlX2Rpc2FibGVkGAkgASgIEhQKDG9pZGNfZW5hYmxlZBgKIAEoCBIXCg9vaWRjX2lzc3Vlcl91cmwYCyABKAkSFgoOb2lkY19jbGllbnRfaWQYDCABKAkSJQodb2lkY19jbGllbnRfc2VjcmV0X2NvbmZpZ3VyZWQYDSABKAgSIgoab2lkY19hbGxvd2VkX2VtYWlsX2RvbWFpbnMYDiADKAkSFQoNc2VydmVyX2RvbWFpbhgQIAEoCRIfChdwYXNzd29yZF9sb2dpbl9kaXNhYmxlZBgRIAEoCBITCgtpYXBfZW5hYmxlZBgSIAEoCBIUCgxpYXBfYXVkaWVuY2UYEyABKAkSHQoVaWFwX2F1dG9fcHJvdmlzaW9uaW5nGBQgASgIEh4KFm9pZGNfYXV0b19wcm92aXNpb25pbmcYFSABKAhKBAgDEARKBAgEEAVKBAgFEAZKBAgGEAdKBAgHEAhKBAgPEBAiFwoVR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Ij4KFkdldFNldHVwU3RhdHVzUmVzcG9uc2USJAoGc3RhdHVzGAEgASgLMhQuYXJjYS52MS5TZXR1cFN0YXR1cyI0ChpWZXJpZnlTZXR1cFBhc3N3b3JkUmVxdWVzdBIWCg5zZXR1cF9wYXNzd29yZBgBIAEoCSIsChtWZXJpZnlTZXR1cFBhc3N3b3JkUmVzcG9uc2USDQoFdmFsaWQYASABKAgirwEKFENvbXBsZXRlU2V0dXBSZXF1ZXN0EhMKC2FkbWluX2VtYWlsGAEgASgJEhYKDmFkbWluX3Bhc3N3b3JkGAIgASgJEhcKD21hY2hpbmVfcnVudGltZRgIIAEoCRIVCg1zZXJ2ZXJfZG9tYWluGAogASgJEhYKDnNldHVwX3Bhc3N3b3JkGAsgASgJSgQIAxAESgQIBBAFSgQIBRAGSgQIBhAHSgQIBxAISgQICRAKIj0KFUNvbXBsZXRlU2V0dXBSZXNwb25zZRIkCgZzdGF0dXMYASABKAsyFC5hcmNhLnYxLlNldHVwU3RhdHVzIskDChtVcGRhdGVEb21haW5TZXR0aW5nc1JlcXVlc3QSFwoPbWFjaGluZV9ydW50aW1lGAMgASgJEigKIGRpc2FibGVfaW50ZXJuZXRfcHVibGljX2V4cG9zdXJlGAQgASgIEhQKDG9pZGNfZW5hYmxlZBgFIAEoCBIXCg9vaWRjX2lzc3Vlcl91cmwYBiABKAkSFgoOb2lkY19jbGllbnRfaWQYByABKAkSGgoSb2lkY19jbGllbnRfc2VjcmV0GAggASgJEiIKGm9pZGNfYWxsb3dlZF9lbWFpbF9kb21haW5zGAkgAygJEiAKGGNsZWFyX29pZGNfY2xpZW50X3NlY3JldBgKIAEoCBIVCg1zZXJ2ZXJfZG9tYWluGAwgASgJEh8KF3Bhc3N3b3JkX2xvZ2luX2Rpc2FibGVkGA8gASgIEhMKC2lhcF9lbmFibGVkGBAgASgIEhQKDGlhcF9hdWRpZW5jZRgRIAEoCRIdChVpYXBfYXV0b19wcm92aXNpb25pbmcYEiABKAgSHgoWb2lkY19hdXRvX3Byb3Zpc2lvbmluZxgTIAEoCEoECAEQAkoECAIQA0oECAsQDEoECA0QDkoECA4QDyJEChxVcGRhdGVEb21haW5TZXR0aW5nc1Jlc3BvbnNlEiQKBnN0YXR1cxgBIAEoCzIULmFyY2EudjEuU2V0dXBTdGF0dXMy+AIKDFNldHVwU2VydmljZRJRCg5HZXRTZXR1cFN0YXR1cxIeLmFyY2EudjEuR2V0U2V0dXBTdGF0dXNSZXF1ZXN0Gh8uYXJjYS52MS5HZXRTZXR1cFN0YXR1c1Jlc3BvbnNlEmAKE1ZlcmlmeVNldHVwUGFzc3dvcmQSIy5hcmNhLnYxLlZlcmlmeVNldHVwUGFzc3dvcmRSZXF1ZXN0GiQuYXJjYS52MS5WZXJpZnlTZXR1cFBhc3N3b3JkUmVzcG9uc2USTgoNQ29tcGxldGVTZXR1cBIdLmFyY2EudjEuQ29tcGxldGVTZXR1cFJlcXVlc3QaHi5hcmNhLnYxLkNvbXBsZXRlU2V0dXBSZXNwb25zZRJjChRVcGRhdGVEb21haW5TZXR0aW5ncxIkLmFyY2EudjEuVXBkYXRlRG9tYWluU2V0dGluZ3NSZXF1ZXN0GiUuYXJjYS52MS5VcGRhdGVEb21haW5TZXR0aW5nc1Jlc3BvbnNlQowBCgtjb20uYXJjYS52MUIKU2V0dXBQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message arca.v1.SetupStatus
@@ -25,16 +25,6 @@ export type SetupStatus = Message<"arca.v1.SetupStatus"> & {
    * @generated from field: bool admin_configured = 2;
    */
   adminConfigured: boolean;
-
-  /**
-   * @generated from field: bool cloudflare_configured = 3;
-   */
-  cloudflareConfigured: boolean;
-
-  /**
-   * @generated from field: string cloudflare_zone_id = 6;
-   */
-  cloudflareZoneId: string;
 
   /**
    * @generated from field: string machine_runtime = 8;
@@ -70,11 +60,6 @@ export type SetupStatus = Message<"arca.v1.SetupStatus"> & {
    * @generated from field: repeated string oidc_allowed_email_domains = 14;
    */
   oidcAllowedEmailDomains: string[];
-
-  /**
-   * @generated from field: arca.v1.ServerExposureMethod server_exposure_method = 15;
-   */
-  serverExposureMethod: ServerExposureMethod;
 
   /**
    * @generated from field: string server_domain = 16;
@@ -179,50 +164,6 @@ export const VerifySetupPasswordResponseSchema: GenMessage<VerifySetupPasswordRe
   messageDesc(file_arca_v1_setup, 4);
 
 /**
- * @generated from message arca.v1.ValidateCloudflareTokenRequest
- */
-export type ValidateCloudflareTokenRequest = Message<"arca.v1.ValidateCloudflareTokenRequest"> & {
-  /**
-   * @generated from field: string api_token = 1;
-   */
-  apiToken: string;
-
-  /**
-   * @generated from field: string account_id = 2;
-   */
-  accountId: string;
-};
-
-/**
- * Describes the message arca.v1.ValidateCloudflareTokenRequest.
- * Use `create(ValidateCloudflareTokenRequestSchema)` to create a new message.
- */
-export const ValidateCloudflareTokenRequestSchema: GenMessage<ValidateCloudflareTokenRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 5);
-
-/**
- * @generated from message arca.v1.ValidateCloudflareTokenResponse
- */
-export type ValidateCloudflareTokenResponse = Message<"arca.v1.ValidateCloudflareTokenResponse"> & {
-  /**
-   * @generated from field: bool valid = 1;
-   */
-  valid: boolean;
-
-  /**
-   * @generated from field: string message = 2;
-   */
-  message: string;
-};
-
-/**
- * Describes the message arca.v1.ValidateCloudflareTokenResponse.
- * Use `create(ValidateCloudflareTokenResponseSchema)` to create a new message.
- */
-export const ValidateCloudflareTokenResponseSchema: GenMessage<ValidateCloudflareTokenResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 6);
-
-/**
  * @generated from message arca.v1.CompleteSetupRequest
  */
 export type CompleteSetupRequest = Message<"arca.v1.CompleteSetupRequest"> & {
@@ -237,24 +178,9 @@ export type CompleteSetupRequest = Message<"arca.v1.CompleteSetupRequest"> & {
   adminPassword: string;
 
   /**
-   * @generated from field: string cloudflare_api_token = 4;
-   */
-  cloudflareApiToken: string;
-
-  /**
-   * @generated from field: string cloudflare_zone_id = 6;
-   */
-  cloudflareZoneId: string;
-
-  /**
    * @generated from field: string machine_runtime = 8;
    */
   machineRuntime: string;
-
-  /**
-   * @generated from field: arca.v1.ServerExposureMethod server_exposure_method = 9;
-   */
-  serverExposureMethod: ServerExposureMethod;
 
   /**
    * @generated from field: string server_domain = 10;
@@ -272,7 +198,7 @@ export type CompleteSetupRequest = Message<"arca.v1.CompleteSetupRequest"> & {
  * Use `create(CompleteSetupRequestSchema)` to create a new message.
  */
 export const CompleteSetupRequestSchema: GenMessage<CompleteSetupRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 7);
+  messageDesc(file_arca_v1_setup, 5);
 
 /**
  * @generated from message arca.v1.CompleteSetupResponse
@@ -289,7 +215,7 @@ export type CompleteSetupResponse = Message<"arca.v1.CompleteSetupResponse"> & {
  * Use `create(CompleteSetupResponseSchema)` to create a new message.
  */
 export const CompleteSetupResponseSchema: GenMessage<CompleteSetupResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 8);
+  messageDesc(file_arca_v1_setup, 6);
 
 /**
  * @generated from message arca.v1.UpdateDomainSettingsRequest
@@ -336,24 +262,9 @@ export type UpdateDomainSettingsRequest = Message<"arca.v1.UpdateDomainSettingsR
   clearOidcClientSecret: boolean;
 
   /**
-   * @generated from field: arca.v1.ServerExposureMethod server_exposure_method = 11;
-   */
-  serverExposureMethod: ServerExposureMethod;
-
-  /**
    * @generated from field: string server_domain = 12;
    */
   serverDomain: string;
-
-  /**
-   * @generated from field: string cloudflare_api_token = 13;
-   */
-  cloudflareApiToken: string;
-
-  /**
-   * @generated from field: string cloudflare_zone_id = 14;
-   */
-  cloudflareZoneId: string;
 
   /**
    * @generated from field: bool password_login_disabled = 15;
@@ -386,7 +297,7 @@ export type UpdateDomainSettingsRequest = Message<"arca.v1.UpdateDomainSettingsR
  * Use `create(UpdateDomainSettingsRequestSchema)` to create a new message.
  */
 export const UpdateDomainSettingsRequestSchema: GenMessage<UpdateDomainSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 9);
+  messageDesc(file_arca_v1_setup, 7);
 
 /**
  * @generated from message arca.v1.UpdateDomainSettingsResponse
@@ -403,33 +314,7 @@ export type UpdateDomainSettingsResponse = Message<"arca.v1.UpdateDomainSettings
  * Use `create(UpdateDomainSettingsResponseSchema)` to create a new message.
  */
 export const UpdateDomainSettingsResponseSchema: GenMessage<UpdateDomainSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_setup, 10);
-
-/**
- * @generated from enum arca.v1.ServerExposureMethod
- */
-export enum ServerExposureMethod {
-  /**
-   * @generated from enum value: SERVER_EXPOSURE_METHOD_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * @generated from enum value: SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL = 1;
-   */
-  CLOUDFLARE_TUNNEL = 1,
-
-  /**
-   * @generated from enum value: SERVER_EXPOSURE_METHOD_MANUAL = 2;
-   */
-  MANUAL = 2,
-}
-
-/**
- * Describes the enum arca.v1.ServerExposureMethod.
- */
-export const ServerExposureMethodSchema: GenEnum<ServerExposureMethod> = /*@__PURE__*/
-  enumDesc(file_arca_v1_setup, 0);
+  messageDesc(file_arca_v1_setup, 8);
 
 /**
  * @generated from service arca.v1.SetupService
@@ -450,14 +335,6 @@ export const SetupService: GenService<{
     methodKind: "unary";
     input: typeof VerifySetupPasswordRequestSchema;
     output: typeof VerifySetupPasswordResponseSchema;
-  },
-  /**
-   * @generated from rpc arca.v1.SetupService.ValidateCloudflareToken
-   */
-  validateCloudflareToken: {
-    methodKind: "unary";
-    input: typeof ValidateCloudflareTokenRequestSchema;
-    output: typeof ValidateCloudflareTokenResponseSchema;
   },
   /**
    * @generated from rpc arca.v1.SetupService.CompleteSetup

@@ -12,17 +12,11 @@ import (
 )
 
 const (
-	ServerExposureMethodCloudflareTunnel = "cloudflare_tunnel"
-	ServerExposureMethodManual           = "manual"
+	ServerExposureMethodManual = "manual"
 )
 
 func NormalizeServerExposureMethod(method string) string {
-	switch strings.ToLower(strings.TrimSpace(method)) {
-	case ServerExposureMethodManual:
-		return ServerExposureMethodManual
-	default:
-		return ServerExposureMethodCloudflareTunnel
-	}
+	return ServerExposureMethodManual
 }
 
 type SetupState struct {
@@ -30,8 +24,6 @@ type SetupState struct {
 	HasAdmin                       bool
 	BaseDomain                     string
 	DomainPrefix                   string
-	CloudflareAPIToken             string
-	CloudflareZoneID               string
 	MachineRuntime                 string
 	InternetPublicExposureDisabled bool
 	OIDCEnabled                    bool
@@ -44,7 +36,6 @@ type SetupState struct {
 	IAPAudience                    string
 	IAPAutoProvisioning            bool
 	OIDCAutoProvisioning           bool
-	ServerExposureMethod           string
 	ServerDomain                   string
 	UpdatedAtUnix                  int64
 }
@@ -54,16 +45,6 @@ type VerifiedTicket struct {
 	UserEmail  string
 	MachineID  string
 	ExposureID string
-}
-
-type MachineTunnel struct {
-	MachineID   string
-	AccountID   string
-	TunnelID    string
-	TunnelName  string
-	TunnelToken string
-	CreatedAt   int64
-	UpdatedAt   int64
 }
 
 type MachineExposure struct {
@@ -77,10 +58,6 @@ type MachineExposure struct {
 }
 
 func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
-	zoneID, err := s.getMetaValue(ctx, setupMetaCloudflareZoneID)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return SetupState{}, err
-	}
 	machineRuntime, err := s.getMetaValue(ctx, setupMetaMachineRuntime)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
@@ -137,11 +114,6 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 		return SetupState{}, err
 	}
 	oidcAutoProvisioning := parseBoolMetaValue(oidcAutoProvisioningRaw)
-	serverExposureMethod, err := s.getMetaValue(ctx, setupMetaServerExposureMethod)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return SetupState{}, err
-	}
-	serverExposureMethod = NormalizeServerExposureMethod(serverExposureMethod)
 	serverDomain, err := s.getMetaValue(ctx, setupMetaServerDomain)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
@@ -166,8 +138,6 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			HasAdmin:                       hasAdmin,
 			BaseDomain:                     state.BaseDomain,
 			DomainPrefix:                   state.DomainPrefix,
-			CloudflareAPIToken:             state.CloudflareApiToken,
-			CloudflareZoneID:               zoneID,
 			MachineRuntime:                 machineRuntime,
 			InternetPublicExposureDisabled: internetPublicExposureDisabled,
 			OIDCEnabled:                    oidcEnabled,
@@ -180,7 +150,6 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			IAPAudience:                    strings.TrimSpace(iapAudience),
 			IAPAutoProvisioning:            iapAutoProvisioning,
 			OIDCAutoProvisioning:           oidcAutoProvisioning,
-			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
@@ -197,8 +166,6 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			HasAdmin:                       hasAdmin,
 			BaseDomain:                     state.BaseDomain,
 			DomainPrefix:                   state.DomainPrefix,
-			CloudflareAPIToken:             state.CloudflareApiToken,
-			CloudflareZoneID:               zoneID,
 			MachineRuntime:                 machineRuntime,
 			InternetPublicExposureDisabled: internetPublicExposureDisabled,
 			OIDCEnabled:                    oidcEnabled,
@@ -211,7 +178,6 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			IAPAudience:                    strings.TrimSpace(iapAudience),
 			IAPAutoProvisioning:            iapAutoProvisioning,
 			OIDCAutoProvisioning:           oidcAutoProvisioning,
-			ServerExposureMethod:           serverExposureMethod,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
@@ -239,19 +205,17 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	switch s.driver {
 	case DriverSQLite:
 		err = s.sqliteQueries.UpsertSetupState(ctx, sqlitesqlc.UpsertSetupStateParams{
-			Completed:          state.Completed,
-			BaseDomain:         strings.TrimSpace(state.BaseDomain),
-			DomainPrefix:       strings.TrimSpace(state.DomainPrefix),
-			CloudflareApiToken: state.CloudflareAPIToken,
-			UpdatedAt:          nowUnix,
+			Completed:    state.Completed,
+			BaseDomain:   strings.TrimSpace(state.BaseDomain),
+			DomainPrefix: strings.TrimSpace(state.DomainPrefix),
+			UpdatedAt:    nowUnix,
 		})
 	case DriverPostgres:
 		err = s.pgQueries.UpsertSetupState(ctx, postgresqlsqlc.UpsertSetupStateParams{
-			Completed:          state.Completed,
-			BaseDomain:         strings.TrimSpace(state.BaseDomain),
-			DomainPrefix:       strings.TrimSpace(state.DomainPrefix),
-			CloudflareApiToken: state.CloudflareAPIToken,
-			UpdatedAt:          nowUnix,
+			Completed:    state.Completed,
+			BaseDomain:   strings.TrimSpace(state.BaseDomain),
+			DomainPrefix: strings.TrimSpace(state.DomainPrefix),
+			UpdatedAt:    nowUnix,
 		})
 	default:
 		return unsupportedDriverError(s.driver)
@@ -261,9 +225,6 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 		return err
 	}
 
-	if err := s.upsertMetaValue(ctx, setupMetaCloudflareZoneID, strings.TrimSpace(state.CloudflareZoneID)); err != nil {
-		return err
-	}
 	if err := s.upsertMetaValue(ctx, setupMetaMachineRuntime, state.MachineRuntime); err != nil {
 		return err
 	}
@@ -300,9 +261,6 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaOIDCAutoProvisioning, boolMetaValue(state.OIDCAutoProvisioning)); err != nil {
 		return err
 	}
-	if err := s.upsertMetaValue(ctx, setupMetaServerExposureMethod, NormalizeServerExposureMethod(state.ServerExposureMethod)); err != nil {
-		return err
-	}
 	return s.upsertMetaValue(ctx, setupMetaServerDomain, strings.TrimSpace(state.ServerDomain))
 }
 
@@ -322,7 +280,6 @@ func (s *Store) SetSetupPassword(ctx context.Context, password string) error {
 }
 
 const setupMetaSetupPassword = "setup.password"
-const setupMetaCloudflareZoneID = "setup.cloudflare_zone_id"
 const setupMetaMachineRuntime = "setup.machine_runtime"
 const setupMetaDisableInternetPublicExposure = "setup.disable_internet_public_exposure"
 const setupMetaOIDCEnabled = "setup.oidc.enabled"
@@ -335,7 +292,6 @@ const setupMetaIAPEnabled = "setup.iap.enabled"
 const setupMetaIAPAudience = "setup.iap.audience"
 const setupMetaIAPAutoProvisioning = "setup.iap.auto_provisioning"
 const setupMetaOIDCAutoProvisioning = "setup.oidc.auto_provisioning"
-const setupMetaServerExposureMethod = "setup.server_exposure_method"
 const setupMetaServerDomain = "setup.server_domain"
 
 func parseBoolMetaValue(value string) bool {
@@ -548,62 +504,6 @@ func (s *Store) GetMachineIDByMachineToken(ctx context.Context, machineToken str
 		return s.pgQueries.GetMachineIDByActiveTokenHash(ctx, tokenHash)
 	default:
 		return "", unsupportedDriverError(s.driver)
-	}
-}
-
-func (s *Store) UpsertMachineTunnel(ctx context.Context, tunnel MachineTunnel) error {
-	nowUnix := time.Now().Unix()
-	tunnel.CreatedAt = nowUnix
-	tunnel.UpdatedAt = nowUnix
-
-	switch s.driver {
-	case DriverSQLite:
-		return s.sqliteQueries.UpsertMachineTunnel(ctx, sqlitesqlc.UpsertMachineTunnelParams{
-			MachineID:   tunnel.MachineID,
-			AccountID:   tunnel.AccountID,
-			TunnelID:    tunnel.TunnelID,
-			TunnelName:  tunnel.TunnelName,
-			TunnelToken: tunnel.TunnelToken,
-			CreatedAt:   tunnel.CreatedAt,
-			UpdatedAt:   tunnel.UpdatedAt,
-		})
-	case DriverPostgres:
-		return s.pgQueries.UpsertMachineTunnel(ctx, postgresqlsqlc.UpsertMachineTunnelParams{
-			MachineID:   tunnel.MachineID,
-			AccountID:   tunnel.AccountID,
-			TunnelID:    tunnel.TunnelID,
-			TunnelName:  tunnel.TunnelName,
-			TunnelToken: tunnel.TunnelToken,
-			CreatedAt:   tunnel.CreatedAt,
-			UpdatedAt:   tunnel.UpdatedAt,
-		})
-	default:
-		return unsupportedDriverError(s.driver)
-	}
-}
-
-func (s *Store) GetMachineTunnelByMachineID(ctx context.Context, machineID string) (MachineTunnel, error) {
-	switch s.driver {
-	case DriverSQLite:
-		row, err := s.sqliteQueries.GetMachineTunnelByMachineID(ctx, machineID)
-		if err != nil {
-			return MachineTunnel{}, err
-		}
-		return MachineTunnel{
-			MachineID: row.MachineID, AccountID: row.AccountID, TunnelID: row.TunnelID,
-			TunnelName: row.TunnelName, TunnelToken: row.TunnelToken, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
-		}, nil
-	case DriverPostgres:
-		row, err := s.pgQueries.GetMachineTunnelByMachineID(ctx, machineID)
-		if err != nil {
-			return MachineTunnel{}, err
-		}
-		return MachineTunnel{
-			MachineID: row.MachineID, AccountID: row.AccountID, TunnelID: row.TunnelID,
-			TunnelName: row.TunnelName, TunnelToken: row.TunnelToken, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
-		}, nil
-	default:
-		return MachineTunnel{}, unsupportedDriverError(s.driver)
 	}
 }
 

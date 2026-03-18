@@ -13,24 +13,20 @@ import (
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
 
-type tunnelConnectService struct {
+type exposureConnectService struct {
 	store             *db.Store
 	authenticator     Authenticator
 	encryptor         *crypto.Encryptor
 	llmTokenExecutor  *LLMTokenExecutor
 }
 
-func newTunnelConnectService(store *db.Store, authenticator Authenticator, encryptor *crypto.Encryptor, llmTokenExecutor *LLMTokenExecutor) *tunnelConnectService {
-	return &tunnelConnectService{store: store, authenticator: authenticator, encryptor: encryptor, llmTokenExecutor: llmTokenExecutor}
+func newExposureConnectService(store *db.Store, authenticator Authenticator, encryptor *crypto.Encryptor, llmTokenExecutor *LLMTokenExecutor) *exposureConnectService {
+	return &exposureConnectService{store: store, authenticator: authenticator, encryptor: encryptor, llmTokenExecutor: llmTokenExecutor}
 }
 
-func (s *tunnelConnectService) CreateMachineTunnel(context.Context, *connect.Request[arcav1.CreateMachineTunnelRequest]) (*connect.Response[arcav1.CreateMachineTunnelResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
-}
-
-func (s *tunnelConnectService) UpsertMachineExposure(ctx context.Context, req *connect.Request[arcav1.UpsertMachineExposureRequest]) (*connect.Response[arcav1.UpsertMachineExposureResponse], error) {
+func (s *exposureConnectService) UpsertMachineExposure(ctx context.Context, req *connect.Request[arcav1.UpsertMachineExposureRequest]) (*connect.Response[arcav1.UpsertMachineExposureResponse], error) {
 	if s.store == nil || s.authenticator == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("tunnel service unavailable"))
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("exposure service unavailable"))
 	}
 	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
 	if err != nil {
@@ -72,9 +68,9 @@ func (s *tunnelConnectService) UpsertMachineExposure(ctx context.Context, req *c
 	return connect.NewResponse(&arcav1.UpsertMachineExposureResponse{Exposure: toMachineExposureMessage(exposure)}), nil
 }
 
-func (s *tunnelConnectService) ListMachineExposures(ctx context.Context, req *connect.Request[arcav1.ListMachineExposuresRequest]) (*connect.Response[arcav1.ListMachineExposuresResponse], error) {
+func (s *exposureConnectService) ListMachineExposures(ctx context.Context, req *connect.Request[arcav1.ListMachineExposuresRequest]) (*connect.Response[arcav1.ListMachineExposuresResponse], error) {
 	if s.store == nil || s.authenticator == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("tunnel service unavailable"))
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("exposure service unavailable"))
 	}
 	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
 	if err != nil {
@@ -104,9 +100,9 @@ func (s *tunnelConnectService) ListMachineExposures(ctx context.Context, req *co
 	return connect.NewResponse(&arcav1.ListMachineExposuresResponse{Exposures: items}), nil
 }
 
-func (s *tunnelConnectService) GetMachineExposureByHostname(ctx context.Context, req *connect.Request[arcav1.GetMachineExposureByHostnameRequest]) (*connect.Response[arcav1.GetMachineExposureByHostnameResponse], error) {
+func (s *exposureConnectService) GetMachineExposureByHostname(ctx context.Context, req *connect.Request[arcav1.GetMachineExposureByHostnameRequest]) (*connect.Response[arcav1.GetMachineExposureByHostnameResponse], error) {
 	if s.store == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("tunnel service unavailable"))
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("exposure service unavailable"))
 	}
 
 	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))
@@ -149,9 +145,9 @@ func (s *tunnelConnectService) GetMachineExposureByHostname(ctx context.Context,
 	return connect.NewResponse(&arcav1.GetMachineExposureByHostnameResponse{Exposure: toMachineExposureMessage(exposure)}), nil
 }
 
-func (s *tunnelConnectService) ReportMachineReadiness(ctx context.Context, req *connect.Request[arcav1.ReportMachineReadinessRequest]) (*connect.Response[arcav1.ReportMachineReadinessResponse], error) {
+func (s *exposureConnectService) ReportMachineReadiness(ctx context.Context, req *connect.Request[arcav1.ReportMachineReadinessRequest]) (*connect.Response[arcav1.ReportMachineReadinessResponse], error) {
 	if s.store == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("tunnel service unavailable"))
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("exposure service unavailable"))
 	}
 
 	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))
@@ -188,9 +184,9 @@ func (s *tunnelConnectService) ReportMachineReadiness(ctx context.Context, req *
 	return connect.NewResponse(&arcav1.ReportMachineReadinessResponse{Accepted: updated}), nil
 }
 
-func (s *tunnelConnectService) GetMachineLLMModels(ctx context.Context, req *connect.Request[arcav1.GetMachineLLMModelsRequest]) (*connect.Response[arcav1.GetMachineLLMModelsResponse], error) {
+func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *connect.Request[arcav1.GetMachineLLMModelsRequest]) (*connect.Response[arcav1.GetMachineLLMModelsResponse], error) {
 	if s.store == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, errors.New("tunnel service unavailable"))
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("exposure service unavailable"))
 	}
 
 	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))

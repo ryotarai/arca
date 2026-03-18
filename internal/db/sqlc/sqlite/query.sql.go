@@ -1337,28 +1337,6 @@ func (q *Queries) GetMachineSharingByMachineID(ctx context.Context, machineID st
 	return i, err
 }
 
-const getMachineTunnelByMachineID = `-- name: GetMachineTunnelByMachineID :one
-SELECT machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at
-FROM machine_tunnels
-WHERE machine_id = ?1
-LIMIT 1
-`
-
-func (q *Queries) GetMachineTunnelByMachineID(ctx context.Context, machineID string) (MachineTunnel, error) {
-	row := q.db.QueryRowContext(ctx, getMachineTunnelByMachineID, machineID)
-	var i MachineTunnel
-	err := row.Scan(
-		&i.MachineID,
-		&i.AccountID,
-		&i.TunnelID,
-		&i.TunnelName,
-		&i.TunnelToken,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getMeta = `-- name: GetMeta :one
 SELECT value
 FROM app_meta
@@ -1484,18 +1462,17 @@ func (q *Queries) GetSessionImpersonation(ctx context.Context, arg GetSessionImp
 }
 
 const getSetupState = `-- name: GetSetupState :one
-SELECT completed, base_domain, domain_prefix, cloudflare_api_token, updated_at
+SELECT completed, base_domain, domain_prefix, updated_at
 FROM setup_state
 WHERE id = 1
 LIMIT 1
 `
 
 type GetSetupStateRow struct {
-	Completed          bool
-	BaseDomain         string
-	DomainPrefix       string
-	CloudflareApiToken string
-	UpdatedAt          int64
+	Completed    bool
+	BaseDomain   string
+	DomainPrefix string
+	UpdatedAt    int64
 }
 
 func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
@@ -1505,7 +1482,6 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 		&i.Completed,
 		&i.BaseDomain,
 		&i.DomainPrefix,
-		&i.CloudflareApiToken,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -3867,48 +3843,6 @@ func (q *Queries) UpsertMachineSharing(ctx context.Context, arg UpsertMachineSha
 	return err
 }
 
-const upsertMachineTunnel = `-- name: UpsertMachineTunnel :exec
-INSERT INTO machine_tunnels (machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at)
-VALUES (
-  ?1,
-  ?2,
-  ?3,
-  ?4,
-  ?5,
-  ?6,
-  ?7
-)
-ON CONFLICT (machine_id) DO UPDATE
-SET account_id = excluded.account_id,
-    tunnel_id = excluded.tunnel_id,
-    tunnel_name = excluded.tunnel_name,
-    tunnel_token = excluded.tunnel_token,
-    updated_at = excluded.updated_at
-`
-
-type UpsertMachineTunnelParams struct {
-	MachineID   string
-	AccountID   string
-	TunnelID    string
-	TunnelName  string
-	TunnelToken string
-	CreatedAt   int64
-	UpdatedAt   int64
-}
-
-func (q *Queries) UpsertMachineTunnel(ctx context.Context, arg UpsertMachineTunnelParams) error {
-	_, err := q.db.ExecContext(ctx, upsertMachineTunnel,
-		arg.MachineID,
-		arg.AccountID,
-		arg.TunnelID,
-		arg.TunnelName,
-		arg.TunnelToken,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	return err
-}
-
 const upsertMeta = `-- name: UpsertMeta :exec
 INSERT INTO app_meta (key, value)
 VALUES (?1, ?2)
@@ -3927,29 +3861,26 @@ func (q *Queries) UpsertMeta(ctx context.Context, arg UpsertMetaParams) error {
 }
 
 const upsertSetupState = `-- name: UpsertSetupState :exec
-INSERT INTO setup_state (id, completed, base_domain, domain_prefix, cloudflare_api_token, updated_at)
+INSERT INTO setup_state (id, completed, base_domain, domain_prefix, updated_at)
 VALUES (
   1,
   ?1,
   ?2,
   ?3,
-  ?4,
-  ?5
+  ?4
 )
 ON CONFLICT (id) DO UPDATE
 SET completed = excluded.completed,
     base_domain = excluded.base_domain,
     domain_prefix = excluded.domain_prefix,
-    cloudflare_api_token = excluded.cloudflare_api_token,
     updated_at = excluded.updated_at
 `
 
 type UpsertSetupStateParams struct {
-	Completed          bool
-	BaseDomain         string
-	DomainPrefix       string
-	CloudflareApiToken string
-	UpdatedAt          int64
+	Completed    bool
+	BaseDomain   string
+	DomainPrefix string
+	UpdatedAt    int64
 }
 
 func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStateParams) error {
@@ -3957,7 +3888,6 @@ func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStatePara
 		arg.Completed,
 		arg.BaseDomain,
 		arg.DomainPrefix,
-		arg.CloudflareApiToken,
 		arg.UpdatedAt,
 	)
 	return err

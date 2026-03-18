@@ -12,7 +12,6 @@ test.describe('admin settings', () => {
     await page.goto('/admin/settings')
     await expect(page.getByRole('heading', { name: 'Admin settings' })).toBeVisible()
     await expect(page.getByText('Domain settings')).toBeVisible()
-    await expect(page.locator('#settings-server-exposure-method')).toBeVisible()
     await expect(page.locator('#settings-password-login-enabled')).toBeVisible()
     await expect(page.locator('#settings-oidc-enabled')).toBeVisible()
     await expect(page.locator('#settings-iap-enabled')).toBeVisible()
@@ -53,21 +52,6 @@ test.describe('admin settings', () => {
     }
     await page.getByRole('button', { name: 'Save settings' }).click()
     await expect(page.getByText('Settings updated')).toBeVisible()
-  })
-
-  test('server exposure method toggle shows/hides Cloudflare fields', async ({ page }) => {
-    await loginAsAdmin(page)
-    await page.goto('/admin/settings')
-
-    // Select Cloudflare Tunnel
-    await page.locator('#settings-server-exposure-method').selectOption('cloudflare_tunnel')
-    await expect(page.locator('#settings-cloudflare-zone-id')).toBeVisible()
-    await expect(page.locator('#settings-cloudflare-api-token')).toBeVisible()
-
-    // Select Manual
-    await page.locator('#settings-server-exposure-method').selectOption('manual')
-    await expect(page.locator('#settings-cloudflare-zone-id')).toHaveCount(0)
-    await expect(page.locator('#settings-cloudflare-api-token')).toHaveCount(0)
   })
 
   test('non-admin user cannot access admin settings', async ({ page, browser }) => {

@@ -5,7 +5,7 @@ test.describe('LLM models settings', () => {
   test('settings page shows LLM Models section', async ({ page }) => {
     await loginAsAdmin(page)
     await page.goto('/settings')
-    await expect(page.getByText('LLM Models', { exact: true })).toBeVisible()
+    await expect(page.locator('[data-slot="card-title"]').getByText('LLM Models')).toBeVisible()
     await expect(page.getByText('No LLM models configured yet')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add model' })).toBeVisible()
   })
