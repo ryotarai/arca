@@ -104,6 +104,26 @@ func (q *Queries) CountActiveStartOrReconcileJobsByMachineID(ctx context.Context
 	return count, err
 }
 
+const countAuditLogsFiltered = `-- name: CountAuditLogsFiltered :one
+SELECT COUNT(*) AS total_count
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+WHERE ($1 = '' OR al.action LIKE $1 || '%')
+  AND ($2 = '' OR u1.email = $2)
+`
+
+type CountAuditLogsFilteredParams struct {
+	ActionPrefix interface{}
+	ActorEmail   interface{}
+}
+
+func (q *Queries) CountAuditLogsFiltered(ctx context.Context, arg CountAuditLogsFilteredParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAuditLogsFiltered, arg.ActionPrefix, arg.ActorEmail)
+	var total_count int64
+	err := row.Scan(&total_count)
+	return total_count, err
+}
+
 const createArcadExchangeToken = `-- name: CreateArcadExchangeToken :exec
 INSERT INTO arcad_exchange_tokens (id, token_hash, user_id, machine_id, exposure_id, expires_at, created_at)
 VALUES (
@@ -1317,28 +1337,6 @@ func (q *Queries) GetMachineSharingByMachineID(ctx context.Context, machineID st
 	return i, err
 }
 
-const getMachineTunnelByMachineID = `-- name: GetMachineTunnelByMachineID :one
-SELECT machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at
-FROM machine_tunnels
-WHERE machine_id = $1
-LIMIT 1
-`
-
-func (q *Queries) GetMachineTunnelByMachineID(ctx context.Context, machineID string) (MachineTunnel, error) {
-	row := q.db.QueryRowContext(ctx, getMachineTunnelByMachineID, machineID)
-	var i MachineTunnel
-	err := row.Scan(
-		&i.MachineID,
-		&i.AccountID,
-		&i.TunnelID,
-		&i.TunnelName,
-		&i.TunnelToken,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getMeta = `-- name: GetMeta :one
 SELECT value
 FROM app_meta
@@ -1464,18 +1462,17 @@ func (q *Queries) GetSessionImpersonation(ctx context.Context, arg GetSessionImp
 }
 
 const getSetupState = `-- name: GetSetupState :one
-SELECT completed, base_domain, domain_prefix, cloudflare_api_token, updated_at
+SELECT completed, base_domain, domain_prefix, updated_at
 FROM setup_state
 WHERE id = 1
 LIMIT 1
 `
 
 type GetSetupStateRow struct {
-	Completed          bool
-	BaseDomain         string
-	DomainPrefix       string
-	CloudflareApiToken string
-	UpdatedAt          int64
+	Completed    bool
+	BaseDomain   string
+	DomainPrefix string
+	UpdatedAt    int64
 }
 
 func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
@@ -1485,7 +1482,6 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 		&i.Completed,
 		&i.BaseDomain,
 		&i.DomainPrefix,
-		&i.CloudflareApiToken,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -1885,6 +1881,78 @@ func (q *Queries) ListAuditLogs(ctx context.Context, limitCount int32) ([]ListAu
 	var items []ListAuditLogsRow
 	for rows.Next() {
 		var i ListAuditLogsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ActorUserID,
+			&i.ActingAsUserID,
+			&i.Action,
+			&i.ResourceType,
+			&i.ResourceID,
+			&i.DetailsJson,
+			&i.CreatedAt,
+			&i.ActorEmail,
+			&i.ActingAsEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAuditLogsFiltered = `-- name: ListAuditLogsFiltered :many
+SELECT al.id, al.actor_user_id, al.acting_as_user_id, al.action, al.resource_type, al.resource_id, al.details_json, al.created_at,
+  u1.email AS actor_email,
+  u2.email AS acting_as_email
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+LEFT JOIN users u2 ON u2.id = al.acting_as_user_id
+WHERE ($1 = '' OR al.action LIKE $1 || '%')
+  AND ($2 = '' OR u1.email = $2)
+ORDER BY al.created_at DESC
+LIMIT $4 OFFSET $3
+`
+
+type ListAuditLogsFilteredParams struct {
+	ActionPrefix interface{}
+	ActorEmail   interface{}
+	OffsetCount  int32
+	LimitCount   int32
+}
+
+type ListAuditLogsFilteredRow struct {
+	ID             string
+	ActorUserID    string
+	ActingAsUserID sql.NullString
+	Action         string
+	ResourceType   string
+	ResourceID     string
+	DetailsJson    string
+	CreatedAt      time.Time
+	ActorEmail     string
+	ActingAsEmail  sql.NullString
+}
+
+func (q *Queries) ListAuditLogsFiltered(ctx context.Context, arg ListAuditLogsFilteredParams) ([]ListAuditLogsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAuditLogsFiltered,
+		arg.ActionPrefix,
+		arg.ActorEmail,
+		arg.OffsetCount,
+		arg.LimitCount,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAuditLogsFilteredRow
+	for rows.Next() {
+		var i ListAuditLogsFilteredRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ActorUserID,
@@ -3775,48 +3843,6 @@ func (q *Queries) UpsertMachineSharing(ctx context.Context, arg UpsertMachineSha
 	return err
 }
 
-const upsertMachineTunnel = `-- name: UpsertMachineTunnel :exec
-INSERT INTO machine_tunnels (machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at)
-VALUES (
-  $1,
-  $2,
-  $3,
-  $4,
-  $5,
-  $6,
-  $7
-)
-ON CONFLICT (machine_id) DO UPDATE
-SET account_id = excluded.account_id,
-    tunnel_id = excluded.tunnel_id,
-    tunnel_name = excluded.tunnel_name,
-    tunnel_token = excluded.tunnel_token,
-    updated_at = excluded.updated_at
-`
-
-type UpsertMachineTunnelParams struct {
-	MachineID   string
-	AccountID   string
-	TunnelID    string
-	TunnelName  string
-	TunnelToken string
-	CreatedAt   int64
-	UpdatedAt   int64
-}
-
-func (q *Queries) UpsertMachineTunnel(ctx context.Context, arg UpsertMachineTunnelParams) error {
-	_, err := q.db.ExecContext(ctx, upsertMachineTunnel,
-		arg.MachineID,
-		arg.AccountID,
-		arg.TunnelID,
-		arg.TunnelName,
-		arg.TunnelToken,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	return err
-}
-
 const upsertMeta = `-- name: UpsertMeta :exec
 INSERT INTO app_meta (key, value)
 VALUES ($1, $2)
@@ -3835,29 +3861,26 @@ func (q *Queries) UpsertMeta(ctx context.Context, arg UpsertMetaParams) error {
 }
 
 const upsertSetupState = `-- name: UpsertSetupState :exec
-INSERT INTO setup_state (id, completed, base_domain, domain_prefix, cloudflare_api_token, updated_at)
+INSERT INTO setup_state (id, completed, base_domain, domain_prefix, updated_at)
 VALUES (
   1,
   $1,
   $2,
   $3,
-  $4,
-  $5
+  $4
 )
 ON CONFLICT (id) DO UPDATE
 SET completed = excluded.completed,
     base_domain = excluded.base_domain,
     domain_prefix = excluded.domain_prefix,
-    cloudflare_api_token = excluded.cloudflare_api_token,
     updated_at = excluded.updated_at
 `
 
 type UpsertSetupStateParams struct {
-	Completed          bool
-	BaseDomain         string
-	DomainPrefix       string
-	CloudflareApiToken string
-	UpdatedAt          int64
+	Completed    bool
+	BaseDomain   string
+	DomainPrefix string
+	UpdatedAt    int64
 }
 
 func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStateParams) error {
@@ -3865,7 +3888,6 @@ func (q *Queries) UpsertSetupState(ctx context.Context, arg UpsertSetupStatePara
 		arg.Completed,
 		arg.BaseDomain,
 		arg.DomainPrefix,
-		arg.CloudflareApiToken,
 		arg.UpdatedAt,
 	)
 	return err

@@ -182,3 +182,86 @@ func (s *Store) ListAuditLogs(ctx context.Context, limit int64) ([]AuditLogEntry
 		return nil, unsupportedDriverError(s.driver)
 	}
 }
+
+type AuditLogFilter struct {
+	ActionPrefix string
+	ActorEmail   string
+	Limit        int64
+	Offset       int64
+}
+
+func (s *Store) ListAuditLogsFiltered(ctx context.Context, filter AuditLogFilter) ([]AuditLogEntry, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListAuditLogsFiltered(ctx, sqlitesqlc.ListAuditLogsFilteredParams{
+			ActionPrefix: filter.ActionPrefix,
+			ActorEmail:   filter.ActorEmail,
+			LimitCount:   filter.Limit,
+			OffsetCount:  filter.Offset,
+		})
+		if err != nil {
+			return nil, err
+		}
+		entries := make([]AuditLogEntry, 0, len(rows))
+		for _, row := range rows {
+			entries = append(entries, AuditLogEntry{
+				ID:             row.ID,
+				ActorUserID:    row.ActorUserID,
+				ActingAsUserID: row.ActingAsUserID.String,
+				Action:         row.Action,
+				ResourceType:   row.ResourceType,
+				ResourceID:     row.ResourceID,
+				DetailsJSON:    row.DetailsJson,
+				CreatedAt:      row.CreatedAt,
+				ActorEmail:     row.ActorEmail,
+				ActingAsEmail:  row.ActingAsEmail.String,
+			})
+		}
+		return entries, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListAuditLogsFiltered(ctx, postgresqlsqlc.ListAuditLogsFilteredParams{
+			ActionPrefix: filter.ActionPrefix,
+			ActorEmail:   filter.ActorEmail,
+			LimitCount:   int32(filter.Limit),
+			OffsetCount:  int32(filter.Offset),
+		})
+		if err != nil {
+			return nil, err
+		}
+		entries := make([]AuditLogEntry, 0, len(rows))
+		for _, row := range rows {
+			entries = append(entries, AuditLogEntry{
+				ID:             row.ID,
+				ActorUserID:    row.ActorUserID,
+				ActingAsUserID: row.ActingAsUserID.String,
+				Action:         row.Action,
+				ResourceType:   row.ResourceType,
+				ResourceID:     row.ResourceID,
+				DetailsJSON:    row.DetailsJson,
+				CreatedAt:      row.CreatedAt,
+				ActorEmail:     row.ActorEmail,
+				ActingAsEmail:  row.ActingAsEmail.String,
+			})
+		}
+		return entries, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) CountAuditLogsFiltered(ctx context.Context, actionPrefix, actorEmail string) (int64, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.CountAuditLogsFiltered(ctx, sqlitesqlc.CountAuditLogsFilteredParams{
+			ActionPrefix: actionPrefix,
+			ActorEmail:   actorEmail,
+		})
+	case DriverPostgres:
+		return s.pgQueries.CountAuditLogsFiltered(ctx, postgresqlsqlc.CountAuditLogsFilteredParams{
+			ActionPrefix: actionPrefix,
+			ActorEmail:   actorEmail,
+		})
+	default:
+		return 0, unsupportedDriverError(s.driver)
+	}
+}

@@ -41,7 +41,7 @@ test.describe('arcad version', () => {
     try {
       // Report readiness with arcad_version.
       const reportResp = await page.request.post(
-        '/arca.v1.TunnelService/ReportMachineReadiness',
+        '/arca.v1.ExposureService/ReportMachineReadiness',
         {
           headers: { Authorization: `Bearer ${machine.machineToken}` },
           data: {
@@ -77,7 +77,7 @@ test.describe('arcad version', () => {
 
     try {
       // First report with version.
-      await page.request.post('/arca.v1.TunnelService/ReportMachineReadiness', {
+      await page.request.post('/arca.v1.ExposureService/ReportMachineReadiness', {
         headers: { Authorization: `Bearer ${machine.machineToken}` },
         data: {
           ready: true,
@@ -88,7 +88,7 @@ test.describe('arcad version', () => {
       })
 
       // Second report without version (backward compat).
-      await page.request.post('/arca.v1.TunnelService/ReportMachineReadiness', {
+      await page.request.post('/arca.v1.ExposureService/ReportMachineReadiness', {
         headers: { Authorization: `Bearer ${machine.machineToken}` },
         data: {
           ready: true,

@@ -14,7 +14,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 )
 
@@ -34,7 +33,6 @@ type Runtime interface {
 }
 
 type RuntimeStartOptions struct {
-	TunnelToken           string
 	ControlPlaneURL       string
 	AuthorizeURL          string
 	MachineID             string
@@ -59,7 +57,6 @@ type NotificationEvent struct {
 type Worker struct {
 	store          *db.Store
 	runtime        Runtime
-	cfClient       *cloudflare.Client
 	ipCache        *MachineIPCache
 	notifier       Notifier
 	workerID       string
@@ -80,20 +77,17 @@ func (w *Worker) SetNotifier(n Notifier) {
 }
 
 const (
-	deleteTunnelMaxAttempts  = 5
-	deleteTunnelRetryBackoff = 3 * time.Second
-	readyPollInterval        = 2 * time.Second
-	readyStaleAfter          = 30 * time.Second
+	readyPollInterval = 2 * time.Second
+	readyStaleAfter   = 30 * time.Second
 )
 
-func NewWorker(store *db.Store, runtime Runtime, cfClient *cloudflare.Client, workerID string, ipCache *MachineIPCache, maxConcurrency int) *Worker {
+func NewWorker(store *db.Store, runtime Runtime, workerID string, ipCache *MachineIPCache, maxConcurrency int) *Worker {
 	if maxConcurrency <= 0 {
 		maxConcurrency = 4
 	}
 	return &Worker{
 		store:          store,
 		runtime:        runtime,
-		cfClient:       cfClient,
 		ipCache:        ipCache,
 		workerID:       workerID,
 		pollInterval:   2 * time.Second,
@@ -398,22 +392,10 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "runtime_starting", "starting machine runtime")
 
-	exposureMethod := w.getMachineExposureMethod(ctx, machine)
-	var tunnelToken string
-	if exposureMethod == db.MachineExposureMethodCloudflareTunnel {
-		var tunnelErr error
-		tunnelToken, tunnelErr = w.ensureMachineTunnel(ctx, machine)
-		if tunnelErr != nil {
-			return tunnelErr
-		}
-		w.emitEvent(ctx, machine.ID, jobID, "info", "tunnel_ready", "machine tunnel is ready")
-	} else {
-		// proxy-via-server: register exposure without Cloudflare tunnel
-		if err := w.ensureMachineExposureProxyViaServer(ctx, machine); err != nil {
-			return err
-		}
-		w.emitEvent(ctx, machine.ID, jobID, "info", "exposure_ready", "machine exposure registered (proxy via server)")
+	if err := w.ensureMachineExposureProxyViaServer(ctx, machine); err != nil {
+		return err
 	}
+	w.emitEvent(ctx, machine.ID, jobID, "info", "exposure_ready", "machine exposure registered (proxy via server)")
 
 	setup, err := w.store.GetSetupState(ctx)
 	if err != nil {
@@ -446,7 +428,6 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 
 	containerID, err := w.runtime.EnsureRunning(ctx, machine, RuntimeStartOptions{
-		TunnelToken:           tunnelToken,
 		ControlPlaneURL:       controlPlaneURL,
 		AuthorizeURL:          authorizeURL,
 		MachineID:             machine.ID,
@@ -538,163 +519,6 @@ func (w *Worker) waitMachineReady(ctx context.Context, machineID string) error {
 	}
 }
 
-func (w *Worker) ensureMachineTunnel(ctx context.Context, machine db.Machine) (string, error) {
-	if w.store == nil {
-		return "", fmt.Errorf("store unavailable")
-	}
-	if w.cfClient == nil {
-		return "", fmt.Errorf("cloudflare client unavailable")
-	}
-
-	slog.Info(
-		"machine tunnel provisioning started",
-		"machine_id", machine.ID,
-		"machine_name", machine.Name,
-	)
-
-	runtimeCatalog, err := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
-	if err != nil {
-		return "", fmt.Errorf("load runtime config: %w", err)
-	}
-	exposureCfg := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON)
-
-	setup, err := w.store.GetSetupState(ctx)
-	if err != nil {
-		return "", fmt.Errorf("load setup state: %w", err)
-	}
-
-	// Resolve Cloudflare credentials: prefer runtime config, fallback to setup state
-	cfAPIToken := strings.TrimSpace(exposureCfg.CloudflareAPIToken)
-	if cfAPIToken == "" {
-		cfAPIToken = strings.TrimSpace(setup.CloudflareAPIToken)
-	}
-	cfZoneID := strings.TrimSpace(exposureCfg.CloudflareZoneID)
-	if cfZoneID == "" {
-		cfZoneID = strings.TrimSpace(setup.CloudflareZoneID)
-	}
-	baseDomain := strings.TrimSpace(exposureCfg.BaseDomain)
-
-	if cfAPIToken == "" {
-		return "", fmt.Errorf("cloudflare api token is not configured")
-	}
-	if cfZoneID == "" {
-		return "", fmt.Errorf("cloudflare zone id is not configured")
-	}
-	if baseDomain == "" {
-		return "", fmt.Errorf("base domain is not configured in runtime exposure config")
-	}
-
-	zone, err := w.cfClient.GetZone(ctx, cfAPIToken, cfZoneID)
-	if err != nil {
-		return "", fmt.Errorf("fetch cloudflare zone: %w", err)
-	}
-	accountID := strings.TrimSpace(zone.Account.ID)
-	if accountID == "" {
-		return "", fmt.Errorf("cloudflare zone %q does not include account id", cfZoneID)
-	}
-
-	tunnel, err := w.store.GetMachineTunnelByMachineID(ctx, machine.ID)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			return "", fmt.Errorf("load machine tunnel: %w", err)
-		}
-
-		tunnelName := "arca-machine-" + machine.ID[:12]
-		slog.Info(
-			"creating cloudflare tunnel",
-			"machine_id", machine.ID,
-			"account_id", accountID,
-			"tunnel_name", tunnelName,
-		)
-		created, createErr := w.cfClient.CreateTunnel(ctx, cfAPIToken, accountID, tunnelName)
-		if createErr != nil {
-			var apiErr cloudflare.APIError
-			if errors.As(createErr, &apiErr) && apiErr.Code == 1013 {
-				slog.Warn(
-					"cloudflare tunnel already exists, reusing existing tunnel",
-					"machine_id", machine.ID,
-					"account_id", accountID,
-					"tunnel_name", tunnelName,
-				)
-				existing, findErr := w.cfClient.GetTunnelByName(ctx, cfAPIToken, accountID, tunnelName)
-				if findErr != nil {
-					return "", fmt.Errorf("find existing cloudflare tunnel: %w", findErr)
-				}
-				created = existing
-			} else {
-				return "", fmt.Errorf("create cloudflare tunnel: %w", createErr)
-			}
-		}
-		tunnelToken, tokenErr := w.cfClient.CreateTunnelToken(ctx, cfAPIToken, accountID, created.ID)
-		if tokenErr != nil {
-			return "", fmt.Errorf("create cloudflare tunnel token: %w", tokenErr)
-		}
-		tunnel = db.MachineTunnel{
-			MachineID:   machine.ID,
-			AccountID:   accountID,
-			TunnelID:    created.ID,
-			TunnelName:  created.Name,
-			TunnelToken: tunnelToken,
-		}
-		if upsertErr := w.store.UpsertMachineTunnel(ctx, tunnel); upsertErr != nil {
-			return "", fmt.Errorf("save machine tunnel: %w", upsertErr)
-		}
-		slog.Info(
-			"cloudflare tunnel prepared",
-			"machine_id", machine.ID,
-			"tunnel_id", tunnel.TunnelID,
-			"tunnel_name", tunnel.TunnelName,
-		)
-	}
-
-	hostname, err := w.resolveMachineHostname(ctx, machine, exposureCfg.DomainPrefix, baseDomain)
-	if err != nil {
-		return "", err
-	}
-	target := tunnel.TunnelID + ".cfargotunnel.com"
-	if err := w.cfClient.UpsertDNSCNAME(ctx, cfAPIToken, cfZoneID, hostname, target, true); err != nil {
-		return "", fmt.Errorf("upsert machine cname: %w", err)
-	}
-
-	ingressRules := []cloudflare.IngressRule{
-		{Hostname: hostname, Service: "http://localhost:21030"},
-	}
-	if err := w.cfClient.UpdateTunnelIngress(ctx, cfAPIToken, tunnel.AccountID, tunnel.TunnelID, ingressRules); err != nil {
-		return "", fmt.Errorf("update tunnel ingress: %w", err)
-	}
-
-	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:11030"); err != nil {
-		return "", fmt.Errorf("upsert machine exposure: %w", err)
-	}
-	if err := w.store.UpdateMachineEndpointByID(ctx, machine.ID, hostname); err != nil {
-		return "", fmt.Errorf("update machine endpoint: %w", err)
-	}
-	slog.Info(
-		"machine tunnel provisioning completed",
-		"machine_id", machine.ID,
-		"hostname", hostname,
-		"target", target,
-		"tunnel_id", tunnel.TunnelID,
-	)
-	return tunnel.TunnelToken, nil
-}
-
-func (w *Worker) resolveMachineHostname(ctx context.Context, machine db.Machine, domainPrefix, baseDomain string) (string, error) {
-	exposures, err := w.store.ListMachineExposuresByMachineID(ctx, machine.ID)
-	if err != nil {
-		return "", fmt.Errorf("list machine exposures: %w", err)
-	}
-	for _, exposure := range exposures {
-		if exposure.Name == "default" && strings.TrimSpace(exposure.Hostname) != "" {
-			return strings.TrimSpace(exposure.Hostname), nil
-		}
-	}
-
-	hostname := machineSubdomain(domainPrefix, machine.Name)
-	hostname = hostname + "." + strings.TrimSpace(baseDomain)
-	return hostname, nil
-}
-
 func machineSubdomain(prefix, name string) string {
 	prefix = sanitizeSubdomainPart(prefix)
 	name = strings.ToLower(strings.TrimSpace(name))
@@ -745,14 +569,6 @@ func controlPlaneURLFromSetup(setup db.SetupState) string {
 		return "https://" + serverDomain
 	}
 	return ""
-}
-
-func (w *Worker) getMachineExposureMethod(ctx context.Context, machine db.Machine) string {
-	runtimeCatalog, err := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
-	if err != nil {
-		return db.MachineExposureMethodCloudflareTunnel // default fallback
-	}
-	return db.GetRuntimeExposureMethod(runtimeCatalog.ConfigJSON)
 }
 
 func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machine db.Machine) error {
@@ -850,16 +666,6 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID str
 		return err
 	}
 
-	exposureMethod := w.getMachineExposureMethod(ctx, machine)
-	if exposureMethod == db.MachineExposureMethodCloudflareTunnel {
-		if err := w.deleteMachineDNSRecords(ctx, machine.ID); err != nil {
-			return err
-		}
-		if err := w.deleteMachineTunnel(ctx, machine.ID); err != nil {
-			return err
-		}
-	}
-
 	deleted, err := w.store.DeleteMachineByID(ctx, machine.ID)
 	if err != nil {
 		return err
@@ -868,89 +674,6 @@ func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID str
 		return nil
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "deleted", "machine deleted")
-	return nil
-}
-
-func (w *Worker) deleteMachineDNSRecords(ctx context.Context, machineID string) error {
-	if w.cfClient == nil {
-		return errors.New("cloudflare client unavailable")
-	}
-
-	setup, err := w.store.GetSetupState(ctx)
-	if err != nil {
-		return err
-	}
-	apiToken := strings.TrimSpace(setup.CloudflareAPIToken)
-	if apiToken == "" {
-		return errors.New("cloudflare api token is not configured")
-	}
-	zoneID := strings.TrimSpace(setup.CloudflareZoneID)
-	if zoneID == "" {
-		return errors.New("cloudflare zone id is not configured")
-	}
-
-	exposures, err := w.store.ListMachineExposuresByMachineID(ctx, machineID)
-	if err != nil {
-		return err
-	}
-	for _, exposure := range exposures {
-		hostname := strings.TrimSpace(exposure.Hostname)
-		if hostname == "" {
-			continue
-		}
-		if err := w.cfClient.DeleteDNSCNAME(ctx, apiToken, zoneID, hostname); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (w *Worker) deleteMachineTunnel(ctx context.Context, machineID string) error {
-	tunnel, err := w.store.GetMachineTunnelByMachineID(ctx, machineID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil
-		}
-		return err
-	}
-
-	if w.cfClient == nil {
-		return errors.New("cloudflare client unavailable")
-	}
-
-	setup, err := w.store.GetSetupState(ctx)
-	if err != nil {
-		return err
-	}
-	apiToken := strings.TrimSpace(setup.CloudflareAPIToken)
-	if apiToken == "" {
-		return errors.New("cloudflare api token is not configured")
-	}
-
-	for attempt := 1; attempt <= deleteTunnelMaxAttempts; attempt++ {
-		err = w.cfClient.DeleteTunnel(ctx, apiToken, tunnel.AccountID, tunnel.TunnelID)
-		if err == nil {
-			return nil
-		}
-
-		var apiErr cloudflare.APIError
-		if !errors.As(err, &apiErr) {
-			return err
-		}
-
-		msg := strings.ToLower(apiErr.Message)
-		if strings.Contains(msg, "not found") || apiErr.Code == 1003 || apiErr.Code == 1033 {
-			return nil
-		}
-		if !isActiveTunnelConnectionError(apiErr) || attempt == deleteTunnelMaxAttempts {
-			return err
-		}
-
-		if err := sleepContext(ctx, deleteTunnelRetryBackoff); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -1007,13 +730,6 @@ func (w *Worker) dispatchNotification(machineID, eventType, message string) {
 		EventType:   eventType,
 		Message:     message,
 	})
-}
-
-func isActiveTunnelConnectionError(err cloudflare.APIError) bool {
-	if err.Code == 1022 {
-		return true
-	}
-	return strings.Contains(strings.ToLower(err.Message), "active connections")
 }
 
 func sleepContext(ctx context.Context, d time.Duration) error {

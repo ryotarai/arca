@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	getExposureByHostnameEndpoint  = "/arca.v1.TunnelService/GetMachineExposureByHostname"
+	getExposureByHostnameEndpoint  = "/arca.v1.ExposureService/GetMachineExposureByHostname"
 	exchangeArcadSessionEndpoint   = "/arca.v1.TicketService/ExchangeArcadSession"
 	validateArcadSessionEndpoint   = "/arca.v1.TicketService/ValidateArcadSession"
-	reportMachineReadinessEndpoint = "/arca.v1.TunnelService/ReportMachineReadiness"
-	getMachineLLMModelsEndpoint    = "/arca.v1.TunnelService/GetMachineLLMModels"
+	reportMachineReadinessEndpoint = "/arca.v1.ExposureService/ReportMachineReadiness"
+	getMachineLLMModelsEndpoint    = "/arca.v1.ExposureService/GetMachineLLMModels"
 )
 
 // Exposure describes host routing and visibility.

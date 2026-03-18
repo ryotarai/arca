@@ -508,26 +508,24 @@ WHERE machine_id = sqlc.arg(machine_id)
   AND kind IN ('start', 'reconcile');
 
 -- name: GetSetupState :one
-SELECT completed, base_domain, domain_prefix, cloudflare_api_token, updated_at
+SELECT completed, base_domain, domain_prefix, updated_at
 FROM setup_state
 WHERE id = 1
 LIMIT 1;
 
 -- name: UpsertSetupState :exec
-INSERT INTO setup_state (id, completed, base_domain, domain_prefix, cloudflare_api_token, updated_at)
+INSERT INTO setup_state (id, completed, base_domain, domain_prefix, updated_at)
 VALUES (
   1,
   sqlc.arg(completed),
   sqlc.arg(base_domain),
   sqlc.arg(domain_prefix),
-  sqlc.arg(cloudflare_api_token),
   sqlc.arg(updated_at)
 )
 ON CONFLICT (id) DO UPDATE
 SET completed = excluded.completed,
     base_domain = excluded.base_domain,
     domain_prefix = excluded.domain_prefix,
-    cloudflare_api_token = excluded.cloudflare_api_token,
     updated_at = excluded.updated_at;
 
 -- name: HasAdminUser :one
@@ -580,30 +578,6 @@ UPDATE auth_tickets
 SET used_at = sqlc.arg(used_at)
 WHERE id = sqlc.arg(id)
   AND used_at IS NULL;
-
--- name: UpsertMachineTunnel :exec
-INSERT INTO machine_tunnels (machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at)
-VALUES (
-  sqlc.arg(machine_id),
-  sqlc.arg(account_id),
-  sqlc.arg(tunnel_id),
-  sqlc.arg(tunnel_name),
-  sqlc.arg(tunnel_token),
-  sqlc.arg(created_at),
-  sqlc.arg(updated_at)
-)
-ON CONFLICT (machine_id) DO UPDATE
-SET account_id = excluded.account_id,
-    tunnel_id = excluded.tunnel_id,
-    tunnel_name = excluded.tunnel_name,
-    tunnel_token = excluded.tunnel_token,
-    updated_at = excluded.updated_at;
-
--- name: GetMachineTunnelByMachineID :one
-SELECT machine_id, account_id, tunnel_id, tunnel_name, tunnel_token, created_at, updated_at
-FROM machine_tunnels
-WHERE machine_id = sqlc.arg(machine_id)
-LIMIT 1;
 
 -- name: UpsertMachineExposure :exec
 INSERT INTO machine_exposures (id, machine_id, name, hostname, service, created_at, updated_at)
@@ -969,6 +943,25 @@ JOIN users u1 ON u1.id = al.actor_user_id
 LEFT JOIN users u2 ON u2.id = al.acting_as_user_id
 ORDER BY al.created_at DESC
 LIMIT sqlc.arg(limit_count);
+
+-- name: ListAuditLogsFiltered :many
+SELECT al.id, al.actor_user_id, al.acting_as_user_id, al.action, al.resource_type, al.resource_id, al.details_json, al.created_at,
+  u1.email AS actor_email,
+  u2.email AS acting_as_email
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+LEFT JOIN users u2 ON u2.id = al.acting_as_user_id
+WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) || '%')
+  AND (sqlc.arg(actor_email) = '' OR u1.email = sqlc.arg(actor_email))
+ORDER BY al.created_at DESC
+LIMIT sqlc.arg(limit_count) OFFSET sqlc.arg(offset_count);
+
+-- name: CountAuditLogsFiltered :one
+SELECT COUNT(*) AS total_count
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) || '%')
+  AND (sqlc.arg(actor_email) = '' OR u1.email = sqlc.arg(actor_email));
 
 -- name: ListCustomImages :many
 SELECT id, name, runtime_type, data_json, description, created_at, updated_at

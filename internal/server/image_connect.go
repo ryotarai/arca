@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -45,7 +46,8 @@ func (s *imageConnectService) ListCustomImages(ctx context.Context, req *connect
 }
 
 func (s *imageConnectService) CreateCustomImage(ctx context.Context, req *connect.Request[arcav1.CreateCustomImageRequest]) (*connect.Response[arcav1.CreateCustomImageResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -97,11 +99,15 @@ func (s *imageConnectService) CreateCustomImage(ctx context.Context, req *connec
 	}
 
 	associatedIDs, _ := s.store.ListRuntimeIDsByCustomImageID(ctx, img.ID)
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "image.create", "custom_image", img.ID, fmt.Sprintf(`{"name":%q}`, name))
+
 	return connect.NewResponse(&arcav1.CreateCustomImageResponse{Image: toCustomImageMessage(img, associatedIDs)}), nil
 }
 
 func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connect.Request[arcav1.UpdateCustomImageRequest]) (*connect.Response[arcav1.UpdateCustomImageResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -163,17 +169,27 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 	}
 
 	associatedIDs, _ := s.store.ListRuntimeIDsByCustomImageID(ctx, id)
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "image.update", "custom_image", id, fmt.Sprintf(`{"name":%q}`, name))
+
 	return connect.NewResponse(&arcav1.UpdateCustomImageResponse{Image: toCustomImageMessage(img, associatedIDs)}), nil
 }
 
 func (s *imageConnectService) DeleteCustomImage(ctx context.Context, req *connect.Request[arcav1.DeleteCustomImageRequest]) (*connect.Response[arcav1.DeleteCustomImageResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
 	id := strings.TrimSpace(req.Msg.GetId())
 	if id == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
+	}
+
+	// Fetch name before deletion for audit log
+	var imageName string
+	if img, imgErr := s.store.GetCustomImage(ctx, id); imgErr == nil {
+		imageName = img.Name
 	}
 
 	deleted, err := s.store.DeleteCustomImage(ctx, id)
@@ -184,6 +200,8 @@ func (s *imageConnectService) DeleteCustomImage(ctx context.Context, req *connec
 	if !deleted {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("custom image not found"))
 	}
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "image.delete", "custom_image", id, fmt.Sprintf(`{"name":%q}`, imageName))
 
 	return connect.NewResponse(&arcav1.DeleteCustomImageResponse{}), nil
 }

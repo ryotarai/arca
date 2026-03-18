@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        (unknown)
-// source: arca/v1/tunnel.proto
+// source: arca/v1/exposure.proto
 
 package arcav1
 
@@ -60,11 +60,11 @@ func (x EndpointVisibility) String() string {
 }
 
 func (EndpointVisibility) Descriptor() protoreflect.EnumDescriptor {
-	return file_arca_v1_tunnel_proto_enumTypes[0].Descriptor()
+	return file_arca_v1_exposure_proto_enumTypes[0].Descriptor()
 }
 
 func (EndpointVisibility) Type() protoreflect.EnumType {
-	return &file_arca_v1_tunnel_proto_enumTypes[0]
+	return &file_arca_v1_exposure_proto_enumTypes[0]
 }
 
 func (x EndpointVisibility) Number() protoreflect.EnumNumber {
@@ -73,83 +73,7 @@ func (x EndpointVisibility) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EndpointVisibility.Descriptor instead.
 func (EndpointVisibility) EnumDescriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{0}
-}
-
-type MachineTunnel struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	TunnelId      string                 `protobuf:"bytes,3,opt,name=tunnel_id,json=tunnelId,proto3" json:"tunnel_id,omitempty"`
-	TunnelName    string                 `protobuf:"bytes,4,opt,name=tunnel_name,json=tunnelName,proto3" json:"tunnel_name,omitempty"`
-	TunnelToken   string                 `protobuf:"bytes,5,opt,name=tunnel_token,json=tunnelToken,proto3" json:"tunnel_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MachineTunnel) Reset() {
-	*x = MachineTunnel{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MachineTunnel) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MachineTunnel) ProtoMessage() {}
-
-func (x *MachineTunnel) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MachineTunnel.ProtoReflect.Descriptor instead.
-func (*MachineTunnel) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *MachineTunnel) GetMachineId() string {
-	if x != nil {
-		return x.MachineId
-	}
-	return ""
-}
-
-func (x *MachineTunnel) GetAccountId() string {
-	if x != nil {
-		return x.AccountId
-	}
-	return ""
-}
-
-func (x *MachineTunnel) GetTunnelId() string {
-	if x != nil {
-		return x.TunnelId
-	}
-	return ""
-}
-
-func (x *MachineTunnel) GetTunnelName() string {
-	if x != nil {
-		return x.TunnelName
-	}
-	return ""
-}
-
-func (x *MachineTunnel) GetTunnelToken() string {
-	if x != nil {
-		return x.TunnelToken
-	}
-	return ""
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{0}
 }
 
 type MachineExposure struct {
@@ -168,7 +92,7 @@ type MachineExposure struct {
 
 func (x *MachineExposure) Reset() {
 	*x = MachineExposure{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[1]
+	mi := &file_arca_v1_exposure_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -180,7 +104,7 @@ func (x *MachineExposure) String() string {
 func (*MachineExposure) ProtoMessage() {}
 
 func (x *MachineExposure) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[1]
+	mi := &file_arca_v1_exposure_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -193,7 +117,7 @@ func (x *MachineExposure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineExposure.ProtoReflect.Descriptor instead.
 func (*MachineExposure) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{1}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *MachineExposure) GetId() string {
@@ -252,114 +176,9 @@ func (x *MachineExposure) GetSelectedUserIds() []string {
 	return nil
 }
 
-type CreateMachineTunnelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	TunnelName    string                 `protobuf:"bytes,3,opt,name=tunnel_name,json=tunnelName,proto3" json:"tunnel_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateMachineTunnelRequest) Reset() {
-	*x = CreateMachineTunnelRequest{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateMachineTunnelRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateMachineTunnelRequest) ProtoMessage() {}
-
-func (x *CreateMachineTunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateMachineTunnelRequest.ProtoReflect.Descriptor instead.
-func (*CreateMachineTunnelRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *CreateMachineTunnelRequest) GetMachineId() string {
-	if x != nil {
-		return x.MachineId
-	}
-	return ""
-}
-
-func (x *CreateMachineTunnelRequest) GetAccountId() string {
-	if x != nil {
-		return x.AccountId
-	}
-	return ""
-}
-
-func (x *CreateMachineTunnelRequest) GetTunnelName() string {
-	if x != nil {
-		return x.TunnelName
-	}
-	return ""
-}
-
-type CreateMachineTunnelResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tunnel        *MachineTunnel         `protobuf:"bytes,1,opt,name=tunnel,proto3" json:"tunnel,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateMachineTunnelResponse) Reset() {
-	*x = CreateMachineTunnelResponse{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateMachineTunnelResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateMachineTunnelResponse) ProtoMessage() {}
-
-func (x *CreateMachineTunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateMachineTunnelResponse.ProtoReflect.Descriptor instead.
-func (*CreateMachineTunnelResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *CreateMachineTunnelResponse) GetTunnel() *MachineTunnel {
-	if x != nil {
-		return x.Tunnel
-	}
-	return nil
-}
-
 type UpsertMachineExposureRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	MachineId       string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	ZoneId          string                 `protobuf:"bytes,2,opt,name=zone_id,json=zoneId,proto3" json:"zone_id,omitempty"`
 	Name            string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	Public          bool                   `protobuf:"varint,4,opt,name=public,proto3" json:"public,omitempty"`
 	Visibility      EndpointVisibility     `protobuf:"varint,5,opt,name=visibility,proto3,enum=arca.v1.EndpointVisibility" json:"visibility,omitempty"`
@@ -370,7 +189,7 @@ type UpsertMachineExposureRequest struct {
 
 func (x *UpsertMachineExposureRequest) Reset() {
 	*x = UpsertMachineExposureRequest{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[4]
+	mi := &file_arca_v1_exposure_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +201,7 @@ func (x *UpsertMachineExposureRequest) String() string {
 func (*UpsertMachineExposureRequest) ProtoMessage() {}
 
 func (x *UpsertMachineExposureRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[4]
+	mi := &file_arca_v1_exposure_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,19 +214,12 @@ func (x *UpsertMachineExposureRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertMachineExposureRequest.ProtoReflect.Descriptor instead.
 func (*UpsertMachineExposureRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{4}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UpsertMachineExposureRequest) GetMachineId() string {
 	if x != nil {
 		return x.MachineId
-	}
-	return ""
-}
-
-func (x *UpsertMachineExposureRequest) GetZoneId() string {
-	if x != nil {
-		return x.ZoneId
 	}
 	return ""
 }
@@ -449,7 +261,7 @@ type UpsertMachineExposureResponse struct {
 
 func (x *UpsertMachineExposureResponse) Reset() {
 	*x = UpsertMachineExposureResponse{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[5]
+	mi := &file_arca_v1_exposure_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -461,7 +273,7 @@ func (x *UpsertMachineExposureResponse) String() string {
 func (*UpsertMachineExposureResponse) ProtoMessage() {}
 
 func (x *UpsertMachineExposureResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[5]
+	mi := &file_arca_v1_exposure_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -474,7 +286,7 @@ func (x *UpsertMachineExposureResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertMachineExposureResponse.ProtoReflect.Descriptor instead.
 func (*UpsertMachineExposureResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{5}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UpsertMachineExposureResponse) GetExposure() *MachineExposure {
@@ -493,7 +305,7 @@ type ListMachineExposuresRequest struct {
 
 func (x *ListMachineExposuresRequest) Reset() {
 	*x = ListMachineExposuresRequest{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[6]
+	mi := &file_arca_v1_exposure_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -505,7 +317,7 @@ func (x *ListMachineExposuresRequest) String() string {
 func (*ListMachineExposuresRequest) ProtoMessage() {}
 
 func (x *ListMachineExposuresRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[6]
+	mi := &file_arca_v1_exposure_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -518,7 +330,7 @@ func (x *ListMachineExposuresRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMachineExposuresRequest.ProtoReflect.Descriptor instead.
 func (*ListMachineExposuresRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{6}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListMachineExposuresRequest) GetMachineId() string {
@@ -537,7 +349,7 @@ type ListMachineExposuresResponse struct {
 
 func (x *ListMachineExposuresResponse) Reset() {
 	*x = ListMachineExposuresResponse{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[7]
+	mi := &file_arca_v1_exposure_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -549,7 +361,7 @@ func (x *ListMachineExposuresResponse) String() string {
 func (*ListMachineExposuresResponse) ProtoMessage() {}
 
 func (x *ListMachineExposuresResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[7]
+	mi := &file_arca_v1_exposure_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +374,7 @@ func (x *ListMachineExposuresResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMachineExposuresResponse.ProtoReflect.Descriptor instead.
 func (*ListMachineExposuresResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListMachineExposuresResponse) GetExposures() []*MachineExposure {
@@ -581,7 +393,7 @@ type GetMachineExposureByHostnameRequest struct {
 
 func (x *GetMachineExposureByHostnameRequest) Reset() {
 	*x = GetMachineExposureByHostnameRequest{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[8]
+	mi := &file_arca_v1_exposure_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +405,7 @@ func (x *GetMachineExposureByHostnameRequest) String() string {
 func (*GetMachineExposureByHostnameRequest) ProtoMessage() {}
 
 func (x *GetMachineExposureByHostnameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[8]
+	mi := &file_arca_v1_exposure_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +418,7 @@ func (x *GetMachineExposureByHostnameRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetMachineExposureByHostnameRequest.ProtoReflect.Descriptor instead.
 func (*GetMachineExposureByHostnameRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetMachineExposureByHostnameRequest) GetHostname() string {
@@ -625,7 +437,7 @@ type GetMachineExposureByHostnameResponse struct {
 
 func (x *GetMachineExposureByHostnameResponse) Reset() {
 	*x = GetMachineExposureByHostnameResponse{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[9]
+	mi := &file_arca_v1_exposure_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -637,7 +449,7 @@ func (x *GetMachineExposureByHostnameResponse) String() string {
 func (*GetMachineExposureByHostnameResponse) ProtoMessage() {}
 
 func (x *GetMachineExposureByHostnameResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[9]
+	mi := &file_arca_v1_exposure_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -650,7 +462,7 @@ func (x *GetMachineExposureByHostnameResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetMachineExposureByHostnameResponse.ProtoReflect.Descriptor instead.
 func (*GetMachineExposureByHostnameResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{9}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetMachineExposureByHostnameResponse) GetExposure() *MachineExposure {
@@ -673,7 +485,7 @@ type ReportMachineReadinessRequest struct {
 
 func (x *ReportMachineReadinessRequest) Reset() {
 	*x = ReportMachineReadinessRequest{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[10]
+	mi := &file_arca_v1_exposure_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +497,7 @@ func (x *ReportMachineReadinessRequest) String() string {
 func (*ReportMachineReadinessRequest) ProtoMessage() {}
 
 func (x *ReportMachineReadinessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[10]
+	mi := &file_arca_v1_exposure_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +510,7 @@ func (x *ReportMachineReadinessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportMachineReadinessRequest.ProtoReflect.Descriptor instead.
 func (*ReportMachineReadinessRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{10}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReportMachineReadinessRequest) GetReady() bool {
@@ -745,7 +557,7 @@ type ReportMachineReadinessResponse struct {
 
 func (x *ReportMachineReadinessResponse) Reset() {
 	*x = ReportMachineReadinessResponse{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[11]
+	mi := &file_arca_v1_exposure_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -757,7 +569,7 @@ func (x *ReportMachineReadinessResponse) String() string {
 func (*ReportMachineReadinessResponse) ProtoMessage() {}
 
 func (x *ReportMachineReadinessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[11]
+	mi := &file_arca_v1_exposure_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -770,7 +582,7 @@ func (x *ReportMachineReadinessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportMachineReadinessResponse.ProtoReflect.Descriptor instead.
 func (*ReportMachineReadinessResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{11}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ReportMachineReadinessResponse) GetAccepted() bool {
@@ -788,7 +600,7 @@ type GetMachineLLMModelsRequest struct {
 
 func (x *GetMachineLLMModelsRequest) Reset() {
 	*x = GetMachineLLMModelsRequest{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[12]
+	mi := &file_arca_v1_exposure_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -800,7 +612,7 @@ func (x *GetMachineLLMModelsRequest) String() string {
 func (*GetMachineLLMModelsRequest) ProtoMessage() {}
 
 func (x *GetMachineLLMModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[12]
+	mi := &file_arca_v1_exposure_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -813,7 +625,7 @@ func (x *GetMachineLLMModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMachineLLMModelsRequest.ProtoReflect.Descriptor instead.
 func (*GetMachineLLMModelsRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{12}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{9}
 }
 
 type GetMachineLLMModelsResponse struct {
@@ -825,7 +637,7 @@ type GetMachineLLMModelsResponse struct {
 
 func (x *GetMachineLLMModelsResponse) Reset() {
 	*x = GetMachineLLMModelsResponse{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[13]
+	mi := &file_arca_v1_exposure_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -837,7 +649,7 @@ func (x *GetMachineLLMModelsResponse) String() string {
 func (*GetMachineLLMModelsResponse) ProtoMessage() {}
 
 func (x *GetMachineLLMModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[13]
+	mi := &file_arca_v1_exposure_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -850,7 +662,7 @@ func (x *GetMachineLLMModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMachineLLMModelsResponse.ProtoReflect.Descriptor instead.
 func (*GetMachineLLMModelsResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{13}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetMachineLLMModelsResponse) GetModels() []*MachineLLMModel {
@@ -874,7 +686,7 @@ type MachineLLMModel struct {
 
 func (x *MachineLLMModel) Reset() {
 	*x = MachineLLMModel{}
-	mi := &file_arca_v1_tunnel_proto_msgTypes[14]
+	mi := &file_arca_v1_exposure_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +698,7 @@ func (x *MachineLLMModel) String() string {
 func (*MachineLLMModel) ProtoMessage() {}
 
 func (x *MachineLLMModel) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_tunnel_proto_msgTypes[14]
+	mi := &file_arca_v1_exposure_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +711,7 @@ func (x *MachineLLMModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineLLMModel.ProtoReflect.Descriptor instead.
 func (*MachineLLMModel) Descriptor() ([]byte, []int) {
-	return file_arca_v1_tunnel_proto_rawDescGZIP(), []int{14}
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *MachineLLMModel) GetConfigName() string {
@@ -944,20 +756,11 @@ func (x *MachineLLMModel) GetMaxContextTokens() int32 {
 	return 0
 }
 
-var File_arca_v1_tunnel_proto protoreflect.FileDescriptor
+var File_arca_v1_exposure_proto protoreflect.FileDescriptor
 
-const file_arca_v1_tunnel_proto_rawDesc = "" +
+const file_arca_v1_exposure_proto_rawDesc = "" +
 	"\n" +
-	"\x14arca/v1/tunnel.proto\x12\aarca.v1\"\xae\x01\n" +
-	"\rMachineTunnel\x12\x1d\n" +
-	"\n" +
-	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x1d\n" +
-	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\x12\x1b\n" +
-	"\ttunnel_id\x18\x03 \x01(\tR\btunnelId\x12\x1f\n" +
-	"\vtunnel_name\x18\x04 \x01(\tR\n" +
-	"tunnelName\x12!\n" +
-	"\ftunnel_token\x18\x05 \x01(\tR\vtunnelToken\"\x8b\x02\n" +
+	"\x16arca/v1/exposure.proto\x12\aarca.v1\"\x8b\x02\n" +
 	"\x0fMachineExposure\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -969,26 +772,16 @@ const file_arca_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"visibility\x18\a \x01(\x0e2\x1b.arca.v1.EndpointVisibilityR\n" +
 	"visibility\x12*\n" +
-	"\x11selected_user_ids\x18\b \x03(\tR\x0fselectedUserIds\"{\n" +
-	"\x1aCreateMachineTunnelRequest\x12\x1d\n" +
-	"\n" +
-	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x1d\n" +
-	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\x12\x1f\n" +
-	"\vtunnel_name\x18\x03 \x01(\tR\n" +
-	"tunnelName\"M\n" +
-	"\x1bCreateMachineTunnelResponse\x12.\n" +
-	"\x06tunnel\x18\x01 \x01(\v2\x16.arca.v1.MachineTunnelR\x06tunnel\"\xeb\x01\n" +
+	"\x11selected_user_ids\x18\b \x03(\tR\x0fselectedUserIds\"\xd8\x01\n" +
 	"\x1cUpsertMachineExposureRequest\x12\x1d\n" +
 	"\n" +
-	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x17\n" +
-	"\azone_id\x18\x02 \x01(\tR\x06zoneId\x12\x12\n" +
+	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x16\n" +
 	"\x06public\x18\x04 \x01(\bR\x06public\x12;\n" +
 	"\n" +
 	"visibility\x18\x05 \x01(\x0e2\x1b.arca.v1.EndpointVisibilityR\n" +
 	"visibility\x12*\n" +
-	"\x11selected_user_ids\x18\x06 \x03(\tR\x0fselectedUserIds\"U\n" +
+	"\x11selected_user_ids\x18\x06 \x03(\tR\x0fselectedUserIdsJ\x04\b\x02\x10\x03\"U\n" +
 	"\x1dUpsertMachineExposureResponse\x124\n" +
 	"\bexposure\x18\x01 \x01(\v2\x18.arca.v1.MachineExposureR\bexposure\"<\n" +
 	"\x1bListMachineExposuresRequest\x12\x1d\n" +
@@ -1026,96 +819,89 @@ const file_arca_v1_tunnel_proto_rawDesc = "" +
 	"\x1eENDPOINT_VISIBILITY_OWNER_ONLY\x10\x01\x12&\n" +
 	"\"ENDPOINT_VISIBILITY_SELECTED_USERS\x10\x02\x12&\n" +
 	"\"ENDPOINT_VISIBILITY_ALL_ARCA_USERS\x10\x03\x12'\n" +
-	"#ENDPOINT_VISIBILITY_INTERNET_PUBLIC\x10\x042\x88\x05\n" +
-	"\rTunnelService\x12`\n" +
-	"\x13CreateMachineTunnel\x12#.arca.v1.CreateMachineTunnelRequest\x1a$.arca.v1.CreateMachineTunnelResponse\x12f\n" +
+	"#ENDPOINT_VISIBILITY_INTERNET_PUBLIC\x10\x042\xa8\x04\n" +
+	"\x0fExposureService\x12f\n" +
 	"\x15UpsertMachineExposure\x12%.arca.v1.UpsertMachineExposureRequest\x1a&.arca.v1.UpsertMachineExposureResponse\x12c\n" +
 	"\x14ListMachineExposures\x12$.arca.v1.ListMachineExposuresRequest\x1a%.arca.v1.ListMachineExposuresResponse\x12{\n" +
 	"\x1cGetMachineExposureByHostname\x12,.arca.v1.GetMachineExposureByHostnameRequest\x1a-.arca.v1.GetMachineExposureByHostnameResponse\x12i\n" +
 	"\x16ReportMachineReadiness\x12&.arca.v1.ReportMachineReadinessRequest\x1a'.arca.v1.ReportMachineReadinessResponse\x12`\n" +
-	"\x13GetMachineLLMModels\x12#.arca.v1.GetMachineLLMModelsRequest\x1a$.arca.v1.GetMachineLLMModelsResponseB\x8d\x01\n" +
-	"\vcom.arca.v1B\vTunnelProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
+	"\x13GetMachineLLMModels\x12#.arca.v1.GetMachineLLMModelsRequest\x1a$.arca.v1.GetMachineLLMModelsResponseB\x8f\x01\n" +
+	"\vcom.arca.v1B\rExposureProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
-	file_arca_v1_tunnel_proto_rawDescOnce sync.Once
-	file_arca_v1_tunnel_proto_rawDescData []byte
+	file_arca_v1_exposure_proto_rawDescOnce sync.Once
+	file_arca_v1_exposure_proto_rawDescData []byte
 )
 
-func file_arca_v1_tunnel_proto_rawDescGZIP() []byte {
-	file_arca_v1_tunnel_proto_rawDescOnce.Do(func() {
-		file_arca_v1_tunnel_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_arca_v1_tunnel_proto_rawDesc), len(file_arca_v1_tunnel_proto_rawDesc)))
+func file_arca_v1_exposure_proto_rawDescGZIP() []byte {
+	file_arca_v1_exposure_proto_rawDescOnce.Do(func() {
+		file_arca_v1_exposure_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_arca_v1_exposure_proto_rawDesc), len(file_arca_v1_exposure_proto_rawDesc)))
 	})
-	return file_arca_v1_tunnel_proto_rawDescData
+	return file_arca_v1_exposure_proto_rawDescData
 }
 
-var file_arca_v1_tunnel_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_arca_v1_tunnel_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
-var file_arca_v1_tunnel_proto_goTypes = []any{
+var file_arca_v1_exposure_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_arca_v1_exposure_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_arca_v1_exposure_proto_goTypes = []any{
 	(EndpointVisibility)(0),                      // 0: arca.v1.EndpointVisibility
-	(*MachineTunnel)(nil),                        // 1: arca.v1.MachineTunnel
-	(*MachineExposure)(nil),                      // 2: arca.v1.MachineExposure
-	(*CreateMachineTunnelRequest)(nil),           // 3: arca.v1.CreateMachineTunnelRequest
-	(*CreateMachineTunnelResponse)(nil),          // 4: arca.v1.CreateMachineTunnelResponse
-	(*UpsertMachineExposureRequest)(nil),         // 5: arca.v1.UpsertMachineExposureRequest
-	(*UpsertMachineExposureResponse)(nil),        // 6: arca.v1.UpsertMachineExposureResponse
-	(*ListMachineExposuresRequest)(nil),          // 7: arca.v1.ListMachineExposuresRequest
-	(*ListMachineExposuresResponse)(nil),         // 8: arca.v1.ListMachineExposuresResponse
-	(*GetMachineExposureByHostnameRequest)(nil),  // 9: arca.v1.GetMachineExposureByHostnameRequest
-	(*GetMachineExposureByHostnameResponse)(nil), // 10: arca.v1.GetMachineExposureByHostnameResponse
-	(*ReportMachineReadinessRequest)(nil),        // 11: arca.v1.ReportMachineReadinessRequest
-	(*ReportMachineReadinessResponse)(nil),       // 12: arca.v1.ReportMachineReadinessResponse
-	(*GetMachineLLMModelsRequest)(nil),           // 13: arca.v1.GetMachineLLMModelsRequest
-	(*GetMachineLLMModelsResponse)(nil),          // 14: arca.v1.GetMachineLLMModelsResponse
-	(*MachineLLMModel)(nil),                      // 15: arca.v1.MachineLLMModel
+	(*MachineExposure)(nil),                      // 1: arca.v1.MachineExposure
+	(*UpsertMachineExposureRequest)(nil),         // 2: arca.v1.UpsertMachineExposureRequest
+	(*UpsertMachineExposureResponse)(nil),        // 3: arca.v1.UpsertMachineExposureResponse
+	(*ListMachineExposuresRequest)(nil),          // 4: arca.v1.ListMachineExposuresRequest
+	(*ListMachineExposuresResponse)(nil),         // 5: arca.v1.ListMachineExposuresResponse
+	(*GetMachineExposureByHostnameRequest)(nil),  // 6: arca.v1.GetMachineExposureByHostnameRequest
+	(*GetMachineExposureByHostnameResponse)(nil), // 7: arca.v1.GetMachineExposureByHostnameResponse
+	(*ReportMachineReadinessRequest)(nil),        // 8: arca.v1.ReportMachineReadinessRequest
+	(*ReportMachineReadinessResponse)(nil),       // 9: arca.v1.ReportMachineReadinessResponse
+	(*GetMachineLLMModelsRequest)(nil),           // 10: arca.v1.GetMachineLLMModelsRequest
+	(*GetMachineLLMModelsResponse)(nil),          // 11: arca.v1.GetMachineLLMModelsResponse
+	(*MachineLLMModel)(nil),                      // 12: arca.v1.MachineLLMModel
 }
-var file_arca_v1_tunnel_proto_depIdxs = []int32{
+var file_arca_v1_exposure_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.MachineExposure.visibility:type_name -> arca.v1.EndpointVisibility
-	1,  // 1: arca.v1.CreateMachineTunnelResponse.tunnel:type_name -> arca.v1.MachineTunnel
-	0,  // 2: arca.v1.UpsertMachineExposureRequest.visibility:type_name -> arca.v1.EndpointVisibility
-	2,  // 3: arca.v1.UpsertMachineExposureResponse.exposure:type_name -> arca.v1.MachineExposure
-	2,  // 4: arca.v1.ListMachineExposuresResponse.exposures:type_name -> arca.v1.MachineExposure
-	2,  // 5: arca.v1.GetMachineExposureByHostnameResponse.exposure:type_name -> arca.v1.MachineExposure
-	15, // 6: arca.v1.GetMachineLLMModelsResponse.models:type_name -> arca.v1.MachineLLMModel
-	3,  // 7: arca.v1.TunnelService.CreateMachineTunnel:input_type -> arca.v1.CreateMachineTunnelRequest
-	5,  // 8: arca.v1.TunnelService.UpsertMachineExposure:input_type -> arca.v1.UpsertMachineExposureRequest
-	7,  // 9: arca.v1.TunnelService.ListMachineExposures:input_type -> arca.v1.ListMachineExposuresRequest
-	9,  // 10: arca.v1.TunnelService.GetMachineExposureByHostname:input_type -> arca.v1.GetMachineExposureByHostnameRequest
-	11, // 11: arca.v1.TunnelService.ReportMachineReadiness:input_type -> arca.v1.ReportMachineReadinessRequest
-	13, // 12: arca.v1.TunnelService.GetMachineLLMModels:input_type -> arca.v1.GetMachineLLMModelsRequest
-	4,  // 13: arca.v1.TunnelService.CreateMachineTunnel:output_type -> arca.v1.CreateMachineTunnelResponse
-	6,  // 14: arca.v1.TunnelService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
-	8,  // 15: arca.v1.TunnelService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
-	10, // 16: arca.v1.TunnelService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
-	12, // 17: arca.v1.TunnelService.ReportMachineReadiness:output_type -> arca.v1.ReportMachineReadinessResponse
-	14, // 18: arca.v1.TunnelService.GetMachineLLMModels:output_type -> arca.v1.GetMachineLLMModelsResponse
-	13, // [13:19] is the sub-list for method output_type
-	7,  // [7:13] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	0,  // 1: arca.v1.UpsertMachineExposureRequest.visibility:type_name -> arca.v1.EndpointVisibility
+	1,  // 2: arca.v1.UpsertMachineExposureResponse.exposure:type_name -> arca.v1.MachineExposure
+	1,  // 3: arca.v1.ListMachineExposuresResponse.exposures:type_name -> arca.v1.MachineExposure
+	1,  // 4: arca.v1.GetMachineExposureByHostnameResponse.exposure:type_name -> arca.v1.MachineExposure
+	12, // 5: arca.v1.GetMachineLLMModelsResponse.models:type_name -> arca.v1.MachineLLMModel
+	2,  // 6: arca.v1.ExposureService.UpsertMachineExposure:input_type -> arca.v1.UpsertMachineExposureRequest
+	4,  // 7: arca.v1.ExposureService.ListMachineExposures:input_type -> arca.v1.ListMachineExposuresRequest
+	6,  // 8: arca.v1.ExposureService.GetMachineExposureByHostname:input_type -> arca.v1.GetMachineExposureByHostnameRequest
+	8,  // 9: arca.v1.ExposureService.ReportMachineReadiness:input_type -> arca.v1.ReportMachineReadinessRequest
+	10, // 10: arca.v1.ExposureService.GetMachineLLMModels:input_type -> arca.v1.GetMachineLLMModelsRequest
+	3,  // 11: arca.v1.ExposureService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
+	5,  // 12: arca.v1.ExposureService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
+	7,  // 13: arca.v1.ExposureService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
+	9,  // 14: arca.v1.ExposureService.ReportMachineReadiness:output_type -> arca.v1.ReportMachineReadinessResponse
+	11, // 15: arca.v1.ExposureService.GetMachineLLMModels:output_type -> arca.v1.GetMachineLLMModelsResponse
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
-func init() { file_arca_v1_tunnel_proto_init() }
-func file_arca_v1_tunnel_proto_init() {
-	if File_arca_v1_tunnel_proto != nil {
+func init() { file_arca_v1_exposure_proto_init() }
+func file_arca_v1_exposure_proto_init() {
+	if File_arca_v1_exposure_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_tunnel_proto_rawDesc), len(file_arca_v1_tunnel_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_exposure_proto_rawDesc), len(file_arca_v1_exposure_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   15,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_arca_v1_tunnel_proto_goTypes,
-		DependencyIndexes: file_arca_v1_tunnel_proto_depIdxs,
-		EnumInfos:         file_arca_v1_tunnel_proto_enumTypes,
-		MessageInfos:      file_arca_v1_tunnel_proto_msgTypes,
+		GoTypes:           file_arca_v1_exposure_proto_goTypes,
+		DependencyIndexes: file_arca_v1_exposure_proto_depIdxs,
+		EnumInfos:         file_arca_v1_exposure_proto_enumTypes,
+		MessageInfos:      file_arca_v1_exposure_proto_msgTypes,
 	}.Build()
-	File_arca_v1_tunnel_proto = out.File
-	file_arca_v1_tunnel_proto_goTypes = nil
-	file_arca_v1_tunnel_proto_depIdxs = nil
+	File_arca_v1_exposure_proto = out.File
+	file_arca_v1_exposure_proto_goTypes = nil
+	file_arca_v1_exposure_proto_depIdxs = nil
 }

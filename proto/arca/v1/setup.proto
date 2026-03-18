@@ -7,23 +7,14 @@ option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
 service SetupService {
   rpc GetSetupStatus(GetSetupStatusRequest) returns (GetSetupStatusResponse);
   rpc VerifySetupPassword(VerifySetupPasswordRequest) returns (VerifySetupPasswordResponse);
-  rpc ValidateCloudflareToken(ValidateCloudflareTokenRequest) returns (ValidateCloudflareTokenResponse);
   rpc CompleteSetup(CompleteSetupRequest) returns (CompleteSetupResponse);
   rpc UpdateDomainSettings(UpdateDomainSettingsRequest) returns (UpdateDomainSettingsResponse);
-}
-
-enum ServerExposureMethod {
-  SERVER_EXPOSURE_METHOD_UNSPECIFIED = 0;
-  SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL = 1;
-  SERVER_EXPOSURE_METHOD_MANUAL = 2;
 }
 
 message SetupStatus {
   bool completed = 1;
   bool admin_configured = 2;
-  bool cloudflare_configured = 3;
-  reserved 4, 5, 7;
-  string cloudflare_zone_id = 6;
+  reserved 3, 4, 5, 6, 7, 15;
   string machine_runtime = 8;
   bool internet_public_exposure_disabled = 9;
   bool oidc_enabled = 10;
@@ -31,7 +22,6 @@ message SetupStatus {
   string oidc_client_id = 12;
   bool oidc_client_secret_configured = 13;
   repeated string oidc_allowed_email_domains = 14;
-  ServerExposureMethod server_exposure_method = 15;
   string server_domain = 16;
   bool password_login_disabled = 17;
   bool iap_enabled = 18;
@@ -54,24 +44,11 @@ message VerifySetupPasswordResponse {
   bool valid = 1;
 }
 
-message ValidateCloudflareTokenRequest {
-  string api_token = 1;
-  string account_id = 2;
-}
-
-message ValidateCloudflareTokenResponse {
-  bool valid = 1;
-  string message = 2;
-}
-
 message CompleteSetupRequest {
   string admin_email = 1;
   string admin_password = 2;
-  reserved 3, 5, 7;
-  string cloudflare_api_token = 4;
-  string cloudflare_zone_id = 6;
+  reserved 3, 4, 5, 6, 7, 9;
   string machine_runtime = 8;
-  ServerExposureMethod server_exposure_method = 9;
   string server_domain = 10;
   string setup_password = 11;
 }
@@ -81,7 +58,7 @@ message CompleteSetupResponse {
 }
 
 message UpdateDomainSettingsRequest {
-  reserved 1, 2;
+  reserved 1, 2, 11, 13, 14;
   string machine_runtime = 3;
   bool disable_internet_public_exposure = 4;
   bool oidc_enabled = 5;
@@ -90,10 +67,7 @@ message UpdateDomainSettingsRequest {
   string oidc_client_secret = 8;
   repeated string oidc_allowed_email_domains = 9;
   bool clear_oidc_client_secret = 10;
-  ServerExposureMethod server_exposure_method = 11;
   string server_domain = 12;
-  string cloudflare_api_token = 13;
-  string cloudflare_zone_id = 14;
   bool password_login_disabled = 15;
   bool iap_enabled = 16;
   string iap_audience = 17;

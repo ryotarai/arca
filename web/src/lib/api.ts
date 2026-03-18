@@ -31,8 +31,8 @@ import {
 } from '@/gen/arca/v1/runtime_pb'
 import {
   ListMachineExposuresRequestSchema,
-  TunnelService,
-} from '@/gen/arca/v1/tunnel_pb'
+  ExposureService,
+} from '@/gen/arca/v1/exposure_pb'
 import {
   GetMachineSharingRequestSchema,
   ListMachineAccessRequestsRequestSchema,
@@ -89,7 +89,6 @@ import type {
   RuntimeCatalogItem,
   RuntimeCatalogType,
   RuntimeSummary,
-  ServerExposureMethod,
   SetupStatus,
   User,
   UserSettings,
@@ -103,7 +102,7 @@ const connectTransport = createConnectTransport({
 const authClient = createClient(AuthService, connectTransport)
 const machineClient = createClient(MachineService, connectTransport)
 const runtimeClient = createClient(RuntimeService, connectTransport)
-const tunnelClient = createClient(TunnelService, connectTransport)
+const exposureClient = createClient(ExposureService, connectTransport)
 const userClient = createClient(UserService, connectTransport)
 const sharingClient = createClient(SharingService, connectTransport)
 const groupClient = createClient(GroupService, connectTransport)
@@ -427,12 +426,12 @@ function runtimeTypeFromProto(type: RuntimeType): RuntimeCatalogType {
   return 'libvirt'
 }
 
-function machineExposureMethodFromProto(method: number): MachineExposureMethodType {
-  return method === 2 ? 'proxy_via_server' : 'cloudflare_tunnel'
+function machineExposureMethodFromProto(_method: number): MachineExposureMethodType {
+  return 'proxy_via_server'
 }
 
-function machineExposureMethodToProto(method: MachineExposureMethodType): number {
-  return method === 'proxy_via_server' ? 2 : 1
+function machineExposureMethodToProto(_method: MachineExposureMethodType): number {
+  return 2
 }
 
 function toRuntimeCatalogItem(input: {
@@ -452,9 +451,6 @@ function toRuntimeCatalogItem(input: {
       method?: number
       domainPrefix?: string
       baseDomain?: string
-      cloudflareApiToken?: string
-      cloudflareAccountId?: string
-      cloudflareZoneId?: string
       connectivity?: number
     }
     serverApiUrl?: string
@@ -505,9 +501,6 @@ function toRuntimeCatalogItem(input: {
     method: machineExposureMethodFromProto(exposureInput?.method ?? 0),
     domainPrefix: exposureInput?.domainPrefix ?? '',
     baseDomain: exposureInput?.baseDomain ?? '',
-    cloudflareApiToken: exposureInput?.cloudflareApiToken ?? '',
-    cloudflareAccountId: exposureInput?.cloudflareAccountId ?? '',
-    cloudflareZoneId: exposureInput?.cloudflareZoneId ?? '',
     connectivity: connectivityNum === 1 ? 'private_ip' : connectivityNum === 2 ? 'public_ip' : '',
   }
 
@@ -578,9 +571,6 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
       method: machineExposureMethodToProto(exposure.method),
       domainPrefix: exposure.domainPrefix,
       baseDomain: exposure.baseDomain,
-      cloudflareApiToken: exposure.cloudflareApiToken,
-      cloudflareAccountId: exposure.cloudflareAccountId,
-      cloudflareZoneId: exposure.cloudflareZoneId,
       connectivity: exposure.connectivity === 'private_ip' ? 1 : exposure.connectivity === 'public_ip' ? 2 : 0,
     }
   }
@@ -661,7 +651,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       status?: {
         completed?: boolean
         adminConfigured?: boolean
-        cloudflareZoneId?: string
         machineRuntime?: string
         internetPublicExposureDisabled?: boolean
         oidcEnabled?: boolean
@@ -669,7 +658,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         oidcClientId?: string
         oidcClientSecretConfigured?: boolean
         oidcAllowedEmailDomains?: string[]
-        serverExposureMethod?: number | string
         serverDomain?: string
         passwordLoginDisabled?: boolean
         iapEnabled?: boolean
@@ -682,7 +670,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       setupCompleted?: boolean
       hasAdmin?: boolean
       adminConfigured?: boolean
-      cloudflareZoneId?: string
       machineRuntime?: string
       internetPublicExposureDisabled?: boolean
       oidcEnabled?: boolean
@@ -690,7 +677,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       oidcClientId?: string
       oidcClientSecretConfigured?: boolean
       oidcAllowedEmailDomains?: string[]
-      serverExposureMethod?: number | string
       serverDomain?: string
       passwordLoginDisabled?: boolean
       iapEnabled?: boolean
@@ -705,7 +691,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const isConfigured =
       response.status?.completed ?? response.isConfigured ?? response.configured ?? response.setupCompleted ?? false
     const hasAdmin = response.status?.adminConfigured ?? response.hasAdmin ?? response.adminConfigured ?? false
-    const cloudflareZoneID = response.status?.cloudflareZoneId ?? response.cloudflareZoneId ?? ''
     const internetPublicExposureDisabled =
       response.status?.internetPublicExposureDisabled ?? response.internetPublicExposureDisabled ?? false
     const oidcEnabled = response.status?.oidcEnabled ?? response.oidcEnabled ?? false
@@ -715,12 +700,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       response.status?.oidcClientSecretConfigured ?? response.oidcClientSecretConfigured ?? false
     const oidcAllowedEmailDomains =
       response.status?.oidcAllowedEmailDomains ?? response.oidcAllowedEmailDomains ?? []
-    const serverExposureMethodRaw =
-      response.status?.serverExposureMethod ?? response.serverExposureMethod ?? 0
-    const serverExposureMethod: ServerExposureMethod =
-      serverExposureMethodRaw === 2 || serverExposureMethodRaw === 'SERVER_EXPOSURE_METHOD_MANUAL'
-        ? 'manual'
-        : 'cloudflare_tunnel'
     const serverDomain = response.status?.serverDomain ?? response.serverDomain ?? ''
     const passwordLoginDisabled =
       response.status?.passwordLoginDisabled ?? response.passwordLoginDisabled ?? false
@@ -732,7 +711,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     return {
       isConfigured,
       hasAdmin,
-      cloudflareZoneID,
       baseDomain: '',
       domainPrefix: '',
       internetPublicExposureDisabled,
@@ -746,7 +724,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       iapAudience,
       iapAutoProvisioning,
       oidcAutoProvisioning,
-      serverExposureMethod,
       serverDomain,
     }
   } catch (error) {
@@ -754,7 +731,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       return {
         isConfigured: true,
         hasAdmin: true,
-        cloudflareZoneID: '',
         baseDomain: '',
         domainPrefix: '',
         internetPublicExposureDisabled: false,
@@ -768,7 +744,6 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         iapAudience: '',
         iapAutoProvisioning: false,
         oidcAutoProvisioning: false,
-        serverExposureMethod: 'cloudflare_tunnel',
         serverDomain: '',
       }
     }
@@ -791,31 +766,13 @@ export async function setupCreateAdmin(email: string, password: string): Promise
   return null
 }
 
-export async function setupValidateCloudflare(
-  apiToken: string,
-  accountID: string,
-  baseDomain: string,
-): Promise<void> {
-  const response = await callConnectJSONCandidates<{ valid?: boolean; message?: string }>(
-    ['/arca.v1.SetupService/ValidateCloudflareToken'],
-    { apiToken, token: apiToken, accountId: accountID, accountID, baseDomain, domain: baseDomain },
-  )
-  if (response.valid !== true) {
-    throw new Error(response.message ?? 'cloudflare token validation failed')
-  }
-}
-
 export async function setupComplete(
   adminEmail: string,
   adminPassword: string,
-  cloudflareApiToken: string,
-  cloudflareZoneID: string,
-  serverExposureMethod: ServerExposureMethod = 'cloudflare_tunnel',
   serverDomain: string = '',
   setupPassword: string = '',
 ): Promise<void> {
   try {
-    const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
     const response = await callConnectJSONCandidates<{
       status?: {
         completed?: boolean
@@ -824,9 +781,7 @@ export async function setupComplete(
     }>(['/arca.v1.SetupService/CompleteSetup'], {
       adminEmail,
       adminPassword,
-      cloudflareApiToken,
-      cloudflareZoneId: cloudflareZoneID,
-      serverExposureMethod: serverExposureMethodNum,
+      serverExposureMethod: 2,
       serverDomain,
       setupPassword,
     })
@@ -849,17 +804,13 @@ export async function updateDomainSettings(
   oidcClientSecret: string,
   oidcAllowedEmailDomains: string[],
   clearOidcClientSecret: boolean,
-  serverExposureMethod: ServerExposureMethod = 'cloudflare_tunnel',
   serverDomain: string = '',
-  cloudflareApiToken: string = '',
-  cloudflareZoneID: string = '',
   passwordLoginDisabled: boolean = false,
   iapEnabled: boolean = false,
   iapAudience: string = '',
   iapAutoProvisioning: boolean = false,
   oidcAutoProvisioning: boolean = false,
 ): Promise<void> {
-  const serverExposureMethodNum = serverExposureMethod === 'manual' ? 2 : 1
   const response = await callConnectJSONCandidates<{
     status?: {
       completed?: boolean
@@ -874,10 +825,8 @@ export async function updateDomainSettings(
     oidcClientSecret,
     oidcAllowedEmailDomains,
     clearOidcClientSecret,
-    serverExposureMethod: serverExposureMethodNum,
+    serverExposureMethod: 2,
     serverDomain,
-    cloudflareApiToken,
-    cloudflareZoneId: cloudflareZoneID,
     passwordLoginDisabled,
     iapEnabled,
     iapAudience,
@@ -890,7 +839,7 @@ export async function updateDomainSettings(
 }
 
 export async function listMachineExposures(machineID: string): Promise<MachineExposure[]> {
-  const response = await tunnelClient.listMachineExposures(
+  const response = await exposureClient.listMachineExposures(
     create(ListMachineExposuresRequestSchema, { machineId: machineID }),
   )
   return response.exposures
@@ -1257,9 +1206,24 @@ export async function getImpersonationStatus(): Promise<ImpersonationStatus> {
   }
 }
 
-export async function listAuditLogs(limit = 100): Promise<AuditLog[]> {
-  const response = await adminClient.listAuditLogs(create(ListAuditLogsRequestSchema, { limit }))
-  return response.auditLogs
+export type AuditLogListResult = {
+  auditLogs: AuditLog[]
+  totalCount: number
+}
+
+export async function listAuditLogs(params: {
+  limit?: number
+  offset?: number
+  actionPrefix?: string
+  actorEmail?: string
+} = {}): Promise<AuditLogListResult> {
+  const response = await adminClient.listAuditLogs(create(ListAuditLogsRequestSchema, {
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+    actionPrefix: params.actionPrefix ?? '',
+    actorEmail: params.actorEmail ?? '',
+  }))
+  return { auditLogs: response.auditLogs, totalCount: response.totalCount }
 }
 
 // Server LLM Model API

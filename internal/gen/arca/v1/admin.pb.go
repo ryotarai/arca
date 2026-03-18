@@ -272,6 +272,9 @@ func (x *GetImpersonationStatusResponse) GetOriginalUserEmail() string {
 type ListAuditLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	ActionPrefix  string                 `protobuf:"bytes,2,opt,name=action_prefix,json=actionPrefix,proto3" json:"action_prefix,omitempty"`
+	ActorEmail    string                 `protobuf:"bytes,3,opt,name=actor_email,json=actorEmail,proto3" json:"actor_email,omitempty"`
+	Offset        int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -313,9 +316,31 @@ func (x *ListAuditLogsRequest) GetLimit() int32 {
 	return 0
 }
 
+func (x *ListAuditLogsRequest) GetActionPrefix() string {
+	if x != nil {
+		return x.ActionPrefix
+	}
+	return ""
+}
+
+func (x *ListAuditLogsRequest) GetActorEmail() string {
+	if x != nil {
+		return x.ActorEmail
+	}
+	return ""
+}
+
+func (x *ListAuditLogsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListAuditLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AuditLogs     []*AuditLog            `protobuf:"bytes,1,rep,name=audit_logs,json=auditLogs,proto3" json:"audit_logs,omitempty"`
+	TotalCount    int32                  `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -355,6 +380,13 @@ func (x *ListAuditLogsResponse) GetAuditLogs() []*AuditLog {
 		return x.AuditLogs
 	}
 	return nil
+}
+
+func (x *ListAuditLogsResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
 }
 
 type AuditLog struct {
@@ -1003,12 +1035,18 @@ const file_arca_v1_admin_proto_rawDesc = "" +
 	"\x1eGetImpersonationStatusResponse\x12)\n" +
 	"\x10is_impersonating\x18\x01 \x01(\bR\x0fisImpersonating\x126\n" +
 	"\x17impersonated_user_email\x18\x02 \x01(\tR\x15impersonatedUserEmail\x12.\n" +
-	"\x13original_user_email\x18\x03 \x01(\tR\x11originalUserEmail\",\n" +
+	"\x13original_user_email\x18\x03 \x01(\tR\x11originalUserEmail\"\x8a\x01\n" +
 	"\x14ListAuditLogsRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\"I\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12#\n" +
+	"\raction_prefix\x18\x02 \x01(\tR\factionPrefix\x12\x1f\n" +
+	"\vactor_email\x18\x03 \x01(\tR\n" +
+	"actorEmail\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\"j\n" +
 	"\x15ListAuditLogsResponse\x120\n" +
 	"\n" +
-	"audit_logs\x18\x01 \x03(\v2\x11.arca.v1.AuditLogR\tauditLogs\"\xfa\x01\n" +
+	"audit_logs\x18\x01 \x03(\v2\x11.arca.v1.AuditLogR\tauditLogs\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x05R\n" +
+	"totalCount\"\xfa\x01\n" +
 	"\bAuditLog\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vactor_email\x18\x02 \x01(\tR\n" +

@@ -29,7 +29,7 @@ func TestToMachineExposureMessage(t *testing.T) {
 func TestReportMachineReadiness_AcceptsWhenDesiredRunning(t *testing.T) {
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
-	service := newTunnelConnectService(store, authenticator, nil, nil)
+	service := newExposureConnectService(store, authenticator, nil, nil)
 
 	userID, _, err := authenticator.Register(ctx, "ready-owner@example.com", "owner-password")
 	if err != nil {
@@ -75,7 +75,7 @@ func TestReportMachineReadiness_AcceptsWhenDesiredRunning(t *testing.T) {
 func TestReportMachineReadiness_StoresArcadVersion(t *testing.T) {
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
-	service := newTunnelConnectService(store, authenticator, nil, nil)
+	service := newExposureConnectService(store, authenticator, nil, nil)
 
 	userID, _, err := authenticator.Register(ctx, "version-owner@example.com", "owner-password")
 	if err != nil {
@@ -131,7 +131,7 @@ func TestReportMachineReadiness_StoresArcadVersion(t *testing.T) {
 func TestReportMachineReadiness_RejectsReadyWhenDesiredStopped(t *testing.T) {
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
-	service := newTunnelConnectService(store, authenticator, nil, nil)
+	service := newExposureConnectService(store, authenticator, nil, nil)
 
 	userID, _, err := authenticator.Register(ctx, "ready-stop-owner@example.com", "owner-password")
 	if err != nil {

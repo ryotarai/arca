@@ -19,29 +19,19 @@ func TestGetRuntimeExposureMethod(t *testing.T) {
 			want:       MachineExposureMethodProxyViaServer,
 		},
 		{
-			name:       "plain cloudflare_tunnel value",
-			configJSON: `{"exposure":{"method":"cloudflare_tunnel"}}`,
-			want:       MachineExposureMethodCloudflareTunnel,
-		},
-		{
-			name:       "protobuf enum name MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL",
-			configJSON: `{"exposure":{"method":"MACHINE_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL"}}`,
-			want:       MachineExposureMethodCloudflareTunnel,
-		},
-		{
-			name:       "empty method defaults to cloudflare_tunnel",
+			name:       "empty method defaults to proxy_via_server",
 			configJSON: `{"exposure":{}}`,
-			want:       MachineExposureMethodCloudflareTunnel,
+			want:       MachineExposureMethodProxyViaServer,
 		},
 		{
-			name:       "missing exposure defaults to cloudflare_tunnel",
+			name:       "missing exposure defaults to proxy_via_server",
 			configJSON: `{}`,
-			want:       MachineExposureMethodCloudflareTunnel,
+			want:       MachineExposureMethodProxyViaServer,
 		},
 		{
-			name:       "invalid JSON defaults to cloudflare_tunnel",
+			name:       "invalid JSON defaults to proxy_via_server",
 			configJSON: `not json`,
-			want:       MachineExposureMethodCloudflareTunnel,
+			want:       MachineExposureMethodProxyViaServer,
 		},
 	}
 

@@ -4,15 +4,8 @@ export const adminEmail = 'admin@example.com'
 export const adminPassword = 'password123'
 
 const defaultSetupConfig = {
-  cloudflareToken: 'dummy-token',
-  cloudflareAccountID: 'dummy-account',
-  cloudflareZoneID: 'dummy-zone',
   baseDomain: 'example.com',
   domainPrefix: 'arca-',
-}
-
-function trimEnv(value: string | undefined): string {
-  return value?.trim() ?? ''
 }
 
 async function parseJSONSafe(response: APIResponse): Promise<Record<string, unknown> | null> {
@@ -24,16 +17,7 @@ async function parseJSONSafe(response: APIResponse): Promise<Record<string, unkn
 }
 
 export async function ensureSetupAdmin(page: Page) {
-  const hasCloudflare = (trimEnv(process.env.CLOUDFLARE_TOKEN) ?? '') !== ''
-  const setupConfig = hasCloudflare
-    ? {
-        cloudflareToken: trimEnv(process.env.CLOUDFLARE_TOKEN),
-        cloudflareAccountID: trimEnv(process.env.CLOUDFLARE_ACCOUNT_ID),
-        cloudflareZoneID: trimEnv(process.env.CLOUDFLARE_ZONE_ID),
-        baseDomain: trimEnv(process.env.BASE_DOMAIN).toLowerCase(),
-        domainPrefix: trimEnv(process.env.DOMAIN_PREFIX).toLowerCase(),
-      }
-    : defaultSetupConfig
+  const setupConfig = defaultSetupConfig
 
   const response = await page.request.post('/arca.v1.SetupService/CompleteSetup', {
     data: {
@@ -41,8 +25,7 @@ export async function ensureSetupAdmin(page: Page) {
       adminPassword,
       baseDomain: setupConfig.baseDomain,
       domainPrefix: setupConfig.domainPrefix,
-      cloudflareApiToken: setupConfig.cloudflareToken,
-      cloudflareZoneId: setupConfig.cloudflareZoneID,
+      serverDomain: setupConfig.baseDomain,
     },
   })
 

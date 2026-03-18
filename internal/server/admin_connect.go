@@ -126,10 +126,30 @@ func (s *adminConnectService) ListAuditLogs(ctx context.Context, req *connect.Re
 		limit = 100
 	}
 
-	entries, err := s.store.ListAuditLogs(ctx, limit)
+	actionPrefix := strings.TrimSpace(req.Msg.GetActionPrefix())
+	actorEmail := strings.TrimSpace(req.Msg.GetActorEmail())
+	offset := int64(req.Msg.GetOffset())
+	if offset < 0 {
+		offset = 0
+	}
+
+	filter := db.AuditLogFilter{
+		ActionPrefix: actionPrefix,
+		ActorEmail:   actorEmail,
+		Limit:        limit,
+		Offset:       offset,
+	}
+
+	entries, err := s.store.ListAuditLogsFiltered(ctx, filter)
 	if err != nil {
 		log.Printf("list audit logs failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list audit logs"))
+	}
+
+	totalCount, err := s.store.CountAuditLogsFiltered(ctx, actionPrefix, actorEmail)
+	if err != nil {
+		log.Printf("count audit logs failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to count audit logs"))
 	}
 
 	items := make([]*arcav1.AuditLog, 0, len(entries))
@@ -146,7 +166,7 @@ func (s *adminConnectService) ListAuditLogs(ctx context.Context, req *connect.Re
 		})
 	}
 
-	return connect.NewResponse(&arcav1.ListAuditLogsResponse{AuditLogs: items}), nil
+	return connect.NewResponse(&arcav1.ListAuditLogsResponse{AuditLogs: items, TotalCount: int32(totalCount)}), nil
 }
 
 func (s *adminConnectService) authenticateAdmin(ctx context.Context, header http.Header) (string, error) {

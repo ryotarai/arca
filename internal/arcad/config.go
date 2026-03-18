@@ -12,7 +12,6 @@ type Config struct {
 	AuthorizeURL        string
 	MachineID           string
 	MachineToken        string
-	TunnelToken         string
 	ListenAddr          string
 	UpstreamURL         string
 	TTydSocket          string
@@ -29,7 +28,6 @@ func ConfigFromEnv() (Config, error) {
 		AuthorizeURL:    os.Getenv("ARCAD_AUTHORIZE_URL"),
 		MachineID:       os.Getenv("ARCAD_MACHINE_ID"),
 		MachineToken:    os.Getenv("ARCAD_MACHINE_TOKEN"),
-		TunnelToken:     os.Getenv("ARCAD_TUNNEL_TOKEN"),
 		ListenAddr:      os.Getenv("ARCAD_LISTEN_ADDR"),
 		UpstreamURL:     os.Getenv("ARCAD_UPSTREAM_URL"),
 		TTydSocket:      os.Getenv("ARCAD_TTYD_SOCKET"),
@@ -72,7 +70,5 @@ func ConfigFromEnv() (Config, error) {
 	if cfg.MachineID == "" {
 		return Config{}, fmt.Errorf("ARCAD_MACHINE_ID is required")
 	}
-	// TunnelToken is optional; when empty, cloudflared is not started
-	// (proxy-via-server exposure mode).
 	return cfg, nil
 }

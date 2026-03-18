@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -53,7 +54,8 @@ func (s *runtimeConnectService) ListRuntimes(ctx context.Context, req *connect.R
 }
 
 func (s *runtimeConnectService) CreateRuntime(ctx context.Context, req *connect.Request[arcav1.CreateRuntimeRequest]) (*connect.Response[arcav1.CreateRuntimeResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -83,11 +85,14 @@ func (s *runtimeConnectService) CreateRuntime(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to decode runtime config"))
 	}
 
+	writeAuditLog(ctx, s.store, adminUserID, "", "runtime.create", "runtime", runtime.ID, fmt.Sprintf(`{"name":%q,"type":%q}`, validated.name, validated.runtimeType))
+
 	return connect.NewResponse(&arcav1.CreateRuntimeResponse{Runtime: message}), nil
 }
 
 func (s *runtimeConnectService) UpdateRuntime(ctx context.Context, req *connect.Request[arcav1.UpdateRuntimeRequest]) (*connect.Response[arcav1.UpdateRuntimeResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -124,17 +129,27 @@ func (s *runtimeConnectService) UpdateRuntime(ctx context.Context, req *connect.
 		log.Printf("decode updated runtime config failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to decode runtime config"))
 	}
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "runtime.update", "runtime", runtimeID, fmt.Sprintf(`{"name":%q}`, validated.name))
+
 	return connect.NewResponse(&arcav1.UpdateRuntimeResponse{Runtime: message}), nil
 }
 
 func (s *runtimeConnectService) DeleteRuntime(ctx context.Context, req *connect.Request[arcav1.DeleteRuntimeRequest]) (*connect.Response[arcav1.DeleteRuntimeResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
 	runtimeID := strings.TrimSpace(req.Msg.GetRuntimeId())
 	if runtimeID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("runtime id is required"))
+	}
+
+	// Fetch name before deletion for audit log
+	var runtimeName string
+	if rt, rtErr := s.store.GetRuntimeByID(ctx, runtimeID); rtErr == nil {
+		runtimeName = rt.Name
 	}
 
 	deleted, err := s.store.DeleteRuntimeByID(ctx, runtimeID)
@@ -148,6 +163,9 @@ func (s *runtimeConnectService) DeleteRuntime(ctx context.Context, req *connect.
 	if !deleted {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("runtime not found"))
 	}
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "runtime.delete", "runtime", runtimeID, fmt.Sprintf(`{"name":%q}`, runtimeName))
+
 	return connect.NewResponse(&arcav1.DeleteRuntimeResponse{}), nil
 }
 
@@ -259,13 +277,10 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 	var exposureConfig *arcav1.MachineExposureConfig
 	if exp := config.GetExposure(); exp != nil {
 		exposureConfig = &arcav1.MachineExposureConfig{
-			Method:              exp.GetMethod(),
-			DomainPrefix:        strings.ToLower(strings.TrimSpace(exp.GetDomainPrefix())),
-			BaseDomain:          strings.ToLower(strings.TrimSpace(exp.GetBaseDomain())),
-			CloudflareApiToken:  strings.TrimSpace(exp.GetCloudflareApiToken()),
-			CloudflareAccountId: strings.TrimSpace(exp.GetCloudflareAccountId()),
-			CloudflareZoneId:    strings.TrimSpace(exp.GetCloudflareZoneId()),
-			Connectivity:        exp.GetConnectivity(),
+			Method:       exp.GetMethod(),
+			DomainPrefix: strings.ToLower(strings.TrimSpace(exp.GetDomainPrefix())),
+			BaseDomain:   strings.ToLower(strings.TrimSpace(exp.GetBaseDomain())),
+			Connectivity: exp.GetConnectivity(),
 		}
 	}
 

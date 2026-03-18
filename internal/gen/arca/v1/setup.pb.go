@@ -21,61 +21,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type ServerExposureMethod int32
-
-const (
-	ServerExposureMethod_SERVER_EXPOSURE_METHOD_UNSPECIFIED       ServerExposureMethod = 0
-	ServerExposureMethod_SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL ServerExposureMethod = 1
-	ServerExposureMethod_SERVER_EXPOSURE_METHOD_MANUAL            ServerExposureMethod = 2
-)
-
-// Enum value maps for ServerExposureMethod.
-var (
-	ServerExposureMethod_name = map[int32]string{
-		0: "SERVER_EXPOSURE_METHOD_UNSPECIFIED",
-		1: "SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL",
-		2: "SERVER_EXPOSURE_METHOD_MANUAL",
-	}
-	ServerExposureMethod_value = map[string]int32{
-		"SERVER_EXPOSURE_METHOD_UNSPECIFIED":       0,
-		"SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL": 1,
-		"SERVER_EXPOSURE_METHOD_MANUAL":            2,
-	}
-)
-
-func (x ServerExposureMethod) Enum() *ServerExposureMethod {
-	p := new(ServerExposureMethod)
-	*p = x
-	return p
-}
-
-func (x ServerExposureMethod) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ServerExposureMethod) Descriptor() protoreflect.EnumDescriptor {
-	return file_arca_v1_setup_proto_enumTypes[0].Descriptor()
-}
-
-func (ServerExposureMethod) Type() protoreflect.EnumType {
-	return &file_arca_v1_setup_proto_enumTypes[0]
-}
-
-func (x ServerExposureMethod) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ServerExposureMethod.Descriptor instead.
-func (ServerExposureMethod) EnumDescriptor() ([]byte, []int) {
-	return file_arca_v1_setup_proto_rawDescGZIP(), []int{0}
-}
-
 type SetupStatus struct {
 	state                          protoimpl.MessageState `protogen:"open.v1"`
 	Completed                      bool                   `protobuf:"varint,1,opt,name=completed,proto3" json:"completed,omitempty"`
 	AdminConfigured                bool                   `protobuf:"varint,2,opt,name=admin_configured,json=adminConfigured,proto3" json:"admin_configured,omitempty"`
-	CloudflareConfigured           bool                   `protobuf:"varint,3,opt,name=cloudflare_configured,json=cloudflareConfigured,proto3" json:"cloudflare_configured,omitempty"`
-	CloudflareZoneId               string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
 	MachineRuntime                 string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
 	InternetPublicExposureDisabled bool                   `protobuf:"varint,9,opt,name=internet_public_exposure_disabled,json=internetPublicExposureDisabled,proto3" json:"internet_public_exposure_disabled,omitempty"`
 	OidcEnabled                    bool                   `protobuf:"varint,10,opt,name=oidc_enabled,json=oidcEnabled,proto3" json:"oidc_enabled,omitempty"`
@@ -83,7 +32,6 @@ type SetupStatus struct {
 	OidcClientId                   string                 `protobuf:"bytes,12,opt,name=oidc_client_id,json=oidcClientId,proto3" json:"oidc_client_id,omitempty"`
 	OidcClientSecretConfigured     bool                   `protobuf:"varint,13,opt,name=oidc_client_secret_configured,json=oidcClientSecretConfigured,proto3" json:"oidc_client_secret_configured,omitempty"`
 	OidcAllowedEmailDomains        []string               `protobuf:"bytes,14,rep,name=oidc_allowed_email_domains,json=oidcAllowedEmailDomains,proto3" json:"oidc_allowed_email_domains,omitempty"`
-	ServerExposureMethod           ServerExposureMethod   `protobuf:"varint,15,opt,name=server_exposure_method,json=serverExposureMethod,proto3,enum=arca.v1.ServerExposureMethod" json:"server_exposure_method,omitempty"`
 	ServerDomain                   string                 `protobuf:"bytes,16,opt,name=server_domain,json=serverDomain,proto3" json:"server_domain,omitempty"`
 	PasswordLoginDisabled          bool                   `protobuf:"varint,17,opt,name=password_login_disabled,json=passwordLoginDisabled,proto3" json:"password_login_disabled,omitempty"`
 	IapEnabled                     bool                   `protobuf:"varint,18,opt,name=iap_enabled,json=iapEnabled,proto3" json:"iap_enabled,omitempty"`
@@ -138,20 +86,6 @@ func (x *SetupStatus) GetAdminConfigured() bool {
 	return false
 }
 
-func (x *SetupStatus) GetCloudflareConfigured() bool {
-	if x != nil {
-		return x.CloudflareConfigured
-	}
-	return false
-}
-
-func (x *SetupStatus) GetCloudflareZoneId() string {
-	if x != nil {
-		return x.CloudflareZoneId
-	}
-	return ""
-}
-
 func (x *SetupStatus) GetMachineRuntime() string {
 	if x != nil {
 		return x.MachineRuntime
@@ -199,13 +133,6 @@ func (x *SetupStatus) GetOidcAllowedEmailDomains() []string {
 		return x.OidcAllowedEmailDomains
 	}
 	return nil
-}
-
-func (x *SetupStatus) GetServerExposureMethod() ServerExposureMethod {
-	if x != nil {
-		return x.ServerExposureMethod
-	}
-	return ServerExposureMethod_SERVER_EXPOSURE_METHOD_UNSPECIFIED
 }
 
 func (x *SetupStatus) GetServerDomain() string {
@@ -418,127 +345,20 @@ func (x *VerifySetupPasswordResponse) GetValid() bool {
 	return false
 }
 
-type ValidateCloudflareTokenRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ApiToken      string                 `protobuf:"bytes,1,opt,name=api_token,json=apiToken,proto3" json:"api_token,omitempty"`
-	AccountId     string                 `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ValidateCloudflareTokenRequest) Reset() {
-	*x = ValidateCloudflareTokenRequest{}
-	mi := &file_arca_v1_setup_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ValidateCloudflareTokenRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ValidateCloudflareTokenRequest) ProtoMessage() {}
-
-func (x *ValidateCloudflareTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_setup_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ValidateCloudflareTokenRequest.ProtoReflect.Descriptor instead.
-func (*ValidateCloudflareTokenRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_setup_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *ValidateCloudflareTokenRequest) GetApiToken() string {
-	if x != nil {
-		return x.ApiToken
-	}
-	return ""
-}
-
-func (x *ValidateCloudflareTokenRequest) GetAccountId() string {
-	if x != nil {
-		return x.AccountId
-	}
-	return ""
-}
-
-type ValidateCloudflareTokenResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ValidateCloudflareTokenResponse) Reset() {
-	*x = ValidateCloudflareTokenResponse{}
-	mi := &file_arca_v1_setup_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ValidateCloudflareTokenResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ValidateCloudflareTokenResponse) ProtoMessage() {}
-
-func (x *ValidateCloudflareTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_setup_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ValidateCloudflareTokenResponse.ProtoReflect.Descriptor instead.
-func (*ValidateCloudflareTokenResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_setup_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *ValidateCloudflareTokenResponse) GetValid() bool {
-	if x != nil {
-		return x.Valid
-	}
-	return false
-}
-
-func (x *ValidateCloudflareTokenResponse) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
 type CompleteSetupRequest struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	AdminEmail           string                 `protobuf:"bytes,1,opt,name=admin_email,json=adminEmail,proto3" json:"admin_email,omitempty"`
-	AdminPassword        string                 `protobuf:"bytes,2,opt,name=admin_password,json=adminPassword,proto3" json:"admin_password,omitempty"`
-	CloudflareApiToken   string                 `protobuf:"bytes,4,opt,name=cloudflare_api_token,json=cloudflareApiToken,proto3" json:"cloudflare_api_token,omitempty"`
-	CloudflareZoneId     string                 `protobuf:"bytes,6,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
-	MachineRuntime       string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
-	ServerExposureMethod ServerExposureMethod   `protobuf:"varint,9,opt,name=server_exposure_method,json=serverExposureMethod,proto3,enum=arca.v1.ServerExposureMethod" json:"server_exposure_method,omitempty"`
-	ServerDomain         string                 `protobuf:"bytes,10,opt,name=server_domain,json=serverDomain,proto3" json:"server_domain,omitempty"`
-	SetupPassword        string                 `protobuf:"bytes,11,opt,name=setup_password,json=setupPassword,proto3" json:"setup_password,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AdminEmail     string                 `protobuf:"bytes,1,opt,name=admin_email,json=adminEmail,proto3" json:"admin_email,omitempty"`
+	AdminPassword  string                 `protobuf:"bytes,2,opt,name=admin_password,json=adminPassword,proto3" json:"admin_password,omitempty"`
+	MachineRuntime string                 `protobuf:"bytes,8,opt,name=machine_runtime,json=machineRuntime,proto3" json:"machine_runtime,omitempty"`
+	ServerDomain   string                 `protobuf:"bytes,10,opt,name=server_domain,json=serverDomain,proto3" json:"server_domain,omitempty"`
+	SetupPassword  string                 `protobuf:"bytes,11,opt,name=setup_password,json=setupPassword,proto3" json:"setup_password,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CompleteSetupRequest) Reset() {
 	*x = CompleteSetupRequest{}
-	mi := &file_arca_v1_setup_proto_msgTypes[7]
+	mi := &file_arca_v1_setup_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -550,7 +370,7 @@ func (x *CompleteSetupRequest) String() string {
 func (*CompleteSetupRequest) ProtoMessage() {}
 
 func (x *CompleteSetupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_setup_proto_msgTypes[7]
+	mi := &file_arca_v1_setup_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -563,7 +383,7 @@ func (x *CompleteSetupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteSetupRequest.ProtoReflect.Descriptor instead.
 func (*CompleteSetupRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_setup_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_setup_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CompleteSetupRequest) GetAdminEmail() string {
@@ -580,32 +400,11 @@ func (x *CompleteSetupRequest) GetAdminPassword() string {
 	return ""
 }
 
-func (x *CompleteSetupRequest) GetCloudflareApiToken() string {
-	if x != nil {
-		return x.CloudflareApiToken
-	}
-	return ""
-}
-
-func (x *CompleteSetupRequest) GetCloudflareZoneId() string {
-	if x != nil {
-		return x.CloudflareZoneId
-	}
-	return ""
-}
-
 func (x *CompleteSetupRequest) GetMachineRuntime() string {
 	if x != nil {
 		return x.MachineRuntime
 	}
 	return ""
-}
-
-func (x *CompleteSetupRequest) GetServerExposureMethod() ServerExposureMethod {
-	if x != nil {
-		return x.ServerExposureMethod
-	}
-	return ServerExposureMethod_SERVER_EXPOSURE_METHOD_UNSPECIFIED
 }
 
 func (x *CompleteSetupRequest) GetServerDomain() string {
@@ -631,7 +430,7 @@ type CompleteSetupResponse struct {
 
 func (x *CompleteSetupResponse) Reset() {
 	*x = CompleteSetupResponse{}
-	mi := &file_arca_v1_setup_proto_msgTypes[8]
+	mi := &file_arca_v1_setup_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +442,7 @@ func (x *CompleteSetupResponse) String() string {
 func (*CompleteSetupResponse) ProtoMessage() {}
 
 func (x *CompleteSetupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_setup_proto_msgTypes[8]
+	mi := &file_arca_v1_setup_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +455,7 @@ func (x *CompleteSetupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteSetupResponse.ProtoReflect.Descriptor instead.
 func (*CompleteSetupResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_setup_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_setup_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CompleteSetupResponse) GetStatus() *SetupStatus {
@@ -676,10 +475,7 @@ type UpdateDomainSettingsRequest struct {
 	OidcClientSecret              string                 `protobuf:"bytes,8,opt,name=oidc_client_secret,json=oidcClientSecret,proto3" json:"oidc_client_secret,omitempty"`
 	OidcAllowedEmailDomains       []string               `protobuf:"bytes,9,rep,name=oidc_allowed_email_domains,json=oidcAllowedEmailDomains,proto3" json:"oidc_allowed_email_domains,omitempty"`
 	ClearOidcClientSecret         bool                   `protobuf:"varint,10,opt,name=clear_oidc_client_secret,json=clearOidcClientSecret,proto3" json:"clear_oidc_client_secret,omitempty"`
-	ServerExposureMethod          ServerExposureMethod   `protobuf:"varint,11,opt,name=server_exposure_method,json=serverExposureMethod,proto3,enum=arca.v1.ServerExposureMethod" json:"server_exposure_method,omitempty"`
 	ServerDomain                  string                 `protobuf:"bytes,12,opt,name=server_domain,json=serverDomain,proto3" json:"server_domain,omitempty"`
-	CloudflareApiToken            string                 `protobuf:"bytes,13,opt,name=cloudflare_api_token,json=cloudflareApiToken,proto3" json:"cloudflare_api_token,omitempty"`
-	CloudflareZoneId              string                 `protobuf:"bytes,14,opt,name=cloudflare_zone_id,json=cloudflareZoneId,proto3" json:"cloudflare_zone_id,omitempty"`
 	PasswordLoginDisabled         bool                   `protobuf:"varint,15,opt,name=password_login_disabled,json=passwordLoginDisabled,proto3" json:"password_login_disabled,omitempty"`
 	IapEnabled                    bool                   `protobuf:"varint,16,opt,name=iap_enabled,json=iapEnabled,proto3" json:"iap_enabled,omitempty"`
 	IapAudience                   string                 `protobuf:"bytes,17,opt,name=iap_audience,json=iapAudience,proto3" json:"iap_audience,omitempty"`
@@ -691,7 +487,7 @@ type UpdateDomainSettingsRequest struct {
 
 func (x *UpdateDomainSettingsRequest) Reset() {
 	*x = UpdateDomainSettingsRequest{}
-	mi := &file_arca_v1_setup_proto_msgTypes[9]
+	mi := &file_arca_v1_setup_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +499,7 @@ func (x *UpdateDomainSettingsRequest) String() string {
 func (*UpdateDomainSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateDomainSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_setup_proto_msgTypes[9]
+	mi := &file_arca_v1_setup_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +512,7 @@ func (x *UpdateDomainSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDomainSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDomainSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_setup_proto_rawDescGZIP(), []int{9}
+	return file_arca_v1_setup_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateDomainSettingsRequest) GetMachineRuntime() string {
@@ -775,30 +571,9 @@ func (x *UpdateDomainSettingsRequest) GetClearOidcClientSecret() bool {
 	return false
 }
 
-func (x *UpdateDomainSettingsRequest) GetServerExposureMethod() ServerExposureMethod {
-	if x != nil {
-		return x.ServerExposureMethod
-	}
-	return ServerExposureMethod_SERVER_EXPOSURE_METHOD_UNSPECIFIED
-}
-
 func (x *UpdateDomainSettingsRequest) GetServerDomain() string {
 	if x != nil {
 		return x.ServerDomain
-	}
-	return ""
-}
-
-func (x *UpdateDomainSettingsRequest) GetCloudflareApiToken() string {
-	if x != nil {
-		return x.CloudflareApiToken
-	}
-	return ""
-}
-
-func (x *UpdateDomainSettingsRequest) GetCloudflareZoneId() string {
-	if x != nil {
-		return x.CloudflareZoneId
 	}
 	return ""
 }
@@ -847,7 +622,7 @@ type UpdateDomainSettingsResponse struct {
 
 func (x *UpdateDomainSettingsResponse) Reset() {
 	*x = UpdateDomainSettingsResponse{}
-	mi := &file_arca_v1_setup_proto_msgTypes[10]
+	mi := &file_arca_v1_setup_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +634,7 @@ func (x *UpdateDomainSettingsResponse) String() string {
 func (*UpdateDomainSettingsResponse) ProtoMessage() {}
 
 func (x *UpdateDomainSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_setup_proto_msgTypes[10]
+	mi := &file_arca_v1_setup_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +647,7 @@ func (x *UpdateDomainSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDomainSettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateDomainSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_setup_proto_rawDescGZIP(), []int{10}
+	return file_arca_v1_setup_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateDomainSettingsResponse) GetStatus() *SetupStatus {
@@ -886,12 +661,10 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\x90\a\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xea\x05\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
-	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x123\n" +
-	"\x15cloudflare_configured\x18\x03 \x01(\bR\x14cloudflareConfigured\x12,\n" +
-	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12'\n" +
+	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x12'\n" +
 	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\x12I\n" +
 	"!internet_public_exposure_disabled\x18\t \x01(\bR\x1einternetPublicExposureDisabled\x12!\n" +
 	"\foidc_enabled\x18\n" +
@@ -899,42 +672,32 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x0foidc_issuer_url\x18\v \x01(\tR\roidcIssuerUrl\x12$\n" +
 	"\x0eoidc_client_id\x18\f \x01(\tR\foidcClientId\x12A\n" +
 	"\x1doidc_client_secret_configured\x18\r \x01(\bR\x1aoidcClientSecretConfigured\x12;\n" +
-	"\x1aoidc_allowed_email_domains\x18\x0e \x03(\tR\x17oidcAllowedEmailDomains\x12S\n" +
-	"\x16server_exposure_method\x18\x0f \x01(\x0e2\x1d.arca.v1.ServerExposureMethodR\x14serverExposureMethod\x12#\n" +
+	"\x1aoidc_allowed_email_domains\x18\x0e \x03(\tR\x17oidcAllowedEmailDomains\x12#\n" +
 	"\rserver_domain\x18\x10 \x01(\tR\fserverDomain\x126\n" +
 	"\x17password_login_disabled\x18\x11 \x01(\bR\x15passwordLoginDisabled\x12\x1f\n" +
 	"\viap_enabled\x18\x12 \x01(\bR\n" +
 	"iapEnabled\x12!\n" +
 	"\fiap_audience\x18\x13 \x01(\tR\viapAudience\x122\n" +
 	"\x15iap_auto_provisioning\x18\x14 \x01(\bR\x13iapAutoProvisioning\x124\n" +
-	"\x16oidc_auto_provisioning\x18\x15 \x01(\bR\x14oidcAutoProvisioningJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\a\x10\b\"\x17\n" +
+	"\x16oidc_auto_provisioning\x18\x15 \x01(\bR\x14oidcAutoProvisioningJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\x0f\x10\x10\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"C\n" +
 	"\x1aVerifySetupPasswordRequest\x12%\n" +
 	"\x0esetup_password\x18\x01 \x01(\tR\rsetupPassword\"3\n" +
 	"\x1bVerifySetupPasswordResponse\x12\x14\n" +
-	"\x05valid\x18\x01 \x01(\bR\x05valid\"\\\n" +
-	"\x1eValidateCloudflareTokenRequest\x12\x1b\n" +
-	"\tapi_token\x18\x01 \x01(\tR\bapiToken\x12\x1d\n" +
-	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\"Q\n" +
-	"\x1fValidateCloudflareTokenResponse\x12\x14\n" +
-	"\x05valid\x18\x01 \x01(\bR\x05valid\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x9a\x03\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid\"\xf7\x01\n" +
 	"\x14CompleteSetupRequest\x12\x1f\n" +
 	"\vadmin_email\x18\x01 \x01(\tR\n" +
 	"adminEmail\x12%\n" +
-	"\x0eadmin_password\x18\x02 \x01(\tR\radminPassword\x120\n" +
-	"\x14cloudflare_api_token\x18\x04 \x01(\tR\x12cloudflareApiToken\x12,\n" +
-	"\x12cloudflare_zone_id\x18\x06 \x01(\tR\x10cloudflareZoneId\x12'\n" +
-	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\x12S\n" +
-	"\x16server_exposure_method\x18\t \x01(\x0e2\x1d.arca.v1.ServerExposureMethodR\x14serverExposureMethod\x12#\n" +
+	"\x0eadmin_password\x18\x02 \x01(\tR\radminPassword\x12'\n" +
+	"\x0fmachine_runtime\x18\b \x01(\tR\x0emachineRuntime\x12#\n" +
 	"\rserver_domain\x18\n" +
 	" \x01(\tR\fserverDomain\x12%\n" +
-	"\x0esetup_password\x18\v \x01(\tR\rsetupPasswordJ\x04\b\x03\x10\x04J\x04\b\x05\x10\x06J\x04\b\a\x10\b\"E\n" +
+	"\x0esetup_password\x18\v \x01(\tR\rsetupPasswordJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\t\x10\n" +
+	"\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xf0\x06\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xcd\x05\n" +
 	"\x1bUpdateDomainSettingsRequest\x12'\n" +
 	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\x12G\n" +
 	" disable_internet_public_exposure\x18\x04 \x01(\bR\x1ddisableInternetPublicExposure\x12!\n" +
@@ -944,27 +707,19 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x12oidc_client_secret\x18\b \x01(\tR\x10oidcClientSecret\x12;\n" +
 	"\x1aoidc_allowed_email_domains\x18\t \x03(\tR\x17oidcAllowedEmailDomains\x127\n" +
 	"\x18clear_oidc_client_secret\x18\n" +
-	" \x01(\bR\x15clearOidcClientSecret\x12S\n" +
-	"\x16server_exposure_method\x18\v \x01(\x0e2\x1d.arca.v1.ServerExposureMethodR\x14serverExposureMethod\x12#\n" +
-	"\rserver_domain\x18\f \x01(\tR\fserverDomain\x120\n" +
-	"\x14cloudflare_api_token\x18\r \x01(\tR\x12cloudflareApiToken\x12,\n" +
-	"\x12cloudflare_zone_id\x18\x0e \x01(\tR\x10cloudflareZoneId\x126\n" +
+	" \x01(\bR\x15clearOidcClientSecret\x12#\n" +
+	"\rserver_domain\x18\f \x01(\tR\fserverDomain\x126\n" +
 	"\x17password_login_disabled\x18\x0f \x01(\bR\x15passwordLoginDisabled\x12\x1f\n" +
 	"\viap_enabled\x18\x10 \x01(\bR\n" +
 	"iapEnabled\x12!\n" +
 	"\fiap_audience\x18\x11 \x01(\tR\viapAudience\x122\n" +
 	"\x15iap_auto_provisioning\x18\x12 \x01(\bR\x13iapAutoProvisioning\x124\n" +
-	"\x16oidc_auto_provisioning\x18\x13 \x01(\bR\x14oidcAutoProvisioningJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03\"L\n" +
+	"\x16oidc_auto_provisioning\x18\x13 \x01(\bR\x14oidcAutoProvisioningJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\v\x10\fJ\x04\b\r\x10\x0eJ\x04\b\x0e\x10\x0f\"L\n" +
 	"\x1cUpdateDomainSettingsResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status*\x8f\x01\n" +
-	"\x14ServerExposureMethod\x12&\n" +
-	"\"SERVER_EXPOSURE_METHOD_UNSPECIFIED\x10\x00\x12,\n" +
-	"(SERVER_EXPOSURE_METHOD_CLOUDFLARE_TUNNEL\x10\x01\x12!\n" +
-	"\x1dSERVER_EXPOSURE_METHOD_MANUAL\x10\x022\xe6\x03\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\xf8\x02\n" +
 	"\fSetupService\x12Q\n" +
 	"\x0eGetSetupStatus\x12\x1e.arca.v1.GetSetupStatusRequest\x1a\x1f.arca.v1.GetSetupStatusResponse\x12`\n" +
-	"\x13VerifySetupPassword\x12#.arca.v1.VerifySetupPasswordRequest\x1a$.arca.v1.VerifySetupPasswordResponse\x12l\n" +
-	"\x17ValidateCloudflareToken\x12'.arca.v1.ValidateCloudflareTokenRequest\x1a(.arca.v1.ValidateCloudflareTokenResponse\x12N\n" +
+	"\x13VerifySetupPassword\x12#.arca.v1.VerifySetupPasswordRequest\x1a$.arca.v1.VerifySetupPasswordResponse\x12N\n" +
 	"\rCompleteSetup\x12\x1d.arca.v1.CompleteSetupRequest\x1a\x1e.arca.v1.CompleteSetupResponse\x12c\n" +
 	"\x14UpdateDomainSettings\x12$.arca.v1.UpdateDomainSettingsRequest\x1a%.arca.v1.UpdateDomainSettingsResponseB\x8c\x01\n" +
 	"\vcom.arca.v1B\n" +
@@ -982,44 +737,35 @@ func file_arca_v1_setup_proto_rawDescGZIP() []byte {
 	return file_arca_v1_setup_proto_rawDescData
 }
 
-var file_arca_v1_setup_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_arca_v1_setup_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_arca_v1_setup_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_arca_v1_setup_proto_goTypes = []any{
-	(ServerExposureMethod)(0),               // 0: arca.v1.ServerExposureMethod
-	(*SetupStatus)(nil),                     // 1: arca.v1.SetupStatus
-	(*GetSetupStatusRequest)(nil),           // 2: arca.v1.GetSetupStatusRequest
-	(*GetSetupStatusResponse)(nil),          // 3: arca.v1.GetSetupStatusResponse
-	(*VerifySetupPasswordRequest)(nil),      // 4: arca.v1.VerifySetupPasswordRequest
-	(*VerifySetupPasswordResponse)(nil),     // 5: arca.v1.VerifySetupPasswordResponse
-	(*ValidateCloudflareTokenRequest)(nil),  // 6: arca.v1.ValidateCloudflareTokenRequest
-	(*ValidateCloudflareTokenResponse)(nil), // 7: arca.v1.ValidateCloudflareTokenResponse
-	(*CompleteSetupRequest)(nil),            // 8: arca.v1.CompleteSetupRequest
-	(*CompleteSetupResponse)(nil),           // 9: arca.v1.CompleteSetupResponse
-	(*UpdateDomainSettingsRequest)(nil),     // 10: arca.v1.UpdateDomainSettingsRequest
-	(*UpdateDomainSettingsResponse)(nil),    // 11: arca.v1.UpdateDomainSettingsResponse
+	(*SetupStatus)(nil),                  // 0: arca.v1.SetupStatus
+	(*GetSetupStatusRequest)(nil),        // 1: arca.v1.GetSetupStatusRequest
+	(*GetSetupStatusResponse)(nil),       // 2: arca.v1.GetSetupStatusResponse
+	(*VerifySetupPasswordRequest)(nil),   // 3: arca.v1.VerifySetupPasswordRequest
+	(*VerifySetupPasswordResponse)(nil),  // 4: arca.v1.VerifySetupPasswordResponse
+	(*CompleteSetupRequest)(nil),         // 5: arca.v1.CompleteSetupRequest
+	(*CompleteSetupResponse)(nil),        // 6: arca.v1.CompleteSetupResponse
+	(*UpdateDomainSettingsRequest)(nil),  // 7: arca.v1.UpdateDomainSettingsRequest
+	(*UpdateDomainSettingsResponse)(nil), // 8: arca.v1.UpdateDomainSettingsResponse
 }
 var file_arca_v1_setup_proto_depIdxs = []int32{
-	0,  // 0: arca.v1.SetupStatus.server_exposure_method:type_name -> arca.v1.ServerExposureMethod
-	1,  // 1: arca.v1.GetSetupStatusResponse.status:type_name -> arca.v1.SetupStatus
-	0,  // 2: arca.v1.CompleteSetupRequest.server_exposure_method:type_name -> arca.v1.ServerExposureMethod
-	1,  // 3: arca.v1.CompleteSetupResponse.status:type_name -> arca.v1.SetupStatus
-	0,  // 4: arca.v1.UpdateDomainSettingsRequest.server_exposure_method:type_name -> arca.v1.ServerExposureMethod
-	1,  // 5: arca.v1.UpdateDomainSettingsResponse.status:type_name -> arca.v1.SetupStatus
-	2,  // 6: arca.v1.SetupService.GetSetupStatus:input_type -> arca.v1.GetSetupStatusRequest
-	4,  // 7: arca.v1.SetupService.VerifySetupPassword:input_type -> arca.v1.VerifySetupPasswordRequest
-	6,  // 8: arca.v1.SetupService.ValidateCloudflareToken:input_type -> arca.v1.ValidateCloudflareTokenRequest
-	8,  // 9: arca.v1.SetupService.CompleteSetup:input_type -> arca.v1.CompleteSetupRequest
-	10, // 10: arca.v1.SetupService.UpdateDomainSettings:input_type -> arca.v1.UpdateDomainSettingsRequest
-	3,  // 11: arca.v1.SetupService.GetSetupStatus:output_type -> arca.v1.GetSetupStatusResponse
-	5,  // 12: arca.v1.SetupService.VerifySetupPassword:output_type -> arca.v1.VerifySetupPasswordResponse
-	7,  // 13: arca.v1.SetupService.ValidateCloudflareToken:output_type -> arca.v1.ValidateCloudflareTokenResponse
-	9,  // 14: arca.v1.SetupService.CompleteSetup:output_type -> arca.v1.CompleteSetupResponse
-	11, // 15: arca.v1.SetupService.UpdateDomainSettings:output_type -> arca.v1.UpdateDomainSettingsResponse
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	0, // 0: arca.v1.GetSetupStatusResponse.status:type_name -> arca.v1.SetupStatus
+	0, // 1: arca.v1.CompleteSetupResponse.status:type_name -> arca.v1.SetupStatus
+	0, // 2: arca.v1.UpdateDomainSettingsResponse.status:type_name -> arca.v1.SetupStatus
+	1, // 3: arca.v1.SetupService.GetSetupStatus:input_type -> arca.v1.GetSetupStatusRequest
+	3, // 4: arca.v1.SetupService.VerifySetupPassword:input_type -> arca.v1.VerifySetupPasswordRequest
+	5, // 5: arca.v1.SetupService.CompleteSetup:input_type -> arca.v1.CompleteSetupRequest
+	7, // 6: arca.v1.SetupService.UpdateDomainSettings:input_type -> arca.v1.UpdateDomainSettingsRequest
+	2, // 7: arca.v1.SetupService.GetSetupStatus:output_type -> arca.v1.GetSetupStatusResponse
+	4, // 8: arca.v1.SetupService.VerifySetupPassword:output_type -> arca.v1.VerifySetupPasswordResponse
+	6, // 9: arca.v1.SetupService.CompleteSetup:output_type -> arca.v1.CompleteSetupResponse
+	8, // 10: arca.v1.SetupService.UpdateDomainSettings:output_type -> arca.v1.UpdateDomainSettingsResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_setup_proto_init() }
@@ -1032,14 +778,13 @@ func file_arca_v1_setup_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_setup_proto_rawDesc), len(file_arca_v1_setup_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   11,
+			NumEnums:      0,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_arca_v1_setup_proto_goTypes,
 		DependencyIndexes: file_arca_v1_setup_proto_depIdxs,
-		EnumInfos:         file_arca_v1_setup_proto_enumTypes,
 		MessageInfos:      file_arca_v1_setup_proto_msgTypes,
 	}.Build()
 	File_arca_v1_setup_proto = out.File
