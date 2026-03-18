@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"log"
 	"log/slog"
 	"math/big"
@@ -97,12 +98,27 @@ func main() {
 
 	var encryptor *crypto.Encryptor
 	if encKey := os.Getenv("ARCA_ENCRYPTION_KEY"); encKey != "" {
+		var oldKeys []string
+		if oldKeysEnv := os.Getenv("ARCA_ENCRYPTION_KEY_OLD"); oldKeysEnv != "" {
+			for _, k := range strings.Split(oldKeysEnv, ",") {
+				k = strings.TrimSpace(k)
+				if k != "" {
+					oldKeys = append(oldKeys, k)
+				}
+			}
+		}
 		var encErr error
-		encryptor, encErr = crypto.NewEncryptor(encKey)
+		encryptor, encErr = crypto.NewEncryptor(encKey, oldKeys...)
 		if encErr != nil {
-			log.Fatalf("invalid ARCA_ENCRYPTION_KEY: %v", encErr)
+			log.Fatalf("invalid encryption key: %v", encErr)
 		}
 		log.Printf("API key encryption enabled")
+
+		if len(oldKeys) > 0 {
+			if err := reEncryptUserLLMModelKeys(ctx, store, encryptor); err != nil {
+				log.Fatalf("re-encryption failed: %v", err)
+			}
+		}
 	}
 
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
@@ -172,6 +188,31 @@ func generateSetupPassword(length int) (string, error) {
 		b[i] = charset[n.Int64()]
 	}
 	return string(b), nil
+}
+
+func reEncryptUserLLMModelKeys(ctx context.Context, store *db.Store, encryptor *crypto.Encryptor) error {
+	records, err := store.ListAllUserLLMModelsEncryptedKeys(ctx)
+	if err != nil {
+		return fmt.Errorf("list encrypted keys: %w", err)
+	}
+
+	var reEncrypted int
+	for _, rec := range records {
+		newCiphertext, changed, err := encryptor.ReEncrypt(rec.APIKeyEncrypted)
+		if err != nil {
+			return fmt.Errorf("re-encrypt record %s: %w", rec.ID, err)
+		}
+		if !changed {
+			continue
+		}
+		if _, err := store.UpdateUserLLMModelEncryptedKey(ctx, rec.ID, newCiphertext); err != nil {
+			return fmt.Errorf("update record %s: %w", rec.ID, err)
+		}
+		reEncrypted++
+	}
+
+	log.Printf("re-encrypted %d of %d user LLM model API keys", reEncrypted, len(records))
+	return nil
 }
 
 func consoleOriginURL(listenAddr string) string {

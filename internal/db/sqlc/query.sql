@@ -913,3 +913,14 @@ SELECT id, user_id, config_name, endpoint_type, custom_endpoint, model_name, api
 FROM user_llm_models
 WHERE user_id = sqlc.arg(user_id)
 ORDER BY created_at ASC;
+
+-- name: ListAllUserLLMModelsEncryptedKeys :many
+SELECT id, api_key_encrypted
+FROM user_llm_models
+WHERE api_key_encrypted != ''
+ORDER BY id ASC;
+
+-- name: UpdateUserLLMModelEncryptedKey :execrows
+UPDATE user_llm_models
+SET api_key_encrypted = sqlc.arg(api_key_encrypted)
+WHERE id = sqlc.arg(id);
