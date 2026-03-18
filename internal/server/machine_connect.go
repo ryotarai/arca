@@ -278,28 +278,6 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
 	}
 
-	runtimeID, err := s.resolveStartRuntimeID(ctx, machine, req.Msg.GetRuntimeId())
-	if err != nil {
-		return nil, err
-	}
-
-	if strings.TrimSpace(runtimeID) != strings.TrimSpace(machine.RuntimeID) {
-		// Re-snapshot runtime config when switching runtimes
-		rt, rtErr := s.store.GetRuntimeByID(ctx, runtimeID)
-		if rtErr != nil {
-			log.Printf("get runtime for snapshot failed: %v", rtErr)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
-		}
-		runtimeUpdated, updateErr := s.store.UpdateMachineRuntimeByIDForOwner(ctx, userID, machineID, runtimeID, currentSetupVersion(), rt.Type, rt.ConfigJSON)
-		if updateErr != nil {
-			log.Printf("set machine runtime id failed: %v", updateErr)
-			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to select runtime"))
-		}
-		if !runtimeUpdated {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
-		}
-	}
-
 	updated, err := s.store.RequestStartMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
 		log.Printf("start machine failed: %v", err)
@@ -327,22 +305,6 @@ func (s *machineConnectService) resolveCreateRuntimeID(ctx context.Context, requ
 	runtimeID := strings.TrimSpace(requestedRuntimeID)
 	if runtimeID == "" {
 		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("runtime id is required"))
-	}
-
-	if err := s.validateRuntimeExists(ctx, runtimeID); err != nil {
-		return "", err
-	}
-
-	return runtimeID, nil
-}
-
-func (s *machineConnectService) resolveStartRuntimeID(ctx context.Context, machine db.Machine, requestedRuntimeID string) (string, error) {
-	runtimeID := strings.TrimSpace(requestedRuntimeID)
-	if runtimeID == "" {
-		runtimeID = strings.TrimSpace(machine.RuntimeID)
-	}
-	if runtimeID == "" {
-		return "", connect.NewError(connect.CodeFailedPrecondition, errors.New("machine runtime is not configured"))
 	}
 
 	if err := s.validateRuntimeExists(ctx, runtimeID); err != nil {

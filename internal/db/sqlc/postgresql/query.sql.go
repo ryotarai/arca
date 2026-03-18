@@ -3478,46 +3478,6 @@ func (q *Queries) UpdateMachineOptionsByID(ctx context.Context, arg UpdateMachin
 	return result.RowsAffected()
 }
 
-const updateMachineRuntimeByIDForOwner = `-- name: UpdateMachineRuntimeByIDForOwner :execrows
-UPDATE machines
-SET runtime_id = $1,
-    runtime_type = $2,
-    runtime_config_json = $3,
-    setup_version = $4
-WHERE id = $5
-  AND EXISTS (
-    SELECT 1
-    FROM user_machines um
-    WHERE um.machine_id = machines.id
-      AND um.user_id = $6
-      AND um.role = 'admin'
-  )
-`
-
-type UpdateMachineRuntimeByIDForOwnerParams struct {
-	RuntimeID         string
-	RuntimeType       string
-	RuntimeConfigJson string
-	SetupVersion      string
-	MachineID         string
-	UserID            string
-}
-
-func (q *Queries) UpdateMachineRuntimeByIDForOwner(ctx context.Context, arg UpdateMachineRuntimeByIDForOwnerParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateMachineRuntimeByIDForOwner,
-		arg.RuntimeID,
-		arg.RuntimeType,
-		arg.RuntimeConfigJson,
-		arg.SetupVersion,
-		arg.MachineID,
-		arg.UserID,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const updateMachineRuntimeStateByMachineID = `-- name: UpdateMachineRuntimeStateByMachineID :exec
 UPDATE machine_states
 SET status = $1,

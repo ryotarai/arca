@@ -71,7 +71,7 @@ message UpdateMachineResponse {
 
 message StartMachineRequest {
   string machine_id = 1;
-  string runtime_id = 2;
+  reserved 2; // was runtime_id
 }
 
 message StartMachineResponse {

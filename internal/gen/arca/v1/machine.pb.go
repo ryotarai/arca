@@ -572,7 +572,6 @@ func (x *UpdateMachineResponse) GetMachine() *Machine {
 type StartMachineRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	RuntimeId     string                 `protobuf:"bytes,2,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -610,13 +609,6 @@ func (*StartMachineRequest) Descriptor() ([]byte, []int) {
 func (x *StartMachineRequest) GetMachineId() string {
 	if x != nil {
 		return x.MachineId
-	}
-	return ""
-}
-
-func (x *StartMachineRequest) GetRuntimeId() string {
-	if x != nil {
-		return x.RuntimeId
 	}
 	return ""
 }
@@ -1077,12 +1069,10 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"C\n" +
 	"\x15UpdateMachineResponse\x12*\n" +
-	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"S\n" +
+	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\":\n" +
 	"\x13StartMachineRequest\x12\x1d\n" +
 	"\n" +
-	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x1d\n" +
-	"\n" +
-	"runtime_id\x18\x02 \x01(\tR\truntimeId\"B\n" +
+	"machine_id\x18\x01 \x01(\tR\tmachineIdJ\x04\b\x02\x10\x03\"B\n" +
 	"\x14StartMachineResponse\x12*\n" +
 	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"3\n" +
 	"\x12StopMachineRequest\x12\x1d\n" +

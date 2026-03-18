@@ -432,39 +432,6 @@ func (s *Store) UpdateMachineNameByIDForOwner(ctx context.Context, userID, machi
 	}
 }
 
-func (s *Store) UpdateMachineRuntimeByIDForOwner(ctx context.Context, userID, machineID, runtimeID, setupVersion, runtimeType, runtimeConfigJSON string) (bool, error) {
-	runtimeID = NormalizeMachineRuntime(runtimeID)
-	setupVersion = strings.TrimSpace(setupVersion)
-	runtimeType = strings.TrimSpace(runtimeType)
-	if runtimeConfigJSON == "" {
-		runtimeConfigJSON = "{}"
-	}
-	switch s.driver {
-	case DriverSQLite:
-		updated, err := s.sqliteQueries.UpdateMachineRuntimeByIDForOwner(ctx, sqlitesqlc.UpdateMachineRuntimeByIDForOwnerParams{
-			RuntimeID:        runtimeID,
-			RuntimeType:      runtimeType,
-			RuntimeConfigJson: runtimeConfigJSON,
-			SetupVersion:     setupVersion,
-			MachineID:        machineID,
-			UserID:           userID,
-		})
-		return updated > 0, err
-	case DriverPostgres:
-		updated, err := s.pgQueries.UpdateMachineRuntimeByIDForOwner(ctx, postgresqlsqlc.UpdateMachineRuntimeByIDForOwnerParams{
-			RuntimeID:        runtimeID,
-			RuntimeType:      runtimeType,
-			RuntimeConfigJson: runtimeConfigJSON,
-			SetupVersion:     setupVersion,
-			MachineID:        machineID,
-			UserID:           userID,
-		})
-		return updated > 0, err
-	default:
-		return false, unsupportedDriverError(s.driver)
-	}
-}
-
 func (s *Store) UpdateMachineOptionsByID(ctx context.Context, machineID, optionsJSON string) (bool, error) {
 	switch s.driver {
 	case DriverSQLite:

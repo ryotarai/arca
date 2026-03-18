@@ -384,8 +384,8 @@ export async function updateMachineOptions(id: string, options: Record<string, s
   return updateMachine(id, '', options)
 }
 
-export async function startMachine(id: string, runtimeID?: string): Promise<Machine> {
-  const response = await machineClient.startMachine(create(StartMachineRequestSchema, { machineId: id, runtimeId: runtimeID ?? '' }))
+export async function startMachine(id: string): Promise<Machine> {
+  const response = await machineClient.startMachine(create(StartMachineRequestSchema, { machineId: id }))
   if (response.machine == null) {
     throw new Error('request failed')
   }

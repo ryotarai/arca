@@ -252,21 +252,6 @@ WHERE id = sqlc.arg(machine_id)
       AND um.role = 'admin'
   );
 
--- name: UpdateMachineRuntimeByIDForOwner :execrows
-UPDATE machines
-SET runtime_id = sqlc.arg(runtime_id),
-    runtime_type = sqlc.arg(runtime_type),
-    runtime_config_json = sqlc.arg(runtime_config_json),
-    setup_version = sqlc.arg(setup_version)
-WHERE id = sqlc.arg(machine_id)
-  AND EXISTS (
-    SELECT 1
-    FROM user_machines um
-    WHERE um.machine_id = machines.id
-      AND um.user_id = sqlc.arg(user_id)
-      AND um.role = 'admin'
-  );
-
 -- name: DeleteUserMachineByMachineIDForOwner :execrows
 DELETE FROM user_machines
 WHERE machine_id = sqlc.arg(machine_id)
