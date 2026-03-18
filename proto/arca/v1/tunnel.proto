@@ -10,6 +10,7 @@ service TunnelService {
   rpc ListMachineExposures(ListMachineExposuresRequest) returns (ListMachineExposuresResponse);
   rpc GetMachineExposureByHostname(GetMachineExposureByHostnameRequest) returns (GetMachineExposureByHostnameResponse);
   rpc ReportMachineReadiness(ReportMachineReadinessRequest) returns (ReportMachineReadinessResponse);
+  rpc GetMachineLLMModels(GetMachineLLMModelsRequest) returns (GetMachineLLMModelsResponse);
 }
 
 enum EndpointVisibility {
@@ -88,4 +89,19 @@ message ReportMachineReadinessRequest {
 
 message ReportMachineReadinessResponse {
   bool accepted = 1;
+}
+
+message GetMachineLLMModelsRequest {}
+
+message GetMachineLLMModelsResponse {
+  repeated MachineLLMModel models = 1;
+}
+
+message MachineLLMModel {
+  string config_name = 1;
+  string endpoint_type = 2;
+  string custom_endpoint = 3;
+  string model_name = 4;
+  string api_key = 5;
+  int32 max_context_tokens = 6;
 }

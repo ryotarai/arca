@@ -29,6 +29,10 @@ func (s *stubControlPlaneClient) ReportMachineReadiness(_ context.Context, _ boo
 	return true, nil
 }
 
+func (s *stubControlPlaneClient) GetMachineLLMModels(_ context.Context) ([]MachineLLMModel, error) {
+	return nil, nil
+}
+
 func (s *stubControlPlaneClient) AuthorizeURL(_ string) string {
 	return ""
 }

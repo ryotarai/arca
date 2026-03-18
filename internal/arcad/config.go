@@ -20,6 +20,7 @@ type Config struct {
 	StartupSentinel     string
 	ReadyEndpoints      string
 	ReadyReportInterval time.Duration
+	ShelleyPort         string
 }
 
 func ConfigFromEnv() (Config, error) {
@@ -60,6 +61,10 @@ func ConfigFromEnv() (Config, error) {
 	}
 	if cfg.StartupSentinel == "" {
 		cfg.StartupSentinel = "/var/lib/arca/startup.done"
+	}
+	cfg.ShelleyPort = os.Getenv("SHELLEY_PORT")
+	if cfg.ShelleyPort == "" {
+		cfg.ShelleyPort = "21032"
 	}
 	if cfg.ControlPlaneURL == "" {
 		return Config{}, fmt.Errorf("ARCAD_CONTROL_PLANE_URL is required")
