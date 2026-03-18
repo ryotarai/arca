@@ -136,24 +136,11 @@ test.describe('runtime catalog', () => {
     await expect(submitButton).toBeDisabled()
   })
 
-  test('Cloudflare Tunnel exposure shows CF fields', async ({ page }) => {
+  test('Proxy via server exposure shows Connectivity', async ({ page }) => {
     await loginAsAdmin(page)
     await page.goto('/runtimes/new')
 
-    await page.locator('#runtime-exposure-method').selectOption('cloudflare_tunnel')
-    await expect(page.locator('#runtime-exposure-cf-api-token')).toBeVisible()
-    await expect(page.locator('#runtime-exposure-cf-account-id')).toBeVisible()
-    await expect(page.locator('#runtime-exposure-cf-zone-id')).toBeVisible()
-  })
-
-  test('Proxy via server exposure shows Connectivity, hides CF fields', async ({ page }) => {
-    await loginAsAdmin(page)
-    await page.goto('/runtimes/new')
-
-    await page.locator('#runtime-exposure-method').selectOption('proxy_via_server')
     await expect(page.locator('#runtime-exposure-connectivity')).toBeVisible()
-    await expect(page.locator('#runtime-exposure-cf-api-token')).toHaveCount(0)
-    await expect(page.locator('#runtime-exposure-cf-account-id')).toHaveCount(0)
   })
 
   test('create runtime with proxy via server exposure', async ({ page }) => {
@@ -164,7 +151,6 @@ test.describe('runtime catalog', () => {
     await page.locator('#runtime-name').fill(runtimeName)
     await page.locator('#runtime-type').selectOption('lxd')
     await page.locator('#runtime-lxd-endpoint').fill('https://localhost:8443')
-    await page.locator('#runtime-exposure-method').selectOption('proxy_via_server')
     await page.locator('#runtime-exposure-domain-prefix').fill('arca-')
     await page.locator('#runtime-exposure-base-domain').fill('localhost')
     await page.locator('#runtime-exposure-connectivity').selectOption('private_ip')

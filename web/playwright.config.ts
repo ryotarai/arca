@@ -1,12 +1,5 @@
 import { defineConfig } from '@playwright/test'
 
-const hasCloudflareConfig =
-  (process.env.CLOUDFLARE_TOKEN?.trim() ?? '') !== '' &&
-  (process.env.CLOUDFLARE_ZONE_ID?.trim() ?? '') !== ''
-
-const shouldSkipCloudflareValidation =
-  process.env.ARCA_SKIP_CLOUDFLARE_VALIDATION ?? (hasCloudflareConfig ? '0' : '1')
-
 export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   globalTeardown: './e2e/global-teardown.ts',
@@ -40,7 +33,6 @@ export default defineConfig({
       SERVER_ADDR: '0.0.0.0:18080',
       DB_DSN: 'file:/tmp/arca-e2e.db?_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)',
       ARCA_SKIP_SETUP: '1',
-      ARCA_SKIP_CLOUDFLARE_VALIDATION: shouldSkipCloudflareValidation,
       ARCA_ENCRYPTION_KEY: process.env.ARCA_ENCRYPTION_KEY ?? '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     },
     url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080/',

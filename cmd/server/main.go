@@ -7,9 +7,7 @@ import (
 	"log"
 	"log/slog"
 	"math/big"
-	"net"
 	"net/http"
-	"net/netip"
 	"os"
 	"os/signal"
 	"strconv"
@@ -18,7 +16,6 @@ import (
 	"time"
 
 	"github.com/ryotarai/arca/internal/auth"
-	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/machine"
@@ -68,17 +65,6 @@ func main() {
 		authService.SetStaticAPIToken(apiToken)
 		log.Printf("static API token enabled")
 	}
-	cfClient := cloudflare.NewClient(http.DefaultClient)
-	consoleTunnel := server.NewConsoleTunnelManager(ctx, cfClient, consoleOriginURL(addr))
-	if setupState, setupErr := store.GetSetupState(ctx); setupErr != nil {
-		log.Printf("load setup state for console tunnel failed: %v", setupErr)
-	} else if setupState.Completed && setupState.ServerExposureMethod == db.ServerExposureMethodCloudflareTunnel {
-		if hostname, ensureErr := consoleTunnel.EnsureExposed(ctx, setupState); ensureErr != nil {
-			log.Printf("ensure console tunnel failed: %v", ensureErr)
-		} else {
-			log.Printf("console endpoint exposed at https://%s", hostname)
-		}
-	}
 	workerConcurrency := 4
 	if v := os.Getenv("ARCA_WORKER_CONCURRENCY"); v != "" {
 		if n, parseErr := strconv.Atoi(v); parseErr == nil && n > 0 {
@@ -88,7 +74,7 @@ func main() {
 	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{})
 	ipCache := machine.NewMachineIPCache(runtime, store, 5*time.Minute)
 	slackService := notification.NewSlackService(store)
-	machineWorker := machine.NewWorker(store, runtime, cfClient, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency)
+	machineWorker := machine.NewWorker(store, runtime, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency)
 	machineWorker.SetNotifier(slackService)
 	workerDone := make(chan struct{})
 	go func() {
@@ -124,7 +110,7 @@ func main() {
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor, LLMTokenExecutor: server.NewLLMTokenExecutor()}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor, LLMTokenExecutor: server.NewLLMTokenExecutor()}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -215,28 +201,3 @@ func reEncryptUserLLMModelKeys(ctx context.Context, store *db.Store, encryptor *
 	return nil
 }
 
-func consoleOriginURL(listenAddr string) string {
-	addr := strings.TrimSpace(listenAddr)
-	if addr == "" {
-		return "http://127.0.0.1:8080"
-	}
-	hostPort := addr
-	if !strings.Contains(hostPort, ":") {
-		hostPort = hostPort + ":8080"
-	}
-	host, port, err := net.SplitHostPort(hostPort)
-	if err != nil {
-		return "http://127.0.0.1:8080"
-	}
-	host = strings.TrimSpace(host)
-	port = strings.TrimSpace(port)
-	if port == "" {
-		port = "8080"
-	}
-	if host == "" || host == "0.0.0.0" || host == "::" {
-		host = "127.0.0.1"
-	} else if ip, parseErr := netip.ParseAddr(host); parseErr == nil && ip.IsUnspecified() {
-		host = "127.0.0.1"
-	}
-	return "http://" + net.JoinHostPort(host, port)
-}

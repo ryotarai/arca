@@ -16,7 +16,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ryotarai/arca/internal/auth"
-	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
@@ -31,7 +30,7 @@ var machineNamePattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 
 var reservedMachineNames = []string{"admin", "console", "dash", "api", "system"}
 
-func newMachineConnectService(authenticator Authenticator, store MachineStore, _ *cloudflare.Client, dbStore *db.Store) *machineConnectService {
+func newMachineConnectService(authenticator Authenticator, store MachineStore, dbStore *db.Store) *machineConnectService {
 	return &machineConnectService{authenticator: authenticator, store: store, dbStore: dbStore}
 }
 

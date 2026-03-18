@@ -32,12 +32,9 @@ export type MachineEvent = import('@/gen/arca/v1/machine_pb').MachineEvent
 
 export type MachineExposure = MachineExposureMessage
 
-export type ServerExposureMethod = 'cloudflare_tunnel' | 'manual'
-
 export type SetupStatus = {
   isConfigured: boolean
   hasAdmin: boolean
-  cloudflareZoneID: string
   baseDomain: string
   domainPrefix: string
   internetPublicExposureDisabled: boolean
@@ -51,19 +48,15 @@ export type SetupStatus = {
   iapAudience: string
   iapAutoProvisioning: boolean
   oidcAutoProvisioning: boolean
-  serverExposureMethod: ServerExposureMethod
   serverDomain: string
 }
 
-export type MachineExposureMethodType = 'cloudflare_tunnel' | 'proxy_via_server'
+export type MachineExposureMethodType = 'proxy_via_server'
 
 export type MachineExposureConfig = {
   method: MachineExposureMethodType
   domainPrefix: string
   baseDomain: string
-  cloudflareApiToken: string
-  cloudflareAccountId: string
-  cloudflareZoneId: string
   connectivity: 'private_ip' | 'public_ip' | ''
 }
 

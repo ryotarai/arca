@@ -19,8 +19,8 @@ function formatUnix(unix: number): string {
   return new Date(unix * 1000).toLocaleString()
 }
 
-function exposureLabel(method: string): string {
-  return method === 'proxy_via_server' ? 'proxy via server' : 'cloudflare tunnel'
+function exposureLabel(_method: string): string {
+  return 'proxy via server'
 }
 
 export function RuntimesListPage({ user }: RuntimesListPageProps) {

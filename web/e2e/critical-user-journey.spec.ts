@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './helpers/auth'
 import {
-  cloudflareIntegrationConfig,
-  skipCloudflareIntegrationIfMissing,
-  validateCloudflareToken,
-} from './helpers/cloudflare'
-import {
   bestEffortDeleteMachine,
   waitForMachineByName,
   waitForMachineStatus,
@@ -14,16 +9,7 @@ import {
 import { ensureLxdRuntime } from './helpers/runtime'
 
 test.describe('critical user journey', () => {
-  skipCloudflareIntegrationIfMissing()
-
   test('login -> create machine -> running readiness -> ttyd is reachable', async ({ page }) => {
-    const configResult = cloudflareIntegrationConfig()
-    if (configResult.config == null) {
-      test.fail(true, 'Cloudflare config should exist when this test is not skipped')
-      return
-    }
-
-    await validateCloudflareToken(page, configResult.config)
     await loginAsAdmin(page)
     await ensureLxdRuntime(page)
 

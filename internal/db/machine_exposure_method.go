@@ -5,35 +5,24 @@ import (
 	"strings"
 )
 
+
 const (
-	MachineExposureMethodCloudflareTunnel = "cloudflare_tunnel"
-	MachineExposureMethodProxyViaServer   = "proxy_via_server"
+	MachineExposureMethodProxyViaServer = "proxy_via_server"
 )
 
 // RuntimeExposureConfig represents the exposure configuration stored
 // inside a runtime catalog entry's config_json.
 type RuntimeExposureConfig struct {
-	Method              string `json:"method,omitempty"`
-	DomainPrefix        string `json:"domainPrefix,omitempty"`
-	BaseDomain          string `json:"baseDomain,omitempty"`
-	CloudflareAPIToken  string `json:"cloudflareApiToken,omitempty"`
-	CloudflareAccountID string `json:"cloudflareAccountId,omitempty"`
-	CloudflareZoneID    string `json:"cloudflareZoneId,omitempty"`
-	Connectivity        string `json:"connectivity,omitempty"`
+	Method       string `json:"method,omitempty"`
+	DomainPrefix string `json:"domainPrefix,omitempty"`
+	BaseDomain   string `json:"baseDomain,omitempty"`
+	Connectivity string `json:"connectivity,omitempty"`
 }
 
 // GetRuntimeExposureMethod extracts the machine exposure method from
-// a runtime config JSON string. Returns cloudflare_tunnel as default.
+// a runtime config JSON string. Always returns proxy_via_server.
 func GetRuntimeExposureMethod(configJSON string) string {
-	cfg := GetRuntimeExposureConfig(configJSON)
-	method := strings.ToLower(strings.TrimSpace(cfg.Method))
-	// Match both plain value ("proxy_via_server") and protobuf enum name
-	// ("MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER") since config_json is
-	// serialized via protojson which uses the enum name.
-	if method == MachineExposureMethodProxyViaServer || strings.HasSuffix(method, "_proxy_via_server") {
-		return MachineExposureMethodProxyViaServer
-	}
-	return MachineExposureMethodCloudflareTunnel
+	return MachineExposureMethodProxyViaServer
 }
 
 // GetRuntimeExposureConfig extracts the exposure config from a runtime

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { updateDomainSettings, getSlackConfig, updateSlackConfig, testSlackNotification } from '@/lib/api'
 import type { SlackConfigData } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { ServerExposureMethod, SetupStatus, User } from '@/lib/types'
+import type { SetupStatus, User } from '@/lib/types'
 
 type AdminSettingsPageProps = {
   user: User | null
@@ -17,11 +17,8 @@ type AdminSettingsPageProps = {
 }
 
 export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLogout }: AdminSettingsPageProps) {
-  const [serverExposureMethod, setServerExposureMethod] = useState<ServerExposureMethod>(setupStatus.serverExposureMethod)
   const [serverDomain, setServerDomain] = useState(setupStatus.serverDomain)
   const [disableInternetPublicExposure, setDisableInternetPublicExposure] = useState(setupStatus.internetPublicExposureDisabled)
-  const [cloudflareApiToken, setCloudflareApiToken] = useState('')
-  const [cloudflareZoneID, setCloudflareZoneID] = useState(setupStatus.cloudflareZoneID)
   const [passwordLoginDisabled, setPasswordLoginDisabled] = useState(setupStatus.passwordLoginDisabled)
   const [iapEnabled, setIapEnabled] = useState(setupStatus.iapEnabled)
   const [iapAudience, setIapAudience] = useState(setupStatus.iapAudience)
@@ -37,10 +34,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    setServerExposureMethod(setupStatus.serverExposureMethod)
     setServerDomain(setupStatus.serverDomain)
     setDisableInternetPublicExposure(setupStatus.internetPublicExposureDisabled)
-    setCloudflareZoneID(setupStatus.cloudflareZoneID)
     setIapEnabled(setupStatus.iapEnabled)
     setIapAudience(setupStatus.iapAudience)
     setIapAutoProvisioning(setupStatus.iapAutoProvisioning)
@@ -76,10 +71,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
           .map((value) => value.trim().toLowerCase())
           .filter((value) => value !== ''),
         false,
-        serverExposureMethod,
         serverDomain.trim(),
-        cloudflareApiToken,
-        cloudflareZoneID,
         passwordLoginDisabled,
         iapEnabled,
         iapAudience.trim(),
@@ -103,11 +95,9 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         oidcClientID: oidcClientID.trim(),
         oidcClientSecretConfigured: setupStatus.oidcClientSecretConfigured || oidcClientSecret !== '',
         oidcAllowedEmailDomains: normalizedOidcAllowedEmailDomains,
-        serverExposureMethod,
         serverDomain: serverDomain.trim(),
       })
       setOidcClientSecret('')
-      setCloudflareApiToken('')
       setSaved(true)
     } catch (e) {
       setError(messageFromError(e))
@@ -145,71 +135,18 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
           <CardContent className="p-6 pt-3">
             <form className="space-y-4" onSubmit={submit}>
               <div className="space-y-2">
-                <Label htmlFor="settings-server-exposure-method">
-                  Server exposure method
+                <Label htmlFor="settings-server-domain">
+                  Server domain
                 </Label>
-                <select
-                  id="settings-server-exposure-method"
-                  value={serverExposureMethod}
-                  onChange={(event) => setServerExposureMethod(event.target.value as ServerExposureMethod)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="cloudflare_tunnel">Cloudflare Tunnel</option>
-                  <option value="manual">Manual (own domain / reverse proxy)</option>
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  {serverExposureMethod === 'cloudflare_tunnel'
-                    ? 'The console is exposed via a Cloudflare Tunnel.'
-                    : 'You manage DNS and TLS yourself.'}
-                </p>
+                <Input
+                  id="settings-server-domain"
+                  value={serverDomain}
+                  onChange={(event) => setServerDomain(event.target.value)}
+                  className="h-10"
+                  placeholder="arca.example.com"
+                />
+                <p className="text-xs text-muted-foreground">The domain where machines reach this server.</p>
               </div>
-
-              {serverExposureMethod === 'manual' && (
-                <div className="space-y-2">
-                  <Label htmlFor="settings-server-domain">
-                    Server domain
-                  </Label>
-                  <Input
-                    id="settings-server-domain"
-                    value={serverDomain}
-                    onChange={(event) => setServerDomain(event.target.value)}
-                    className="h-10"
-                    placeholder="arca.example.com"
-                  />
-                  <p className="text-xs text-muted-foreground">The domain where machines reach this server.</p>
-                </div>
-              )}
-
-              {serverExposureMethod === 'cloudflare_tunnel' && (
-                <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
-                  <p className="text-sm font-medium text-foreground">Cloudflare credentials (server)</p>
-                  <div className="space-y-2">
-                    <Label htmlFor="settings-cloudflare-zone-id">
-                      Cloudflare zone ID
-                    </Label>
-                    <Input
-                      id="settings-cloudflare-zone-id"
-                      value={cloudflareZoneID}
-                      onChange={(event) => setCloudflareZoneID(event.target.value)}
-                      className="h-10"
-                      placeholder="zone id"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="settings-cloudflare-api-token">
-                      Cloudflare API token
-                    </Label>
-                    <Input
-                      id="settings-cloudflare-api-token"
-                      type="password"
-                      value={cloudflareApiToken}
-                      onChange={(event) => setCloudflareApiToken(event.target.value)}
-                      className="h-10"
-                      placeholder="Leave empty to keep current token"
-                    />
-                  </div>
-                </div>
-              )}
 
               <div className="space-y-2">
                 <Label htmlFor="settings-disable-internet-public">

@@ -30,7 +30,6 @@ export function App() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus>({
     isConfigured: true,
     hasAdmin: true,
-    cloudflareZoneID: '',
     baseDomain: '',
     domainPrefix: '',
     internetPublicExposureDisabled: false,
@@ -44,7 +43,6 @@ export function App() {
     iapAudience: '',
     iapAutoProvisioning: false,
     oidcAutoProvisioning: false,
-    serverExposureMethod: 'cloudflare_tunnel',
     serverDomain: '',
   })
 
@@ -102,13 +100,11 @@ export function App() {
           element={
             <SetupPage
               hasAdmin={setupStatus.hasAdmin}
-              initialCloudflareZoneID={setupStatus.cloudflareZoneID}
               onAdminReady={setUser}
-              onSetupComplete={(zoneID) =>
+              onSetupComplete={() =>
                 setSetupStatus({
                   isConfigured: true,
                   hasAdmin: true,
-                  cloudflareZoneID: zoneID,
                   baseDomain: '',
                   domainPrefix: '',
                   internetPublicExposureDisabled: false,
@@ -122,7 +118,6 @@ export function App() {
                   iapAudience: '',
                   iapAutoProvisioning: false,
                   oidcAutoProvisioning: false,
-                  serverExposureMethod: 'cloudflare_tunnel',
                   serverDomain: '',
                 })
               }

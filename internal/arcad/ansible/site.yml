@@ -21,7 +21,6 @@
     - packages
     - sudoers
     - workspace
-    - cloudflared
     - shelley
     - { role: env_permissions, tags: ['runtime_only'] }
     - { role: ssh_keys, tags: ['runtime_only'] }

@@ -162,16 +162,6 @@ type MachineToken struct {
 	RevokedAt sql.NullInt64
 }
 
-type MachineTunnel struct {
-	MachineID   string
-	AccountID   string
-	TunnelID    string
-	TunnelName  string
-	TunnelToken string
-	CreatedAt   int64
-	UpdatedAt   int64
-}
-
 type Runtime struct {
 	ID         string
 	Name       string
@@ -210,12 +200,11 @@ type Session struct {
 }
 
 type SetupState struct {
-	ID                 int32
-	Completed          bool
-	BaseDomain         string
-	DomainPrefix       string
-	CloudflareApiToken string
-	UpdatedAt          int64
+	ID           int32
+	Completed    bool
+	BaseDomain   string
+	DomainPrefix string
+	UpdatedAt    int64
 }
 
 type User struct {

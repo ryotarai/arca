@@ -277,13 +277,10 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 	var exposureConfig *arcav1.MachineExposureConfig
 	if exp := config.GetExposure(); exp != nil {
 		exposureConfig = &arcav1.MachineExposureConfig{
-			Method:              exp.GetMethod(),
-			DomainPrefix:        strings.ToLower(strings.TrimSpace(exp.GetDomainPrefix())),
-			BaseDomain:          strings.ToLower(strings.TrimSpace(exp.GetBaseDomain())),
-			CloudflareApiToken:  strings.TrimSpace(exp.GetCloudflareApiToken()),
-			CloudflareAccountId: strings.TrimSpace(exp.GetCloudflareAccountId()),
-			CloudflareZoneId:    strings.TrimSpace(exp.GetCloudflareZoneId()),
-			Connectivity:        exp.GetConnectivity(),
+			Method:       exp.GetMethod(),
+			DomainPrefix: strings.ToLower(strings.TrimSpace(exp.GetDomainPrefix())),
+			BaseDomain:   strings.ToLower(strings.TrimSpace(exp.GetBaseDomain())),
+			Connectivity: exp.GetConnectivity(),
 		}
 	}
 
