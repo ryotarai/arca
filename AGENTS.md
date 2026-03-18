@@ -28,6 +28,8 @@ Setup prerequisites: Go `1.22`, Node.js/npm, and `sqlc`.
 - `make build-server`: run frontend build + sqlc, then build `./cmd/server` to `bin/server`.
 - `make proto`: regenerate protobuf/Connect generated code via `buf generate`.
 - `make sqlc`: regenerate SQL access code.
+- `make test`: run Go tests and fast E2E tests.
+- `make test-all`: run all tests including slow E2E tests.
 - `make run`: build server and run `./bin/server`.
 - `make watch`: start hot-reload development server using `air`.
 - `./bin/server`: run the already built server binary.
@@ -53,6 +55,7 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 
 ## Testing Guidelines
 - Run tests with `make test` before pushing.
+- For full test coverage including slow E2E tests, use `make test-all` or `make web/test-slow`.
 - Keep tests near code as `*_test.go`; prefer table-driven tests for handlers and DB logic.
 - Add/update E2E or browser checks for UI/routing behavior; prefer `chrome-headless-shell` for browser verification.
 - During debugging or investigation, proactively use the `sqlite3` command to inspect database data, verify state, and isolate issues quickly.
