@@ -247,3 +247,193 @@ func randomAuditID() (string, error) {
 	}
 	return hex.EncodeToString(buf), nil
 }
+
+func (s *adminConnectService) ListServerLLMModels(ctx context.Context, req *connect.Request[arcav1.ListServerLLMModelsRequest]) (*connect.Response[arcav1.ListServerLLMModelsResponse], error) {
+	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+		return nil, err
+	}
+
+	models, err := s.store.ListServerLLMModels(ctx)
+	if err != nil {
+		log.Printf("list server llm models failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list server LLM models"))
+	}
+
+	items := make([]*arcav1.ServerLLMModel, 0, len(models))
+	for _, m := range models {
+		items = append(items, serverLLMModelToProto(m))
+	}
+
+	return connect.NewResponse(&arcav1.ListServerLLMModelsResponse{Models: items}), nil
+}
+
+func (s *adminConnectService) CreateServerLLMModel(ctx context.Context, req *connect.Request[arcav1.CreateServerLLMModelRequest]) (*connect.Response[arcav1.CreateServerLLMModelResponse], error) {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	configName := strings.TrimSpace(req.Msg.GetConfigName())
+	endpointType := strings.TrimSpace(req.Msg.GetEndpointType())
+	modelName := strings.TrimSpace(req.Msg.GetModelName())
+	tokenCommand := strings.TrimSpace(req.Msg.GetTokenCommand())
+
+	if configName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("config_name is required"))
+	}
+	if endpointType == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("endpoint_type is required"))
+	}
+	if modelName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("model_name is required"))
+	}
+	if tokenCommand == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("token_command is required"))
+	}
+
+	id, err := randomAuditID()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to generate ID"))
+	}
+
+	model := db.ServerLLMModel{
+		ID:               id,
+		ConfigName:       configName,
+		EndpointType:     endpointType,
+		CustomEndpoint:   strings.TrimSpace(req.Msg.GetCustomEndpoint()),
+		ModelName:        modelName,
+		TokenCommand:     tokenCommand,
+		MaxContextTokens: int64(req.Msg.GetMaxContextTokens()),
+	}
+
+	if err := s.store.CreateServerLLMModel(ctx, model); err != nil {
+		log.Printf("create server llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create server LLM model"))
+	}
+
+	created, err := s.store.GetServerLLMModel(ctx, id)
+	if err != nil {
+		log.Printf("get server llm model after create failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to retrieve created model"))
+	}
+
+	s.logAudit(ctx, adminUserID, "", "server_llm_model.create", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
+
+	return connect.NewResponse(&arcav1.CreateServerLLMModelResponse{Model: serverLLMModelToProto(created)}), nil
+}
+
+func (s *adminConnectService) UpdateServerLLMModel(ctx context.Context, req *connect.Request[arcav1.UpdateServerLLMModelRequest]) (*connect.Response[arcav1.UpdateServerLLMModelResponse], error) {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	id := strings.TrimSpace(req.Msg.GetId())
+	if id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
+	}
+
+	configName := strings.TrimSpace(req.Msg.GetConfigName())
+	endpointType := strings.TrimSpace(req.Msg.GetEndpointType())
+	modelName := strings.TrimSpace(req.Msg.GetModelName())
+	tokenCommand := strings.TrimSpace(req.Msg.GetTokenCommand())
+
+	if configName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("config_name is required"))
+	}
+	if endpointType == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("endpoint_type is required"))
+	}
+	if modelName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("model_name is required"))
+	}
+	if tokenCommand == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("token_command is required"))
+	}
+
+	// Check existence
+	if _, err := s.store.GetServerLLMModel(ctx, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("server LLM model not found"))
+		}
+		log.Printf("get server llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get server LLM model"))
+	}
+
+	model := db.ServerLLMModel{
+		ID:               id,
+		ConfigName:       configName,
+		EndpointType:     endpointType,
+		CustomEndpoint:   strings.TrimSpace(req.Msg.GetCustomEndpoint()),
+		ModelName:        modelName,
+		TokenCommand:     tokenCommand,
+		MaxContextTokens: int64(req.Msg.GetMaxContextTokens()),
+	}
+
+	updated, err := s.store.UpdateServerLLMModel(ctx, model)
+	if err != nil {
+		log.Printf("update server llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update server LLM model"))
+	}
+	if !updated {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("server LLM model not found"))
+	}
+
+	result, err := s.store.GetServerLLMModel(ctx, id)
+	if err != nil {
+		log.Printf("get server llm model after update failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to retrieve updated model"))
+	}
+
+	s.logAudit(ctx, adminUserID, "", "server_llm_model.update", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
+
+	return connect.NewResponse(&arcav1.UpdateServerLLMModelResponse{Model: serverLLMModelToProto(result)}), nil
+}
+
+func (s *adminConnectService) DeleteServerLLMModel(ctx context.Context, req *connect.Request[arcav1.DeleteServerLLMModelRequest]) (*connect.Response[arcav1.DeleteServerLLMModelResponse], error) {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	id := strings.TrimSpace(req.Msg.GetId())
+	if id == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
+	}
+
+	existing, err := s.store.GetServerLLMModel(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("server LLM model not found"))
+		}
+		log.Printf("get server llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get server LLM model"))
+	}
+
+	deleted, err := s.store.DeleteServerLLMModel(ctx, id)
+	if err != nil {
+		log.Printf("delete server llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete server LLM model"))
+	}
+	if !deleted {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("server LLM model not found"))
+	}
+
+	s.logAudit(ctx, adminUserID, "", "server_llm_model.delete", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, existing.ConfigName))
+
+	return connect.NewResponse(&arcav1.DeleteServerLLMModelResponse{}), nil
+}
+
+func serverLLMModelToProto(m db.ServerLLMModel) *arcav1.ServerLLMModel {
+	return &arcav1.ServerLLMModel{
+		Id:               m.ID,
+		ConfigName:       m.ConfigName,
+		EndpointType:     m.EndpointType,
+		CustomEndpoint:   m.CustomEndpoint,
+		ModelName:        m.ModelName,
+		TokenCommand:     m.TokenCommand,
+		MaxContextTokens: int32(m.MaxContextTokens),
+		CreatedAt:        fmt.Sprintf("%d", m.CreatedAt),
+		UpdatedAt:        fmt.Sprintf("%d", m.UpdatedAt),
+	}
+}

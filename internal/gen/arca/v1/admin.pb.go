@@ -457,6 +457,538 @@ func (x *AuditLog) GetCreatedAt() string {
 	return ""
 }
 
+type ServerLLMModel struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ConfigName       string                 `protobuf:"bytes,2,opt,name=config_name,json=configName,proto3" json:"config_name,omitempty"`
+	EndpointType     string                 `protobuf:"bytes,3,opt,name=endpoint_type,json=endpointType,proto3" json:"endpoint_type,omitempty"`
+	CustomEndpoint   string                 `protobuf:"bytes,4,opt,name=custom_endpoint,json=customEndpoint,proto3" json:"custom_endpoint,omitempty"`
+	ModelName        string                 `protobuf:"bytes,5,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	TokenCommand     string                 `protobuf:"bytes,6,opt,name=token_command,json=tokenCommand,proto3" json:"token_command,omitempty"`
+	MaxContextTokens int32                  `protobuf:"varint,7,opt,name=max_context_tokens,json=maxContextTokens,proto3" json:"max_context_tokens,omitempty"`
+	CreatedAt        string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt        string                 `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ServerLLMModel) Reset() {
+	*x = ServerLLMModel{}
+	mi := &file_arca_v1_admin_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ServerLLMModel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServerLLMModel) ProtoMessage() {}
+
+func (x *ServerLLMModel) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServerLLMModel.ProtoReflect.Descriptor instead.
+func (*ServerLLMModel) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ServerLLMModel) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ServerLLMModel) GetConfigName() string {
+	if x != nil {
+		return x.ConfigName
+	}
+	return ""
+}
+
+func (x *ServerLLMModel) GetEndpointType() string {
+	if x != nil {
+		return x.EndpointType
+	}
+	return ""
+}
+
+func (x *ServerLLMModel) GetCustomEndpoint() string {
+	if x != nil {
+		return x.CustomEndpoint
+	}
+	return ""
+}
+
+func (x *ServerLLMModel) GetModelName() string {
+	if x != nil {
+		return x.ModelName
+	}
+	return ""
+}
+
+func (x *ServerLLMModel) GetTokenCommand() string {
+	if x != nil {
+		return x.TokenCommand
+	}
+	return ""
+}
+
+func (x *ServerLLMModel) GetMaxContextTokens() int32 {
+	if x != nil {
+		return x.MaxContextTokens
+	}
+	return 0
+}
+
+func (x *ServerLLMModel) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *ServerLLMModel) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type ListServerLLMModelsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListServerLLMModelsRequest) Reset() {
+	*x = ListServerLLMModelsRequest{}
+	mi := &file_arca_v1_admin_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListServerLLMModelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListServerLLMModelsRequest) ProtoMessage() {}
+
+func (x *ListServerLLMModelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListServerLLMModelsRequest.ProtoReflect.Descriptor instead.
+func (*ListServerLLMModelsRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{10}
+}
+
+type ListServerLLMModelsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Models        []*ServerLLMModel      `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListServerLLMModelsResponse) Reset() {
+	*x = ListServerLLMModelsResponse{}
+	mi := &file_arca_v1_admin_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListServerLLMModelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListServerLLMModelsResponse) ProtoMessage() {}
+
+func (x *ListServerLLMModelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListServerLLMModelsResponse.ProtoReflect.Descriptor instead.
+func (*ListServerLLMModelsResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListServerLLMModelsResponse) GetModels() []*ServerLLMModel {
+	if x != nil {
+		return x.Models
+	}
+	return nil
+}
+
+type CreateServerLLMModelRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	ConfigName       string                 `protobuf:"bytes,1,opt,name=config_name,json=configName,proto3" json:"config_name,omitempty"`
+	EndpointType     string                 `protobuf:"bytes,2,opt,name=endpoint_type,json=endpointType,proto3" json:"endpoint_type,omitempty"`
+	CustomEndpoint   string                 `protobuf:"bytes,3,opt,name=custom_endpoint,json=customEndpoint,proto3" json:"custom_endpoint,omitempty"`
+	ModelName        string                 `protobuf:"bytes,4,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	TokenCommand     string                 `protobuf:"bytes,5,opt,name=token_command,json=tokenCommand,proto3" json:"token_command,omitempty"`
+	MaxContextTokens int32                  `protobuf:"varint,6,opt,name=max_context_tokens,json=maxContextTokens,proto3" json:"max_context_tokens,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CreateServerLLMModelRequest) Reset() {
+	*x = CreateServerLLMModelRequest{}
+	mi := &file_arca_v1_admin_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateServerLLMModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateServerLLMModelRequest) ProtoMessage() {}
+
+func (x *CreateServerLLMModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateServerLLMModelRequest.ProtoReflect.Descriptor instead.
+func (*CreateServerLLMModelRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *CreateServerLLMModelRequest) GetConfigName() string {
+	if x != nil {
+		return x.ConfigName
+	}
+	return ""
+}
+
+func (x *CreateServerLLMModelRequest) GetEndpointType() string {
+	if x != nil {
+		return x.EndpointType
+	}
+	return ""
+}
+
+func (x *CreateServerLLMModelRequest) GetCustomEndpoint() string {
+	if x != nil {
+		return x.CustomEndpoint
+	}
+	return ""
+}
+
+func (x *CreateServerLLMModelRequest) GetModelName() string {
+	if x != nil {
+		return x.ModelName
+	}
+	return ""
+}
+
+func (x *CreateServerLLMModelRequest) GetTokenCommand() string {
+	if x != nil {
+		return x.TokenCommand
+	}
+	return ""
+}
+
+func (x *CreateServerLLMModelRequest) GetMaxContextTokens() int32 {
+	if x != nil {
+		return x.MaxContextTokens
+	}
+	return 0
+}
+
+type CreateServerLLMModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *ServerLLMModel        `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateServerLLMModelResponse) Reset() {
+	*x = CreateServerLLMModelResponse{}
+	mi := &file_arca_v1_admin_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateServerLLMModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateServerLLMModelResponse) ProtoMessage() {}
+
+func (x *CreateServerLLMModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateServerLLMModelResponse.ProtoReflect.Descriptor instead.
+func (*CreateServerLLMModelResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CreateServerLLMModelResponse) GetModel() *ServerLLMModel {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type UpdateServerLLMModelRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ConfigName       string                 `protobuf:"bytes,2,opt,name=config_name,json=configName,proto3" json:"config_name,omitempty"`
+	EndpointType     string                 `protobuf:"bytes,3,opt,name=endpoint_type,json=endpointType,proto3" json:"endpoint_type,omitempty"`
+	CustomEndpoint   string                 `protobuf:"bytes,4,opt,name=custom_endpoint,json=customEndpoint,proto3" json:"custom_endpoint,omitempty"`
+	ModelName        string                 `protobuf:"bytes,5,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	TokenCommand     string                 `protobuf:"bytes,6,opt,name=token_command,json=tokenCommand,proto3" json:"token_command,omitempty"`
+	MaxContextTokens int32                  `protobuf:"varint,7,opt,name=max_context_tokens,json=maxContextTokens,proto3" json:"max_context_tokens,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *UpdateServerLLMModelRequest) Reset() {
+	*x = UpdateServerLLMModelRequest{}
+	mi := &file_arca_v1_admin_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateServerLLMModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateServerLLMModelRequest) ProtoMessage() {}
+
+func (x *UpdateServerLLMModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateServerLLMModelRequest.ProtoReflect.Descriptor instead.
+func (*UpdateServerLLMModelRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateServerLLMModelRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateServerLLMModelRequest) GetConfigName() string {
+	if x != nil {
+		return x.ConfigName
+	}
+	return ""
+}
+
+func (x *UpdateServerLLMModelRequest) GetEndpointType() string {
+	if x != nil {
+		return x.EndpointType
+	}
+	return ""
+}
+
+func (x *UpdateServerLLMModelRequest) GetCustomEndpoint() string {
+	if x != nil {
+		return x.CustomEndpoint
+	}
+	return ""
+}
+
+func (x *UpdateServerLLMModelRequest) GetModelName() string {
+	if x != nil {
+		return x.ModelName
+	}
+	return ""
+}
+
+func (x *UpdateServerLLMModelRequest) GetTokenCommand() string {
+	if x != nil {
+		return x.TokenCommand
+	}
+	return ""
+}
+
+func (x *UpdateServerLLMModelRequest) GetMaxContextTokens() int32 {
+	if x != nil {
+		return x.MaxContextTokens
+	}
+	return 0
+}
+
+type UpdateServerLLMModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *ServerLLMModel        `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateServerLLMModelResponse) Reset() {
+	*x = UpdateServerLLMModelResponse{}
+	mi := &file_arca_v1_admin_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateServerLLMModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateServerLLMModelResponse) ProtoMessage() {}
+
+func (x *UpdateServerLLMModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateServerLLMModelResponse.ProtoReflect.Descriptor instead.
+func (*UpdateServerLLMModelResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UpdateServerLLMModelResponse) GetModel() *ServerLLMModel {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type DeleteServerLLMModelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteServerLLMModelRequest) Reset() {
+	*x = DeleteServerLLMModelRequest{}
+	mi := &file_arca_v1_admin_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteServerLLMModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteServerLLMModelRequest) ProtoMessage() {}
+
+func (x *DeleteServerLLMModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteServerLLMModelRequest.ProtoReflect.Descriptor instead.
+func (*DeleteServerLLMModelRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *DeleteServerLLMModelRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteServerLLMModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteServerLLMModelResponse) Reset() {
+	*x = DeleteServerLLMModelResponse{}
+	mi := &file_arca_v1_admin_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteServerLLMModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteServerLLMModelResponse) ProtoMessage() {}
+
+func (x *DeleteServerLLMModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_admin_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteServerLLMModelResponse.ProtoReflect.Descriptor instead.
+func (*DeleteServerLLMModelResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{17}
+}
+
 var File_arca_v1_admin_proto protoreflect.FileDescriptor
 
 const file_arca_v1_admin_proto_rawDesc = "" +
@@ -488,12 +1020,59 @@ const file_arca_v1_admin_proto_rawDesc = "" +
 	"resourceId\x12\x18\n" +
 	"\adetails\x18\a \x01(\tR\adetails\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt2\x84\x03\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\"\xbf\x02\n" +
+	"\x0eServerLLMModel\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vconfig_name\x18\x02 \x01(\tR\n" +
+	"configName\x12#\n" +
+	"\rendpoint_type\x18\x03 \x01(\tR\fendpointType\x12'\n" +
+	"\x0fcustom_endpoint\x18\x04 \x01(\tR\x0ecustomEndpoint\x12\x1d\n" +
+	"\n" +
+	"model_name\x18\x05 \x01(\tR\tmodelName\x12#\n" +
+	"\rtoken_command\x18\x06 \x01(\tR\ftokenCommand\x12,\n" +
+	"\x12max_context_tokens\x18\a \x01(\x05R\x10maxContextTokens\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\b \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\tR\tupdatedAt\"\x1c\n" +
+	"\x1aListServerLLMModelsRequest\"N\n" +
+	"\x1bListServerLLMModelsResponse\x12/\n" +
+	"\x06models\x18\x01 \x03(\v2\x17.arca.v1.ServerLLMModelR\x06models\"\xfe\x01\n" +
+	"\x1bCreateServerLLMModelRequest\x12\x1f\n" +
+	"\vconfig_name\x18\x01 \x01(\tR\n" +
+	"configName\x12#\n" +
+	"\rendpoint_type\x18\x02 \x01(\tR\fendpointType\x12'\n" +
+	"\x0fcustom_endpoint\x18\x03 \x01(\tR\x0ecustomEndpoint\x12\x1d\n" +
+	"\n" +
+	"model_name\x18\x04 \x01(\tR\tmodelName\x12#\n" +
+	"\rtoken_command\x18\x05 \x01(\tR\ftokenCommand\x12,\n" +
+	"\x12max_context_tokens\x18\x06 \x01(\x05R\x10maxContextTokens\"M\n" +
+	"\x1cCreateServerLLMModelResponse\x12-\n" +
+	"\x05model\x18\x01 \x01(\v2\x17.arca.v1.ServerLLMModelR\x05model\"\x8e\x02\n" +
+	"\x1bUpdateServerLLMModelRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vconfig_name\x18\x02 \x01(\tR\n" +
+	"configName\x12#\n" +
+	"\rendpoint_type\x18\x03 \x01(\tR\fendpointType\x12'\n" +
+	"\x0fcustom_endpoint\x18\x04 \x01(\tR\x0ecustomEndpoint\x12\x1d\n" +
+	"\n" +
+	"model_name\x18\x05 \x01(\tR\tmodelName\x12#\n" +
+	"\rtoken_command\x18\x06 \x01(\tR\ftokenCommand\x12,\n" +
+	"\x12max_context_tokens\x18\a \x01(\x05R\x10maxContextTokens\"M\n" +
+	"\x1cUpdateServerLLMModelResponse\x12-\n" +
+	"\x05model\x18\x01 \x01(\v2\x17.arca.v1.ServerLLMModelR\x05model\"-\n" +
+	"\x1bDeleteServerLLMModelRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x1e\n" +
+	"\x1cDeleteServerLLMModelResponse2\x95\x06\n" +
 	"\fAdminService\x12]\n" +
 	"\x12StartImpersonation\x12\".arca.v1.StartImpersonationRequest\x1a#.arca.v1.StartImpersonationResponse\x12Z\n" +
 	"\x11StopImpersonation\x12!.arca.v1.StopImpersonationRequest\x1a\".arca.v1.StopImpersonationResponse\x12i\n" +
 	"\x16GetImpersonationStatus\x12&.arca.v1.GetImpersonationStatusRequest\x1a'.arca.v1.GetImpersonationStatusResponse\x12N\n" +
-	"\rListAuditLogs\x12\x1d.arca.v1.ListAuditLogsRequest\x1a\x1e.arca.v1.ListAuditLogsResponseB\x8c\x01\n" +
+	"\rListAuditLogs\x12\x1d.arca.v1.ListAuditLogsRequest\x1a\x1e.arca.v1.ListAuditLogsResponse\x12`\n" +
+	"\x13ListServerLLMModels\x12#.arca.v1.ListServerLLMModelsRequest\x1a$.arca.v1.ListServerLLMModelsResponse\x12c\n" +
+	"\x14CreateServerLLMModel\x12$.arca.v1.CreateServerLLMModelRequest\x1a%.arca.v1.CreateServerLLMModelResponse\x12c\n" +
+	"\x14UpdateServerLLMModel\x12$.arca.v1.UpdateServerLLMModelRequest\x1a%.arca.v1.UpdateServerLLMModelResponse\x12c\n" +
+	"\x14DeleteServerLLMModel\x12$.arca.v1.DeleteServerLLMModelRequest\x1a%.arca.v1.DeleteServerLLMModelResponseB\x8c\x01\n" +
 	"\vcom.arca.v1B\n" +
 	"AdminProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
@@ -509,7 +1088,7 @@ func file_arca_v1_admin_proto_rawDescGZIP() []byte {
 	return file_arca_v1_admin_proto_rawDescData
 }
 
-var file_arca_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_arca_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_arca_v1_admin_proto_goTypes = []any{
 	(*StartImpersonationRequest)(nil),      // 0: arca.v1.StartImpersonationRequest
 	(*StartImpersonationResponse)(nil),     // 1: arca.v1.StartImpersonationResponse
@@ -520,22 +1099,42 @@ var file_arca_v1_admin_proto_goTypes = []any{
 	(*ListAuditLogsRequest)(nil),           // 6: arca.v1.ListAuditLogsRequest
 	(*ListAuditLogsResponse)(nil),          // 7: arca.v1.ListAuditLogsResponse
 	(*AuditLog)(nil),                       // 8: arca.v1.AuditLog
+	(*ServerLLMModel)(nil),                 // 9: arca.v1.ServerLLMModel
+	(*ListServerLLMModelsRequest)(nil),     // 10: arca.v1.ListServerLLMModelsRequest
+	(*ListServerLLMModelsResponse)(nil),    // 11: arca.v1.ListServerLLMModelsResponse
+	(*CreateServerLLMModelRequest)(nil),    // 12: arca.v1.CreateServerLLMModelRequest
+	(*CreateServerLLMModelResponse)(nil),   // 13: arca.v1.CreateServerLLMModelResponse
+	(*UpdateServerLLMModelRequest)(nil),    // 14: arca.v1.UpdateServerLLMModelRequest
+	(*UpdateServerLLMModelResponse)(nil),   // 15: arca.v1.UpdateServerLLMModelResponse
+	(*DeleteServerLLMModelRequest)(nil),    // 16: arca.v1.DeleteServerLLMModelRequest
+	(*DeleteServerLLMModelResponse)(nil),   // 17: arca.v1.DeleteServerLLMModelResponse
 }
 var file_arca_v1_admin_proto_depIdxs = []int32{
-	8, // 0: arca.v1.ListAuditLogsResponse.audit_logs:type_name -> arca.v1.AuditLog
-	0, // 1: arca.v1.AdminService.StartImpersonation:input_type -> arca.v1.StartImpersonationRequest
-	2, // 2: arca.v1.AdminService.StopImpersonation:input_type -> arca.v1.StopImpersonationRequest
-	4, // 3: arca.v1.AdminService.GetImpersonationStatus:input_type -> arca.v1.GetImpersonationStatusRequest
-	6, // 4: arca.v1.AdminService.ListAuditLogs:input_type -> arca.v1.ListAuditLogsRequest
-	1, // 5: arca.v1.AdminService.StartImpersonation:output_type -> arca.v1.StartImpersonationResponse
-	3, // 6: arca.v1.AdminService.StopImpersonation:output_type -> arca.v1.StopImpersonationResponse
-	5, // 7: arca.v1.AdminService.GetImpersonationStatus:output_type -> arca.v1.GetImpersonationStatusResponse
-	7, // 8: arca.v1.AdminService.ListAuditLogs:output_type -> arca.v1.ListAuditLogsResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	8,  // 0: arca.v1.ListAuditLogsResponse.audit_logs:type_name -> arca.v1.AuditLog
+	9,  // 1: arca.v1.ListServerLLMModelsResponse.models:type_name -> arca.v1.ServerLLMModel
+	9,  // 2: arca.v1.CreateServerLLMModelResponse.model:type_name -> arca.v1.ServerLLMModel
+	9,  // 3: arca.v1.UpdateServerLLMModelResponse.model:type_name -> arca.v1.ServerLLMModel
+	0,  // 4: arca.v1.AdminService.StartImpersonation:input_type -> arca.v1.StartImpersonationRequest
+	2,  // 5: arca.v1.AdminService.StopImpersonation:input_type -> arca.v1.StopImpersonationRequest
+	4,  // 6: arca.v1.AdminService.GetImpersonationStatus:input_type -> arca.v1.GetImpersonationStatusRequest
+	6,  // 7: arca.v1.AdminService.ListAuditLogs:input_type -> arca.v1.ListAuditLogsRequest
+	10, // 8: arca.v1.AdminService.ListServerLLMModels:input_type -> arca.v1.ListServerLLMModelsRequest
+	12, // 9: arca.v1.AdminService.CreateServerLLMModel:input_type -> arca.v1.CreateServerLLMModelRequest
+	14, // 10: arca.v1.AdminService.UpdateServerLLMModel:input_type -> arca.v1.UpdateServerLLMModelRequest
+	16, // 11: arca.v1.AdminService.DeleteServerLLMModel:input_type -> arca.v1.DeleteServerLLMModelRequest
+	1,  // 12: arca.v1.AdminService.StartImpersonation:output_type -> arca.v1.StartImpersonationResponse
+	3,  // 13: arca.v1.AdminService.StopImpersonation:output_type -> arca.v1.StopImpersonationResponse
+	5,  // 14: arca.v1.AdminService.GetImpersonationStatus:output_type -> arca.v1.GetImpersonationStatusResponse
+	7,  // 15: arca.v1.AdminService.ListAuditLogs:output_type -> arca.v1.ListAuditLogsResponse
+	11, // 16: arca.v1.AdminService.ListServerLLMModels:output_type -> arca.v1.ListServerLLMModelsResponse
+	13, // 17: arca.v1.AdminService.CreateServerLLMModel:output_type -> arca.v1.CreateServerLLMModelResponse
+	15, // 18: arca.v1.AdminService.UpdateServerLLMModel:output_type -> arca.v1.UpdateServerLLMModelResponse
+	17, // 19: arca.v1.AdminService.DeleteServerLLMModel:output_type -> arca.v1.DeleteServerLLMModelResponse
+	12, // [12:20] is the sub-list for method output_type
+	4,  // [4:12] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_admin_proto_init() }
@@ -549,7 +1148,7 @@ func file_arca_v1_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_admin_proto_rawDesc), len(file_arca_v1_admin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

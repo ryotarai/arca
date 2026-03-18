@@ -19,6 +19,7 @@ import { AccessDeniedPage } from '@/pages/AccessDeniedPage'
 import { GroupsPage } from '@/pages/GroupsPage'
 import { AuditLogPage } from '@/pages/AuditLogPage'
 import { CustomImagesPage } from '@/pages/CustomImagesPage'
+import { ServerLLMModelsPage } from '@/pages/ServerLLMModelsPage'
 import { AppLayout } from '@/pages/AppLayout'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 
@@ -180,6 +181,7 @@ export function App() {
             }
           />
           <Route path="/admin/images" element={<CustomImagesPage user={user} onLogout={handleLogout} />} />
+          <Route path="/admin/llm-models" element={<ServerLLMModelsPage user={user} onLogout={handleLogout} />} />
           <Route path="/admin/audit-logs" element={<AuditLogPage user={user} onLogout={handleLogout} />} />
         </Route>
 

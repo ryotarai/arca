@@ -186,6 +186,18 @@ type RuntimeCustomImage struct {
 	CustomImageID string
 }
 
+type ServerLlmModel struct {
+	ID               string
+	ConfigName       string
+	EndpointType     string
+	CustomEndpoint   string
+	ModelName        string
+	TokenCommand     string
+	MaxContextTokens int32
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
 type Session struct {
 	ID                   string
 	UserID               string

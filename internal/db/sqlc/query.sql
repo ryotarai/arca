@@ -1038,3 +1038,43 @@ SELECT runtime_id
 FROM runtime_custom_images
 WHERE custom_image_id = sqlc.arg(custom_image_id)
 ORDER BY runtime_id ASC;
+
+-- name: ListServerLLMModels :many
+SELECT id, config_name, endpoint_type, custom_endpoint, model_name, token_command, max_context_tokens, created_at, updated_at
+FROM server_llm_models
+ORDER BY created_at ASC;
+
+-- name: GetServerLLMModel :one
+SELECT id, config_name, endpoint_type, custom_endpoint, model_name, token_command, max_context_tokens, created_at, updated_at
+FROM server_llm_models
+WHERE id = sqlc.arg(id)
+LIMIT 1;
+
+-- name: CreateServerLLMModel :exec
+INSERT INTO server_llm_models (id, config_name, endpoint_type, custom_endpoint, model_name, token_command, max_context_tokens, created_at, updated_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(config_name),
+  sqlc.arg(endpoint_type),
+  sqlc.arg(custom_endpoint),
+  sqlc.arg(model_name),
+  sqlc.arg(token_command),
+  sqlc.arg(max_context_tokens),
+  sqlc.arg(created_at),
+  sqlc.arg(updated_at)
+);
+
+-- name: UpdateServerLLMModel :execrows
+UPDATE server_llm_models
+SET config_name = sqlc.arg(config_name),
+    endpoint_type = sqlc.arg(endpoint_type),
+    custom_endpoint = sqlc.arg(custom_endpoint),
+    model_name = sqlc.arg(model_name),
+    token_command = sqlc.arg(token_command),
+    max_context_tokens = sqlc.arg(max_context_tokens),
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id);
+
+-- name: DeleteServerLLMModel :execrows
+DELETE FROM server_llm_models
+WHERE id = sqlc.arg(id);

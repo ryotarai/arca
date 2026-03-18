@@ -9,6 +9,10 @@ service AdminService {
   rpc StopImpersonation(StopImpersonationRequest) returns (StopImpersonationResponse);
   rpc GetImpersonationStatus(GetImpersonationStatusRequest) returns (GetImpersonationStatusResponse);
   rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse);
+  rpc ListServerLLMModels(ListServerLLMModelsRequest) returns (ListServerLLMModelsResponse);
+  rpc CreateServerLLMModel(CreateServerLLMModelRequest) returns (CreateServerLLMModelResponse);
+  rpc UpdateServerLLMModel(UpdateServerLLMModelRequest) returns (UpdateServerLLMModelResponse);
+  rpc DeleteServerLLMModel(DeleteServerLLMModelRequest) returns (DeleteServerLLMModelResponse);
 }
 
 message StartImpersonationRequest {
@@ -47,3 +51,54 @@ message AuditLog {
   string details = 7;
   string created_at = 8;
 }
+
+message ServerLLMModel {
+  string id = 1;
+  string config_name = 2;
+  string endpoint_type = 3;
+  string custom_endpoint = 4;
+  string model_name = 5;
+  string token_command = 6;
+  int32 max_context_tokens = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ListServerLLMModelsRequest {}
+
+message ListServerLLMModelsResponse {
+  repeated ServerLLMModel models = 1;
+}
+
+message CreateServerLLMModelRequest {
+  string config_name = 1;
+  string endpoint_type = 2;
+  string custom_endpoint = 3;
+  string model_name = 4;
+  string token_command = 5;
+  int32 max_context_tokens = 6;
+}
+
+message CreateServerLLMModelResponse {
+  ServerLLMModel model = 1;
+}
+
+message UpdateServerLLMModelRequest {
+  string id = 1;
+  string config_name = 2;
+  string endpoint_type = 3;
+  string custom_endpoint = 4;
+  string model_name = 5;
+  string token_command = 6;
+  int32 max_context_tokens = 7;
+}
+
+message UpdateServerLLMModelResponse {
+  ServerLLMModel model = 1;
+}
+
+message DeleteServerLLMModelRequest {
+  string id = 1;
+}
+
+message DeleteServerLLMModelResponse {}

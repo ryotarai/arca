@@ -45,6 +45,18 @@ const (
 	// AdminServiceListAuditLogsProcedure is the fully-qualified name of the AdminService's
 	// ListAuditLogs RPC.
 	AdminServiceListAuditLogsProcedure = "/arca.v1.AdminService/ListAuditLogs"
+	// AdminServiceListServerLLMModelsProcedure is the fully-qualified name of the AdminService's
+	// ListServerLLMModels RPC.
+	AdminServiceListServerLLMModelsProcedure = "/arca.v1.AdminService/ListServerLLMModels"
+	// AdminServiceCreateServerLLMModelProcedure is the fully-qualified name of the AdminService's
+	// CreateServerLLMModel RPC.
+	AdminServiceCreateServerLLMModelProcedure = "/arca.v1.AdminService/CreateServerLLMModel"
+	// AdminServiceUpdateServerLLMModelProcedure is the fully-qualified name of the AdminService's
+	// UpdateServerLLMModel RPC.
+	AdminServiceUpdateServerLLMModelProcedure = "/arca.v1.AdminService/UpdateServerLLMModel"
+	// AdminServiceDeleteServerLLMModelProcedure is the fully-qualified name of the AdminService's
+	// DeleteServerLLMModel RPC.
+	AdminServiceDeleteServerLLMModelProcedure = "/arca.v1.AdminService/DeleteServerLLMModel"
 )
 
 // AdminServiceClient is a client for the arca.v1.AdminService service.
@@ -53,6 +65,10 @@ type AdminServiceClient interface {
 	StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error)
 	GetImpersonationStatus(context.Context, *connect.Request[v1.GetImpersonationStatusRequest]) (*connect.Response[v1.GetImpersonationStatusResponse], error)
 	ListAuditLogs(context.Context, *connect.Request[v1.ListAuditLogsRequest]) (*connect.Response[v1.ListAuditLogsResponse], error)
+	ListServerLLMModels(context.Context, *connect.Request[v1.ListServerLLMModelsRequest]) (*connect.Response[v1.ListServerLLMModelsResponse], error)
+	CreateServerLLMModel(context.Context, *connect.Request[v1.CreateServerLLMModelRequest]) (*connect.Response[v1.CreateServerLLMModelResponse], error)
+	UpdateServerLLMModel(context.Context, *connect.Request[v1.UpdateServerLLMModelRequest]) (*connect.Response[v1.UpdateServerLLMModelResponse], error)
+	DeleteServerLLMModel(context.Context, *connect.Request[v1.DeleteServerLLMModelRequest]) (*connect.Response[v1.DeleteServerLLMModelResponse], error)
 }
 
 // NewAdminServiceClient constructs a client for the arca.v1.AdminService service. By default, it
@@ -90,6 +106,30 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(adminServiceMethods.ByName("ListAuditLogs")),
 			connect.WithClientOptions(opts...),
 		),
+		listServerLLMModels: connect.NewClient[v1.ListServerLLMModelsRequest, v1.ListServerLLMModelsResponse](
+			httpClient,
+			baseURL+AdminServiceListServerLLMModelsProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("ListServerLLMModels")),
+			connect.WithClientOptions(opts...),
+		),
+		createServerLLMModel: connect.NewClient[v1.CreateServerLLMModelRequest, v1.CreateServerLLMModelResponse](
+			httpClient,
+			baseURL+AdminServiceCreateServerLLMModelProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("CreateServerLLMModel")),
+			connect.WithClientOptions(opts...),
+		),
+		updateServerLLMModel: connect.NewClient[v1.UpdateServerLLMModelRequest, v1.UpdateServerLLMModelResponse](
+			httpClient,
+			baseURL+AdminServiceUpdateServerLLMModelProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("UpdateServerLLMModel")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteServerLLMModel: connect.NewClient[v1.DeleteServerLLMModelRequest, v1.DeleteServerLLMModelResponse](
+			httpClient,
+			baseURL+AdminServiceDeleteServerLLMModelProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("DeleteServerLLMModel")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -99,6 +139,10 @@ type adminServiceClient struct {
 	stopImpersonation      *connect.Client[v1.StopImpersonationRequest, v1.StopImpersonationResponse]
 	getImpersonationStatus *connect.Client[v1.GetImpersonationStatusRequest, v1.GetImpersonationStatusResponse]
 	listAuditLogs          *connect.Client[v1.ListAuditLogsRequest, v1.ListAuditLogsResponse]
+	listServerLLMModels    *connect.Client[v1.ListServerLLMModelsRequest, v1.ListServerLLMModelsResponse]
+	createServerLLMModel   *connect.Client[v1.CreateServerLLMModelRequest, v1.CreateServerLLMModelResponse]
+	updateServerLLMModel   *connect.Client[v1.UpdateServerLLMModelRequest, v1.UpdateServerLLMModelResponse]
+	deleteServerLLMModel   *connect.Client[v1.DeleteServerLLMModelRequest, v1.DeleteServerLLMModelResponse]
 }
 
 // StartImpersonation calls arca.v1.AdminService.StartImpersonation.
@@ -121,12 +165,36 @@ func (c *adminServiceClient) ListAuditLogs(ctx context.Context, req *connect.Req
 	return c.listAuditLogs.CallUnary(ctx, req)
 }
 
+// ListServerLLMModels calls arca.v1.AdminService.ListServerLLMModels.
+func (c *adminServiceClient) ListServerLLMModels(ctx context.Context, req *connect.Request[v1.ListServerLLMModelsRequest]) (*connect.Response[v1.ListServerLLMModelsResponse], error) {
+	return c.listServerLLMModels.CallUnary(ctx, req)
+}
+
+// CreateServerLLMModel calls arca.v1.AdminService.CreateServerLLMModel.
+func (c *adminServiceClient) CreateServerLLMModel(ctx context.Context, req *connect.Request[v1.CreateServerLLMModelRequest]) (*connect.Response[v1.CreateServerLLMModelResponse], error) {
+	return c.createServerLLMModel.CallUnary(ctx, req)
+}
+
+// UpdateServerLLMModel calls arca.v1.AdminService.UpdateServerLLMModel.
+func (c *adminServiceClient) UpdateServerLLMModel(ctx context.Context, req *connect.Request[v1.UpdateServerLLMModelRequest]) (*connect.Response[v1.UpdateServerLLMModelResponse], error) {
+	return c.updateServerLLMModel.CallUnary(ctx, req)
+}
+
+// DeleteServerLLMModel calls arca.v1.AdminService.DeleteServerLLMModel.
+func (c *adminServiceClient) DeleteServerLLMModel(ctx context.Context, req *connect.Request[v1.DeleteServerLLMModelRequest]) (*connect.Response[v1.DeleteServerLLMModelResponse], error) {
+	return c.deleteServerLLMModel.CallUnary(ctx, req)
+}
+
 // AdminServiceHandler is an implementation of the arca.v1.AdminService service.
 type AdminServiceHandler interface {
 	StartImpersonation(context.Context, *connect.Request[v1.StartImpersonationRequest]) (*connect.Response[v1.StartImpersonationResponse], error)
 	StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error)
 	GetImpersonationStatus(context.Context, *connect.Request[v1.GetImpersonationStatusRequest]) (*connect.Response[v1.GetImpersonationStatusResponse], error)
 	ListAuditLogs(context.Context, *connect.Request[v1.ListAuditLogsRequest]) (*connect.Response[v1.ListAuditLogsResponse], error)
+	ListServerLLMModels(context.Context, *connect.Request[v1.ListServerLLMModelsRequest]) (*connect.Response[v1.ListServerLLMModelsResponse], error)
+	CreateServerLLMModel(context.Context, *connect.Request[v1.CreateServerLLMModelRequest]) (*connect.Response[v1.CreateServerLLMModelResponse], error)
+	UpdateServerLLMModel(context.Context, *connect.Request[v1.UpdateServerLLMModelRequest]) (*connect.Response[v1.UpdateServerLLMModelResponse], error)
+	DeleteServerLLMModel(context.Context, *connect.Request[v1.DeleteServerLLMModelRequest]) (*connect.Response[v1.DeleteServerLLMModelResponse], error)
 }
 
 // NewAdminServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -160,6 +228,30 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(adminServiceMethods.ByName("ListAuditLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
+	adminServiceListServerLLMModelsHandler := connect.NewUnaryHandler(
+		AdminServiceListServerLLMModelsProcedure,
+		svc.ListServerLLMModels,
+		connect.WithSchema(adminServiceMethods.ByName("ListServerLLMModels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceCreateServerLLMModelHandler := connect.NewUnaryHandler(
+		AdminServiceCreateServerLLMModelProcedure,
+		svc.CreateServerLLMModel,
+		connect.WithSchema(adminServiceMethods.ByName("CreateServerLLMModel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceUpdateServerLLMModelHandler := connect.NewUnaryHandler(
+		AdminServiceUpdateServerLLMModelProcedure,
+		svc.UpdateServerLLMModel,
+		connect.WithSchema(adminServiceMethods.ByName("UpdateServerLLMModel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	adminServiceDeleteServerLLMModelHandler := connect.NewUnaryHandler(
+		AdminServiceDeleteServerLLMModelProcedure,
+		svc.DeleteServerLLMModel,
+		connect.WithSchema(adminServiceMethods.ByName("DeleteServerLLMModel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AdminServiceStartImpersonationProcedure:
@@ -170,6 +262,14 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 			adminServiceGetImpersonationStatusHandler.ServeHTTP(w, r)
 		case AdminServiceListAuditLogsProcedure:
 			adminServiceListAuditLogsHandler.ServeHTTP(w, r)
+		case AdminServiceListServerLLMModelsProcedure:
+			adminServiceListServerLLMModelsHandler.ServeHTTP(w, r)
+		case AdminServiceCreateServerLLMModelProcedure:
+			adminServiceCreateServerLLMModelHandler.ServeHTTP(w, r)
+		case AdminServiceUpdateServerLLMModelProcedure:
+			adminServiceUpdateServerLLMModelHandler.ServeHTTP(w, r)
+		case AdminServiceDeleteServerLLMModelProcedure:
+			adminServiceDeleteServerLLMModelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -193,4 +293,20 @@ func (UnimplementedAdminServiceHandler) GetImpersonationStatus(context.Context, 
 
 func (UnimplementedAdminServiceHandler) ListAuditLogs(context.Context, *connect.Request[v1.ListAuditLogsRequest]) (*connect.Response[v1.ListAuditLogsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.ListAuditLogs is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) ListServerLLMModels(context.Context, *connect.Request[v1.ListServerLLMModelsRequest]) (*connect.Response[v1.ListServerLLMModelsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.ListServerLLMModels is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) CreateServerLLMModel(context.Context, *connect.Request[v1.CreateServerLLMModelRequest]) (*connect.Response[v1.CreateServerLLMModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.CreateServerLLMModel is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) UpdateServerLLMModel(context.Context, *connect.Request[v1.UpdateServerLLMModelRequest]) (*connect.Response[v1.UpdateServerLLMModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.UpdateServerLLMModel is not implemented"))
+}
+
+func (UnimplementedAdminServiceHandler) DeleteServerLLMModel(context.Context, *connect.Request[v1.DeleteServerLLMModelRequest]) (*connect.Response[v1.DeleteServerLLMModelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.DeleteServerLLMModel is not implemented"))
 }

@@ -470,6 +470,48 @@ func (q *Queries) CreateRuntime(ctx context.Context, arg CreateRuntimeParams) er
 	return err
 }
 
+const createServerLLMModel = `-- name: CreateServerLLMModel :exec
+INSERT INTO server_llm_models (id, config_name, endpoint_type, custom_endpoint, model_name, token_command, max_context_tokens, created_at, updated_at)
+VALUES (
+  ?1,
+  ?2,
+  ?3,
+  ?4,
+  ?5,
+  ?6,
+  ?7,
+  ?8,
+  ?9
+)
+`
+
+type CreateServerLLMModelParams struct {
+	ID               string
+	ConfigName       string
+	EndpointType     string
+	CustomEndpoint   string
+	ModelName        string
+	TokenCommand     string
+	MaxContextTokens int64
+	CreatedAt        int64
+	UpdatedAt        int64
+}
+
+func (q *Queries) CreateServerLLMModel(ctx context.Context, arg CreateServerLLMModelParams) error {
+	_, err := q.db.ExecContext(ctx, createServerLLMModel,
+		arg.ID,
+		arg.ConfigName,
+		arg.EndpointType,
+		arg.CustomEndpoint,
+		arg.ModelName,
+		arg.TokenCommand,
+		arg.MaxContextTokens,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES (?1, ?2, ?3, ?4)
@@ -694,6 +736,19 @@ WHERE id = ?1
 
 func (q *Queries) DeleteRuntimeByID(ctx context.Context, id string) (int64, error) {
 	result, err := q.db.ExecContext(ctx, deleteRuntimeByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const deleteServerLLMModel = `-- name: DeleteServerLLMModel :execrows
+DELETE FROM server_llm_models
+WHERE id = ?1
+`
+
+func (q *Queries) DeleteServerLLMModel(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteServerLLMModel, id)
 	if err != nil {
 		return 0, err
 	}
@@ -1352,6 +1407,30 @@ func (q *Queries) GetRuntimeByID(ctx context.Context, id string) (Runtime, error
 		&i.Name,
 		&i.Type,
 		&i.ConfigJson,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getServerLLMModel = `-- name: GetServerLLMModel :one
+SELECT id, config_name, endpoint_type, custom_endpoint, model_name, token_command, max_context_tokens, created_at, updated_at
+FROM server_llm_models
+WHERE id = ?1
+LIMIT 1
+`
+
+func (q *Queries) GetServerLLMModel(ctx context.Context, id string) (ServerLlmModel, error) {
+	row := q.db.QueryRowContext(ctx, getServerLLMModel, id)
+	var i ServerLlmModel
+	err := row.Scan(
+		&i.ID,
+		&i.ConfigName,
+		&i.EndpointType,
+		&i.CustomEndpoint,
+		&i.ModelName,
+		&i.TokenCommand,
+		&i.MaxContextTokens,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -2472,6 +2551,45 @@ func (q *Queries) ListRuntimes(ctx context.Context) ([]Runtime, error) {
 	return items, nil
 }
 
+const listServerLLMModels = `-- name: ListServerLLMModels :many
+SELECT id, config_name, endpoint_type, custom_endpoint, model_name, token_command, max_context_tokens, created_at, updated_at
+FROM server_llm_models
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListServerLLMModels(ctx context.Context) ([]ServerLlmModel, error) {
+	rows, err := q.db.QueryContext(ctx, listServerLLMModels)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ServerLlmModel
+	for rows.Next() {
+		var i ServerLlmModel
+		if err := rows.Scan(
+			&i.ID,
+			&i.ConfigName,
+			&i.EndpointType,
+			&i.CustomEndpoint,
+			&i.ModelName,
+			&i.TokenCommand,
+			&i.MaxContextTokens,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserGroupMembers = `-- name: ListUserGroupMembers :many
 SELECT m.group_id, m.user_id, u.email
 FROM user_group_members m
@@ -3400,6 +3518,46 @@ func (q *Queries) UpdateRuntimeByID(ctx context.Context, arg UpdateRuntimeByIDPa
 		arg.Name,
 		arg.Type,
 		arg.ConfigJson,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateServerLLMModel = `-- name: UpdateServerLLMModel :execrows
+UPDATE server_llm_models
+SET config_name = ?1,
+    endpoint_type = ?2,
+    custom_endpoint = ?3,
+    model_name = ?4,
+    token_command = ?5,
+    max_context_tokens = ?6,
+    updated_at = ?7
+WHERE id = ?8
+`
+
+type UpdateServerLLMModelParams struct {
+	ConfigName       string
+	EndpointType     string
+	CustomEndpoint   string
+	ModelName        string
+	TokenCommand     string
+	MaxContextTokens int64
+	UpdatedAt        int64
+	ID               string
+}
+
+func (q *Queries) UpdateServerLLMModel(ctx context.Context, arg UpdateServerLLMModelParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateServerLLMModel,
+		arg.ConfigName,
+		arg.EndpointType,
+		arg.CustomEndpoint,
+		arg.ModelName,
+		arg.TokenCommand,
+		arg.MaxContextTokens,
 		arg.UpdatedAt,
 		arg.ID,
 	)

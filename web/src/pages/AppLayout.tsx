@@ -1,4 +1,4 @@
-import { Blocks, Cpu, FileText, Group, Image, Settings, Users } from 'lucide-react'
+import { Blocks, Bot, Cpu, FileText, Group, Image, Settings, Users } from 'lucide-react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,6 +37,7 @@ const adminNavItems = [
   { to: '/admin/images', label: 'Images', icon: Image },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/groups', label: 'Groups', icon: Group },
+  { to: '/admin/llm-models', label: 'LLM Models', icon: Bot },
   { to: '/admin/audit-logs', label: 'Audit logs', icon: FileText },
   { to: '/admin/settings', label: 'Admin settings', icon: Settings },
 ]
