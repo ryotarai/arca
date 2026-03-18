@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -96,7 +97,8 @@ func (s *groupConnectService) ListGroups(ctx context.Context, req *connect.Reque
 }
 
 func (s *groupConnectService) CreateGroup(ctx context.Context, req *connect.Request[arcav1.CreateGroupRequest]) (*connect.Response[arcav1.CreateGroupResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -114,6 +116,8 @@ func (s *groupConnectService) CreateGroup(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create group"))
 	}
 
+	writeAuditLog(ctx, s.store, adminUserID, "", "group.create", "group", id, fmt.Sprintf(`{"name":%q}`, name))
+
 	return connect.NewResponse(&arcav1.CreateGroupResponse{
 		Group: &arcav1.UserGroup{
 			Id:          id,
@@ -124,13 +128,20 @@ func (s *groupConnectService) CreateGroup(ctx context.Context, req *connect.Requ
 }
 
 func (s *groupConnectService) DeleteGroup(ctx context.Context, req *connect.Request[arcav1.DeleteGroupRequest]) (*connect.Response[arcav1.DeleteGroupResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
 	groupID := strings.TrimSpace(req.Msg.GetGroupId())
 	if groupID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("group id is required"))
+	}
+
+	// Fetch name before deletion for audit log
+	var groupName string
+	if g, gErr := s.store.GetUserGroup(ctx, groupID); gErr == nil {
+		groupName = g.Name
 	}
 
 	deleted, err := s.store.DeleteUserGroup(ctx, groupID)
@@ -141,6 +152,8 @@ func (s *groupConnectService) DeleteGroup(ctx context.Context, req *connect.Requ
 	if !deleted {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("group not found"))
 	}
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "group.delete", "group", groupID, fmt.Sprintf(`{"name":%q}`, groupName))
 
 	return connect.NewResponse(&arcav1.DeleteGroupResponse{}), nil
 }
@@ -189,7 +202,8 @@ func (s *groupConnectService) GetGroup(ctx context.Context, req *connect.Request
 }
 
 func (s *groupConnectService) AddGroupMember(ctx context.Context, req *connect.Request[arcav1.AddGroupMemberRequest]) (*connect.Response[arcav1.AddGroupMemberResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -208,7 +222,8 @@ func (s *groupConnectService) AddGroupMember(ctx context.Context, req *connect.R
 	}
 
 	// Verify user exists
-	if _, err := s.store.GetUserByID(ctx, userID); err != nil {
+	memberUser, err := s.store.GetUserByID(ctx, userID)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
 		}
@@ -220,11 +235,14 @@ func (s *groupConnectService) AddGroupMember(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to add group member"))
 	}
 
+	writeAuditLog(ctx, s.store, adminUserID, "", "group.add_member", "group", groupID, fmt.Sprintf(`{"user_email":%q}`, memberUser.Email))
+
 	return connect.NewResponse(&arcav1.AddGroupMemberResponse{}), nil
 }
 
 func (s *groupConnectService) RemoveGroupMember(ctx context.Context, req *connect.Request[arcav1.RemoveGroupMemberRequest]) (*connect.Response[arcav1.RemoveGroupMemberResponse], error) {
-	if _, err := s.authenticateAdmin(ctx, req.Header()); err != nil {
+	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	if err != nil {
 		return nil, err
 	}
 
@@ -232,6 +250,12 @@ func (s *groupConnectService) RemoveGroupMember(ctx context.Context, req *connec
 	userID := strings.TrimSpace(req.Msg.GetUserId())
 	if groupID == "" || userID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("group id and user id are required"))
+	}
+
+	// Fetch email before removal for audit log
+	var memberEmail string
+	if u, uErr := s.store.GetUserByID(ctx, userID); uErr == nil {
+		memberEmail = u.Email
 	}
 
 	removed, err := s.store.RemoveUserGroupMember(ctx, groupID, userID)
@@ -242,6 +266,8 @@ func (s *groupConnectService) RemoveGroupMember(ctx context.Context, req *connec
 	if !removed {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("member not found in group"))
 	}
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "group.remove_member", "group", groupID, fmt.Sprintf(`{"user_email":%q}`, memberEmail))
 
 	return connect.NewResponse(&arcav1.RemoveGroupMemberResponse{}), nil
 }

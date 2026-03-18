@@ -1257,9 +1257,24 @@ export async function getImpersonationStatus(): Promise<ImpersonationStatus> {
   }
 }
 
-export async function listAuditLogs(limit = 100): Promise<AuditLog[]> {
-  const response = await adminClient.listAuditLogs(create(ListAuditLogsRequestSchema, { limit }))
-  return response.auditLogs
+export type AuditLogListResult = {
+  auditLogs: AuditLog[]
+  totalCount: number
+}
+
+export async function listAuditLogs(params: {
+  limit?: number
+  offset?: number
+  actionPrefix?: string
+  actorEmail?: string
+} = {}): Promise<AuditLogListResult> {
+  const response = await adminClient.listAuditLogs(create(ListAuditLogsRequestSchema, {
+    limit: params.limit ?? 100,
+    offset: params.offset ?? 0,
+    actionPrefix: params.actionPrefix ?? '',
+    actorEmail: params.actorEmail ?? '',
+  }))
+  return { auditLogs: response.auditLogs, totalCount: response.totalCount }
 }
 
 // Server LLM Model API

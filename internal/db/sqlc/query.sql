@@ -970,6 +970,25 @@ LEFT JOIN users u2 ON u2.id = al.acting_as_user_id
 ORDER BY al.created_at DESC
 LIMIT sqlc.arg(limit_count);
 
+-- name: ListAuditLogsFiltered :many
+SELECT al.id, al.actor_user_id, al.acting_as_user_id, al.action, al.resource_type, al.resource_id, al.details_json, al.created_at,
+  u1.email AS actor_email,
+  u2.email AS acting_as_email
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+LEFT JOIN users u2 ON u2.id = al.acting_as_user_id
+WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) || '%')
+  AND (sqlc.arg(actor_email) = '' OR u1.email = sqlc.arg(actor_email))
+ORDER BY al.created_at DESC
+LIMIT sqlc.arg(limit_count) OFFSET sqlc.arg(offset_count);
+
+-- name: CountAuditLogsFiltered :one
+SELECT COUNT(*) AS total_count
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) || '%')
+  AND (sqlc.arg(actor_email) = '' OR u1.email = sqlc.arg(actor_email));
+
 -- name: ListCustomImages :many
 SELECT id, name, runtime_type, data_json, description, created_at, updated_at
 FROM custom_images

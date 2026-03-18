@@ -71,6 +71,8 @@ func (s *userConnectService) CreateUser(ctx context.Context, req *connect.Reques
 		}
 	}
 
+	writeAuditLog(ctx, s.store, adminUserID, "", "user.create", "user", userID, fmt.Sprintf(`{"email":%q}`, normalizedEmail))
+
 	return connect.NewResponse(&arcav1.CreateUserResponse{
 		User: &arcav1.ManagedUser{
 			Id:                  userID,
@@ -115,6 +117,8 @@ func (s *userConnectService) IssueUserSetupToken(ctx context.Context, req *conne
 		log.Printf("get user failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user"))
 	}
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "user.issue_setup_token", "user", userID, fmt.Sprintf(`{"email":%q}`, user.Email))
 
 	return connect.NewResponse(&arcav1.IssueUserSetupTokenResponse{
 		User: &arcav1.ManagedUser{
@@ -201,6 +205,17 @@ func (s *userConnectService) UpdateUserRole(ctx context.Context, req *connect.Re
 	if !updated {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
 	}
+
+	user, err := s.store.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
+		}
+		log.Printf("get user failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user"))
+	}
+
+	writeAuditLog(ctx, s.store, adminUserID, "", "user.update_role", "user", userID, fmt.Sprintf(`{"email":%q,"role":%q}`, user.Email, role))
 
 	users, err := s.authenticator.ListUsers(ctx)
 	if err != nil {
@@ -411,6 +426,8 @@ func (s *userConnectService) CreateUserLLMModel(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load created LLM model"))
 	}
 
+	writeAuditLog(ctx, s.store, userID, "", "user.create_llm_model", "user_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
+
 	return connect.NewResponse(&arcav1.CreateUserLLMModelResponse{
 		Model: toLLMModelMessageFromFull(created),
 	}), nil
@@ -492,6 +509,8 @@ func (s *userConnectService) UpdateUserLLMModel(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load updated LLM model"))
 	}
 
+	writeAuditLog(ctx, s.store, userID, "", "user.update_llm_model", "user_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
+
 	return connect.NewResponse(&arcav1.UpdateUserLLMModelResponse{
 		Model: toLLMModelMessageFromFull(result),
 	}), nil
@@ -508,6 +527,12 @@ func (s *userConnectService) DeleteUserLLMModel(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
 	}
 
+	existing, getErr := s.store.GetUserLLMModel(ctx, id, userID)
+	var configName string
+	if getErr == nil {
+		configName = existing.ConfigName
+	}
+
 	deleted, err := s.store.DeleteUserLLMModel(ctx, id, userID)
 	if err != nil {
 		log.Printf("delete user llm model failed: %v", err)
@@ -516,6 +541,8 @@ func (s *userConnectService) DeleteUserLLMModel(ctx context.Context, req *connec
 	if !deleted {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
 	}
+
+	writeAuditLog(ctx, s.store, userID, "", "user.delete_llm_model", "user_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
 
 	return connect.NewResponse(&arcav1.DeleteUserLLMModelResponse{}), nil
 }

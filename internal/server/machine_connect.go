@@ -151,10 +151,11 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 }
 
 func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.Request[arcav1.UpdateMachineRequest]) (*connect.Response[arcav1.UpdateMachineResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
@@ -216,6 +217,8 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
 	}
 	updated.UserRole = db.MachineRoleAdmin
+
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.update", "machine", machineID, fmt.Sprintf(`{"name":%q}`, updated.Name))
 
 	return connect.NewResponse(&arcav1.UpdateMachineResponse{Machine: toMachineMessage(updated)}), nil
 }
