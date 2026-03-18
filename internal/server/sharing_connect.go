@@ -89,10 +89,11 @@ func (s *sharingConnectService) GetMachineSharing(ctx context.Context, req *conn
 }
 
 func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *connect.Request[arcav1.UpdateMachineSharingRequest]) (*connect.Response[arcav1.UpdateMachineSharingResponse], error) {
-	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
+	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
@@ -251,6 +252,8 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 		})
 	}
 
+	writeAuditLogFromAuth(ctx, s.store, authResult, "sharing.update", "machine", machineID, "{}")
+
 	return connect.NewResponse(&arcav1.UpdateMachineSharingResponse{
 		Members: protoMembers,
 		GeneralAccess: &arcav1.GeneralAccess{
@@ -343,10 +346,11 @@ func (s *sharingConnectService) ListMachineAccessRequests(ctx context.Context, r
 }
 
 func (s *sharingConnectService) ResolveMachineAccessRequest(ctx context.Context, req *connect.Request[arcav1.ResolveMachineAccessRequestRequest]) (*connect.Response[arcav1.ResolveMachineAccessRequestResponse], error) {
-	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
+	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	requestID := strings.TrimSpace(req.Msg.GetRequestId())
 	if requestID == "" {
@@ -404,6 +408,8 @@ func (s *sharingConnectService) ResolveMachineAccessRequest(ctx context.Context,
 	if updated == 0 {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("access request not found or already resolved"))
 	}
+
+	writeAuditLogFromAuth(ctx, s.store, authResult, "sharing.resolve_access_request", "machine", accessReq.MachineID, fmt.Sprintf(`{"request_id":%q,"action":%q}`, requestID, action))
 
 	return connect.NewResponse(&arcav1.ResolveMachineAccessRequestResponse{}), nil
 }

@@ -57,6 +57,22 @@ func (q *Queries) ClaimMachineJob(ctx context.Context, arg ClaimMachineJobParams
 	return result.RowsAffected()
 }
 
+const clearSessionImpersonation = `-- name: ClearSessionImpersonation :execrows
+UPDATE sessions
+SET impersonated_user_id = NULL,
+    impersonated_by_user_id = NULL
+WHERE token_hash = $1
+  AND revoked_at IS NULL
+`
+
+func (q *Queries) ClearSessionImpersonation(ctx context.Context, tokenHash string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, clearSessionImpersonation, tokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const countActiveStartOrReconcileJobsByMachineID = `-- name: CountActiveStartOrReconcileJobsByMachineID :one
 SELECT COUNT(1)
 FROM machine_jobs
@@ -139,6 +155,45 @@ func (q *Queries) CreateArcadSession(ctx context.Context, arg CreateArcadSession
 		arg.MachineID,
 		arg.ExposureID,
 		arg.ExpiresAt,
+		arg.CreatedAt,
+	)
+	return err
+}
+
+const createAuditLog = `-- name: CreateAuditLog :exec
+INSERT INTO audit_logs (id, actor_user_id, acting_as_user_id, action, resource_type, resource_id, details_json, created_at)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7,
+  $8
+)
+`
+
+type CreateAuditLogParams struct {
+	ID             string
+	ActorUserID    string
+	ActingAsUserID sql.NullString
+	Action         string
+	ResourceType   string
+	ResourceID     string
+	DetailsJson    string
+	CreatedAt      time.Time
+}
+
+func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) error {
+	_, err := q.db.ExecContext(ctx, createAuditLog,
+		arg.ID,
+		arg.ActorUserID,
+		arg.ActingAsUserID,
+		arg.Action,
+		arg.ResourceType,
+		arg.ResourceID,
+		arg.DetailsJson,
 		arg.CreatedAt,
 	)
 	return err
@@ -1181,6 +1236,32 @@ func (q *Queries) GetRuntimeByID(ctx context.Context, id string) (Runtime, error
 	return i, err
 }
 
+const getSessionImpersonation = `-- name: GetSessionImpersonation :one
+SELECT impersonated_user_id, impersonated_by_user_id
+FROM sessions
+WHERE token_hash = $1
+  AND revoked_at IS NULL
+  AND expires_at > $2
+LIMIT 1
+`
+
+type GetSessionImpersonationParams struct {
+	TokenHash string
+	NowUnix   int64
+}
+
+type GetSessionImpersonationRow struct {
+	ImpersonatedUserID   sql.NullString
+	ImpersonatedByUserID sql.NullString
+}
+
+func (q *Queries) GetSessionImpersonation(ctx context.Context, arg GetSessionImpersonationParams) (GetSessionImpersonationRow, error) {
+	row := q.db.QueryRowContext(ctx, getSessionImpersonation, arg.TokenHash, arg.NowUnix)
+	var i GetSessionImpersonationRow
+	err := row.Scan(&i.ImpersonatedUserID, &i.ImpersonatedByUserID)
+	return i, err
+}
+
 const getSetupState = `-- name: GetSetupState :one
 SELECT completed, base_domain, domain_prefix, cloudflare_api_token, updated_at
 FROM setup_state
@@ -1557,6 +1638,64 @@ func (q *Queries) ListAllUserLLMModelsEncryptedKeys(ctx context.Context) ([]List
 	for rows.Next() {
 		var i ListAllUserLLMModelsEncryptedKeysRow
 		if err := rows.Scan(&i.ID, &i.ApiKeyEncrypted); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAuditLogs = `-- name: ListAuditLogs :many
+SELECT al.id, al.actor_user_id, al.acting_as_user_id, al.action, al.resource_type, al.resource_id, al.details_json, al.created_at,
+  u1.email AS actor_email,
+  u2.email AS acting_as_email
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+LEFT JOIN users u2 ON u2.id = al.acting_as_user_id
+ORDER BY al.created_at DESC
+LIMIT $1
+`
+
+type ListAuditLogsRow struct {
+	ID             string
+	ActorUserID    string
+	ActingAsUserID sql.NullString
+	Action         string
+	ResourceType   string
+	ResourceID     string
+	DetailsJson    string
+	CreatedAt      time.Time
+	ActorEmail     string
+	ActingAsEmail  sql.NullString
+}
+
+func (q *Queries) ListAuditLogs(ctx context.Context, limitCount int32) ([]ListAuditLogsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAuditLogs, limitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAuditLogsRow
+	for rows.Next() {
+		var i ListAuditLogsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ActorUserID,
+			&i.ActingAsUserID,
+			&i.Action,
+			&i.ResourceType,
+			&i.ResourceID,
+			&i.DetailsJson,
+			&i.CreatedAt,
+			&i.ActorEmail,
+			&i.ActingAsEmail,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -2726,6 +2865,28 @@ func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmail
 		return nil, err
 	}
 	return items, nil
+}
+
+const setSessionImpersonation = `-- name: SetSessionImpersonation :execrows
+UPDATE sessions
+SET impersonated_user_id = $1,
+    impersonated_by_user_id = $2
+WHERE token_hash = $3
+  AND revoked_at IS NULL
+`
+
+type SetSessionImpersonationParams struct {
+	ImpersonatedUserID   sql.NullString
+	ImpersonatedByUserID sql.NullString
+	TokenHash            string
+}
+
+func (q *Queries) SetSessionImpersonation(ctx context.Context, arg SetSessionImpersonationParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setSessionImpersonation, arg.ImpersonatedUserID, arg.ImpersonatedByUserID, arg.TokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateMachineEndpointByID = `-- name: UpdateMachineEndpointByID :exec

@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ryotarai/arca/internal/auth"
 	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
@@ -46,6 +47,7 @@ type Authenticator interface {
 	Authenticate(context.Context, string) (string, string, string, error)
 	AuthenticateIAPJWT(context.Context, string) (string, string, string, error)
 	Logout(context.Context, string) error
+	AuthenticateFull(context.Context, string) (auth.AuthResult, error)
 }
 
 type MachineStore interface {
@@ -113,6 +115,10 @@ func NewRouter(deps Dependencies) http.Handler {
 	}
 	if deps.Store != nil && deps.Authenticator != nil && deps.Slack != nil {
 		path, handler := arcav1connect.NewNotificationServiceHandler(newNotificationConnectService(deps.Store, deps.Authenticator, deps.Slack))
+		r.Mount(path, handler)
+	}
+	if deps.Store != nil && deps.Authenticator != nil {
+		path, handler := arcav1connect.NewAdminServiceHandler(newAdminConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil {
