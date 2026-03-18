@@ -28,7 +28,27 @@ type machineConnectService struct {
 
 var machineNamePattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 
-var reservedMachineNames = []string{"admin", "console", "dash", "api", "system"}
+var reservedMachineNames = []string{
+	// Sorted alphabetically.
+	"admin", "alerts", "api", "app", "artifacts", "assets", "auth",
+	"blog", "cas", "cd", "cdn", "ci", "cluster", "console",
+	"dash", "demo", "dev", "dns", "docs",
+	"faq", "files", "ftp",
+	"gateway", "git", "gitlab", "grafana",
+	"health", "help",
+	"imap", "internal",
+	"lb", "localhost", "login",
+	"mail", "media", "mobile", "monitoring",
+	"node", "ns1", "ns2",
+	"oauth",
+	"preview", "private", "prod", "prometheus", "proxy", "public",
+	"registry", "relay",
+	"sandbox", "server", "smtp", "sso", "staging", "static", "status", "support", "system",
+	"test",
+	"upload",
+	"vpn",
+	"web", "wiki", "ws", "www",
+}
 
 func newMachineConnectService(authenticator Authenticator, store MachineStore, dbStore *db.Store) *machineConnectService {
 	return &machineConnectService{authenticator: authenticator, store: store, dbStore: dbStore}
