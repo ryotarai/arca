@@ -3,11 +3,11 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { deleteRuntime, listAvailableRuntimes, listRuntimes } from '@/lib/api'
+import { deleteMachineTemplate, listAvailableMachineTemplates, listMachineTemplates } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
+import type { MachineTemplateItem, MachineTemplateSummary, User } from '@/lib/types'
 
-type RuntimeDetailPageProps = {
+type MachineTemplateDetailPageProps = {
   user: User | null
   onLogout: () => Promise<void>
 }
@@ -19,18 +19,18 @@ function formatUnix(unix: number): string {
   return new Date(unix * 1000).toLocaleString()
 }
 
-export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
-  const { runtimeID } = useParams()
+export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDetailPageProps) {
+  const { templateID } = useParams()
   const navigate = useNavigate()
   const isAdmin = user?.role === 'admin'
-  const [runtime, setRuntime] = useState<RuntimeCatalogItem | null>(null)
-  const [summary, setSummary] = useState<RuntimeSummary | null>(null)
+  const [template, setTemplate] = useState<MachineTemplateItem | null>(null)
+  const [summary, setSummary] = useState<MachineTemplateSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    if (user == null || runtimeID == null || runtimeID === '') {
+    if (user == null || templateID == null || templateID === '') {
       return
     }
 
@@ -41,13 +41,13 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
       setError('')
       try {
         if (isAdmin) {
-          const items = await listRuntimes()
+          const items = await listMachineTemplates()
           if (cancelled) return
-          setRuntime(items.find((item) => item.id === runtimeID) ?? null)
+          setTemplate(items.find((item) => item.id === templateID) ?? null)
         } else {
-          const items = await listAvailableRuntimes()
+          const items = await listAvailableMachineTemplates()
           if (cancelled) return
-          setSummary(items.find((item) => item.id === runtimeID) ?? null)
+          setSummary(items.find((item) => item.id === templateID) ?? null)
         }
       } catch (e) {
         if (!cancelled) {
@@ -65,24 +65,24 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
     return () => {
       cancelled = true
     }
-  }, [user, runtimeID, isAdmin])
+  }, [user, templateID, isAdmin])
 
   if (user == null) {
     return <Navigate to="/login" replace />
   }
-  if (runtimeID == null || runtimeID === '') {
-    return <Navigate to={isAdmin ? '/runtimes' : '/machines'} replace />
+  if (templateID == null || templateID === '') {
+    return <Navigate to={isAdmin ? '/machine-templates' : '/machines'} replace />
   }
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this runtime?')) {
+    if (!window.confirm('Delete this template?')) {
       return
     }
     setDeleting(true)
     setError('')
     try {
-      await deleteRuntime(runtimeID)
-      navigate('/runtimes')
+      await deleteMachineTemplate(templateID)
+      navigate('/machine-templates')
     } catch (err) {
       setError(messageFromError(err))
     } finally {
@@ -96,14 +96,14 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
         <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-foreground">Runtime detail</h1>
-            <p className="mt-1 text-xs text-muted-foreground">{runtimeID}</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Template detail</h1>
+            <p className="mt-1 text-xs text-muted-foreground">{templateID}</p>
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && (
               <>
                 <Button asChild variant="secondary">
-                  <Link to={`/runtimes/${runtimeID}/edit`}>
+                  <Link to={`/machine-templates/${templateID}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </Link>
@@ -115,64 +115,64 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
               </>
             )}
             <Button asChild type="button" variant="secondary">
-              <Link to={isAdmin ? '/runtimes' : '/machines'}>Back</Link>
+              <Link to={isAdmin ? '/machine-templates' : '/machines'}>Back</Link>
             </Button>
           </div>
         </header>
 
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl">Runtime metadata</CardTitle>
-            <CardDescription>Configuration and timestamps for this runtime entry.</CardDescription>
+            <CardTitle className="text-xl">Template metadata</CardTitle>
+            <CardDescription>Configuration and timestamps for this template entry.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-6 pt-3">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : isAdmin && runtime != null ? (
+            ) : isAdmin && template != null ? (
               <>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="text-lg font-semibold text-foreground">{runtime.name}</p>
+                  <p className="text-lg font-semibold text-foreground">{template.name}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Type</p>
-                  <p className="text-sm text-foreground">{runtime.type}</p>
+                  <p className="text-sm text-foreground">{template.type}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="text-sm text-foreground">{formatUnix(runtime.createdAt)}</p>
+                  <p className="text-sm text-foreground">{formatUnix(template.createdAt)}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Updated</p>
-                  <p className="text-sm text-foreground">{formatUnix(runtime.updatedAt)}</p>
+                  <p className="text-sm text-foreground">{formatUnix(template.updatedAt)}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Machine exposure</p>
                   <p className="text-sm text-foreground">Method: Proxy via Server</p>
-                  {runtime.exposure.domainPrefix !== '' && <p className="text-sm text-foreground">Domain prefix: {runtime.exposure.domainPrefix}</p>}
-                  {runtime.exposure.baseDomain !== '' && <p className="text-sm text-foreground">Base domain: {runtime.exposure.baseDomain}</p>}
-                  {runtime.exposure.connectivity !== '' && <p className="text-sm text-foreground">Connectivity: {runtime.exposure.connectivity}</p>}
+                  {template.exposure.domainPrefix !== '' && <p className="text-sm text-foreground">Domain prefix: {template.exposure.domainPrefix}</p>}
+                  {template.exposure.baseDomain !== '' && <p className="text-sm text-foreground">Base domain: {template.exposure.baseDomain}</p>}
+                  {template.exposure.connectivity !== '' && <p className="text-sm text-foreground">Connectivity: {template.exposure.connectivity}</p>}
                 </div>
-                {runtime.config.type === 'libvirt' ? (
+                {template.config.type === 'libvirt' ? (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Config</p>
-                    <p className="text-sm text-foreground">URI: {runtime.config.uri}</p>
-                    <p className="text-sm text-foreground">Network: {runtime.config.network}</p>
-                    <p className="text-sm text-foreground">Storage pool: {runtime.config.storagePool}</p>
+                    <p className="text-sm text-foreground">URI: {template.config.uri}</p>
+                    <p className="text-sm text-foreground">Network: {template.config.network}</p>
+                    <p className="text-sm text-foreground">Storage pool: {template.config.storagePool}</p>
                   </div>
-                ) : runtime.config.type === 'lxd' ? (
+                ) : template.config.type === 'lxd' ? (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Config</p>
-                    <p className="text-sm text-foreground">Endpoint: {runtime.config.endpoint}</p>
+                    <p className="text-sm text-foreground">Endpoint: {template.config.endpoint}</p>
                   </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Config</p>
-                    <p className="text-sm text-foreground">Project: {runtime.config.project}</p>
-                    <p className="text-sm text-foreground">Zone: {runtime.config.zone}</p>
-                    <p className="text-sm text-foreground">Network: {runtime.config.network}</p>
-                    <p className="text-sm text-foreground">Subnetwork: {runtime.config.subnetwork}</p>
-                    <p className="text-sm text-foreground">Service account email: {runtime.config.serviceAccountEmail}</p>
+                    <p className="text-sm text-foreground">Project: {template.config.project}</p>
+                    <p className="text-sm text-foreground">Zone: {template.config.zone}</p>
+                    <p className="text-sm text-foreground">Network: {template.config.network}</p>
+                    <p className="text-sm text-foreground">Subnetwork: {template.config.subnetwork}</p>
+                    <p className="text-sm text-foreground">Service account email: {template.config.serviceAccountEmail}</p>
                   </div>
                 )}
               </>
@@ -188,7 +188,7 @@ export function RuntimeDetailPage({ user, onLogout }: RuntimeDetailPageProps) {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Runtime not found.</p>
+              <p className="text-sm text-muted-foreground">Template not found.</p>
             )}
 
             {error !== '' && (

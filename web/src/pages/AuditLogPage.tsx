@@ -30,7 +30,7 @@ const ACTION_PREFIXES = [
   { value: '', label: 'All actions' },
   { value: 'machine.', label: 'machine.*' },
   { value: 'user.', label: 'user.*' },
-  { value: 'runtime.', label: 'runtime.*' },
+  { value: 'template.', label: 'template.*' },
   { value: 'image.', label: 'image.*' },
   { value: 'group.', label: 'group.*' },
   { value: 'sharing.', label: 'sharing.*' },
@@ -45,8 +45,8 @@ function resourceLink(resourceType: string, resourceId: string): string | null {
   switch (resourceType) {
     case 'machine':
       return `/machines/${resourceId}`
-    case 'runtime':
-      return `/runtimes/${resourceId}`
+    case 'template':
+      return `/machine-templates/${resourceId}`
     default:
       return null
   }

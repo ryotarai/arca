@@ -8,29 +8,29 @@ async function parseJSONSafe(response: APIResponse): Promise<Record<string, unkn
   }
 }
 
-type RuntimeRecord = {
+type TemplateRecord = {
   id: string
   name: string
   type: string
 }
 
-type CreateRuntimeOptions = {
+type CreateTemplateOptions = {
   name: string
   type: string
   config: Record<string, unknown>
 }
 
-export async function createRuntimeViaAPI(
+export async function createMachineTemplateViaAPI(
   page: Page,
-  options: CreateRuntimeOptions,
-): Promise<RuntimeRecord> {
+  options: CreateTemplateOptions,
+): Promise<TemplateRecord> {
   const typeMap: Record<string, number> = {
     libvirt: 1,
     gce: 2,
     lxd: 3,
   }
 
-  const response = await page.request.post('/arca.v1.RuntimeService/CreateRuntime', {
+  const response = await page.request.post('/arca.v1.MachineTemplateService/CreateMachineTemplate', {
     data: {
       name: options.name,
       type: typeMap[options.type] ?? 0,
@@ -40,22 +40,22 @@ export async function createRuntimeViaAPI(
 
   if (!response.ok()) {
     const payload = await parseJSONSafe(response)
-    throw new Error(`CreateRuntime failed: ${response.status()} ${JSON.stringify(payload)}`)
+    throw new Error(`CreateMachineTemplate failed: ${response.status()} ${JSON.stringify(payload)}`)
   }
 
   const payload = (await response.json()) as {
-    runtime?: { id?: string; name?: string; type?: string }
+    template?: { id?: string; name?: string; type?: string }
   }
   return {
-    id: payload.runtime?.id?.trim() ?? '',
-    name: payload.runtime?.name?.trim() ?? '',
-    type: payload.runtime?.type?.trim() ?? '',
+    id: payload.template?.id?.trim() ?? '',
+    name: payload.template?.name?.trim() ?? '',
+    type: payload.template?.type?.trim() ?? '',
   }
 }
 
-export async function deleteRuntimeViaAPI(page: Page, runtimeId: string) {
-  const response = await page.request.post('/arca.v1.RuntimeService/DeleteRuntime', {
-    data: { runtimeId },
+export async function deleteMachineTemplateViaAPI(page: Page, templateId: string) {
+  const response = await page.request.post('/arca.v1.MachineTemplateService/DeleteMachineTemplate', {
+    data: { templateId },
     failOnStatusCode: false,
   })
 
@@ -65,18 +65,18 @@ export async function deleteRuntimeViaAPI(page: Page, runtimeId: string) {
     if (code.includes('not_found')) {
       return
     }
-    throw new Error(`DeleteRuntime failed: ${response.status()} ${JSON.stringify(payload)}`)
+    throw new Error(`DeleteMachineTemplate failed: ${response.status()} ${JSON.stringify(payload)}`)
   }
 }
 
-export async function ensureLxdRuntime(
+export async function ensureLxdTemplate(
   page: Page,
-): Promise<RuntimeRecord> {
+): Promise<TemplateRecord> {
   const serverPort = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080',
   ).port
   try {
-    return await createRuntimeViaAPI(page, {
+    return await createMachineTemplateViaAPI(page, {
       name: 'lxd-e2e',
       type: 'lxd',
       config: {
@@ -92,13 +92,13 @@ export async function ensureLxdRuntime(
     })
   } catch (error) {
     if (String(error).includes('already_exists')) {
-      const listResp = await page.request.post('/arca.v1.RuntimeService/ListRuntimes', {
+      const listResp = await page.request.post('/arca.v1.MachineTemplateService/ListMachineTemplates', {
         data: {},
       })
       const listPayload = (await listResp.json()) as {
-        runtimes?: Array<{ id?: string; name?: string; type?: string }>
+        templates?: Array<{ id?: string; name?: string; type?: string }>
       }
-      const existing = listPayload.runtimes?.find((r) => r.name === 'lxd-e2e')
+      const existing = listPayload.templates?.find((r) => r.name === 'lxd-e2e')
       if (existing) {
         return {
           id: existing.id ?? '',
@@ -111,10 +111,10 @@ export async function ensureLxdRuntime(
   }
 }
 
-export async function ensureLxdRuntimeWithProxyExposure(
+export async function ensureLxdTemplateWithProxyExposure(
   page: Page,
   opts?: { name?: string; domainPrefix?: string; baseDomain?: string },
-): Promise<RuntimeRecord> {
+): Promise<TemplateRecord> {
   const name = opts?.name ?? 'lxd-proxy-e2e'
   const domainPrefix = opts?.domainPrefix ?? 'arca-'
   const baseDomain = opts?.baseDomain ?? 'localhost'
@@ -123,7 +123,7 @@ export async function ensureLxdRuntimeWithProxyExposure(
   ).port
 
   try {
-    return await createRuntimeViaAPI(page, {
+    return await createMachineTemplateViaAPI(page, {
       name,
       type: 'lxd',
       config: {
@@ -139,13 +139,13 @@ export async function ensureLxdRuntimeWithProxyExposure(
     })
   } catch (error) {
     if (String(error).includes('already_exists')) {
-      const listResp = await page.request.post('/arca.v1.RuntimeService/ListRuntimes', {
+      const listResp = await page.request.post('/arca.v1.MachineTemplateService/ListMachineTemplates', {
         data: {},
       })
       const listPayload = (await listResp.json()) as {
-        runtimes?: Array<{ id?: string; name?: string; type?: string }>
+        templates?: Array<{ id?: string; name?: string; type?: string }>
       }
-      const existing = listPayload.runtimes?.find((r) => r.name === name)
+      const existing = listPayload.templates?.find((r) => r.name === name)
       if (existing) {
         return {
           id: existing.id ?? '',

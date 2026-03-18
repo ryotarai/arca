@@ -5,10 +5,10 @@ import {
   createMachineViaAPI,
   waitForMachineStatus,
 } from './helpers/machine'
-import { ensureLxdRuntimeWithProxyExposure } from './helpers/runtime'
+import { ensureLxdTemplateWithProxyExposure } from './helpers/machine-template'
 
 test.describe('LXD provisioning (proxy via server)', () => {
-  let runtimeId = ''
+  let templateId = ''
 
   test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext({
@@ -17,12 +17,12 @@ test.describe('LXD provisioning (proxy via server)', () => {
     const page = await context.newPage()
     try {
       await loginAsAdmin(page)
-      const runtime = await ensureLxdRuntimeWithProxyExposure(page, {
+      const runtime = await ensureLxdTemplateWithProxyExposure(page, {
         name: 'lxd-provisioning-e2e',
         domainPrefix: 'arca-',
         baseDomain: 'localhost',
       })
-      runtimeId = runtime.id
+      templateId = runtime.id
     } finally {
       await context.close()
     }
@@ -37,7 +37,7 @@ test.describe('LXD provisioning (proxy via server)', () => {
     let machineID = ''
 
     try {
-      machineID = await createMachineViaAPI(page, machineName, runtimeId)
+      machineID = await createMachineViaAPI(page, machineName, templateId)
 
       // Wait for running status (up to 10 minutes)
       const runningMachine = await waitForMachineStatus(page, machineID, ['running'], {

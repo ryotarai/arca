@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMachine, listAvailableImages, listAvailableRuntimes, listRuntimes } from '@/lib/api'
+import { createMachine, listAvailableImages, listAvailableMachineTemplates, listMachineTemplates } from '@/lib/api'
 import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
+import type { MachineTemplateItem, MachineTemplateSummary, User } from '@/lib/types'
 
 type CreateMachinePageProps = {
   user: User | null
@@ -17,13 +17,13 @@ type CreateMachinePageProps = {
 export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
-  const [selectedRuntimeID, setSelectedRuntimeID] = useState('')
-  const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
-  const [runtimeDetails, setRuntimeDetails] = useState<RuntimeCatalogItem[]>([])
+  const [selectedTemplateID, setSelectedTemplateID] = useState('')
+  const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
+  const [templateDetails, setTemplateDetails] = useState<MachineTemplateItem[]>([])
   const [machineType, setMachineType] = useState('')
   const [customImageId, setCustomImageId] = useState('')
   const [availableImages, setAvailableImages] = useState<CustomImage[]>([])
-  const [loadingRuntimes, setLoadingRuntimes] = useState(true)
+  const [loadingTemplates, setLoadingTemplates] = useState(true)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
 
@@ -35,17 +35,17 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     let cancelled = false
 
     const run = async () => {
-      setLoadingRuntimes(true)
+      setLoadingTemplates(true)
       setError('')
       try {
-        const [items, details] = await Promise.all([listAvailableRuntimes(), listRuntimes()])
+        const [items, details] = await Promise.all([listAvailableMachineTemplates(), listMachineTemplates()])
         if (cancelled) {
           return
         }
-        setRuntimes(items)
-        setRuntimeDetails(details)
-        setSelectedRuntimeID((current) => {
-          if (current !== '' && items.some((runtime) => runtime.id === current)) {
+        setTemplates(items)
+        setTemplateDetails(details)
+        setSelectedTemplateID((current) => {
+          if (current !== '' && items.some((template) => template.id === current)) {
             return current
           }
           return items[0]?.id ?? ''
@@ -56,7 +56,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
         }
       } finally {
         if (!cancelled) {
-          setLoadingRuntimes(false)
+          setLoadingTemplates(false)
         }
       }
     }
@@ -68,9 +68,9 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     }
   }, [user])
 
-  // Fetch available images when runtime changes
+  // Fetch available images when template changes
   useEffect(() => {
-    if (selectedRuntimeID === '') {
+    if (selectedTemplateID === '') {
       setAvailableImages([])
       setCustomImageId('')
       return
@@ -78,7 +78,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     let cancelled = false
     const fetchImages = async () => {
       try {
-        const imgs = await listAvailableImages(selectedRuntimeID)
+        const imgs = await listAvailableImages(selectedTemplateID)
         if (!cancelled) {
           setAvailableImages(imgs)
           setCustomImageId('')
@@ -91,7 +91,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     }
     void fetchImages()
     return () => { cancelled = true }
-  }, [selectedRuntimeID])
+  }, [selectedTemplateID])
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -104,8 +104,8 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       setError('Name is required.')
       return
     }
-    if (selectedRuntimeID.trim() === '') {
-      setError('Runtime is required.')
+    if (selectedTemplateID.trim() === '') {
+      setError('Template is required.')
       return
     }
 
@@ -113,17 +113,17 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     setError('')
     try {
       const options: Record<string, string> = {}
-      const selectedRuntime = runtimeDetails.find((r) => r.id === selectedRuntimeID)
+      const selectedTemplate = templateDetails.find((r) => r.id === selectedTemplateID)
       const effectiveMachineType = machineType.trim() ||
-        (selectedRuntime?.type === 'gce' && selectedRuntime.config.type === 'gce'
-          ? (selectedRuntime.config.allowedMachineTypes ?? [])[0] ?? ''
+        (selectedTemplate?.type === 'gce' && selectedTemplate.config.type === 'gce'
+          ? (selectedTemplate.config.allowedMachineTypes ?? [])[0] ?? ''
           : '')
       if (effectiveMachineType !== '') {
         options.machine_type = effectiveMachineType
       }
       const created = await createMachine(
         trimmedName,
-        selectedRuntimeID,
+        selectedTemplateID,
         Object.keys(options).length > 0 ? options : undefined,
         customImageId || undefined,
       )
@@ -142,7 +142,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
             <h1 className="mt-2 text-2xl font-semibold text-foreground">Create machine</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Create a machine from an existing runtime catalog entry.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Create a machine from an existing template.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -157,7 +157,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl">Machine settings</CardTitle>
-            <CardDescription>Choose runtime and machine name before creation.</CardDescription>
+            <CardDescription>Choose template and machine name before creation.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             <form className="space-y-4" onSubmit={handleSubmit}>
@@ -176,29 +176,29 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-machine-runtime">
-                  Runtime
+                <Label htmlFor="create-machine-template">
+                  Template
                 </Label>
                 <select
-                  id="create-machine-runtime"
-                  value={selectedRuntimeID}
-                  onChange={(event) => setSelectedRuntimeID(event.target.value)}
+                  id="create-machine-template"
+                  value={selectedTemplateID}
+                  onChange={(event) => setSelectedTemplateID(event.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-                  disabled={loadingRuntimes || runtimes.length === 0}
+                  disabled={loadingTemplates || templates.length === 0}
                 >
-                  {runtimes.length === 0 && <option value="">No runtime available</option>}
-                  {runtimes.map((runtime) => (
-                    <option key={runtime.id} value={runtime.id}>
-                      {runtime.name} ({runtime.type})
+                  {templates.length === 0 && <option value="">No template available</option>}
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name} ({template.type})
                     </option>
                   ))}
                 </select>
               </div>
 
               {(() => {
-                const selectedRuntime = runtimeDetails.find((r) => r.id === selectedRuntimeID)
-                if (selectedRuntime == null || selectedRuntime.type !== 'gce') return null
-                const gceConfig = selectedRuntime.config
+                const selectedTemplate = templateDetails.find((r) => r.id === selectedTemplateID)
+                if (selectedTemplate == null || selectedTemplate.type !== 'gce') return null
+                const gceConfig = selectedTemplate.config
                 if (gceConfig.type !== 'gce') return null
                 const allowed = gceConfig.allowedMachineTypes ?? []
                 if (allowed.length === 0) return null
@@ -241,19 +241,19 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                     ))}
                   </select>
                   <p className="text-xs text-muted-foreground">
-                    Select a custom image or use the runtime default.
+                    Select a custom image or use the template default.
                   </p>
                 </div>
               )}
 
-              {runtimes.length === 0 && !loadingRuntimes && (
-                <p className="text-sm text-amber-300">Create at least one runtime in the runtime catalog before creating machines.</p>
+              {templates.length === 0 && !loadingTemplates && (
+                <p className="text-sm text-amber-300">Create at least one template before creating machines.</p>
               )}
 
               <Button
                 type="submit"
                 className="h-10 px-5"
-                disabled={creating || loadingRuntimes || runtimes.length === 0}
+                disabled={creating || loadingTemplates || templates.length === 0}
               >
                 {creating ? 'Creating...' : 'Create machine'}
               </Button>

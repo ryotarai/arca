@@ -4,19 +4,19 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createRuntime, listRuntimes, updateRuntime } from '@/lib/api'
+import { createMachineTemplate, listMachineTemplates, updateMachineTemplate } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { MachineExposureConfig, MachineExposureMethodType, RuntimeCatalogConfig, RuntimeCatalogItem, RuntimeCatalogType, User } from '@/lib/types'
+import type { MachineExposureConfig, MachineExposureMethodType, MachineTemplateConfig, MachineTemplateItem, MachineTemplateType, User } from '@/lib/types'
 
-type RuntimeFormPageProps = {
+type MachineTemplateFormPageProps = {
   user: User | null
   onLogout: () => Promise<void>
 }
 
-type RuntimeFormState = {
+type TemplateFormState = {
   id: string
   name: string
-  type: RuntimeCatalogType
+  type: MachineTemplateType
   libvirtURI: string
   libvirtNetwork: string
   libvirtStoragePool: string
@@ -39,10 +39,10 @@ type RuntimeFormState = {
   autoStopTimeoutHours: string
 }
 
-const runtimeNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+const templateNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
 const maxStartupScriptBytes = 8 * 1024
 
-function emptyRuntimeForm(): RuntimeFormState {
+function emptyTemplateForm(): TemplateFormState {
   return {
     id: '',
     name: '',
@@ -74,7 +74,7 @@ function utf8ByteLength(value: string): number {
   return new TextEncoder().encode(value).length
 }
 
-function validateRuntimeForm(form: RuntimeFormState): string | null {
+function validateTemplateForm(form: TemplateFormState): string | null {
   const name = form.name.trim().toLowerCase()
   if (name === '') {
     return 'Name is required.'
@@ -85,7 +85,7 @@ function validateRuntimeForm(form: RuntimeFormState): string | null {
   if (name.length > 63) {
     return 'Name must be 63 characters or less.'
   }
-  if (!runtimeNamePattern.test(name)) {
+  if (!templateNamePattern.test(name)) {
     return 'Name must use lowercase letters, digits, and hyphens only.'
   }
 
@@ -131,7 +131,7 @@ function validateRuntimeForm(form: RuntimeFormState): string | null {
   return null
 }
 
-function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
+function toConfig(form: TemplateFormState): MachineTemplateConfig {
   if (form.type === 'gce') {
     const allowedMachineTypes = form.gceAllowedMachineTypes
       .split(/[,\n]/)
@@ -165,7 +165,7 @@ function toConfig(form: RuntimeFormState): RuntimeCatalogConfig {
   }
 }
 
-function toExposureConfig(form: RuntimeFormState): MachineExposureConfig {
+function toExposureConfig(form: TemplateFormState): MachineExposureConfig {
   return {
     method: form.exposureMethod,
     domainPrefix: form.exposureDomainPrefix.trim(),
@@ -174,67 +174,67 @@ function toExposureConfig(form: RuntimeFormState): MachineExposureConfig {
   }
 }
 
-function fillFormFromRuntime(runtime: RuntimeCatalogItem): RuntimeFormState {
+function fillFormFromTemplate(template: MachineTemplateItem): TemplateFormState {
   const exposureFields = {
-    exposureMethod: runtime.exposure.method,
-    exposureDomainPrefix: runtime.exposure.domainPrefix,
-    exposureBaseDomain: runtime.exposure.baseDomain,
-    exposureConnectivity: runtime.exposure.connectivity,
-    serverApiUrl: runtime.serverApiUrl,
-    autoStopTimeoutHours: runtime.autoStopTimeoutSeconds > 0 ? String(runtime.autoStopTimeoutSeconds / 3600) : '',
+    exposureMethod: template.exposure.method,
+    exposureDomainPrefix: template.exposure.domainPrefix,
+    exposureBaseDomain: template.exposure.baseDomain,
+    exposureConnectivity: template.exposure.connectivity,
+    serverApiUrl: template.serverApiUrl,
+    autoStopTimeoutHours: template.autoStopTimeoutSeconds > 0 ? String(template.autoStopTimeoutSeconds / 3600) : '',
   } as const
-  if (runtime.type === 'gce') {
+  if (template.type === 'gce') {
     return {
-      ...emptyRuntimeForm(),
-      id: runtime.id,
-      name: runtime.name,
+      ...emptyTemplateForm(),
+      id: template.id,
+      name: template.name,
       type: 'gce',
-      gceProject: runtime.config.project,
-      gceZone: runtime.config.zone,
-      gceNetwork: runtime.config.network,
-      gceSubnetwork: runtime.config.subnetwork,
-      gceServiceAccountEmail: runtime.config.serviceAccountEmail,
-      gceStartupScript: runtime.config.startupScript,
-      gceDiskSizeGb: runtime.config.diskSizeGb ? String(runtime.config.diskSizeGb) : '',
-      gceAllowedMachineTypes: (runtime.config.allowedMachineTypes ?? []).join(', '),
+      gceProject: template.config.project,
+      gceZone: template.config.zone,
+      gceNetwork: template.config.network,
+      gceSubnetwork: template.config.subnetwork,
+      gceServiceAccountEmail: template.config.serviceAccountEmail,
+      gceStartupScript: template.config.startupScript,
+      gceDiskSizeGb: template.config.diskSizeGb ? String(template.config.diskSizeGb) : '',
+      gceAllowedMachineTypes: (template.config.allowedMachineTypes ?? []).join(', '),
       ...exposureFields,
     }
   }
-  if (runtime.type === 'lxd') {
+  if (template.type === 'lxd') {
     return {
-      ...emptyRuntimeForm(),
-      id: runtime.id,
-      name: runtime.name,
+      ...emptyTemplateForm(),
+      id: template.id,
+      name: template.name,
       type: 'lxd',
-      lxdEndpoint: runtime.config.endpoint,
-      lxdStartupScript: runtime.config.startupScript,
+      lxdEndpoint: template.config.endpoint,
+      lxdStartupScript: template.config.startupScript,
       ...exposureFields,
     }
   }
   return {
-    ...emptyRuntimeForm(),
-    id: runtime.id,
-    name: runtime.name,
+    ...emptyTemplateForm(),
+    id: template.id,
+    name: template.name,
     type: 'libvirt',
-    libvirtURI: runtime.config.uri,
-    libvirtNetwork: runtime.config.network,
-    libvirtStoragePool: runtime.config.storagePool,
-    libvirtStartupScript: runtime.config.startupScript,
+    libvirtURI: template.config.uri,
+    libvirtNetwork: template.config.network,
+    libvirtStoragePool: template.config.storagePool,
+    libvirtStartupScript: template.config.startupScript,
     ...exposureFields,
   }
 }
 
-export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
-  const { runtimeID } = useParams()
+export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) {
+  const { templateID } = useParams()
   const navigate = useNavigate()
-  const isEdit = runtimeID != null && runtimeID !== ''
+  const isEdit = templateID != null && templateID !== ''
 
-  const [form, setForm] = useState<RuntimeFormState>(emptyRuntimeForm())
+  const [form, setForm] = useState<TemplateFormState>(emptyTemplateForm())
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const validationError = useMemo(() => validateRuntimeForm(form), [form])
+  const validationError = useMemo(() => validateTemplateForm(form), [form])
 
   useEffect(() => {
     if (!isEdit || user == null) {
@@ -245,13 +245,13 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
       setLoading(true)
       setError('')
       try {
-        const items = await listRuntimes()
+        const items = await listMachineTemplates()
         if (cancelled) return
-        const found = items.find((item) => item.id === runtimeID)
+        const found = items.find((item) => item.id === templateID)
         if (found != null) {
-          setForm(fillFormFromRuntime(found))
+          setForm(fillFormFromTemplate(found))
         } else {
-          setError('Runtime not found.')
+          setError('Template not found.')
         }
       } catch (err) {
         if (!cancelled) {
@@ -267,7 +267,7 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
     return () => {
       cancelled = true
     }
-  }, [isEdit, runtimeID, user])
+  }, [isEdit, templateID, user])
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -286,18 +286,18 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
     setError('')
     setSaving(true)
     try {
-      const runtimeName = form.name.trim().toLowerCase()
+      const templateName = form.name.trim().toLowerCase()
       const config = toConfig(form)
       const exposure = toExposureConfig(form)
       const serverApiUrl = form.serverApiUrl.trim() || undefined
       const autoStopHours = parseFloat(form.autoStopTimeoutHours.trim())
       const autoStopTimeoutSeconds = autoStopHours > 0 ? Math.round(autoStopHours * 3600) : 0
       if (form.id === '') {
-        const created = await createRuntime(runtimeName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds || undefined)
-        navigate(`/runtimes/${created.id}`)
+        const created = await createMachineTemplate(templateName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds || undefined)
+        navigate(`/machine-templates/${created.id}`)
       } else {
-        await updateRuntime(form.id, runtimeName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds)
-        navigate(`/runtimes/${form.id}`)
+        await updateMachineTemplate(form.id, templateName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds)
+        navigate(`/machine-templates/${form.id}`)
       }
     } catch (err) {
       setError(messageFromError(err))
@@ -311,13 +311,13 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
       <section className="mx-auto w-full max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">{isEdit ? 'Edit runtime' : 'New runtime'}</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{isEdit ? 'Edit template' : 'New template'}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isEdit ? 'Update runtime configuration.' : 'Create a new runtime catalog entry.'}
+              {isEdit ? 'Update template configuration.' : 'Create a new machine template entry.'}
             </p>
           </div>
           <Button asChild variant="secondary">
-            <Link to={isEdit ? `/runtimes/${runtimeID}` : '/runtimes'}>Cancel</Link>
+            <Link to={isEdit ? `/machine-templates/${templateID}` : '/machine-templates'}>Cancel</Link>
           </Button>
         </div>
 
@@ -326,17 +326,17 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
         ) : (
           <Card className="py-0 shadow-sm">
             <CardHeader className="space-y-2 p-6 pb-3">
-              <CardTitle className="text-xl">{isEdit ? 'Edit runtime' : 'Create runtime'}</CardTitle>
+              <CardTitle className="text-xl">{isEdit ? 'Edit template' : 'Create template'}</CardTitle>
               <CardDescription>
-                Runtime IDs are generated automatically. Names must be unique.
+                Template IDs are generated automatically. Names must be unique.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-3">
               <form className="space-y-4" onSubmit={submit}>
                 <div className="space-y-2">
-                  <Label htmlFor="runtime-name">Name</Label>
+                  <Label htmlFor="template-name">Name</Label>
                   <Input
-                    id="runtime-name"
+                    id="template-name"
                     value={form.name}
                     onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                     className="h-10"
@@ -345,13 +345,13 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="runtime-type">Type</Label>
+                  <Label htmlFor="template-type">Type</Label>
                   <select
-                    id="runtime-type"
+                    id="template-type"
                     value={form.type}
                     onChange={(event) => {
                       const val = event.target.value
-                      const t: RuntimeCatalogType = val === 'gce' ? 'gce' : val === 'lxd' ? 'lxd' : 'libvirt'
+                      const t: MachineTemplateType = val === 'gce' ? 'gce' : val === 'lxd' ? 'lxd' : 'libvirt'
                       setForm((current) => ({
                         ...current,
                         type: t,
@@ -369,33 +369,33 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                 {form.type === 'gce' ? (
                   <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-project">Project</Label>
-                      <Input id="runtime-gce-project" value={form.gceProject} onChange={(event) => setForm((current) => ({ ...current, gceProject: event.target.value }))} className="h-10" />
+                      <Label htmlFor="template-gce-project">Project</Label>
+                      <Input id="template-gce-project" value={form.gceProject} onChange={(event) => setForm((current) => ({ ...current, gceProject: event.target.value }))} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-zone">Zone</Label>
-                      <Input id="runtime-gce-zone" value={form.gceZone} onChange={(event) => setForm((current) => ({ ...current, gceZone: event.target.value }))} className="h-10" />
+                      <Label htmlFor="template-gce-zone">Zone</Label>
+                      <Input id="template-gce-zone" value={form.gceZone} onChange={(event) => setForm((current) => ({ ...current, gceZone: event.target.value }))} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-network">Network</Label>
-                      <Input id="runtime-gce-network" value={form.gceNetwork} onChange={(event) => setForm((current) => ({ ...current, gceNetwork: event.target.value }))} className="h-10" />
+                      <Label htmlFor="template-gce-network">Network</Label>
+                      <Input id="template-gce-network" value={form.gceNetwork} onChange={(event) => setForm((current) => ({ ...current, gceNetwork: event.target.value }))} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-subnetwork">Subnetwork</Label>
-                      <Input id="runtime-gce-subnetwork" value={form.gceSubnetwork} onChange={(event) => setForm((current) => ({ ...current, gceSubnetwork: event.target.value }))} className="h-10" />
+                      <Label htmlFor="template-gce-subnetwork">Subnetwork</Label>
+                      <Input id="template-gce-subnetwork" value={form.gceSubnetwork} onChange={(event) => setForm((current) => ({ ...current, gceSubnetwork: event.target.value }))} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-service-account-email">Service account email</Label>
-                      <Input id="runtime-gce-service-account-email" value={form.gceServiceAccountEmail} onChange={(event) => setForm((current) => ({ ...current, gceServiceAccountEmail: event.target.value }))} className="h-10" />
+                      <Label htmlFor="template-gce-service-account-email">Service account email</Label>
+                      <Input id="template-gce-service-account-email" value={form.gceServiceAccountEmail} onChange={(event) => setForm((current) => ({ ...current, gceServiceAccountEmail: event.target.value }))} className="h-10" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-disk-size-gb">Disk size in GB (optional)</Label>
-                      <Input id="runtime-gce-disk-size-gb" type="number" value={form.gceDiskSizeGb} onChange={(event) => setForm((current) => ({ ...current, gceDiskSizeGb: event.target.value }))} className="h-10" placeholder="40" />
+                      <Label htmlFor="template-gce-disk-size-gb">Disk size in GB (optional)</Label>
+                      <Input id="template-gce-disk-size-gb" type="number" value={form.gceDiskSizeGb} onChange={(event) => setForm((current) => ({ ...current, gceDiskSizeGb: event.target.value }))} className="h-10" placeholder="40" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-allowed-machine-types">Machine types</Label>
+                      <Label htmlFor="template-gce-allowed-machine-types">Machine types</Label>
                       <Input
-                        id="runtime-gce-allowed-machine-types"
+                        id="template-gce-allowed-machine-types"
                         value={form.gceAllowedMachineTypes}
                         onChange={(event) => setForm((current) => ({ ...current, gceAllowedMachineTypes: event.target.value }))}
                         className="h-10"
@@ -404,9 +404,9 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                       <p className="text-xs text-muted-foreground">Required. Comma-separated list of machine types users can choose when creating machines.</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-gce-startup-script">Startup script (Bash, optional)</Label>
+                      <Label htmlFor="template-gce-startup-script">Startup script (Bash, optional)</Label>
                       <textarea
-                        id="runtime-gce-startup-script"
+                        id="template-gce-startup-script"
                         value={form.gceStartupScript}
                         onChange={(event) => setForm((current) => ({ ...current, gceStartupScript: event.target.value }))}
                         className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -418,13 +418,13 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                 ) : form.type === 'lxd' ? (
                   <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-lxd-endpoint">Endpoint</Label>
-                      <Input id="runtime-lxd-endpoint" value={form.lxdEndpoint} onChange={(event) => setForm((current) => ({ ...current, lxdEndpoint: event.target.value }))} className="h-10" placeholder="https://localhost:8443" />
+                      <Label htmlFor="template-lxd-endpoint">Endpoint</Label>
+                      <Input id="template-lxd-endpoint" value={form.lxdEndpoint} onChange={(event) => setForm((current) => ({ ...current, lxdEndpoint: event.target.value }))} className="h-10" placeholder="https://localhost:8443" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-lxd-startup-script">Startup script (Bash, optional)</Label>
+                      <Label htmlFor="template-lxd-startup-script">Startup script (Bash, optional)</Label>
                       <textarea
-                        id="runtime-lxd-startup-script"
+                        id="template-lxd-startup-script"
                         value={form.lxdStartupScript}
                         onChange={(event) => setForm((current) => ({ ...current, lxdStartupScript: event.target.value }))}
                         className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -436,21 +436,21 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                 ) : (
                   <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-libvirt-uri">URI</Label>
-                      <Input id="runtime-libvirt-uri" value={form.libvirtURI} onChange={(event) => setForm((current) => ({ ...current, libvirtURI: event.target.value }))} className="h-10" placeholder="qemu:///system" />
+                      <Label htmlFor="template-libvirt-uri">URI</Label>
+                      <Input id="template-libvirt-uri" value={form.libvirtURI} onChange={(event) => setForm((current) => ({ ...current, libvirtURI: event.target.value }))} className="h-10" placeholder="qemu:///system" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-libvirt-network">Network</Label>
-                      <Input id="runtime-libvirt-network" value={form.libvirtNetwork} onChange={(event) => setForm((current) => ({ ...current, libvirtNetwork: event.target.value }))} className="h-10" placeholder="default" />
+                      <Label htmlFor="template-libvirt-network">Network</Label>
+                      <Input id="template-libvirt-network" value={form.libvirtNetwork} onChange={(event) => setForm((current) => ({ ...current, libvirtNetwork: event.target.value }))} className="h-10" placeholder="default" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-libvirt-storage-pool">Storage pool</Label>
-                      <Input id="runtime-libvirt-storage-pool" value={form.libvirtStoragePool} onChange={(event) => setForm((current) => ({ ...current, libvirtStoragePool: event.target.value }))} className="h-10" placeholder="default" />
+                      <Label htmlFor="template-libvirt-storage-pool">Storage pool</Label>
+                      <Input id="template-libvirt-storage-pool" value={form.libvirtStoragePool} onChange={(event) => setForm((current) => ({ ...current, libvirtStoragePool: event.target.value }))} className="h-10" placeholder="default" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="runtime-libvirt-startup-script">Startup script (Bash, optional)</Label>
+                      <Label htmlFor="template-libvirt-startup-script">Startup script (Bash, optional)</Label>
                       <textarea
-                        id="runtime-libvirt-startup-script"
+                        id="template-libvirt-startup-script"
                         value={form.libvirtStartupScript}
                         onChange={(event) => setForm((current) => ({ ...current, libvirtStartupScript: event.target.value }))}
                         className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -467,17 +467,17 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                     Machine traffic is reverse-proxied through the Arca server.
                   </p>
                   <div className="space-y-2">
-                    <Label htmlFor="runtime-exposure-domain-prefix">Domain prefix</Label>
-                    <Input id="runtime-exposure-domain-prefix" value={form.exposureDomainPrefix} onChange={(event) => setForm((current) => ({ ...current, exposureDomainPrefix: event.target.value }))} className="h-10" placeholder="arca-" />
+                    <Label htmlFor="template-exposure-domain-prefix">Domain prefix</Label>
+                    <Input id="template-exposure-domain-prefix" value={form.exposureDomainPrefix} onChange={(event) => setForm((current) => ({ ...current, exposureDomainPrefix: event.target.value }))} className="h-10" placeholder="arca-" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="runtime-exposure-base-domain">Base domain</Label>
-                    <Input id="runtime-exposure-base-domain" value={form.exposureBaseDomain} onChange={(event) => setForm((current) => ({ ...current, exposureBaseDomain: event.target.value }))} className="h-10" placeholder="example.com" />
+                    <Label htmlFor="template-exposure-base-domain">Base domain</Label>
+                    <Input id="template-exposure-base-domain" value={form.exposureBaseDomain} onChange={(event) => setForm((current) => ({ ...current, exposureBaseDomain: event.target.value }))} className="h-10" placeholder="example.com" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="runtime-exposure-connectivity">Connectivity</Label>
+                    <Label htmlFor="template-exposure-connectivity">Connectivity</Label>
                     <select
-                      id="runtime-exposure-connectivity"
+                      id="template-exposure-connectivity"
                       value={form.exposureConnectivity}
                       onChange={(event) =>
                         setForm((current) => ({ ...current, exposureConnectivity: event.target.value as 'private_ip' | 'public_ip' | '' }))
@@ -493,9 +493,9 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="runtime-server-api-url">Server API URL</Label>
+                  <Label htmlFor="template-server-api-url">Server API URL</Label>
                   <Input
-                    id="runtime-server-api-url"
+                    id="template-server-api-url"
                     value={form.serverApiUrl}
                     onChange={(event) => setForm((current) => ({ ...current, serverApiUrl: event.target.value }))}
                     className="h-10"
@@ -505,9 +505,9 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="runtime-auto-stop-timeout">Auto-stop timeout (hours)</Label>
+                  <Label htmlFor="template-auto-stop-timeout">Auto-stop timeout (hours)</Label>
                   <Input
-                    id="runtime-auto-stop-timeout"
+                    id="template-auto-stop-timeout"
                     type="number"
                     min="0"
                     step="any"
@@ -521,10 +521,10 @@ export function RuntimeFormPage({ user }: RuntimeFormPageProps) {
 
                 <div className="flex items-center gap-3">
                   <Button type="submit" className="h-10 px-5" disabled={saving || validationError != null}>
-                    {saving ? 'Saving...' : isEdit ? 'Save runtime' : 'Create runtime'}
+                    {saving ? 'Saving...' : isEdit ? 'Save template' : 'Create template'}
                   </Button>
                   <Button asChild type="button" variant="secondary">
-                    <Link to={isEdit ? `/runtimes/${runtimeID}` : '/runtimes'}>Cancel</Link>
+                    <Link to={isEdit ? `/machine-templates/${templateID}` : '/machine-templates'}>Cancel</Link>
                   </Button>
                 </div>
               </form>

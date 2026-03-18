@@ -22,24 +22,24 @@ const (
 )
 
 type Machine struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Status            string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	DesiredStatus     string                 `protobuf:"bytes,4,opt,name=desired_status,json=desiredStatus,proto3" json:"desired_status,omitempty"`
-	LastError         string                 `protobuf:"bytes,5,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
-	Endpoint          string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	RuntimeId         string                 `protobuf:"bytes,7,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
-	UpdateRequired    bool                   `protobuf:"varint,8,opt,name=update_required,json=updateRequired,proto3" json:"update_required,omitempty"`
-	Ready             bool                   `protobuf:"varint,9,opt,name=ready,proto3" json:"ready,omitempty"`
-	ReadyReportedAt   int64                  `protobuf:"varint,10,opt,name=ready_reported_at,json=readyReportedAt,proto3" json:"ready_reported_at,omitempty"`
-	UserRole          string                 `protobuf:"bytes,11,opt,name=user_role,json=userRole,proto3" json:"user_role,omitempty"`
-	ArcadVersion      string                 `protobuf:"bytes,12,opt,name=arcad_version,json=arcadVersion,proto3" json:"arcad_version,omitempty"`
-	Options           map[string]string      `protobuf:"bytes,13,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	RuntimeType       string                 `protobuf:"bytes,14,opt,name=runtime_type,json=runtimeType,proto3" json:"runtime_type,omitempty"`
-	RuntimeConfigJson string                 `protobuf:"bytes,15,opt,name=runtime_config_json,json=runtimeConfigJson,proto3" json:"runtime_config_json,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name               string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Status             string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	DesiredStatus      string                 `protobuf:"bytes,4,opt,name=desired_status,json=desiredStatus,proto3" json:"desired_status,omitempty"`
+	LastError          string                 `protobuf:"bytes,5,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	Endpoint           string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	TemplateId         string                 `protobuf:"bytes,7,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	UpdateRequired     bool                   `protobuf:"varint,8,opt,name=update_required,json=updateRequired,proto3" json:"update_required,omitempty"`
+	Ready              bool                   `protobuf:"varint,9,opt,name=ready,proto3" json:"ready,omitempty"`
+	ReadyReportedAt    int64                  `protobuf:"varint,10,opt,name=ready_reported_at,json=readyReportedAt,proto3" json:"ready_reported_at,omitempty"`
+	UserRole           string                 `protobuf:"bytes,11,opt,name=user_role,json=userRole,proto3" json:"user_role,omitempty"`
+	ArcadVersion       string                 `protobuf:"bytes,12,opt,name=arcad_version,json=arcadVersion,proto3" json:"arcad_version,omitempty"`
+	Options            map[string]string      `protobuf:"bytes,13,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	TemplateType       string                 `protobuf:"bytes,14,opt,name=template_type,json=templateType,proto3" json:"template_type,omitempty"`
+	TemplateConfigJson string                 `protobuf:"bytes,15,opt,name=template_config_json,json=templateConfigJson,proto3" json:"template_config_json,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Machine) Reset() {
@@ -114,9 +114,9 @@ func (x *Machine) GetEndpoint() string {
 	return ""
 }
 
-func (x *Machine) GetRuntimeId() string {
+func (x *Machine) GetTemplateId() string {
 	if x != nil {
-		return x.RuntimeId
+		return x.TemplateId
 	}
 	return ""
 }
@@ -163,16 +163,16 @@ func (x *Machine) GetOptions() map[string]string {
 	return nil
 }
 
-func (x *Machine) GetRuntimeType() string {
+func (x *Machine) GetTemplateType() string {
 	if x != nil {
-		return x.RuntimeType
+		return x.TemplateType
 	}
 	return ""
 }
 
-func (x *Machine) GetRuntimeConfigJson() string {
+func (x *Machine) GetTemplateConfigJson() string {
 	if x != nil {
-		return x.RuntimeConfigJson
+		return x.TemplateConfigJson
 	}
 	return ""
 }
@@ -348,7 +348,7 @@ func (x *GetMachineResponse) GetMachine() *Machine {
 type CreateMachineRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	RuntimeId     string                 `protobuf:"bytes,2,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
+	TemplateId    string                 `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	Options       map[string]string      `protobuf:"bytes,3,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CustomImageId string                 `protobuf:"bytes,4,opt,name=custom_image_id,json=customImageId,proto3" json:"custom_image_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -392,9 +392,9 @@ func (x *CreateMachineRequest) GetName() string {
 	return ""
 }
 
-func (x *CreateMachineRequest) GetRuntimeId() string {
+func (x *CreateMachineRequest) GetTemplateId() string {
 	if x != nil {
-		return x.RuntimeId
+		return x.TemplateId
 	}
 	return ""
 }
@@ -572,7 +572,7 @@ func (x *UpdateMachineResponse) GetMachine() *Machine {
 type StartMachineRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	RuntimeId     string                 `protobuf:"bytes,2,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
+	TemplateId    string                 `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -614,9 +614,9 @@ func (x *StartMachineRequest) GetMachineId() string {
 	return ""
 }
 
-func (x *StartMachineRequest) GetRuntimeId() string {
+func (x *StartMachineRequest) GetTemplateId() string {
 	if x != nil {
-		return x.RuntimeId
+		return x.TemplateId
 	}
 	return ""
 }
@@ -1025,7 +1025,7 @@ var File_arca_v1_machine_proto protoreflect.FileDescriptor
 
 const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
-	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xbb\x04\n" +
+	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xc1\x04\n" +
 	"\aMachine\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -1033,18 +1033,18 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x0edesired_status\x18\x04 \x01(\tR\rdesiredStatus\x12\x1d\n" +
 	"\n" +
 	"last_error\x18\x05 \x01(\tR\tlastError\x12\x1a\n" +
-	"\bendpoint\x18\x06 \x01(\tR\bendpoint\x12\x1d\n" +
-	"\n" +
-	"runtime_id\x18\a \x01(\tR\truntimeId\x12'\n" +
+	"\bendpoint\x18\x06 \x01(\tR\bendpoint\x12\x1f\n" +
+	"\vtemplate_id\x18\a \x01(\tR\n" +
+	"templateId\x12'\n" +
 	"\x0fupdate_required\x18\b \x01(\bR\x0eupdateRequired\x12\x14\n" +
 	"\x05ready\x18\t \x01(\bR\x05ready\x12*\n" +
 	"\x11ready_reported_at\x18\n" +
 	" \x01(\x03R\x0freadyReportedAt\x12\x1b\n" +
 	"\tuser_role\x18\v \x01(\tR\buserRole\x12#\n" +
 	"\rarcad_version\x18\f \x01(\tR\farcadVersion\x127\n" +
-	"\aoptions\x18\r \x03(\v2\x1d.arca.v1.Machine.OptionsEntryR\aoptions\x12!\n" +
-	"\fruntime_type\x18\x0e \x01(\tR\vruntimeType\x12.\n" +
-	"\x13runtime_config_json\x18\x0f \x01(\tR\x11runtimeConfigJson\x1a:\n" +
+	"\aoptions\x18\r \x03(\v2\x1d.arca.v1.Machine.OptionsEntryR\aoptions\x12#\n" +
+	"\rtemplate_type\x18\x0e \x01(\tR\ftemplateType\x120\n" +
+	"\x14template_config_json\x18\x0f \x01(\tR\x12templateConfigJson\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x15\n" +
@@ -1055,11 +1055,11 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\"@\n" +
 	"\x12GetMachineResponse\x12*\n" +
-	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"\xf3\x01\n" +
+	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"\xf5\x01\n" +
 	"\x14CreateMachineRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
-	"\n" +
-	"runtime_id\x18\x02 \x01(\tR\truntimeId\x12D\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\x12D\n" +
 	"\aoptions\x18\x03 \x03(\v2*.arca.v1.CreateMachineRequest.OptionsEntryR\aoptions\x12&\n" +
 	"\x0fcustom_image_id\x18\x04 \x01(\tR\rcustomImageId\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
@@ -1077,12 +1077,12 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"C\n" +
 	"\x15UpdateMachineResponse\x12*\n" +
-	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"S\n" +
+	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"U\n" +
 	"\x13StartMachineRequest\x12\x1d\n" +
 	"\n" +
-	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x1d\n" +
-	"\n" +
-	"runtime_id\x18\x02 \x01(\tR\truntimeId\"B\n" +
+	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x1f\n" +
+	"\vtemplate_id\x18\x02 \x01(\tR\n" +
+	"templateId\"B\n" +
 	"\x14StartMachineResponse\x12*\n" +
 	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"3\n" +
 	"\x12StopMachineRequest\x12\x1d\n" +

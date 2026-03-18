@@ -38,9 +38,9 @@ const (
 type Machine struct {
 	ID               string
 	Name             string
-	RuntimeID        string
-	RuntimeType      string
-	RuntimeConfigJSON string
+	TemplateID        string
+	TemplateType      string
+	TemplateConfigJSON string
 	SetupVersion     string
 	Endpoint         string
 	OptionsJSON      string
@@ -119,11 +119,11 @@ var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
 type CreateMachineOptions struct {
 	OptionsJSON    string
 	CustomImageID  string
-	RuntimeType    string
-	RuntimeConfigJSON string
+	TemplateType    string
+	TemplateConfigJSON string
 }
 
-func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtimeID, setupVersion string, extra ...string) (Machine, error) {
+func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, templateID, setupVersion string, extra ...string) (Machine, error) {
 	opts := CreateMachineOptions{}
 	if len(extra) > 0 && extra[0] != "" {
 		opts.OptionsJSON = extra[0]
@@ -132,15 +132,15 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		opts.CustomImageID = strings.TrimSpace(extra[1])
 	}
 	if len(extra) > 2 {
-		opts.RuntimeType = strings.TrimSpace(extra[2])
+		opts.TemplateType = strings.TrimSpace(extra[2])
 	}
 	if len(extra) > 3 {
-		opts.RuntimeConfigJSON = strings.TrimSpace(extra[3])
+		opts.TemplateConfigJSON = strings.TrimSpace(extra[3])
 	}
-	return s.createMachineWithOwnerOpts(ctx, userID, name, runtimeID, setupVersion, opts)
+	return s.createMachineWithOwnerOpts(ctx, userID, name, templateID, setupVersion, opts)
 }
 
-func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, runtimeID, setupVersion string, opts CreateMachineOptions) (Machine, error) {
+func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, templateID, setupVersion string, opts CreateMachineOptions) (Machine, error) {
 	machineID, err := randomID()
 	if err != nil {
 		return Machine{}, err
@@ -155,17 +155,17 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, ru
 		return Machine{}, err
 	}
 	nowUnix := time.Now().Unix()
-	runtimeID = NormalizeMachineRuntime(runtimeID)
+	templateID = NormalizeMachineTemplate(templateID)
 	setupVersion = strings.TrimSpace(setupVersion)
 	optionsJSON := opts.OptionsJSON
 	if optionsJSON == "" {
 		optionsJSON = "{}"
 	}
 	customImageID := opts.CustomImageID
-	runtimeType := opts.RuntimeType
-	runtimeConfigJSON := opts.RuntimeConfigJSON
-	if runtimeConfigJSON == "" {
-		runtimeConfigJSON = "{}"
+	templateType := opts.TemplateType
+	templateConfigJSON := opts.TemplateConfigJSON
+	if templateConfigJSON == "" {
+		templateConfigJSON = "{}"
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -190,7 +190,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, ru
 	switch s.driver {
 	case DriverSQLite:
 		q := s.sqliteQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, RuntimeType: runtimeType, RuntimeConfigJson: runtimeConfigJSON, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
+		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, TemplateID: templateID, TemplateType: templateType, TemplateConfigJson: templateConfigJSON, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -250,7 +250,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, ru
 		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, RuntimeType: runtimeType, RuntimeConfigJson: runtimeConfigJSON, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
+		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, TemplateID: templateID, TemplateType: templateType, TemplateConfigJson: templateConfigJSON, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -319,9 +319,9 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, ru
 	return Machine{
 		ID:               machineID,
 		Name:             name,
-		RuntimeID:        runtimeID,
-		RuntimeType:      runtimeType,
-		RuntimeConfigJSON: runtimeConfigJSON,
+		TemplateID:        templateID,
+		TemplateType:      templateType,
+		TemplateConfigJSON: templateConfigJSON,
 		SetupVersion:     setupVersion,
 		Endpoint:         "",
 		OptionsJSON:      optionsJSON,
@@ -348,9 +348,9 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			machines = append(machines, Machine{
 				ID:               row.ID,
 				Name:             row.Name,
-				RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-				RuntimeType:      row.RuntimeType,
-				RuntimeConfigJSON: row.RuntimeConfigJson,
+				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+				TemplateType:      row.TemplateType,
+				TemplateConfigJSON: row.TemplateConfigJson,
 				SetupVersion:     strings.TrimSpace(row.SetupVersion),
 				Endpoint:         strings.TrimSpace(row.Endpoint),
 				OptionsJSON:      row.OptionsJson,
@@ -381,9 +381,9 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			machines = append(machines, Machine{
 				ID:               row.ID,
 				Name:             row.Name,
-				RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-				RuntimeType:      row.RuntimeType,
-				RuntimeConfigJSON: row.RuntimeConfigJson,
+				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+				TemplateType:      row.TemplateType,
+				TemplateConfigJSON: row.TemplateConfigJson,
 				SetupVersion:     strings.TrimSpace(row.SetupVersion),
 				Endpoint:         strings.TrimSpace(row.Endpoint),
 				OptionsJSON:      row.OptionsJson,
@@ -432,29 +432,29 @@ func (s *Store) UpdateMachineNameByIDForOwner(ctx context.Context, userID, machi
 	}
 }
 
-func (s *Store) UpdateMachineRuntimeByIDForOwner(ctx context.Context, userID, machineID, runtimeID, setupVersion, runtimeType, runtimeConfigJSON string) (bool, error) {
-	runtimeID = NormalizeMachineRuntime(runtimeID)
+func (s *Store) UpdateMachineTemplateByIDForOwner(ctx context.Context, userID, machineID, templateID, setupVersion, templateType, templateConfigJSON string) (bool, error) {
+	templateID = NormalizeMachineTemplate(templateID)
 	setupVersion = strings.TrimSpace(setupVersion)
-	runtimeType = strings.TrimSpace(runtimeType)
-	if runtimeConfigJSON == "" {
-		runtimeConfigJSON = "{}"
+	templateType = strings.TrimSpace(templateType)
+	if templateConfigJSON == "" {
+		templateConfigJSON = "{}"
 	}
 	switch s.driver {
 	case DriverSQLite:
-		updated, err := s.sqliteQueries.UpdateMachineRuntimeByIDForOwner(ctx, sqlitesqlc.UpdateMachineRuntimeByIDForOwnerParams{
-			RuntimeID:        runtimeID,
-			RuntimeType:      runtimeType,
-			RuntimeConfigJson: runtimeConfigJSON,
+		updated, err := s.sqliteQueries.UpdateMachineTemplateByIDForOwner(ctx, sqlitesqlc.UpdateMachineTemplateByIDForOwnerParams{
+			TemplateID:        templateID,
+			TemplateType:      templateType,
+			TemplateConfigJson: templateConfigJSON,
 			SetupVersion:     setupVersion,
 			MachineID:        machineID,
 			UserID:           userID,
 		})
 		return updated > 0, err
 	case DriverPostgres:
-		updated, err := s.pgQueries.UpdateMachineRuntimeByIDForOwner(ctx, postgresqlsqlc.UpdateMachineRuntimeByIDForOwnerParams{
-			RuntimeID:        runtimeID,
-			RuntimeType:      runtimeType,
-			RuntimeConfigJson: runtimeConfigJSON,
+		updated, err := s.pgQueries.UpdateMachineTemplateByIDForOwner(ctx, postgresqlsqlc.UpdateMachineTemplateByIDForOwnerParams{
+			TemplateID:        templateID,
+			TemplateType:      templateType,
+			TemplateConfigJson: templateConfigJSON,
 			SetupVersion:     setupVersion,
 			MachineID:        machineID,
 			UserID:           userID,
@@ -617,9 +617,9 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 		return Machine{
 			ID:               row.ID,
 			Name:             row.Name,
-			RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-			RuntimeType:      row.RuntimeType,
-			RuntimeConfigJSON: row.RuntimeConfigJson,
+			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+			TemplateType:      row.TemplateType,
+			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
 			Endpoint:         strings.TrimSpace(row.Endpoint),
 			OptionsJSON:      row.OptionsJson,
@@ -642,9 +642,9 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 		return Machine{
 			ID:               row.ID,
 			Name:             row.Name,
-			RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-			RuntimeType:      row.RuntimeType,
-			RuntimeConfigJSON: row.RuntimeConfigJson,
+			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+			TemplateType:      row.TemplateType,
+			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
 			Endpoint:         strings.TrimSpace(row.Endpoint),
 			OptionsJSON:      row.OptionsJson,
@@ -677,9 +677,9 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 		return Machine{
 			ID:               row.ID,
 			Name:             row.Name,
-			RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-			RuntimeType:      row.RuntimeType,
-			RuntimeConfigJSON: row.RuntimeConfigJson,
+			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+			TemplateType:      row.TemplateType,
+			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
 			Endpoint:         strings.TrimSpace(row.Endpoint),
 			OptionsJSON:      row.OptionsJson,
@@ -704,9 +704,9 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 		return Machine{
 			ID:               row.ID,
 			Name:             row.Name,
-			RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-			RuntimeType:      row.RuntimeType,
-			RuntimeConfigJSON: row.RuntimeConfigJson,
+			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+			TemplateType:      row.TemplateType,
+			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
 			Endpoint:         strings.TrimSpace(row.Endpoint),
 			OptionsJSON:      row.OptionsJson,
@@ -837,9 +837,9 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 			machines = append(machines, Machine{
 				ID:               row.ID,
 				Name:             row.Name,
-				RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-				RuntimeType:      row.RuntimeType,
-				RuntimeConfigJSON: row.RuntimeConfigJson,
+				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+				TemplateType:      row.TemplateType,
+				TemplateConfigJSON: row.TemplateConfigJson,
 				OptionsJSON:      row.OptionsJson,
 				CustomImageID:    row.CustomImageID,
 				Status:           row.Status,
@@ -867,9 +867,9 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 			machines = append(machines, Machine{
 				ID:               row.ID,
 				Name:             row.Name,
-				RuntimeID:        NormalizeMachineRuntime(row.RuntimeID),
-				RuntimeType:      row.RuntimeType,
-				RuntimeConfigJSON: row.RuntimeConfigJson,
+				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+				TemplateType:      row.TemplateType,
+				TemplateConfigJSON: row.TemplateConfigJson,
 				OptionsJSON:      row.OptionsJson,
 				CustomImageID:    row.CustomImageID,
 				Status:           row.Status,

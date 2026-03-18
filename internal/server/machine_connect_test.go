@@ -251,8 +251,8 @@ func (s *machineStoreStub) UpdateMachineNameByIDForOwner(context.Context, string
 	panic("UpdateMachineNameByIDForOwner should not be called in this test")
 }
 
-func (s *machineStoreStub) UpdateMachineRuntimeByIDForOwner(context.Context, string, string, string, string, string, string) (bool, error) {
-	panic("UpdateMachineRuntimeByIDForOwner should not be called in this test")
+func (s *machineStoreStub) UpdateMachineTemplateByIDForOwner(context.Context, string, string, string, string, string, string) (bool, error) {
+	panic("UpdateMachineTemplateByIDForOwner should not be called in this test")
 }
 
 func (s *machineStoreStub) RequestStartMachineByIDForOwner(context.Context, string, string) (bool, error) {
@@ -275,6 +275,6 @@ func (s *machineStoreStub) DeleteMachineByID(context.Context, string) (bool, err
 	panic("DeleteMachineByID should not be called in this test")
 }
 
-func (s *machineStoreStub) GetRuntimeByID(context.Context, string) (db.RuntimeCatalog, error) {
-	panic("GetRuntimeByID should not be called in this test")
+func (s *machineStoreStub) GetMachineTemplateByID(context.Context, string) (db.MachineTemplate, error) {
+	panic("GetMachineTemplateByID should not be called in this test")
 }

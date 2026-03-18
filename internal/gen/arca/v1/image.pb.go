@@ -22,16 +22,16 @@ const (
 )
 
 type CustomImage struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name                 string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	RuntimeType          string                 `protobuf:"bytes,3,opt,name=runtime_type,json=runtimeType,proto3" json:"runtime_type,omitempty"`
-	Data                 map[string]string      `protobuf:"bytes,4,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Description          string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	AssociatedRuntimeIds []string               `protobuf:"bytes,6,rep,name=associated_runtime_ids,json=associatedRuntimeIds,proto3" json:"associated_runtime_ids,omitempty"`
-	CreatedAt            string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Id                    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	TemplateType          string                 `protobuf:"bytes,3,opt,name=template_type,json=templateType,proto3" json:"template_type,omitempty"`
+	Data                  map[string]string      `protobuf:"bytes,4,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Description           string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	AssociatedTemplateIds []string               `protobuf:"bytes,6,rep,name=associated_template_ids,json=associatedTemplateIds,proto3" json:"associated_template_ids,omitempty"`
+	CreatedAt             string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *CustomImage) Reset() {
@@ -78,9 +78,9 @@ func (x *CustomImage) GetName() string {
 	return ""
 }
 
-func (x *CustomImage) GetRuntimeType() string {
+func (x *CustomImage) GetTemplateType() string {
 	if x != nil {
-		return x.RuntimeType
+		return x.TemplateType
 	}
 	return ""
 }
@@ -99,9 +99,9 @@ func (x *CustomImage) GetDescription() string {
 	return ""
 }
 
-func (x *CustomImage) GetAssociatedRuntimeIds() []string {
+func (x *CustomImage) GetAssociatedTemplateIds() []string {
 	if x != nil {
-		return x.AssociatedRuntimeIds
+		return x.AssociatedTemplateIds
 	}
 	return nil
 }
@@ -196,10 +196,10 @@ func (x *ListCustomImagesResponse) GetImages() []*CustomImage {
 type CreateCustomImageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	RuntimeType   string                 `protobuf:"bytes,2,opt,name=runtime_type,json=runtimeType,proto3" json:"runtime_type,omitempty"`
+	TemplateType  string                 `protobuf:"bytes,2,opt,name=template_type,json=templateType,proto3" json:"template_type,omitempty"`
 	Data          map[string]string      `protobuf:"bytes,3,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	RuntimeIds    []string               `protobuf:"bytes,5,rep,name=runtime_ids,json=runtimeIds,proto3" json:"runtime_ids,omitempty"`
+	TemplateIds   []string               `protobuf:"bytes,5,rep,name=template_ids,json=templateIds,proto3" json:"template_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -241,9 +241,9 @@ func (x *CreateCustomImageRequest) GetName() string {
 	return ""
 }
 
-func (x *CreateCustomImageRequest) GetRuntimeType() string {
+func (x *CreateCustomImageRequest) GetTemplateType() string {
 	if x != nil {
-		return x.RuntimeType
+		return x.TemplateType
 	}
 	return ""
 }
@@ -262,9 +262,9 @@ func (x *CreateCustomImageRequest) GetDescription() string {
 	return ""
 }
 
-func (x *CreateCustomImageRequest) GetRuntimeIds() []string {
+func (x *CreateCustomImageRequest) GetTemplateIds() []string {
 	if x != nil {
-		return x.RuntimeIds
+		return x.TemplateIds
 	}
 	return nil
 }
@@ -317,10 +317,10 @@ type UpdateCustomImageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	RuntimeType   string                 `protobuf:"bytes,3,opt,name=runtime_type,json=runtimeType,proto3" json:"runtime_type,omitempty"`
+	TemplateType  string                 `protobuf:"bytes,3,opt,name=template_type,json=templateType,proto3" json:"template_type,omitempty"`
 	Data          map[string]string      `protobuf:"bytes,4,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	RuntimeIds    []string               `protobuf:"bytes,6,rep,name=runtime_ids,json=runtimeIds,proto3" json:"runtime_ids,omitempty"`
+	TemplateIds   []string               `protobuf:"bytes,6,rep,name=template_ids,json=templateIds,proto3" json:"template_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -369,9 +369,9 @@ func (x *UpdateCustomImageRequest) GetName() string {
 	return ""
 }
 
-func (x *UpdateCustomImageRequest) GetRuntimeType() string {
+func (x *UpdateCustomImageRequest) GetTemplateType() string {
 	if x != nil {
-		return x.RuntimeType
+		return x.TemplateType
 	}
 	return ""
 }
@@ -390,9 +390,9 @@ func (x *UpdateCustomImageRequest) GetDescription() string {
 	return ""
 }
 
-func (x *UpdateCustomImageRequest) GetRuntimeIds() []string {
+func (x *UpdateCustomImageRequest) GetTemplateIds() []string {
 	if x != nil {
-		return x.RuntimeIds
+		return x.TemplateIds
 	}
 	return nil
 }
@@ -523,7 +523,7 @@ func (*DeleteCustomImageResponse) Descriptor() ([]byte, []int) {
 
 type ListAvailableImagesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RuntimeId     string                 `protobuf:"bytes,1,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
+	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -558,9 +558,9 @@ func (*ListAvailableImagesRequest) Descriptor() ([]byte, []int) {
 	return file_arca_v1_image_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *ListAvailableImagesRequest) GetRuntimeId() string {
+func (x *ListAvailableImagesRequest) GetTemplateId() string {
 	if x != nil {
-		return x.RuntimeId
+		return x.TemplateId
 	}
 	return ""
 }
@@ -613,14 +613,14 @@ var File_arca_v1_image_proto protoreflect.FileDescriptor
 
 const file_arca_v1_image_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/image.proto\x12\aarca.v1\"\xb8\x02\n" +
+	"\x13arca/v1/image.proto\x12\aarca.v1\"\xbc\x02\n" +
 	"\vCustomImage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
-	"\fruntime_type\x18\x03 \x01(\tR\vruntimeType\x122\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
+	"\rtemplate_type\x18\x03 \x01(\tR\ftemplateType\x122\n" +
 	"\x04data\x18\x04 \x03(\v2\x1e.arca.v1.CustomImage.DataEntryR\x04data\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\x124\n" +
-	"\x16associated_runtime_ids\x18\x06 \x03(\tR\x14associatedRuntimeIds\x12\x1d\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x126\n" +
+	"\x17associated_template_ids\x18\x06 \x03(\tR\x15associatedTemplateIds\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
@@ -628,27 +628,25 @@ const file_arca_v1_image_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x19\n" +
 	"\x17ListCustomImagesRequest\"H\n" +
 	"\x18ListCustomImagesResponse\x12,\n" +
-	"\x06images\x18\x01 \x03(\v2\x14.arca.v1.CustomImageR\x06images\"\x8e\x02\n" +
+	"\x06images\x18\x01 \x03(\v2\x14.arca.v1.CustomImageR\x06images\"\x92\x02\n" +
 	"\x18CreateCustomImageRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
-	"\fruntime_type\x18\x02 \x01(\tR\vruntimeType\x12?\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
+	"\rtemplate_type\x18\x02 \x01(\tR\ftemplateType\x12?\n" +
 	"\x04data\x18\x03 \x03(\v2+.arca.v1.CreateCustomImageRequest.DataEntryR\x04data\x12 \n" +
-	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1f\n" +
-	"\vruntime_ids\x18\x05 \x03(\tR\n" +
-	"runtimeIds\x1a7\n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12!\n" +
+	"\ftemplate_ids\x18\x05 \x03(\tR\vtemplateIds\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"G\n" +
 	"\x19CreateCustomImageResponse\x12*\n" +
-	"\x05image\x18\x01 \x01(\v2\x14.arca.v1.CustomImageR\x05image\"\x9e\x02\n" +
+	"\x05image\x18\x01 \x01(\v2\x14.arca.v1.CustomImageR\x05image\"\xa2\x02\n" +
 	"\x18UpdateCustomImageRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
-	"\fruntime_type\x18\x03 \x01(\tR\vruntimeType\x12?\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
+	"\rtemplate_type\x18\x03 \x01(\tR\ftemplateType\x12?\n" +
 	"\x04data\x18\x04 \x03(\v2+.arca.v1.UpdateCustomImageRequest.DataEntryR\x04data\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\x12\x1f\n" +
-	"\vruntime_ids\x18\x06 \x03(\tR\n" +
-	"runtimeIds\x1a7\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12!\n" +
+	"\ftemplate_ids\x18\x06 \x03(\tR\vtemplateIds\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"G\n" +
@@ -656,10 +654,10 @@ const file_arca_v1_image_proto_rawDesc = "" +
 	"\x05image\x18\x01 \x01(\v2\x14.arca.v1.CustomImageR\x05image\"*\n" +
 	"\x18DeleteCustomImageRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1b\n" +
-	"\x19DeleteCustomImageResponse\";\n" +
-	"\x1aListAvailableImagesRequest\x12\x1d\n" +
-	"\n" +
-	"runtime_id\x18\x01 \x01(\tR\truntimeId\"K\n" +
+	"\x19DeleteCustomImageResponse\"=\n" +
+	"\x1aListAvailableImagesRequest\x12\x1f\n" +
+	"\vtemplate_id\x18\x01 \x01(\tR\n" +
+	"templateId\"K\n" +
 	"\x1bListAvailableImagesResponse\x12,\n" +
 	"\x06images\x18\x01 \x03(\v2\x14.arca.v1.CustomImageR\x06images2\xdd\x03\n" +
 	"\fImageService\x12W\n" +

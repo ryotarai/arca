@@ -4,7 +4,7 @@ import {
   loginAsAdmin,
 } from './helpers/auth'
 import { bestEffortDeleteMachine, createMachineViaAPI } from './helpers/machine'
-import { ensureLxdRuntime } from './helpers/runtime'
+import { ensureLxdTemplate } from './helpers/machine-template'
 
 async function createGroupViaAPI(page: import('@playwright/test').Page, name: string): Promise<string> {
   const response = await page.request.post('/arca.v1.GroupService/CreateGroup', {
@@ -116,7 +116,7 @@ test.describe('groups', () => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
 
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const groupName = `share-group-${Date.now()}`
     const groupId = await createGroupViaAPI(page, groupName)
     const machineId = await createMachineViaAPI(page, `share-test-${Date.now()}`, runtime.id)

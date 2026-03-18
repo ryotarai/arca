@@ -20,13 +20,13 @@ type ipCacheEntry struct {
 // with a TTL and stale-while-revalidate pattern.
 type MachineIPCache struct {
 	runtime Runtime
-	store   RuntimeCatalogStore
+	store   TemplateCatalogStore
 	mu      sync.Mutex
 	entries map[string]*ipCacheEntry
 	ttl     time.Duration
 }
 
-func NewMachineIPCache(runtime Runtime, store RuntimeCatalogStore, ttl time.Duration) *MachineIPCache {
+func NewMachineIPCache(runtime Runtime, store TemplateCatalogStore, ttl time.Duration) *MachineIPCache {
 	return &MachineIPCache{
 		runtime: runtime,
 		store:   store,

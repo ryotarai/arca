@@ -14,7 +14,7 @@ import (
 type CustomImage struct {
 	ID          string
 	Name        string
-	RuntimeType string
+	TemplateType string
 	DataJSON    string
 	Description string
 	CreatedAt   time.Time
@@ -35,7 +35,7 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				RuntimeType: row.RuntimeType,
+				TemplateType: row.TemplateType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -53,7 +53,7 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				RuntimeType: row.RuntimeType,
+				TemplateType: row.TemplateType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -76,7 +76,7 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 		return CustomImage{
 			ID:          row.ID,
 			Name:        row.Name,
-			RuntimeType: row.RuntimeType,
+			TemplateType: row.TemplateType,
 			DataJSON:    row.DataJson,
 			Description: row.Description,
 			CreatedAt:   row.CreatedAt,
@@ -90,7 +90,7 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 		return CustomImage{
 			ID:          row.ID,
 			Name:        row.Name,
-			RuntimeType: row.RuntimeType,
+			TemplateType: row.TemplateType,
 			DataJSON:    row.DataJson,
 			Description: row.Description,
 			CreatedAt:   row.CreatedAt,
@@ -110,7 +110,7 @@ func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJS
 	item := CustomImage{
 		ID:          id,
 		Name:        strings.TrimSpace(name),
-		RuntimeType: strings.TrimSpace(runtimeType),
+		TemplateType: strings.TrimSpace(runtimeType),
 		DataJSON:    dataJSON,
 		Description: strings.TrimSpace(description),
 		CreatedAt:   now,
@@ -122,7 +122,7 @@ func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJS
 		err = s.sqliteQueries.CreateCustomImage(ctx, sqlitesqlc.CreateCustomImageParams{
 			ID:          item.ID,
 			Name:        item.Name,
-			RuntimeType: item.RuntimeType,
+			TemplateType: item.TemplateType,
 			DataJson:    item.DataJSON,
 			Description: item.Description,
 			CreatedAt:   item.CreatedAt,
@@ -132,7 +132,7 @@ func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJS
 		err = s.pgQueries.CreateCustomImage(ctx, postgresqlsqlc.CreateCustomImageParams{
 			ID:          item.ID,
 			Name:        item.Name,
-			RuntimeType: item.RuntimeType,
+			TemplateType: item.TemplateType,
 			DataJson:    item.DataJSON,
 			Description: item.Description,
 			CreatedAt:   item.CreatedAt,
@@ -161,7 +161,7 @@ func (s *Store) UpdateCustomImage(ctx context.Context, id, name, runtimeType, da
 		updated, err = s.sqliteQueries.UpdateCustomImage(ctx, sqlitesqlc.UpdateCustomImageParams{
 			ID:          id,
 			Name:        strings.TrimSpace(name),
-			RuntimeType: strings.TrimSpace(runtimeType),
+			TemplateType: strings.TrimSpace(runtimeType),
 			DataJson:    dataJSON,
 			Description: strings.TrimSpace(description),
 			UpdatedAt:   now,
@@ -170,7 +170,7 @@ func (s *Store) UpdateCustomImage(ctx context.Context, id, name, runtimeType, da
 		updated, err = s.pgQueries.UpdateCustomImage(ctx, postgresqlsqlc.UpdateCustomImageParams{
 			ID:          id,
 			Name:        strings.TrimSpace(name),
-			RuntimeType: strings.TrimSpace(runtimeType),
+			TemplateType: strings.TrimSpace(runtimeType),
 			DataJson:    dataJSON,
 			Description: strings.TrimSpace(description),
 			UpdatedAt:   now,
@@ -207,10 +207,10 @@ func (s *Store) DeleteCustomImage(ctx context.Context, id string) (bool, error) 
 	}
 }
 
-func (s *Store) ListCustomImagesByRuntimeID(ctx context.Context, runtimeID string) ([]CustomImage, error) {
+func (s *Store) ListCustomImagesByTemplateID(ctx context.Context, runtimeID string) ([]CustomImage, error) {
 	switch s.driver {
 	case DriverSQLite:
-		rows, err := s.sqliteQueries.ListCustomImagesByRuntimeID(ctx, runtimeID)
+		rows, err := s.sqliteQueries.ListCustomImagesByTemplateID(ctx, runtimeID)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +219,7 @@ func (s *Store) ListCustomImagesByRuntimeID(ctx context.Context, runtimeID strin
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				RuntimeType: row.RuntimeType,
+				TemplateType: row.TemplateType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -228,7 +228,7 @@ func (s *Store) ListCustomImagesByRuntimeID(ctx context.Context, runtimeID strin
 		}
 		return items, nil
 	case DriverPostgres:
-		rows, err := s.pgQueries.ListCustomImagesByRuntimeID(ctx, runtimeID)
+		rows, err := s.pgQueries.ListCustomImagesByTemplateID(ctx, runtimeID)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +237,7 @@ func (s *Store) ListCustomImagesByRuntimeID(ctx context.Context, runtimeID strin
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				RuntimeType: row.RuntimeType,
+				TemplateType: row.TemplateType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -250,16 +250,16 @@ func (s *Store) ListCustomImagesByRuntimeID(ctx context.Context, runtimeID strin
 	}
 }
 
-func (s *Store) AssociateRuntimeCustomImage(ctx context.Context, runtimeID, customImageID string) error {
+func (s *Store) AssociateTemplateCustomImage(ctx context.Context, runtimeID, customImageID string) error {
 	switch s.driver {
 	case DriverSQLite:
-		return s.sqliteQueries.AssociateRuntimeCustomImage(ctx, sqlitesqlc.AssociateRuntimeCustomImageParams{
-			RuntimeID:     runtimeID,
+		return s.sqliteQueries.AssociateTemplateCustomImage(ctx, sqlitesqlc.AssociateTemplateCustomImageParams{
+			TemplateID:    runtimeID,
 			CustomImageID: customImageID,
 		})
 	case DriverPostgres:
-		return s.pgQueries.AssociateRuntimeCustomImage(ctx, postgresqlsqlc.AssociateRuntimeCustomImageParams{
-			RuntimeID:     runtimeID,
+		return s.pgQueries.AssociateTemplateCustomImage(ctx, postgresqlsqlc.AssociateTemplateCustomImageParams{
+			TemplateID:    runtimeID,
 			CustomImageID: customImageID,
 		})
 	default:
@@ -267,17 +267,17 @@ func (s *Store) AssociateRuntimeCustomImage(ctx context.Context, runtimeID, cust
 	}
 }
 
-func (s *Store) DisassociateRuntimeCustomImage(ctx context.Context, runtimeID, customImageID string) (bool, error) {
+func (s *Store) DisassociateTemplateCustomImage(ctx context.Context, runtimeID, customImageID string) (bool, error) {
 	switch s.driver {
 	case DriverSQLite:
-		n, err := s.sqliteQueries.DisassociateRuntimeCustomImage(ctx, sqlitesqlc.DisassociateRuntimeCustomImageParams{
-			RuntimeID:     runtimeID,
+		n, err := s.sqliteQueries.DisassociateTemplateCustomImage(ctx, sqlitesqlc.DisassociateTemplateCustomImageParams{
+			TemplateID:    runtimeID,
 			CustomImageID: customImageID,
 		})
 		return n > 0, err
 	case DriverPostgres:
-		n, err := s.pgQueries.DisassociateRuntimeCustomImage(ctx, postgresqlsqlc.DisassociateRuntimeCustomImageParams{
-			RuntimeID:     runtimeID,
+		n, err := s.pgQueries.DisassociateTemplateCustomImage(ctx, postgresqlsqlc.DisassociateTemplateCustomImageParams{
+			TemplateID:    runtimeID,
 			CustomImageID: customImageID,
 		})
 		return n > 0, err
@@ -286,23 +286,23 @@ func (s *Store) DisassociateRuntimeCustomImage(ctx context.Context, runtimeID, c
 	}
 }
 
-func (s *Store) DisassociateAllRuntimesFromCustomImage(ctx context.Context, customImageID string) error {
+func (s *Store) DisassociateAllTemplatesFromCustomImage(ctx context.Context, customImageID string) error {
 	switch s.driver {
 	case DriverSQLite:
-		return s.sqliteQueries.DisassociateAllRuntimesFromCustomImage(ctx, customImageID)
+		return s.sqliteQueries.DisassociateAllTemplatesFromCustomImage(ctx, customImageID)
 	case DriverPostgres:
-		return s.pgQueries.DisassociateAllRuntimesFromCustomImage(ctx, customImageID)
+		return s.pgQueries.DisassociateAllTemplatesFromCustomImage(ctx, customImageID)
 	default:
 		return unsupportedDriverError(s.driver)
 	}
 }
 
-func (s *Store) ListRuntimeIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
+func (s *Store) ListTemplateIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
 	switch s.driver {
 	case DriverSQLite:
-		return s.sqliteQueries.ListRuntimeIDsByCustomImageID(ctx, customImageID)
+		return s.sqliteQueries.ListTemplateIDsByCustomImageID(ctx, customImageID)
 	case DriverPostgres:
-		return s.pgQueries.ListRuntimeIDsByCustomImageID(ctx, customImageID)
+		return s.pgQueries.ListTemplateIDsByCustomImageID(ctx, customImageID)
 	default:
 		return nil, unsupportedDriverError(s.driver)
 	}

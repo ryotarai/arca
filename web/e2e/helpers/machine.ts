@@ -61,20 +61,20 @@ export type CreateMachineResult = {
 export async function createMachineViaAPI(
   page: Page,
   name: string,
-  runtimeId?: string,
+  templateId?: string,
 ): Promise<string> {
-  const result = await createMachineWithTokenViaAPI(page, name, runtimeId)
+  const result = await createMachineWithTokenViaAPI(page, name, templateId)
   return result.id
 }
 
 export async function createMachineWithTokenViaAPI(
   page: Page,
   name: string,
-  runtimeId?: string,
+  templateId?: string,
 ): Promise<CreateMachineResult> {
   const data: Record<string, unknown> = { name }
-  if (runtimeId) {
-    data.runtimeId = runtimeId
+  if (templateId) {
+    data.templateId = templateId
   }
 
   const response = await page.request.post('/arca.v1.MachineService/CreateMachine', { data })

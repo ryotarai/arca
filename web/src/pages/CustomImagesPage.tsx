@@ -8,12 +8,12 @@ import {
   createCustomImage,
   deleteCustomImage,
   listCustomImages,
-  listRuntimes,
+  listMachineTemplates,
   updateCustomImage,
 } from '@/lib/api'
 import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { RuntimeCatalogItem, User } from '@/lib/types'
+import type { MachineTemplateItem, User } from '@/lib/types'
 
 type CustomImagesPageProps = {
   user: User | null
@@ -22,23 +22,23 @@ type CustomImagesPageProps = {
 
 type ImageFormData = {
   name: string
-  runtimeType: string
+  templateType: string
   description: string
   data: Record<string, string>
-  runtimeIds: string[]
+  templateIds: string[]
 }
 
 const emptyForm: ImageFormData = {
   name: '',
-  runtimeType: 'gce',
+  templateType: 'gce',
   description: '',
   data: {},
-  runtimeIds: [],
+  templateIds: [],
 }
 
 export function CustomImagesPage({ user }: CustomImagesPageProps) {
   const [images, setImages] = useState<CustomImage[]>([])
-  const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
+  const [templates, setTemplates] = useState<MachineTemplateItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -48,9 +48,9 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
 
   const refresh = async () => {
     try {
-      const [imgs, rts] = await Promise.all([listCustomImages(), listRuntimes()])
+      const [imgs, rts] = await Promise.all([listCustomImages(), listMachineTemplates()])
       setImages(imgs)
-      setRuntimes(rts)
+      setTemplates(rts)
     } catch (e) {
       setError(messageFromError(e))
     } finally {
@@ -67,7 +67,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
   if (user == null) return <Navigate to="/login" replace />
   if (user.role !== 'admin') return <Navigate to="/" replace />
 
-  const filteredRuntimes = runtimes.filter((r) => r.type === form.runtimeType)
+  const filteredTemplates = templates.filter((r) => r.type === form.templateType)
 
   const handleSave = async () => {
     setSaving(true)
@@ -77,18 +77,18 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
         await updateCustomImage({
           id: editingId,
           name: form.name,
-          runtimeType: form.runtimeType,
+          templateType: form.templateType,
           data: form.data,
           description: form.description,
-          runtimeIds: form.runtimeIds,
+          templateIds: form.templateIds,
         })
       } else {
         await createCustomImage({
           name: form.name,
-          runtimeType: form.runtimeType,
+          templateType: form.templateType,
           data: form.data,
           description: form.description,
-          runtimeIds: form.runtimeIds,
+          templateIds: form.templateIds,
         })
       }
       setShowForm(false)
@@ -117,10 +117,10 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
     setEditingId(img.id)
     setForm({
       name: img.name,
-      runtimeType: img.runtimeType,
+      templateType: img.templateType,
       description: img.description,
       data: { ...img.data },
-      runtimeIds: [...img.associatedRuntimeIds],
+      templateIds: [...img.associatedTemplateIds],
     })
     setShowForm(true)
   }
@@ -135,12 +135,12 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
     setForm((prev) => ({ ...prev, data: { ...prev.data, [key]: value } }))
   }
 
-  const toggleRuntime = (runtimeId: string) => {
+  const toggleTemplate = (templateId: string) => {
     setForm((prev) => ({
       ...prev,
-      runtimeIds: prev.runtimeIds.includes(runtimeId)
-        ? prev.runtimeIds.filter((id) => id !== runtimeId)
-        : [...prev.runtimeIds, runtimeId],
+      templateIds: prev.templateIds.includes(templateId)
+        ? prev.templateIds.filter((id) => id !== templateId)
+        : [...prev.templateIds, templateId],
     }))
   }
 
@@ -151,7 +151,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Admin</p>
             <h1 className="mt-2 text-2xl font-semibold text-foreground">Custom Images</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Manage custom machine images for runtimes.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Manage custom machine images for templates.</p>
           </div>
           <Button onClick={handleCreate}>New image</Button>
         </header>
@@ -174,10 +174,10 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Runtime type</Label>
+                <Label>Template type</Label>
                 <select
-                  value={form.runtimeType}
-                  onChange={(e) => setForm((p) => ({ ...p, runtimeType: e.target.value, data: {}, runtimeIds: [] }))}
+                  value={form.templateType}
+                  onChange={(e) => setForm((p) => ({ ...p, templateType: e.target.value, data: {}, templateIds: [] }))}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
                 >
                   <option value="gce">GCE</option>
@@ -197,7 +197,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                 />
               </div>
 
-              {form.runtimeType === 'gce' && (
+              {form.templateType === 'gce' && (
                 <>
                   <div className="space-y-2">
                     <Label>Image project</Label>
@@ -210,7 +210,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                 </>
               )}
 
-              {form.runtimeType === 'lxd' && (
+              {form.templateType === 'lxd' && (
                 <>
                   <div className="space-y-2">
                     <Label>Image alias</Label>
@@ -223,23 +223,23 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                 </>
               )}
 
-              {form.runtimeType === 'libvirt' && (
+              {form.templateType === 'libvirt' && (
                 <div className="space-y-2">
                   <Label>Volume name</Label>
                   <Input value={form.data.volume_name ?? ''} onChange={(e) => setDataField('volume_name', e.target.value)} placeholder="/var/lib/libvirt/images/my-image.qcow2" />
                 </div>
               )}
 
-              {filteredRuntimes.length > 0 && (
+              {filteredTemplates.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Associated runtimes</Label>
+                  <Label>Associated templates</Label>
                   <div className="space-y-1">
-                    {filteredRuntimes.map((rt) => (
+                    {filteredTemplates.map((rt) => (
                       <label key={rt.id} className="flex items-center gap-2 text-sm text-foreground">
                         <input
                           type="checkbox"
-                          checked={form.runtimeIds.includes(rt.id)}
-                          onChange={() => toggleRuntime(rt.id)}
+                          checked={form.templateIds.includes(rt.id)}
+                          onChange={() => toggleTemplate(rt.id)}
                           className="rounded border-input"
                         />
                         {rt.name}
@@ -271,9 +271,9 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Runtime type</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Template type</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Description</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Runtimes</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Templates</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -282,11 +282,11 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                 {images.map((img) => (
                   <tr key={img.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3 font-medium text-foreground">{img.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground uppercase">{img.runtimeType}</td>
+                    <td className="px-4 py-3 text-muted-foreground uppercase">{img.templateType}</td>
                     <td className="px-4 py-3 text-muted-foreground">{img.description || '-'}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {img.associatedRuntimeIds.length > 0
-                        ? img.associatedRuntimeIds.map((rid) => runtimes.find((r) => r.id === rid)?.name ?? rid).join(', ')
+                      {img.associatedTemplateIds.length > 0
+                        ? img.associatedTemplateIds.map((rid) => templates.find((r) => r.id === rid)?.name ?? rid).join(', ')
                         : '-'}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{img.createdAt ? new Date(img.createdAt).toLocaleDateString() : '-'}</td>

@@ -54,13 +54,13 @@ type MachineStore interface {
 	GetMachineByIDForUser(context.Context, string, string) (db.Machine, error)
 	ListMachineEventsByMachineIDForUser(context.Context, string, string, int64) ([]db.MachineEvent, error)
 	UpdateMachineNameByIDForOwner(context.Context, string, string, string) (bool, error)
-	UpdateMachineRuntimeByIDForOwner(context.Context, string, string, string, string, string, string) (bool, error)
+	UpdateMachineTemplateByIDForOwner(context.Context, string, string, string, string, string, string) (bool, error)
 	RequestStartMachineByIDForOwner(context.Context, string, string) (bool, error)
 	RequestStopMachineByIDForOwner(context.Context, string, string) (bool, error)
 	RequestDeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByID(context.Context, string) (bool, error)
-	GetRuntimeByID(context.Context, string) (db.RuntimeCatalog, error)
+	GetMachineTemplateByID(context.Context, string) (db.MachineTemplate, error)
 }
 
 const sessionCookieName = "arca_session"
@@ -89,7 +89,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		path, handler := arcav1connect.NewUserServiceHandler(newUserConnectService(deps.Store, deps.Authenticator, deps.Encryptor))
 		r.Mount(path, handler)
 
-		path, handler = arcav1connect.NewRuntimeServiceHandler(newRuntimeConnectService(deps.Store, deps.Authenticator))
+		path, handler = arcav1connect.NewMachineTemplateServiceHandler(newMachineTemplateConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil {

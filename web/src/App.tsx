@@ -7,9 +7,9 @@ import { CreateMachinePage } from '@/pages/CreateMachinePage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
 import { MachinesPage } from '@/pages/MachinesPage'
 import { OidcCallbackPage } from '@/pages/OidcCallbackPage'
-import { RuntimesListPage } from '@/pages/RuntimesListPage'
-import { RuntimeFormPage } from '@/pages/RuntimeFormPage'
-import { RuntimeDetailPage } from '@/pages/RuntimeDetailPage'
+import { MachineTemplatesListPage } from '@/pages/MachineTemplatesListPage'
+import { MachineTemplateFormPage } from '@/pages/MachineTemplateFormPage'
+import { MachineTemplateDetailPage } from '@/pages/MachineTemplateDetailPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { AdminSettingsPage } from '@/pages/AdminSettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
@@ -151,10 +151,10 @@ export function App() {
           <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
           <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
           <Route path="/groups" element={<GroupsPage user={user} onLogout={handleLogout} />} />
-          <Route path="/runtimes" element={<RuntimesListPage user={user} onLogout={handleLogout} />} />
-          <Route path="/runtimes/new" element={<RuntimeFormPage user={user} onLogout={handleLogout} />} />
-          <Route path="/runtimes/:runtimeID" element={<RuntimeDetailPage user={user} onLogout={handleLogout} />} />
-          <Route path="/runtimes/:runtimeID/edit" element={<RuntimeFormPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-templates" element={<MachineTemplatesListPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-templates/new" element={<MachineTemplateFormPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-templates/:templateID" element={<MachineTemplateDetailPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-templates/:templateID/edit" element={<MachineTemplateFormPage user={user} onLogout={handleLogout} />} />
           <Route
             path="/settings"
             element={

@@ -194,16 +194,16 @@ DELETE FROM arcad_sessions
 WHERE user_id = sqlc.arg(user_id);
 
 -- name: CreateMachine :exec
-INSERT INTO machines (id, name, runtime_id, runtime_type, runtime_config_json, setup_version, options_json, custom_image_id)
-VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(runtime_id), sqlc.arg(runtime_type), sqlc.arg(runtime_config_json), sqlc.arg(setup_version), sqlc.arg(options_json), sqlc.arg(custom_image_id));
+INSERT INTO machines (id, name, template_id, template_type, template_config_json, setup_version, options_json, custom_image_id)
+VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(template_id), sqlc.arg(template_type), sqlc.arg(template_config_json), sqlc.arg(setup_version), sqlc.arg(options_json), sqlc.arg(custom_image_id));
 
--- name: ListRuntimes :many
+-- name: ListMachineTemplates :many
 SELECT id, name, type, config_json, created_at, updated_at
-FROM runtimes
+FROM machine_templates
 ORDER BY created_at ASC;
 
--- name: CreateRuntime :exec
-INSERT INTO runtimes (id, name, type, config_json, created_at, updated_at)
+-- name: CreateMachineTemplate :exec
+INSERT INTO machine_templates (id, name, type, config_json, created_at, updated_at)
 VALUES (
   sqlc.arg(id),
   sqlc.arg(name),
@@ -213,22 +213,22 @@ VALUES (
   sqlc.arg(updated_at)
 );
 
--- name: GetRuntimeByID :one
+-- name: GetMachineTemplateByID :one
 SELECT id, name, type, config_json, created_at, updated_at
-FROM runtimes
+FROM machine_templates
 WHERE id = sqlc.arg(id)
 LIMIT 1;
 
--- name: UpdateRuntimeByID :execrows
-UPDATE runtimes
+-- name: UpdateMachineTemplateByID :execrows
+UPDATE machine_templates
 SET name = sqlc.arg(name),
     type = sqlc.arg(type),
     config_json = sqlc.arg(config_json),
     updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id);
 
--- name: DeleteRuntimeByID :execrows
-DELETE FROM runtimes
+-- name: DeleteMachineTemplateByID :execrows
+DELETE FROM machine_templates
 WHERE id = sqlc.arg(id);
 
 -- name: UpdateMachineEndpointByID :exec
@@ -252,11 +252,11 @@ WHERE id = sqlc.arg(machine_id)
       AND um.role = 'admin'
   );
 
--- name: UpdateMachineRuntimeByIDForOwner :execrows
+-- name: UpdateMachineTemplateByIDForOwner :execrows
 UPDATE machines
-SET runtime_id = sqlc.arg(runtime_id),
-    runtime_type = sqlc.arg(runtime_type),
-    runtime_config_json = sqlc.arg(runtime_config_json),
+SET template_id = sqlc.arg(template_id),
+    template_type = sqlc.arg(template_type),
+    template_config_json = sqlc.arg(template_config_json),
     setup_version = sqlc.arg(setup_version)
 WHERE id = sqlc.arg(machine_id)
   AND EXISTS (
@@ -299,7 +299,7 @@ VALUES (
 );
 
 -- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -313,7 +313,7 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -329,7 +329,7 @@ ORDER BY um.created_at ASC
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -495,7 +495,7 @@ SET lease_until = sqlc.arg(lease_until), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND status = 'running' AND lease_owner = sqlc.arg(lease_owner);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.runtime_id, m.runtime_type, m.runtime_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)
@@ -966,28 +966,28 @@ WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) ||
   AND (sqlc.arg(actor_email) = '' OR u1.email = sqlc.arg(actor_email));
 
 -- name: ListCustomImages :many
-SELECT id, name, runtime_type, data_json, description, created_at, updated_at
+SELECT id, name, template_type, data_json, description, created_at, updated_at
 FROM custom_images
 ORDER BY created_at DESC;
 
 -- name: ListCustomImagesByRuntimeType :many
-SELECT id, name, runtime_type, data_json, description, created_at, updated_at
+SELECT id, name, template_type, data_json, description, created_at, updated_at
 FROM custom_images
-WHERE runtime_type = sqlc.arg(runtime_type)
+WHERE template_type = sqlc.arg(template_type)
 ORDER BY created_at DESC;
 
 -- name: GetCustomImage :one
-SELECT id, name, runtime_type, data_json, description, created_at, updated_at
+SELECT id, name, template_type, data_json, description, created_at, updated_at
 FROM custom_images
 WHERE id = sqlc.arg(id)
 LIMIT 1;
 
 -- name: CreateCustomImage :exec
-INSERT INTO custom_images (id, name, runtime_type, data_json, description, created_at, updated_at)
+INSERT INTO custom_images (id, name, template_type, data_json, description, created_at, updated_at)
 VALUES (
   sqlc.arg(id),
   sqlc.arg(name),
-  sqlc.arg(runtime_type),
+  sqlc.arg(template_type),
   sqlc.arg(data_json),
   sqlc.arg(description),
   sqlc.arg(created_at),
@@ -997,7 +997,7 @@ VALUES (
 -- name: UpdateCustomImage :execrows
 UPDATE custom_images
 SET name = sqlc.arg(name),
-    runtime_type = sqlc.arg(runtime_type),
+    template_type = sqlc.arg(template_type),
     data_json = sqlc.arg(data_json),
     description = sqlc.arg(description),
     updated_at = sqlc.arg(updated_at)
@@ -1007,32 +1007,32 @@ WHERE id = sqlc.arg(id);
 DELETE FROM custom_images
 WHERE id = sqlc.arg(id);
 
--- name: ListCustomImagesByRuntimeID :many
-SELECT ci.id, ci.name, ci.runtime_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
+-- name: ListCustomImagesByTemplateID :many
+SELECT ci.id, ci.name, ci.template_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
 FROM custom_images ci
-JOIN runtime_custom_images rci ON rci.custom_image_id = ci.id
-WHERE rci.runtime_id = sqlc.arg(runtime_id)
+JOIN template_custom_images tci ON tci.custom_image_id = ci.id
+WHERE tci.template_id = sqlc.arg(template_id)
 ORDER BY ci.name ASC;
 
--- name: AssociateRuntimeCustomImage :exec
-INSERT INTO runtime_custom_images (runtime_id, custom_image_id)
-VALUES (sqlc.arg(runtime_id), sqlc.arg(custom_image_id))
-ON CONFLICT (runtime_id, custom_image_id) DO NOTHING;
+-- name: AssociateTemplateCustomImage :exec
+INSERT INTO template_custom_images (template_id, custom_image_id)
+VALUES (sqlc.arg(template_id), sqlc.arg(custom_image_id))
+ON CONFLICT (template_id, custom_image_id) DO NOTHING;
 
--- name: DisassociateRuntimeCustomImage :execrows
-DELETE FROM runtime_custom_images
-WHERE runtime_id = sqlc.arg(runtime_id)
+-- name: DisassociateTemplateCustomImage :execrows
+DELETE FROM template_custom_images
+WHERE template_id = sqlc.arg(template_id)
   AND custom_image_id = sqlc.arg(custom_image_id);
 
--- name: DisassociateAllRuntimesFromCustomImage :exec
-DELETE FROM runtime_custom_images
+-- name: DisassociateAllTemplatesFromCustomImage :exec
+DELETE FROM template_custom_images
 WHERE custom_image_id = sqlc.arg(custom_image_id);
 
--- name: ListRuntimeIDsByCustomImageID :many
-SELECT runtime_id
-FROM runtime_custom_images
+-- name: ListTemplateIDsByCustomImageID :many
+SELECT template_id
+FROM template_custom_images
 WHERE custom_image_id = sqlc.arg(custom_image_id)
-ORDER BY runtime_id ASC;
+ORDER BY template_id ASC;
 
 -- name: ListServerLLMModels :many
 SELECT id, config_name, endpoint_type, custom_endpoint, model_name, token_command, max_context_tokens, created_at, updated_at

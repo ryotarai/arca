@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	RuntimeTypeLibvirt = "libvirt"
-	RuntimeTypeGCE     = "gce"
-	RuntimeTypeLXD     = "lxd"
+	TemplateTypeLibvirt = "libvirt"
+	TemplateTypeGCE     = "gce"
+	TemplateTypeLXD     = "lxd"
 )
 
-type RuntimeCatalog struct {
+type MachineTemplate struct {
 	ID         string
 	Name       string
 	Type       string
@@ -27,19 +27,19 @@ type RuntimeCatalog struct {
 	UpdatedAt  int64
 }
 
-var ErrRuntimeNameAlreadyExists = errors.New("runtime name already exists")
-var ErrRuntimeInUse = errors.New("runtime is in use")
+var ErrTemplateNameAlreadyExists = errors.New("template name already exists")
+var ErrTemplateInUse = errors.New("template is in use")
 
-func (s *Store) ListRuntimes(ctx context.Context) ([]RuntimeCatalog, error) {
+func (s *Store) ListMachineTemplates(ctx context.Context) ([]MachineTemplate, error) {
 	switch s.driver {
 	case DriverSQLite:
-		rows, err := s.sqliteQueries.ListRuntimes(ctx)
+		rows, err := s.sqliteQueries.ListMachineTemplates(ctx)
 		if err != nil {
 			return nil, err
 		}
-		items := make([]RuntimeCatalog, 0, len(rows))
+		items := make([]MachineTemplate, 0, len(rows))
 		for _, row := range rows {
-			items = append(items, RuntimeCatalog{
+			items = append(items, MachineTemplate{
 				ID:         row.ID,
 				Name:       row.Name,
 				Type:       strings.ToLower(strings.TrimSpace(row.Type)),
@@ -50,13 +50,13 @@ func (s *Store) ListRuntimes(ctx context.Context) ([]RuntimeCatalog, error) {
 		}
 		return items, nil
 	case DriverPostgres:
-		rows, err := s.pgQueries.ListRuntimes(ctx)
+		rows, err := s.pgQueries.ListMachineTemplates(ctx)
 		if err != nil {
 			return nil, err
 		}
-		items := make([]RuntimeCatalog, 0, len(rows))
+		items := make([]MachineTemplate, 0, len(rows))
 		for _, row := range rows {
-			items = append(items, RuntimeCatalog{
+			items = append(items, MachineTemplate{
 				ID:         row.ID,
 				Name:       row.Name,
 				Type:       strings.ToLower(strings.TrimSpace(row.Type)),
@@ -71,16 +71,16 @@ func (s *Store) ListRuntimes(ctx context.Context) ([]RuntimeCatalog, error) {
 	}
 }
 
-func (s *Store) CreateRuntime(ctx context.Context, name, runtimeType, configJSON string) (RuntimeCatalog, error) {
-	runtimeID, err := randomID()
+func (s *Store) CreateMachineTemplate(ctx context.Context, name, templateType, configJSON string) (MachineTemplate, error) {
+	templateID, err := randomID()
 	if err != nil {
-		return RuntimeCatalog{}, err
+		return MachineTemplate{}, err
 	}
 	nowUnix := time.Now().Unix()
-	item := RuntimeCatalog{
-		ID:         runtimeID,
+	item := MachineTemplate{
+		ID:         templateID,
 		Name:       strings.TrimSpace(name),
-		Type:       strings.ToLower(strings.TrimSpace(runtimeType)),
+		Type:       strings.ToLower(strings.TrimSpace(templateType)),
 		ConfigJSON: strings.TrimSpace(configJSON),
 		CreatedAt:  nowUnix,
 		UpdatedAt:  nowUnix,
@@ -88,7 +88,7 @@ func (s *Store) CreateRuntime(ctx context.Context, name, runtimeType, configJSON
 
 	switch s.driver {
 	case DriverSQLite:
-		err = s.sqliteQueries.CreateRuntime(ctx, sqlitesqlc.CreateRuntimeParams{
+		err = s.sqliteQueries.CreateMachineTemplate(ctx, sqlitesqlc.CreateMachineTemplateParams{
 			ID:         item.ID,
 			Name:       item.Name,
 			Type:       item.Type,
@@ -97,7 +97,7 @@ func (s *Store) CreateRuntime(ctx context.Context, name, runtimeType, configJSON
 			UpdatedAt:  item.UpdatedAt,
 		})
 	case DriverPostgres:
-		err = s.pgQueries.CreateRuntime(ctx, postgresqlsqlc.CreateRuntimeParams{
+		err = s.pgQueries.CreateMachineTemplate(ctx, postgresqlsqlc.CreateMachineTemplateParams{
 			ID:         item.ID,
 			Name:       item.Name,
 			Type:       item.Type,
@@ -106,28 +106,28 @@ func (s *Store) CreateRuntime(ctx context.Context, name, runtimeType, configJSON
 			UpdatedAt:  item.UpdatedAt,
 		})
 	default:
-		return RuntimeCatalog{}, unsupportedDriverError(s.driver)
+		return MachineTemplate{}, unsupportedDriverError(s.driver)
 	}
 	if err != nil {
-		if isRuntimeNameUniqueConstraintError(err) {
-			return RuntimeCatalog{}, ErrRuntimeNameAlreadyExists
+		if isTemplateNameUniqueConstraintError(err) {
+			return MachineTemplate{}, ErrTemplateNameAlreadyExists
 		}
-		return RuntimeCatalog{}, err
+		return MachineTemplate{}, err
 	}
 
 	return item, nil
 }
 
-func (s *Store) UpdateRuntimeByID(ctx context.Context, runtimeID, name, runtimeType, configJSON string) (RuntimeCatalog, bool, error) {
-	runtimeID = strings.TrimSpace(runtimeID)
-	item := RuntimeCatalog{
-		ID:         runtimeID,
+func (s *Store) UpdateMachineTemplateByID(ctx context.Context, templateID, name, templateType, configJSON string) (MachineTemplate, bool, error) {
+	templateID = strings.TrimSpace(templateID)
+	item := MachineTemplate{
+		ID:         templateID,
 		Name:       strings.TrimSpace(name),
-		Type:       strings.ToLower(strings.TrimSpace(runtimeType)),
+		Type:       strings.ToLower(strings.TrimSpace(templateType)),
 		ConfigJSON: strings.TrimSpace(configJSON),
 	}
-	if runtimeID == "" {
-		return RuntimeCatalog{}, false, nil
+	if templateID == "" {
+		return MachineTemplate{}, false, nil
 	}
 	nowUnix := time.Now().Unix()
 	item.UpdatedAt = nowUnix
@@ -138,7 +138,7 @@ func (s *Store) UpdateRuntimeByID(ctx context.Context, runtimeID, name, runtimeT
 	)
 	switch s.driver {
 	case DriverSQLite:
-		updated, err = s.sqliteQueries.UpdateRuntimeByID(ctx, sqlitesqlc.UpdateRuntimeByIDParams{
+		updated, err = s.sqliteQueries.UpdateMachineTemplateByID(ctx, sqlitesqlc.UpdateMachineTemplateByIDParams{
 			ID:         item.ID,
 			Name:       item.Name,
 			Type:       item.Type,
@@ -146,7 +146,7 @@ func (s *Store) UpdateRuntimeByID(ctx context.Context, runtimeID, name, runtimeT
 			UpdatedAt:  nowUnix,
 		})
 	case DriverPostgres:
-		updated, err = s.pgQueries.UpdateRuntimeByID(ctx, postgresqlsqlc.UpdateRuntimeByIDParams{
+		updated, err = s.pgQueries.UpdateMachineTemplateByID(ctx, postgresqlsqlc.UpdateMachineTemplateByIDParams{
 			ID:         item.ID,
 			Name:       item.Name,
 			Type:       item.Type,
@@ -154,64 +154,64 @@ func (s *Store) UpdateRuntimeByID(ctx context.Context, runtimeID, name, runtimeT
 			UpdatedAt:  nowUnix,
 		})
 	default:
-		return RuntimeCatalog{}, false, unsupportedDriverError(s.driver)
+		return MachineTemplate{}, false, unsupportedDriverError(s.driver)
 	}
 	if err != nil {
-		if isRuntimeNameUniqueConstraintError(err) {
-			return RuntimeCatalog{}, false, ErrRuntimeNameAlreadyExists
+		if isTemplateNameUniqueConstraintError(err) {
+			return MachineTemplate{}, false, ErrTemplateNameAlreadyExists
 		}
-		return RuntimeCatalog{}, false, err
+		return MachineTemplate{}, false, err
 	}
 	if updated == 0 {
-		return RuntimeCatalog{}, false, nil
+		return MachineTemplate{}, false, nil
 	}
 
-	current, err := s.GetRuntimeByID(ctx, runtimeID)
+	current, err := s.GetMachineTemplateByID(ctx, templateID)
 	if err != nil {
-		return RuntimeCatalog{}, false, err
+		return MachineTemplate{}, false, err
 	}
 	return current, true, nil
 }
 
-func (s *Store) DeleteRuntimeByID(ctx context.Context, runtimeID string) (bool, error) {
-	runtimeID = strings.TrimSpace(runtimeID)
-	if runtimeID == "" {
+func (s *Store) DeleteMachineTemplateByID(ctx context.Context, templateID string) (bool, error) {
+	templateID = strings.TrimSpace(templateID)
+	if templateID == "" {
 		return false, nil
 	}
 
-	inUseCount, err := s.countMachinesByRuntimeID(ctx, runtimeID)
+	inUseCount, err := s.countMachinesByTemplateID(ctx, templateID)
 	if err != nil {
 		return false, err
 	}
 	if inUseCount > 0 {
-		return false, ErrRuntimeInUse
+		return false, ErrTemplateInUse
 	}
 
 	switch s.driver {
 	case DriverSQLite:
-		updated, err := s.sqliteQueries.DeleteRuntimeByID(ctx, runtimeID)
+		updated, err := s.sqliteQueries.DeleteMachineTemplateByID(ctx, templateID)
 		return updated > 0, err
 	case DriverPostgres:
-		updated, err := s.pgQueries.DeleteRuntimeByID(ctx, runtimeID)
+		updated, err := s.pgQueries.DeleteMachineTemplateByID(ctx, templateID)
 		return updated > 0, err
 	default:
 		return false, unsupportedDriverError(s.driver)
 	}
 }
 
-func (s *Store) countMachinesByRuntimeID(ctx context.Context, runtimeID string) (int64, error) {
+func (s *Store) countMachinesByTemplateID(ctx context.Context, templateID string) (int64, error) {
 	var query string
 	switch s.driver {
 	case DriverSQLite:
-		query = "SELECT COUNT(1) FROM machines WHERE runtime_id = ?"
+		query = "SELECT COUNT(1) FROM machines WHERE template_id = ?"
 	case DriverPostgres:
-		query = "SELECT COUNT(1) FROM machines WHERE runtime_id = $1"
+		query = "SELECT COUNT(1) FROM machines WHERE template_id = $1"
 	default:
 		return 0, unsupportedDriverError(s.driver)
 	}
 
 	var count int64
-	if err := s.db.QueryRowContext(ctx, query, runtimeID).Scan(&count); err != nil {
+	if err := s.db.QueryRowContext(ctx, query, templateID).Scan(&count); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
 		}
@@ -220,16 +220,16 @@ func (s *Store) countMachinesByRuntimeID(ctx context.Context, runtimeID string) 
 	return count, nil
 }
 
-func (s *Store) GetRuntimeByID(ctx context.Context, runtimeID string) (RuntimeCatalog, error) {
-	runtimeID = strings.TrimSpace(runtimeID)
+func (s *Store) GetMachineTemplateByID(ctx context.Context, templateID string) (MachineTemplate, error) {
+	templateID = strings.TrimSpace(templateID)
 
 	switch s.driver {
 	case DriverSQLite:
-		row, err := s.sqliteQueries.GetRuntimeByID(ctx, runtimeID)
+		row, err := s.sqliteQueries.GetMachineTemplateByID(ctx, templateID)
 		if err != nil {
-			return RuntimeCatalog{}, err
+			return MachineTemplate{}, err
 		}
-		return RuntimeCatalog{
+		return MachineTemplate{
 			ID:         row.ID,
 			Name:       row.Name,
 			Type:       strings.ToLower(strings.TrimSpace(row.Type)),
@@ -238,11 +238,11 @@ func (s *Store) GetRuntimeByID(ctx context.Context, runtimeID string) (RuntimeCa
 			UpdatedAt:  row.UpdatedAt,
 		}, nil
 	case DriverPostgres:
-		row, err := s.pgQueries.GetRuntimeByID(ctx, runtimeID)
+		row, err := s.pgQueries.GetMachineTemplateByID(ctx, templateID)
 		if err != nil {
-			return RuntimeCatalog{}, err
+			return MachineTemplate{}, err
 		}
-		return RuntimeCatalog{
+		return MachineTemplate{
 			ID:         row.ID,
 			Name:       row.Name,
 			Type:       strings.ToLower(strings.TrimSpace(row.Type)),
@@ -251,11 +251,11 @@ func (s *Store) GetRuntimeByID(ctx context.Context, runtimeID string) (RuntimeCa
 			UpdatedAt:  row.UpdatedAt,
 		}, nil
 	default:
-		return RuntimeCatalog{}, unsupportedDriverError(s.driver)
+		return MachineTemplate{}, unsupportedDriverError(s.driver)
 	}
 }
 
-func isRuntimeNameUniqueConstraintError(err error) bool {
+func isTemplateNameUniqueConstraintError(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -266,7 +266,7 @@ func isRuntimeNameUniqueConstraintError(err error) bool {
 	}
 
 	msg := strings.ToLower(err.Error())
-	if strings.Contains(msg, "unique constraint failed") && strings.Contains(msg, "runtimes.name") {
+	if strings.Contains(msg, "unique constraint failed") && strings.Contains(msg, "machine_templates.name") {
 		return true
 	}
 	return strings.Contains(msg, "duplicate key value") && strings.Contains(msg, "name")

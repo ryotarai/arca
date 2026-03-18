@@ -21,14 +21,14 @@ import {
   UpdateMachineRequestSchema,
 } from '@/gen/arca/v1/machine_pb'
 import {
-  CreateRuntimeRequestSchema,
-  DeleteRuntimeRequestSchema,
-  ListAvailableRuntimesRequestSchema,
-  ListRuntimesRequestSchema,
-  RuntimeService,
-  RuntimeType,
-  UpdateRuntimeRequestSchema,
-} from '@/gen/arca/v1/runtime_pb'
+  CreateMachineTemplateRequestSchema,
+  DeleteMachineTemplateRequestSchema,
+  ListAvailableMachineTemplatesRequestSchema,
+  ListMachineTemplatesRequestSchema,
+  MachineTemplateService,
+  MachineTemplateType,
+  UpdateMachineTemplateRequestSchema,
+} from '@/gen/arca/v1/machine_template_pb'
 import {
   ListMachineExposuresRequestSchema,
   ExposureService,
@@ -85,10 +85,10 @@ import type {
   MachineExposureConfig,
   MachineExposureMethodType,
   ManagedUser,
-  RuntimeCatalogConfig,
-  RuntimeCatalogItem,
-  RuntimeCatalogType,
-  RuntimeSummary,
+  MachineTemplateConfig,
+  MachineTemplateItem,
+  MachineTemplateType as MachineTemplateTypeLocal,
+  MachineTemplateSummary,
   SetupStatus,
   User,
   UserSettings,
@@ -101,7 +101,7 @@ const connectTransport = createConnectTransport({
 
 const authClient = createClient(AuthService, connectTransport)
 const machineClient = createClient(MachineService, connectTransport)
-const runtimeClient = createClient(RuntimeService, connectTransport)
+const templateClient = createClient(MachineTemplateService, connectTransport)
 const exposureClient = createClient(ExposureService, connectTransport)
 const userClient = createClient(UserService, connectTransport)
 const sharingClient = createClient(SharingService, connectTransport)
@@ -349,8 +349,8 @@ export async function listMachines(options: PollingOptions = {}): Promise<Machin
   return response.machines
 }
 
-export async function createMachine(name: string, runtimeID: string, options?: Record<string, string>, customImageId?: string): Promise<Machine> {
-  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID, options: options ?? {}, customImageId: customImageId ?? '' }))
+export async function createMachine(name: string, templateID: string, options?: Record<string, string>, customImageId?: string): Promise<Machine> {
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, templateId: templateID, options: options ?? {}, customImageId: customImageId ?? '' }))
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -384,8 +384,8 @@ export async function updateMachineOptions(id: string, options: Record<string, s
   return updateMachine(id, '', options)
 }
 
-export async function startMachine(id: string, runtimeID?: string): Promise<Machine> {
-  const response = await machineClient.startMachine(create(StartMachineRequestSchema, { machineId: id, runtimeId: runtimeID ?? '' }))
+export async function startMachine(id: string, templateID?: string): Promise<Machine> {
+  const response = await machineClient.startMachine(create(StartMachineRequestSchema, { machineId: id, templateId: templateID ?? '' }))
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -414,15 +414,15 @@ export async function deleteMachine(id: string): Promise<void> {
   await machineClient.deleteMachine(create(DeleteMachineRequestSchema, { machineId: id }))
 }
 
-function runtimeTypeToProto(type: RuntimeCatalogType): RuntimeType {
-  if (type === 'gce') return RuntimeType.GCE
-  if (type === 'lxd') return RuntimeType.LXD
-  return RuntimeType.LIBVIRT
+function templateTypeToProto(type: MachineTemplateTypeLocal): MachineTemplateType {
+  if (type === 'gce') return MachineTemplateType.GCE
+  if (type === 'lxd') return MachineTemplateType.LXD
+  return MachineTemplateType.LIBVIRT
 }
 
-function runtimeTypeFromProto(type: RuntimeType): RuntimeCatalogType {
-  if (type === RuntimeType.GCE) return 'gce'
-  if (type === RuntimeType.LXD) return 'lxd'
+function templateTypeFromProto(type: MachineTemplateType): MachineTemplateTypeLocal {
+  if (type === MachineTemplateType.GCE) return 'gce'
+  if (type === MachineTemplateType.LXD) return 'lxd'
   return 'libvirt'
 }
 
@@ -434,10 +434,10 @@ function machineExposureMethodToProto(_method: MachineExposureMethodType): numbe
   return 2
 }
 
-function toRuntimeCatalogItem(input: {
+function toMachineTemplateItem(input: {
   id: string
   name: string
-  type: RuntimeType
+  type: MachineTemplateType
   config?: {
     provider:
       | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string; startupScript: string } }
@@ -458,10 +458,10 @@ function toRuntimeCatalogItem(input: {
   }
   createdAt: bigint
   updatedAt: bigint
-}): RuntimeCatalogItem {
-  const runtimeType = runtimeTypeFromProto(input.type)
-  let config: RuntimeCatalogConfig
-  if (runtimeType === 'gce') {
+}): MachineTemplateItem {
+  const templateType = templateTypeFromProto(input.type)
+  let config: MachineTemplateConfig
+  if (templateType === 'gce') {
     const gce = input.config?.provider.case === 'gce' ? input.config.provider.value : undefined
     config = {
       type: 'gce',
@@ -474,7 +474,7 @@ function toRuntimeCatalogItem(input: {
       diskSizeGb: Number(gce?.diskSizeGb ?? 0),
       allowedMachineTypes: gce?.allowedMachineTypes ?? [],
     }
-  } else if (runtimeType === 'lxd') {
+  } else if (templateType === 'lxd') {
     const lxd = input.config?.provider.case === 'lxd' ? input.config.provider.value : undefined
     config = {
       type: 'lxd',
@@ -504,7 +504,7 @@ function toRuntimeCatalogItem(input: {
   return {
     id: input.id,
     name: input.name,
-    type: runtimeType,
+    type: templateType,
     config,
     exposure,
     serverApiUrl: input.config?.serverApiUrl ?? '',
@@ -514,7 +514,7 @@ function toRuntimeCatalogItem(input: {
   }
 }
 
-function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogConfig, exposure?: MachineExposureConfig, serverApiUrl?: string, autoStopTimeoutSeconds?: number) {
+function templateConfigPayload(type: MachineTemplateTypeLocal, config: MachineTemplateConfig, exposure?: MachineExposureConfig, serverApiUrl?: string, autoStopTimeoutSeconds?: number) {
   let provider
   if (type === 'gce') {
     if (config.type !== 'gce') {
@@ -577,66 +577,66 @@ function runtimeConfigPayload(type: RuntimeCatalogType, config: RuntimeCatalogCo
   return result
 }
 
-export async function listRuntimes(): Promise<RuntimeCatalogItem[]> {
-  const response = await runtimeClient.listRuntimes(create(ListRuntimesRequestSchema))
-  return response.runtimes.map((runtime) => toRuntimeCatalogItem(runtime))
+export async function listMachineTemplates(): Promise<MachineTemplateItem[]> {
+  const response = await templateClient.listMachineTemplates(create(ListMachineTemplatesRequestSchema))
+  return response.templates.map((template) => toMachineTemplateItem(template))
 }
 
-export async function listAvailableRuntimes(): Promise<RuntimeSummary[]> {
-  const response = await runtimeClient.listAvailableRuntimes(create(ListAvailableRuntimesRequestSchema))
-  return response.runtimes.map((runtime) => ({
-    id: runtime.id,
-    name: runtime.name,
-    type: runtimeTypeFromProto(runtime.type),
+export async function listAvailableMachineTemplates(): Promise<MachineTemplateSummary[]> {
+  const response = await templateClient.listAvailableMachineTemplates(create(ListAvailableMachineTemplatesRequestSchema))
+  return response.templates.map((template) => ({
+    id: template.id,
+    name: template.name,
+    type: templateTypeFromProto(template.type),
   }))
 }
 
-export async function createRuntime(
+export async function createMachineTemplate(
   name: string,
-  type: RuntimeCatalogType,
-  config: RuntimeCatalogConfig,
+  type: MachineTemplateTypeLocal,
+  config: MachineTemplateConfig,
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
   autoStopTimeoutSeconds?: number,
-): Promise<RuntimeCatalogItem> {
-  const response = await runtimeClient.createRuntime(
-    create(CreateRuntimeRequestSchema, {
+): Promise<MachineTemplateItem> {
+  const response = await templateClient.createMachineTemplate(
+    create(CreateMachineTemplateRequestSchema, {
       name,
-      type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
+      type: templateTypeToProto(type),
+      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
     }),
   )
-  if (response.runtime == null) {
+  if (response.template == null) {
     throw new Error('request failed')
   }
-  return toRuntimeCatalogItem(response.runtime)
+  return toMachineTemplateItem(response.template)
 }
 
-export async function updateRuntime(
-  runtimeID: string,
+export async function updateMachineTemplate(
+  templateID: string,
   name: string,
-  type: RuntimeCatalogType,
-  config: RuntimeCatalogConfig,
+  type: MachineTemplateTypeLocal,
+  config: MachineTemplateConfig,
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
   autoStopTimeoutSeconds?: number,
-): Promise<RuntimeCatalogItem> {
-  const response = await runtimeClient.updateRuntime(
-    create(UpdateRuntimeRequestSchema, {
-      runtimeId: runtimeID,
+): Promise<MachineTemplateItem> {
+  const response = await templateClient.updateMachineTemplate(
+    create(UpdateMachineTemplateRequestSchema, {
+      templateId: templateID,
       name,
-      type: runtimeTypeToProto(type),
-      config: runtimeConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
+      type: templateTypeToProto(type),
+      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
     }),
   )
-  if (response.runtime == null) {
+  if (response.template == null) {
     throw new Error('request failed')
   }
-  return toRuntimeCatalogItem(response.runtime)
+  return toMachineTemplateItem(response.template)
 }
 
-export async function deleteRuntime(runtimeID: string): Promise<void> {
-  await runtimeClient.deleteRuntime(create(DeleteRuntimeRequestSchema, { runtimeId: runtimeID }))
+export async function deleteMachineTemplate(templateID: string): Promise<void> {
+  await templateClient.deleteMachineTemplate(create(DeleteMachineTemplateRequestSchema, { templateId: templateID }))
 }
 
 export async function getSetupStatus(): Promise<SetupStatus> {
@@ -1104,18 +1104,18 @@ export async function listCustomImages(): Promise<CustomImage[]> {
 
 export async function createCustomImage(params: {
   name: string
-  runtimeType: string
+  templateType: string
   data: Record<string, string>
   description: string
-  runtimeIds: string[]
+  templateIds: string[]
 }): Promise<CustomImage> {
   const response = await imageClient.createCustomImage(
     create(CreateCustomImageRequestSchema, {
       name: params.name,
-      runtimeType: params.runtimeType,
+      templateType: params.templateType,
       data: params.data,
       description: params.description,
-      runtimeIds: params.runtimeIds,
+      templateIds: params.templateIds,
     }),
   )
   if (response.image == null) {
@@ -1127,19 +1127,19 @@ export async function createCustomImage(params: {
 export async function updateCustomImage(params: {
   id: string
   name: string
-  runtimeType: string
+  templateType: string
   data: Record<string, string>
   description: string
-  runtimeIds: string[]
+  templateIds: string[]
 }): Promise<CustomImage> {
   const response = await imageClient.updateCustomImage(
     create(UpdateCustomImageRequestSchema, {
       id: params.id,
       name: params.name,
-      runtimeType: params.runtimeType,
+      templateType: params.templateType,
       data: params.data,
       description: params.description,
-      runtimeIds: params.runtimeIds,
+      templateIds: params.templateIds,
     }),
   )
   if (response.image == null) {
@@ -1152,9 +1152,9 @@ export async function deleteCustomImage(id: string): Promise<void> {
   await imageClient.deleteCustomImage(create(DeleteCustomImageRequestSchema, { id }))
 }
 
-export async function listAvailableImages(runtimeId: string): Promise<CustomImage[]> {
+export async function listAvailableImages(templateId: string): Promise<CustomImage[]> {
   const response = await imageClient.listAvailableImages(
-    create(ListAvailableImagesRequestSchema, { runtimeId }),
+    create(ListAvailableImagesRequestSchema, { templateId }),
   )
   return response.images
 }

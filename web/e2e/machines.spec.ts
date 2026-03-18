@@ -6,7 +6,7 @@ import {
   createMachineViaAPI,
   waitForMachineByName,
 } from './helpers/machine'
-import { ensureLxdRuntime } from './helpers/runtime'
+import { ensureLxdTemplate } from './helpers/machine-template'
 
 test.describe('machine list', () => {
   test('machines page shows heading and create button', async ({ page }) => {
@@ -20,7 +20,7 @@ test.describe('machine list', () => {
 
   test('machine created via API appears in list with name and status badge', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `list-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -38,7 +38,7 @@ test.describe('machine list', () => {
 
   test('machine list does not show inline Start/Stop/Delete buttons', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `no-inline-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -55,9 +55,9 @@ test.describe('machine list', () => {
     }
   })
 
-  test('machine list shows runtime name', async ({ page }) => {
+  test('machine list shows template name', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `rt-name-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -76,7 +76,7 @@ test.describe('machine list', () => {
   }) => {
     const machineName = `restart-list-${Date.now()}`
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     await waitForMachineByName(page, machineName)
 
@@ -99,19 +99,19 @@ test.describe('machine list', () => {
 })
 
 test.describe('machine creation', () => {
-  test('create form shows Name and Runtime selector', async ({ page }) => {
+  test('create form shows Name and Template selector', async ({ page }) => {
     await loginAsAdmin(page)
-    await ensureLxdRuntime(page)
+    await ensureLxdTemplate(page)
 
     await page.goto('/machines/create')
     await expect(page.getByRole('heading', { name: 'Create machine' })).toBeVisible()
     await expect(page.locator('#create-machine-name')).toBeVisible()
-    await expect(page.locator('#create-machine-runtime')).toBeVisible()
+    await expect(page.locator('#create-machine-template')).toBeVisible()
   })
 
   test('machine creation redirects to detail page', async ({ page }) => {
     await loginAsAdmin(page)
-    await ensureLxdRuntime(page)
+    await ensureLxdTemplate(page)
     const machineName = `create-${Date.now()}`
 
     await page.goto('/machines/create')
@@ -124,10 +124,10 @@ test.describe('machine creation', () => {
     await bestEffortDeleteMachine(page, machine.id)
   })
 
-  test('warning shown when no runtimes exist', async ({ page }) => {
-    // This test verifies the warning text when there are no available runtimes.
-    // In a fresh DB with no runtimes, the create page should show a warning.
-    // Since we typically have a runtime, we just verify the form renders properly.
+  test('warning shown when no templates exist', async ({ page }) => {
+    // This test verifies the warning text when there are no available templates.
+    // In a fresh DB with no templates, the create page should show a warning.
+    // Since we typically have a template, we just verify the form renders properly.
     await loginAsAdmin(page)
     await page.goto('/machines/create')
     await expect(page.getByRole('heading', { name: 'Create machine' })).toBeVisible()
@@ -137,7 +137,7 @@ test.describe('machine creation', () => {
 test.describe('machine detail', () => {
   test('detail page shows machine name and status', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `detail-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -156,7 +156,7 @@ test.describe('machine detail', () => {
   test('admin sees Start/Stop/Delete/Share buttons', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `admin-btns-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -174,7 +174,7 @@ test.describe('machine detail', () => {
 
   test('Stop button changes machine status', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `stop-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -192,7 +192,7 @@ test.describe('machine detail', () => {
 
   test('Delete button redirects to machine list', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `del-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -209,9 +209,9 @@ test.describe('machine detail', () => {
     }
   })
 
-  test('runtime link navigates to runtime detail', async ({ page }) => {
+  test('template link navigates to template detail', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `rt-link-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -219,15 +219,15 @@ test.describe('machine detail', () => {
       await page.goto(`/machines/${machineID}`)
       await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
 
-      const runtimeLink = page.locator('a[href^="/runtimes/"]').first()
-      await expect(runtimeLink).toBeVisible({ timeout: 15_000 })
-      const runtimeHref = await runtimeLink.getAttribute('href')
-      expect(runtimeHref).toBeTruthy()
-      await runtimeLink.click()
+      const templateLink = page.locator('a[href^="/machine-templates/"]').first()
+      await expect(templateLink).toBeVisible({ timeout: 15_000 })
+      const templateHref = await templateLink.getAttribute('href')
+      expect(templateHref).toBeTruthy()
+      await templateLink.click()
 
-      await expect(page).toHaveURL(runtimeHref!)
-      await expect(page.getByRole('heading', { name: 'Runtime detail' })).toBeVisible()
-      await expect(page.getByText('Runtime metadata')).toBeVisible()
+      await expect(page).toHaveURL(templateHref!)
+      await expect(page.getByRole('heading', { name: 'Template detail' })).toBeVisible()
+      await expect(page.getByText('Template metadata')).toBeVisible()
     } finally {
       await bestEffortDeleteMachine(page, machineID)
     }
@@ -235,7 +235,7 @@ test.describe('machine detail', () => {
 
   test('events section is visible', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineName = `events-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -252,7 +252,7 @@ test.describe('machine detail', () => {
   }) => {
     const machineName = `restart-detail-${Date.now()}`
     await loginAsAdmin(page)
-    const runtime = await ensureLxdRuntime(page)
+    const runtime = await ensureLxdTemplate(page)
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     await waitForMachineByName(page, machineName)
 
