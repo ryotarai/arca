@@ -46,6 +46,8 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 		}
 	}
 
+	writeAuditLog(ctx, s.store, userID, "", "auth.login", "user", userID, `{"method":"password"}`)
+
 	resp := connect.NewResponse(&arcav1.LoginResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}})
 	setSessionCookie(resp.Header(), token, expiresAt, isSecureRequest(req.Header()))
 	return resp, nil
@@ -97,6 +99,8 @@ func (s *authConnectService) CompleteOidcLogin(ctx context.Context, req *connect
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to complete oidc login"))
 		}
 	}
+	writeAuditLog(ctx, s.store, userID, "", "auth.login", "user", userID, `{"method":"oidc"}`)
+
 	resp := connect.NewResponse(&arcav1.CompleteOidcLoginResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}})
 	secure := isSecureRequest(req.Header())
 	setSessionCookie(resp.Header(), token, expiresAt, secure)

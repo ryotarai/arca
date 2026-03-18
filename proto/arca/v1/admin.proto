@@ -35,10 +35,14 @@ message GetImpersonationStatusResponse {
 
 message ListAuditLogsRequest {
   int32 limit = 1;
+  string action_prefix = 2;
+  string actor_email = 3;
+  int32 offset = 4;
 }
 
 message ListAuditLogsResponse {
   repeated AuditLog audit_logs = 1;
+  int32 total_count = 2;
 }
 
 message AuditLog {

@@ -265,10 +265,11 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 }
 
 func (s *sharingConnectService) RequestMachineAccess(ctx context.Context, req *connect.Request[arcav1.RequestMachineAccessRequest]) (*connect.Response[arcav1.RequestMachineAccessResponse], error) {
-	userID, err := authenticateUserFromHeader(ctx, s.authenticator, req.Header())
+	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
@@ -300,6 +301,8 @@ func (s *sharingConnectService) RequestMachineAccess(ctx context.Context, req *c
 		log.Printf("create access request failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create access request"))
 	}
+
+	writeAuditLogFromAuth(ctx, s.store, authResult, "sharing.request_access", "machine", machineID, "{}")
 
 	return connect.NewResponse(&arcav1.RequestMachineAccessResponse{}), nil
 }
