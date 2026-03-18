@@ -78,10 +78,7 @@ export type RuntimeCatalogConfig =
       subnetwork: string
       serviceAccountEmail: string
       startupScript: string
-      machineType: string
       diskSizeGb: number
-      imageProject: string
-      imageFamily: string
       allowedMachineTypes: string[]
     }
   | {

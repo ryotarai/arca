@@ -340,11 +340,11 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 		if project == "" || zone == "" || network == "" || subnetwork == "" || serviceAccountEmail == "" {
 			return validatedRuntimeRequest{}, errors.New("gce config requires project, zone, network, subnetwork, and service account email")
 		}
-		machineType := strings.TrimSpace(gce.GetMachineType())
 		diskSizeGb := gce.GetDiskSizeGb()
-		imageProject := strings.TrimSpace(gce.GetImageProject())
-		imageFamily := strings.TrimSpace(gce.GetImageFamily())
 		allowedMachineTypes := gce.GetAllowedMachineTypes()
+		if len(allowedMachineTypes) == 0 {
+			return validatedRuntimeRequest{}, errors.New("gce config requires at least one allowed machine type")
+		}
 		return validatedRuntimeRequest{
 			name:        normalizedName,
 			runtimeType: db.RuntimeTypeGCE,
@@ -357,10 +357,7 @@ func validateRuntimeRequest(name string, runtimeType arcav1.RuntimeType, config 
 						Subnetwork:          subnetwork,
 						ServiceAccountEmail: serviceAccountEmail,
 						StartupScript:       startupScript,
-						MachineType:         machineType,
 						DiskSizeGb:          diskSizeGb,
-						ImageProject:        imageProject,
-						ImageFamily:         imageFamily,
 						AllowedMachineTypes: allowedMachineTypes,
 					},
 				},

@@ -53,10 +53,10 @@ message GceRuntimeConfig {
   string subnetwork = 4;
   string service_account_email = 5;
   string startup_script = 6;
-  string machine_type = 7;
+  reserved 7;         // was machine_type
   int64 disk_size_gb = 8;
-  string image_project = 9;
-  string image_family = 10;
+  reserved 9;         // was image_project
+  reserved 10;        // was image_family
   repeated string allowed_machine_types = 11;
 }
 

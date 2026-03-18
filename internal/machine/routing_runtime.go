@@ -158,10 +158,7 @@ func runtimeFromGceCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error) {
 		Subnetwork:          strings.TrimSpace(gce.GetSubnetwork()),
 		ServiceAccountEmail: strings.TrimSpace(gce.GetServiceAccountEmail()),
 		StartupScript:       gce.GetStartupScript(),
-		MachineType:         strings.TrimSpace(gce.GetMachineType()),
 		DiskSizeGB:          gce.GetDiskSizeGb(),
-		ImageProject:        strings.TrimSpace(gce.GetImageProject()),
-		ImageFamily:         strings.TrimSpace(gce.GetImageFamily()),
 	})
 	if err != nil {
 		return nil, err
