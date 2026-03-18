@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/ryotarai/arca/internal/auth"
 	"github.com/ryotarai/arca/internal/cloudflare"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
@@ -91,10 +93,11 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 }
 
 func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.Request[arcav1.CreateMachineRequest]) (*connect.Response[arcav1.CreateMachineResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	name := strings.TrimSpace(req.Msg.GetName())
 	if err := validateMachineName(name); err != nil {
@@ -129,6 +132,8 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		log.Printf("create machine failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create machine"))
 	}
+
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.create", "machine", machine.ID, fmt.Sprintf(`{"name":%q}`, name))
 
 	return connect.NewResponse(&arcav1.CreateMachineResponse{Machine: toMachineMessage(machine), MachineToken: machine.MachineToken}), nil
 }
@@ -204,10 +209,11 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 }
 
 func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.Request[arcav1.StartMachineRequest]) (*connect.Response[arcav1.StartMachineResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
@@ -261,6 +267,8 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
 	}
 
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.start", "machine", machineID, "{}")
+
 	return connect.NewResponse(&arcav1.StartMachineResponse{Machine: toMachineMessage(machine)}), nil
 }
 
@@ -312,10 +320,11 @@ func (s *machineConnectService) validateRuntimeExists(ctx context.Context, runti
 }
 
 func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Request[arcav1.StopMachineRequest]) (*connect.Response[arcav1.StopMachineResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
@@ -344,14 +353,17 @@ func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
 	}
 
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.stop", "machine", machineID, "{}")
+
 	return connect.NewResponse(&arcav1.StopMachineResponse{Machine: toMachineMessage(machine)}), nil
 }
 
 func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.Request[arcav1.DeleteMachineRequest]) (*connect.Response[arcav1.DeleteMachineResponse], error) {
-	userID, err := s.authenticate(ctx, req.Header())
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
+	userID := authResult.UserID
 
 	machineID := strings.TrimSpace(req.Msg.GetMachineId())
 	if machineID == "" {
@@ -370,6 +382,8 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 	if !requested {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 	}
+
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.delete", "machine", machineID, "{}")
 
 	return connect.NewResponse(&arcav1.DeleteMachineResponse{}), nil
 }
@@ -411,29 +425,37 @@ func (s *machineConnectService) ListMachineEvents(ctx context.Context, req *conn
 }
 
 func (s *machineConnectService) authenticate(ctx context.Context, header http.Header) (string, error) {
+	result, err := s.authenticateWithResult(ctx, header)
+	if err != nil {
+		return "", err
+	}
+	return result.UserID, nil
+}
+
+func (s *machineConnectService) authenticateWithResult(ctx context.Context, header http.Header) (auth.AuthResult, error) {
 	if s.authenticator == nil {
-		return "", connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
+		return auth.AuthResult{}, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
 	if s.store == nil {
-		return "", connect.NewError(connect.CodeUnavailable, errors.New("machine store unavailable"))
+		return auth.AuthResult{}, connect.NewError(connect.CodeUnavailable, errors.New("machine store unavailable"))
 	}
 
 	sessionToken, _ := sessionTokenFromHeader(header)
 	if sessionToken != "" {
-		userID, _, _, err := s.authenticator.Authenticate(ctx, sessionToken)
+		result, err := s.authenticator.AuthenticateFull(ctx, sessionToken)
 		if err == nil {
-			return userID, nil
+			return result, nil
 		}
 	}
 
 	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
-		userID, _, _, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
+		userID, email, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
 		if err == nil {
-			return userID, nil
+			return auth.AuthResult{UserID: userID, Email: email, Role: role}, nil
 		}
 	}
 
-	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	return auth.AuthResult{}, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
 func (s *machineConnectService) resolveMachineRole(ctx context.Context, userID, machineID string) string {

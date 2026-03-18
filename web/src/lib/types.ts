@@ -20,6 +20,12 @@ export type UserSettings = {
   sshPublicKeys: string[]
 }
 
+export type ImpersonationStatus = {
+  isImpersonating: boolean
+  impersonatedUserEmail: string
+  originalUserEmail: string
+}
+
 export type Machine = MachineMessage
 
 export type MachineEvent = import('@/gen/arca/v1/machine_pb').MachineEvent

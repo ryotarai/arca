@@ -924,3 +924,48 @@ ORDER BY id ASC;
 UPDATE user_llm_models
 SET api_key_encrypted = sqlc.arg(api_key_encrypted)
 WHERE id = sqlc.arg(id);
+
+-- name: SetSessionImpersonation :execrows
+UPDATE sessions
+SET impersonated_user_id = sqlc.arg(impersonated_user_id),
+    impersonated_by_user_id = sqlc.arg(impersonated_by_user_id)
+WHERE token_hash = sqlc.arg(token_hash)
+  AND revoked_at IS NULL;
+
+-- name: ClearSessionImpersonation :execrows
+UPDATE sessions
+SET impersonated_user_id = NULL,
+    impersonated_by_user_id = NULL
+WHERE token_hash = sqlc.arg(token_hash)
+  AND revoked_at IS NULL;
+
+-- name: GetSessionImpersonation :one
+SELECT impersonated_user_id, impersonated_by_user_id
+FROM sessions
+WHERE token_hash = sqlc.arg(token_hash)
+  AND revoked_at IS NULL
+  AND expires_at > sqlc.arg(now_unix)
+LIMIT 1;
+
+-- name: CreateAuditLog :exec
+INSERT INTO audit_logs (id, actor_user_id, acting_as_user_id, action, resource_type, resource_id, details_json, created_at)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(actor_user_id),
+  sqlc.narg(acting_as_user_id),
+  sqlc.arg(action),
+  sqlc.arg(resource_type),
+  sqlc.arg(resource_id),
+  sqlc.arg(details_json),
+  sqlc.arg(created_at)
+);
+
+-- name: ListAuditLogs :many
+SELECT al.id, al.actor_user_id, al.acting_as_user_id, al.action, al.resource_type, al.resource_id, al.details_json, al.created_at,
+  u1.email AS actor_email,
+  u2.email AS acting_as_email
+FROM audit_logs al
+JOIN users u1 ON u1.id = al.actor_user_id
+LEFT JOIN users u2 ON u2.id = al.acting_as_user_id
+ORDER BY al.created_at DESC
+LIMIT sqlc.arg(limit_count);

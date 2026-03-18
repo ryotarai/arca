@@ -1138,3 +1138,45 @@ export async function updateUserLLMModel(params: {
 export async function deleteUserLLMModel(id: string): Promise<void> {
   await userClient.deleteUserLLMModel(create(DeleteUserLLMModelRequestSchema, { id }))
 }
+
+// Admin / Impersonation API
+import {
+  AdminService,
+  GetImpersonationStatusRequestSchema,
+  ListAuditLogsRequestSchema,
+  StartImpersonationRequestSchema,
+  StopImpersonationRequestSchema,
+} from '@/gen/arca/v1/admin_pb'
+import type { AuditLog } from '@/gen/arca/v1/admin_pb'
+
+const adminClient = createClient(AdminService, connectTransport)
+
+export type { AuditLog }
+
+export type ImpersonationStatus = {
+  isImpersonating: boolean
+  impersonatedUserEmail: string
+  originalUserEmail: string
+}
+
+export async function startImpersonation(userId: string): Promise<void> {
+  await adminClient.startImpersonation(create(StartImpersonationRequestSchema, { userId }))
+}
+
+export async function stopImpersonation(): Promise<void> {
+  await adminClient.stopImpersonation(create(StopImpersonationRequestSchema))
+}
+
+export async function getImpersonationStatus(): Promise<ImpersonationStatus> {
+  const response = await adminClient.getImpersonationStatus(create(GetImpersonationStatusRequestSchema))
+  return {
+    isImpersonating: response.isImpersonating,
+    impersonatedUserEmail: response.impersonatedUserEmail,
+    originalUserEmail: response.originalUserEmail,
+  }
+}
+
+export async function listAuditLogs(limit = 100): Promise<AuditLog[]> {
+  const response = await adminClient.listAuditLogs(create(ListAuditLogsRequestSchema, { limit }))
+  return response.auditLogs
+}

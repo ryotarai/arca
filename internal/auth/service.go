@@ -275,23 +275,62 @@ func (s *Service) LoginWithOIDCCode(ctx context.Context, code, redirectURI strin
 	return user.ID, user.Email, user.Role, sessionToken, expiresAt, nil
 }
 
+// AuthResult holds the effective and original user identity after authentication.
+// When impersonation is active, the top-level fields reflect the impersonated
+// user, while OriginalUserID/OriginalEmail hold the admin who started it.
+type AuthResult struct {
+	UserID        string
+	Email         string
+	Role          string
+	OriginalUserID string // non-empty when impersonating
+	OriginalEmail  string
+}
+
 func (s *Service) Authenticate(ctx context.Context, sessionToken string) (string, string, string, error) {
+	r, err := s.AuthenticateFull(ctx, sessionToken)
+	if err != nil {
+		return "", "", "", err
+	}
+	return r.UserID, r.Email, r.Role, nil
+}
+
+func (s *Service) AuthenticateFull(ctx context.Context, sessionToken string) (AuthResult, error) {
 	if sessionToken == "" {
-		return "", "", "", ErrUnauthenticated
+		return AuthResult{}, ErrUnauthenticated
 	}
 	// Check static API token first (dev/scripting use).
 	if s.staticAPIToken != "" && subtle.ConstantTimeCompare([]byte(sessionToken), []byte(s.staticAPIToken)) == 1 {
-		return s.authenticateAsFirstAdmin(ctx)
+		id, email, role, err := s.authenticateAsFirstAdmin(ctx)
+		if err != nil {
+			return AuthResult{}, err
+		}
+		return AuthResult{UserID: id, Email: email, Role: role}, nil
 	}
 	tokenHash := hashSessionToken(sessionToken)
 	user, err := s.store.GetUserByActiveSessionTokenHash(ctx, tokenHash, s.now().Unix())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", "", "", ErrUnauthenticated
+			return AuthResult{}, ErrUnauthenticated
 		}
-		return "", "", "", err
+		return AuthResult{}, err
 	}
-	return user.ID, user.Email, user.Role, nil
+
+	// Check for impersonation
+	imp, impErr := s.store.GetSessionImpersonation(ctx, tokenHash, s.now().Unix())
+	if impErr == nil && imp.ImpersonatedUserID != "" {
+		impUser, getErr := s.store.GetUserByID(ctx, imp.ImpersonatedUserID)
+		if getErr == nil {
+			return AuthResult{
+				UserID:         impUser.ID,
+				Email:          impUser.Email,
+				Role:           impUser.Role,
+				OriginalUserID: user.ID,
+				OriginalEmail:  user.Email,
+			}, nil
+		}
+	}
+
+	return AuthResult{UserID: user.ID, Email: user.Email, Role: user.Role}, nil
 }
 
 func (s *Service) authenticateAsFirstAdmin(ctx context.Context) (string, string, string, error) {

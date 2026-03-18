@@ -1,4 +1,4 @@
-import { Blocks, Cpu, Group, Settings, Users } from 'lucide-react'
+import { Blocks, Cpu, FileText, Group, Settings, Users } from 'lucide-react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,11 +18,13 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import type { User } from '@/lib/types'
+import { ImpersonationMenu } from '@/components/ImpersonationMenu'
+import type { ImpersonationStatus, User } from '@/lib/types'
 
 type AppLayoutProps = {
   user: User | null
   onLogout: () => Promise<void>
+  impersonation?: ImpersonationStatus | null
 }
 
 const navItems = [
@@ -34,10 +36,11 @@ const adminNavItems = [
   { to: '/runtimes', label: 'Runtimes', icon: Blocks },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/groups', label: 'Groups', icon: Group },
+  { to: '/admin/audit-logs', label: 'Audit logs', icon: FileText },
   { to: '/admin/settings', label: 'Admin settings', icon: Settings },
 ]
 
-export function AppLayout({ user, onLogout }: AppLayoutProps) {
+export function AppLayout({ user, onLogout, impersonation }: AppLayoutProps) {
   const location = useLocation()
 
   if (user == null) {
@@ -71,7 +74,7 @@ export function AppLayout({ user, onLogout }: AppLayoutProps) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          {user.role === 'admin' && (
+          {(user.role === 'admin' || impersonation?.isImpersonating) && (
             <SidebarGroup>
               <SidebarGroupLabel>Admin</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -103,6 +106,11 @@ export function AppLayout({ user, onLogout }: AppLayoutProps) {
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
           <SidebarTrigger />
           <p className="text-sm text-muted-foreground">Arca workspace</p>
+          <div className="ml-auto">
+            {user?.role === 'admin' && !impersonation?.isImpersonating && (
+              <ImpersonationMenu />
+            )}
+          </div>
         </header>
         <Outlet />
       </SidebarInset>

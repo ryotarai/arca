@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/ryotarai/arca/internal/auth"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
@@ -199,6 +200,14 @@ func (s *authenticatorStub) AuthenticateIAPJWT(context.Context, string) (string,
 
 func (s *authenticatorStub) Logout(context.Context, string) error {
 	panic("Logout should not be called in this test")
+}
+
+func (s *authenticatorStub) AuthenticateFull(ctx context.Context, sessionToken string) (auth.AuthResult, error) {
+	userID, email, role, err := s.Authenticate(ctx, sessionToken)
+	if err != nil {
+		return auth.AuthResult{}, err
+	}
+	return auth.AuthResult{UserID: userID, Email: email, Role: role}, nil
 }
 
 var _ Authenticator = (*authenticatorStub)(nil)

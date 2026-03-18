@@ -36,6 +36,17 @@ type ArcadSession struct {
 	CreatedAt   int64
 }
 
+type AuditLog struct {
+	ID             string
+	ActorUserID    string
+	ActingAsUserID sql.NullString
+	Action         string
+	ResourceType   string
+	ResourceID     string
+	DetailsJson    string
+	CreatedAt      time.Time
+}
+
 type AuthTicket struct {
 	ID         string
 	TicketHash string
@@ -160,12 +171,14 @@ type Runtime struct {
 }
 
 type Session struct {
-	ID        string
-	UserID    string
-	TokenHash string
-	ExpiresAt int64
-	RevokedAt sql.NullTime
-	CreatedAt time.Time
+	ID                   string
+	UserID               string
+	TokenHash            string
+	ExpiresAt            int64
+	RevokedAt            sql.NullTime
+	ImpersonatedUserID   sql.NullString
+	ImpersonatedByUserID sql.NullString
+	CreatedAt            time.Time
 }
 
 type SetupState struct {

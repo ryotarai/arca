@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service AdminService {
+  rpc StartImpersonation(StartImpersonationRequest) returns (StartImpersonationResponse);
+  rpc StopImpersonation(StopImpersonationRequest) returns (StopImpersonationResponse);
+  rpc GetImpersonationStatus(GetImpersonationStatusRequest) returns (GetImpersonationStatusResponse);
+  rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse);
+}
+
+message StartImpersonationRequest {
+  string user_id = 1;
+}
+
+message StartImpersonationResponse {}
+
+message StopImpersonationRequest {}
+
+message StopImpersonationResponse {}
+
+message GetImpersonationStatusRequest {}
+
+message GetImpersonationStatusResponse {
+  bool is_impersonating = 1;
+  string impersonated_user_email = 2;
+  string original_user_email = 3;
+}
+
+message ListAuditLogsRequest {
+  int32 limit = 1;
+}
+
+message ListAuditLogsResponse {
+  repeated AuditLog audit_logs = 1;
+}
+
+message AuditLog {
+  string id = 1;
+  string actor_email = 2;
+  string acting_as_email = 3;
+  string action = 4;
+  string resource_type = 5;
+  string resource_id = 6;
+  string details = 7;
+  string created_at = 8;
+}
