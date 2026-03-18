@@ -1535,6 +1535,41 @@ func (q *Queries) InvalidateUserSetupTokensByUserID(ctx context.Context, arg Inv
 	return err
 }
 
+const listAllUserLLMModelsEncryptedKeys = `-- name: ListAllUserLLMModelsEncryptedKeys :many
+SELECT id, api_key_encrypted
+FROM user_llm_models
+WHERE api_key_encrypted != ''
+ORDER BY id ASC
+`
+
+type ListAllUserLLMModelsEncryptedKeysRow struct {
+	ID              string
+	ApiKeyEncrypted string
+}
+
+func (q *Queries) ListAllUserLLMModelsEncryptedKeys(ctx context.Context) ([]ListAllUserLLMModelsEncryptedKeysRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAllUserLLMModelsEncryptedKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllUserLLMModelsEncryptedKeysRow
+	for rows.Next() {
+		var i ListAllUserLLMModelsEncryptedKeysRow
+		if err := rows.Scan(&i.ID, &i.ApiKeyEncrypted); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMachineEventsByMachineID = `-- name: ListMachineEventsByMachineID :many
 SELECT id, machine_id, job_id, level, event_type, message, created_at
 FROM machine_events
@@ -2946,6 +2981,25 @@ func (q *Queries) UpdateUserLLMModel(ctx context.Context, arg UpdateUserLLMModel
 		arg.ID,
 		arg.UserID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserLLMModelEncryptedKey = `-- name: UpdateUserLLMModelEncryptedKey :execrows
+UPDATE user_llm_models
+SET api_key_encrypted = ?1
+WHERE id = ?2
+`
+
+type UpdateUserLLMModelEncryptedKeyParams struct {
+	ApiKeyEncrypted string
+	ID              string
+}
+
+func (q *Queries) UpdateUserLLMModelEncryptedKey(ctx context.Context, arg UpdateUserLLMModelEncryptedKeyParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserLLMModelEncryptedKey, arg.ApiKeyEncrypted, arg.ID)
 	if err != nil {
 		return 0, err
 	}

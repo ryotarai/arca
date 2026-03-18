@@ -216,6 +216,64 @@ func (s *Store) DeleteUserLLMModel(ctx context.Context, id, userID string) (bool
 	}
 }
 
+// UserLLMModelEncryptedKey holds the ID and encrypted API key for bulk re-encryption.
+type UserLLMModelEncryptedKey struct {
+	ID              string
+	APIKeyEncrypted string
+}
+
+func (s *Store) ListAllUserLLMModelsEncryptedKeys(ctx context.Context) ([]UserLLMModelEncryptedKey, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListAllUserLLMModelsEncryptedKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]UserLLMModelEncryptedKey, len(rows))
+		for i, row := range rows {
+			result[i] = UserLLMModelEncryptedKey{
+				ID:              row.ID,
+				APIKeyEncrypted: row.ApiKeyEncrypted,
+			}
+		}
+		return result, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListAllUserLLMModelsEncryptedKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]UserLLMModelEncryptedKey, len(rows))
+		for i, row := range rows {
+			result[i] = UserLLMModelEncryptedKey{
+				ID:              row.ID,
+				APIKeyEncrypted: row.ApiKeyEncrypted,
+			}
+		}
+		return result, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpdateUserLLMModelEncryptedKey(ctx context.Context, id, apiKeyEncrypted string) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		n, err := s.sqliteQueries.UpdateUserLLMModelEncryptedKey(ctx, sqlitesqlc.UpdateUserLLMModelEncryptedKeyParams{
+			ID:              id,
+			ApiKeyEncrypted: apiKeyEncrypted,
+		})
+		return n > 0, err
+	case DriverPostgres:
+		n, err := s.pgQueries.UpdateUserLLMModelEncryptedKey(ctx, postgresqlsqlc.UpdateUserLLMModelEncryptedKeyParams{
+			ID:              id,
+			ApiKeyEncrypted: apiKeyEncrypted,
+		})
+		return n > 0, err
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) ListUserLLMModelsWithAPIKey(ctx context.Context, userID string) ([]UserLLMModel, error) {
 	switch s.driver {
 	case DriverSQLite:
