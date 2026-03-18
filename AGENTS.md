@@ -166,6 +166,7 @@ Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: 
 - If environment setup is required to complete requested work and the setup is non-destructive (for example installing missing runtime or browser dependencies), proceed without asking for additional confirmation.
 - When asked to execute multiple defined tasks, continue autonomously until all tasks are completed.
 - When idle, proactively run `$do-tasks` against `tmp/tasks.md`; continue autonomously for all doable items and ask only one consolidated question set for remaining blockers.
+- After creating a PR from a feature branch, always switch back to `main` (`git checkout main`) so subsequent work starts from the correct base.
 - If a blocker cannot be resolved in a reasonable time, stop and ask the user a focused question before proceeding.
 
 ## Product-to-Tasks Flow
