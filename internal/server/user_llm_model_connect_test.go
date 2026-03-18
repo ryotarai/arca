@@ -152,14 +152,16 @@ func TestUserLLMModel_Validation(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := service.CreateUserLLMModel(ctx, authRequest(tt.req, token))
+	for i := range tests {
+		t.Run(tests[i].name, func(t *testing.T) {
+			req := connect.NewRequest(&tests[i].req)
+			req.Header().Set("Cookie", sessionCookieName+"="+token)
+			_, err := service.CreateUserLLMModel(ctx, req)
 			if err == nil {
 				t.Fatal("expected error")
 			}
-			if got := connect.CodeOf(err); got != tt.wantCode {
-				t.Fatalf("code = %v, want %v", got, tt.wantCode)
+			if got := connect.CodeOf(err); got != tests[i].wantCode {
+				t.Fatalf("code = %v, want %v", got, tests[i].wantCode)
 			}
 		})
 	}

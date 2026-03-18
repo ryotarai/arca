@@ -11,7 +11,7 @@ VERSION ?= dev
 VERSION_PKG := github.com/ryotarai/arca/internal/version
 LDFLAGS := -X $(VERSION_PKG).Version=$(VERSION)
 
-.PHONY: build build-frontend build-server build-server-dev proto sqlc test test-all go/test web/test web/test-fast web/test-slow run watch
+.PHONY: build build-frontend build-server build-server-dev proto sqlc vet test test-all go/test web/test web/test-fast web/test-slow run watch
 build: build-frontend build-server
 
 build-frontend: proto
@@ -43,7 +43,10 @@ sqlc:
 		$(GO) run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0 generate; \
 	fi
 
-test: go/test web/test-fast
+vet:
+	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) vet ./...
+
+test: vet go/test web/test-fast
 
 test-all: go/test web/test
 
