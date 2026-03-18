@@ -22,7 +22,7 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 - Group questions by task when multiple tasks have issues.
 - If no ambiguities exist, skip this step silently and proceed.
 6. For each `ready` task, create an isolated worktree run unit.
-- Generate branch name: `task/<id>-<short-kebab-summary>`.
+- Generate branch name: `ryotarai/task/<id>-<short-kebab-summary>`.
 - Check out branch into `.worktrees/<branch-name>` using `git worktree add`.
 - After creating the worktree, create a `tmp` symlink in that worktree that points to the repository root `tmp/` (for example: `ln -s "$(pwd)/tmp" ".worktrees/<branch-name>/tmp"` from repo root).
 - If `.worktrees/<branch-name>/tmp` already exists and is not the expected symlink, stop and fix it before starting execution.
@@ -49,8 +49,10 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
   - Prefer checking progress via `tmux capture-pane` passively rather than interacting with the pane.
 10. On confirmed completion of each task run unit:
 - Verify task-scoped checks/tests completed in that worktree.
-- Merge branch into `main`.
-- Delete branch and remove `.worktrees/<branch-name>`.
+- Kill the tmux pane used by the completed run unit (`tmux kill-pane -t <pane_id>`). Use the `PANE_ID` returned by `bgcodex.sh` to identify the correct pane.
+- Push the task branch to remote (`git push -u origin <branch>`).
+- Create a pull request against `main` using `gh pr create`.
+- Remove `.worktrees/<branch-name>` (keep the remote branch until PR is merged).
 - Move completed task file from `tmp/tasks/` to `tmp/tasks-done/`.
 11. Recompute DAG state after every completion and continue until no `ready` tasks remain.
 12. Ask one consolidated question set for unresolved blockers only after all executable work is exhausted.
@@ -58,11 +60,12 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 ## Worktree And Merge Rules
 
 - Keep `main` clean; do not implement task changes directly on `main`.
+- The `main` branch is protected — direct pushes are not allowed. Always use pull requests.
 - For each task, use one branch and one worktree.
 - Ensure each worktree has `tmp -> <repo-root>/tmp` symlink before running bgcodex.
-- Merge only after completion is verified.
+- After task completion, push the branch and create a PR against `main` via `gh pr create`.
 - If merge conflicts appear, stop concurrent execution for conflicting tasks and resolve sequentially.
-- After merge, clean both the branch and its worktree directory.
+- After PR is created, clean the worktree directory (keep the remote branch until PR is merged).
 
 ## Parallel Execution Rules
 

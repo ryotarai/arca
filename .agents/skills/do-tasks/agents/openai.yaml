@@ -1,4 +1,4 @@
 interface:
   display_name: "Do Tasks"
   short_description: "Execute tmp/tasks/ with DAG + worktrees"
-  default_prompt: "Read task files under tmp/tasks/, analyze dependencies, execute only safe-independent tasks in parallel using git worktrees plus ./script/bgcodex.sh, then merge each completed branch to main and clean branch/worktree before moving task files to tmp/tasks-done/."
+  default_prompt: "Read task files under tmp/tasks/, analyze dependencies, execute only safe-independent tasks in parallel using git worktrees plus ./scripts/bgcodex.sh, then push each completed branch and create a PR against main via gh pr create, clean worktrees, and move task files to tmp/tasks-done/."
