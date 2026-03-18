@@ -6,6 +6,6 @@ const (
 	MachineRuntimeLibvirt = "libvirt"
 )
 
-func NormalizeMachineRuntime(runtime string) string {
+func NormalizeMachineTemplate(runtime string) string {
 	return strings.TrimSpace(runtime)
 }

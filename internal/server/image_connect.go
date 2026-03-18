@@ -38,7 +38,7 @@ func (s *imageConnectService) ListCustomImages(ctx context.Context, req *connect
 
 	items := make([]*arcav1.CustomImage, 0, len(images))
 	for _, img := range images {
-		runtimeIDs, _ := s.store.ListRuntimeIDsByCustomImageID(ctx, img.ID)
+		runtimeIDs, _ := s.store.ListTemplateIDsByCustomImageID(ctx, img.ID)
 		items = append(items, toCustomImageMessage(img, runtimeIDs))
 	}
 
@@ -55,7 +55,7 @@ func (s *imageConnectService) CreateCustomImage(ctx context.Context, req *connec
 	if name == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name is required"))
 	}
-	runtimeType := strings.ToLower(strings.TrimSpace(req.Msg.GetRuntimeType()))
+	runtimeType := strings.ToLower(strings.TrimSpace(req.Msg.GetTemplateType()))
 	if runtimeType == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("runtime_type is required"))
 	}
@@ -83,22 +83,22 @@ func (s *imageConnectService) CreateCustomImage(ctx context.Context, req *connec
 	}
 
 	// Associate runtimes
-	runtimeIDs := req.Msg.GetRuntimeIds()
+	runtimeIDs := req.Msg.GetTemplateIds()
 	for _, rid := range runtimeIDs {
 		rid = strings.TrimSpace(rid)
 		if rid == "" {
 			continue
 		}
-		if err := s.validateRuntimeTypeMatch(ctx, rid, runtimeType); err != nil {
+		if err := s.validateTemplateTypeMatch(ctx, rid, runtimeType); err != nil {
 			return nil, err
 		}
-		if err := s.store.AssociateRuntimeCustomImage(ctx, rid, img.ID); err != nil {
+		if err := s.store.AssociateTemplateCustomImage(ctx, rid, img.ID); err != nil {
 			log.Printf("associate runtime custom image failed: %v", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to associate runtime"))
 		}
 	}
 
-	associatedIDs, _ := s.store.ListRuntimeIDsByCustomImageID(ctx, img.ID)
+	associatedIDs, _ := s.store.ListTemplateIDsByCustomImageID(ctx, img.ID)
 
 	writeAuditLog(ctx, s.store, adminUserID, "", "image.create", "custom_image", img.ID, fmt.Sprintf(`{"name":%q}`, name))
 
@@ -119,7 +119,7 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 	if name == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name is required"))
 	}
-	runtimeType := strings.ToLower(strings.TrimSpace(req.Msg.GetRuntimeType()))
+	runtimeType := strings.ToLower(strings.TrimSpace(req.Msg.GetTemplateType()))
 	if runtimeType == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("runtime_type is required"))
 	}
@@ -150,25 +150,25 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 	}
 
 	// Re-sync runtime associations
-	if err := s.store.DisassociateAllRuntimesFromCustomImage(ctx, id); err != nil {
+	if err := s.store.DisassociateAllTemplatesFromCustomImage(ctx, id); err != nil {
 		log.Printf("disassociate runtimes failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update runtime associations"))
 	}
-	for _, rid := range req.Msg.GetRuntimeIds() {
+	for _, rid := range req.Msg.GetTemplateIds() {
 		rid = strings.TrimSpace(rid)
 		if rid == "" {
 			continue
 		}
-		if err := s.validateRuntimeTypeMatch(ctx, rid, runtimeType); err != nil {
+		if err := s.validateTemplateTypeMatch(ctx, rid, runtimeType); err != nil {
 			return nil, err
 		}
-		if err := s.store.AssociateRuntimeCustomImage(ctx, rid, id); err != nil {
+		if err := s.store.AssociateTemplateCustomImage(ctx, rid, id); err != nil {
 			log.Printf("associate runtime custom image failed: %v", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to associate runtime"))
 		}
 	}
 
-	associatedIDs, _ := s.store.ListRuntimeIDsByCustomImageID(ctx, id)
+	associatedIDs, _ := s.store.ListTemplateIDsByCustomImageID(ctx, id)
 
 	writeAuditLog(ctx, s.store, adminUserID, "", "image.update", "custom_image", id, fmt.Sprintf(`{"name":%q}`, name))
 
@@ -211,12 +211,12 @@ func (s *imageConnectService) ListAvailableImages(ctx context.Context, req *conn
 		return nil, err
 	}
 
-	runtimeID := strings.TrimSpace(req.Msg.GetRuntimeId())
+	runtimeID := strings.TrimSpace(req.Msg.GetTemplateId())
 	if runtimeID == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("runtime_id is required"))
 	}
 
-	images, err := s.store.ListCustomImagesByRuntimeID(ctx, runtimeID)
+	images, err := s.store.ListCustomImagesByTemplateID(ctx, runtimeID)
 	if err != nil {
 		log.Printf("list available images failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list available images"))
@@ -282,33 +282,33 @@ func (s *imageConnectService) authenticateAdmin(ctx context.Context, header http
 	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
 }
 
-func (s *imageConnectService) validateRuntimeTypeMatch(ctx context.Context, runtimeID, expectedType string) error {
-	runtime, err := s.store.GetRuntimeByID(ctx, runtimeID)
+func (s *imageConnectService) validateTemplateTypeMatch(ctx context.Context, templateID, expectedType string) error {
+	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime not found: "+runtimeID))
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found: "+templateID))
 		}
-		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 	}
-	if strings.ToLower(runtime.Type) != expectedType {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime type mismatch: runtime "+runtimeID+" is "+runtime.Type+", expected "+expectedType))
+	if strings.ToLower(tmpl.Type) != expectedType {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("template type mismatch: template "+templateID+" is "+tmpl.Type+", expected "+expectedType))
 	}
 	return nil
 }
 
-func toCustomImageMessage(img db.CustomImage, runtimeIDs []string) *arcav1.CustomImage {
+func toCustomImageMessage(img db.CustomImage, templateIDs []string) *arcav1.CustomImage {
 	data := make(map[string]string)
 	if img.DataJSON != "" && img.DataJSON != "{}" {
 		_ = json.Unmarshal([]byte(img.DataJSON), &data)
 	}
 	return &arcav1.CustomImage{
-		Id:                   img.ID,
-		Name:                 img.Name,
-		RuntimeType:          img.RuntimeType,
-		Data:                 data,
-		Description:          img.Description,
-		AssociatedRuntimeIds: runtimeIDs,
-		CreatedAt:            img.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		Id:                    img.ID,
+		Name:                  img.Name,
+		TemplateType:          img.TemplateType,
+		Data:                  data,
+		Description:           img.Description,
+		AssociatedTemplateIds: templateIDs,
+		CreatedAt:             img.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 }
 

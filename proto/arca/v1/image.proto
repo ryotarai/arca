@@ -15,10 +15,10 @@ service ImageService {
 message CustomImage {
   string id = 1;
   string name = 2;
-  string runtime_type = 3;
+  string template_type = 3;
   map<string, string> data = 4;
   string description = 5;
-  repeated string associated_runtime_ids = 6;
+  repeated string associated_template_ids = 6;
   string created_at = 7;
 }
 
@@ -30,10 +30,10 @@ message ListCustomImagesResponse {
 
 message CreateCustomImageRequest {
   string name = 1;
-  string runtime_type = 2;
+  string template_type = 2;
   map<string, string> data = 3;
   string description = 4;
-  repeated string runtime_ids = 5;
+  repeated string template_ids = 5;
 }
 
 message CreateCustomImageResponse {
@@ -43,10 +43,10 @@ message CreateCustomImageResponse {
 message UpdateCustomImageRequest {
   string id = 1;
   string name = 2;
-  string runtime_type = 3;
+  string template_type = 3;
   map<string, string> data = 4;
   string description = 5;
-  repeated string runtime_ids = 6;
+  repeated string template_ids = 6;
 }
 
 message UpdateCustomImageResponse {
@@ -60,7 +60,7 @@ message DeleteCustomImageRequest {
 message DeleteCustomImageResponse {}
 
 message ListAvailableImagesRequest {
-  string runtime_id = 1;
+  string template_id = 1;
 }
 
 message ListAvailableImagesResponse {

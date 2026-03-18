@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/image.proto.
  */
 export const file_arca_v1_image: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL2ltYWdlLnByb3RvEgdhcmNhLnYxIuEBCgtDdXN0b21JbWFnZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhQKDHJ1bnRpbWVfdHlwZRgDIAEoCRIsCgRkYXRhGAQgAygLMh4uYXJjYS52MS5DdXN0b21JbWFnZS5EYXRhRW50cnkSEwoLZGVzY3JpcHRpb24YBSABKAkSHgoWYXNzb2NpYXRlZF9ydW50aW1lX2lkcxgGIAMoCRISCgpjcmVhdGVkX2F0GAcgASgJGisKCURhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIhkKF0xpc3RDdXN0b21JbWFnZXNSZXF1ZXN0IkAKGExpc3RDdXN0b21JbWFnZXNSZXNwb25zZRIkCgZpbWFnZXMYASADKAsyFC5hcmNhLnYxLkN1c3RvbUltYWdlItABChhDcmVhdGVDdXN0b21JbWFnZVJlcXVlc3QSDAoEbmFtZRgBIAEoCRIUCgxydW50aW1lX3R5cGUYAiABKAkSOQoEZGF0YRgDIAMoCzIrLmFyY2EudjEuQ3JlYXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0LkRhdGFFbnRyeRITCgtkZXNjcmlwdGlvbhgEIAEoCRITCgtydW50aW1lX2lkcxgFIAMoCRorCglEYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJAChlDcmVhdGVDdXN0b21JbWFnZVJlc3BvbnNlEiMKBWltYWdlGAEgASgLMhQuYXJjYS52MS5DdXN0b21JbWFnZSLcAQoYVXBkYXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSFAoMcnVudGltZV90eXBlGAMgASgJEjkKBGRhdGEYBCADKAsyKy5hcmNhLnYxLlVwZGF0ZUN1c3RvbUltYWdlUmVxdWVzdC5EYXRhRW50cnkSEwoLZGVzY3JpcHRpb24YBSABKAkSEwoLcnVudGltZV9pZHMYBiADKAkaKwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoZVXBkYXRlQ3VzdG9tSW1hZ2VSZXNwb25zZRIjCgVpbWFnZRgBIAEoCzIULmFyY2EudjEuQ3VzdG9tSW1hZ2UiJgoYRGVsZXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0EgoKAmlkGAEgASgJIhsKGURlbGV0ZUN1c3RvbUltYWdlUmVzcG9uc2UiMAoaTGlzdEF2YWlsYWJsZUltYWdlc1JlcXVlc3QSEgoKcnVudGltZV9pZBgBIAEoCSJDChtMaXN0QXZhaWxhYmxlSW1hZ2VzUmVzcG9uc2USJAoGaW1hZ2VzGAEgAygLMhQuYXJjYS52MS5DdXN0b21JbWFnZTLdAwoMSW1hZ2VTZXJ2aWNlElcKEExpc3RDdXN0b21JbWFnZXMSIC5hcmNhLnYxLkxpc3RDdXN0b21JbWFnZXNSZXF1ZXN0GiEuYXJjYS52MS5MaXN0Q3VzdG9tSW1hZ2VzUmVzcG9uc2USWgoRQ3JlYXRlQ3VzdG9tSW1hZ2USIS5hcmNhLnYxLkNyZWF0ZUN1c3RvbUltYWdlUmVxdWVzdBoiLmFyY2EudjEuQ3JlYXRlQ3VzdG9tSW1hZ2VSZXNwb25zZRJaChFVcGRhdGVDdXN0b21JbWFnZRIhLmFyY2EudjEuVXBkYXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0GiIuYXJjYS52MS5VcGRhdGVDdXN0b21JbWFnZVJlc3BvbnNlEloKEURlbGV0ZUN1c3RvbUltYWdlEiEuYXJjYS52MS5EZWxldGVDdXN0b21JbWFnZVJlcXVlc3QaIi5hcmNhLnYxLkRlbGV0ZUN1c3RvbUltYWdlUmVzcG9uc2USYAoTTGlzdEF2YWlsYWJsZUltYWdlcxIjLmFyY2EudjEuTGlzdEF2YWlsYWJsZUltYWdlc1JlcXVlc3QaJC5hcmNhLnYxLkxpc3RBdmFpbGFibGVJbWFnZXNSZXNwb25zZUKMAQoLY29tLmFyY2EudjFCCkltYWdlUHJvdG9QAVo0Z2l0aHViLmNvbS9yeW90YXJhaS9hcmNhL2ludGVybmFsL2dlbi9hcmNhL3YxO2FyY2F2MaICA0FYWKoCB0FyY2EuVjHKAgdBcmNhXFYx4gITQXJjYVxWMVxHUEJNZXRhZGF0YeoCCEFyY2E6OlYxYgZwcm90bzM");
+  fileDesc("ChNhcmNhL3YxL2ltYWdlLnByb3RvEgdhcmNhLnYxIuMBCgtDdXN0b21JbWFnZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhUKDXRlbXBsYXRlX3R5cGUYAyABKAkSLAoEZGF0YRgEIAMoCzIeLmFyY2EudjEuQ3VzdG9tSW1hZ2UuRGF0YUVudHJ5EhMKC2Rlc2NyaXB0aW9uGAUgASgJEh8KF2Fzc29jaWF0ZWRfdGVtcGxhdGVfaWRzGAYgAygJEhIKCmNyZWF0ZWRfYXQYByABKAkaKwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiGQoXTGlzdEN1c3RvbUltYWdlc1JlcXVlc3QiQAoYTGlzdEN1c3RvbUltYWdlc1Jlc3BvbnNlEiQKBmltYWdlcxgBIAMoCzIULmFyY2EudjEuQ3VzdG9tSW1hZ2Ui0gEKGENyZWF0ZUN1c3RvbUltYWdlUmVxdWVzdBIMCgRuYW1lGAEgASgJEhUKDXRlbXBsYXRlX3R5cGUYAiABKAkSOQoEZGF0YRgDIAMoCzIrLmFyY2EudjEuQ3JlYXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0LkRhdGFFbnRyeRITCgtkZXNjcmlwdGlvbhgEIAEoCRIUCgx0ZW1wbGF0ZV9pZHMYBSADKAkaKwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoZQ3JlYXRlQ3VzdG9tSW1hZ2VSZXNwb25zZRIjCgVpbWFnZRgBIAEoCzIULmFyY2EudjEuQ3VzdG9tSW1hZ2Ui3gEKGFVwZGF0ZUN1c3RvbUltYWdlUmVxdWVzdBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhUKDXRlbXBsYXRlX3R5cGUYAyABKAkSOQoEZGF0YRgEIAMoCzIrLmFyY2EudjEuVXBkYXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0LkRhdGFFbnRyeRITCgtkZXNjcmlwdGlvbhgFIAEoCRIUCgx0ZW1wbGF0ZV9pZHMYBiADKAkaKwoJRGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQAoZVXBkYXRlQ3VzdG9tSW1hZ2VSZXNwb25zZRIjCgVpbWFnZRgBIAEoCzIULmFyY2EudjEuQ3VzdG9tSW1hZ2UiJgoYRGVsZXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0EgoKAmlkGAEgASgJIhsKGURlbGV0ZUN1c3RvbUltYWdlUmVzcG9uc2UiMQoaTGlzdEF2YWlsYWJsZUltYWdlc1JlcXVlc3QSEwoLdGVtcGxhdGVfaWQYASABKAkiQwobTGlzdEF2YWlsYWJsZUltYWdlc1Jlc3BvbnNlEiQKBmltYWdlcxgBIAMoCzIULmFyY2EudjEuQ3VzdG9tSW1hZ2Uy3QMKDEltYWdlU2VydmljZRJXChBMaXN0Q3VzdG9tSW1hZ2VzEiAuYXJjYS52MS5MaXN0Q3VzdG9tSW1hZ2VzUmVxdWVzdBohLmFyY2EudjEuTGlzdEN1c3RvbUltYWdlc1Jlc3BvbnNlEloKEUNyZWF0ZUN1c3RvbUltYWdlEiEuYXJjYS52MS5DcmVhdGVDdXN0b21JbWFnZVJlcXVlc3QaIi5hcmNhLnYxLkNyZWF0ZUN1c3RvbUltYWdlUmVzcG9uc2USWgoRVXBkYXRlQ3VzdG9tSW1hZ2USIS5hcmNhLnYxLlVwZGF0ZUN1c3RvbUltYWdlUmVxdWVzdBoiLmFyY2EudjEuVXBkYXRlQ3VzdG9tSW1hZ2VSZXNwb25zZRJaChFEZWxldGVDdXN0b21JbWFnZRIhLmFyY2EudjEuRGVsZXRlQ3VzdG9tSW1hZ2VSZXF1ZXN0GiIuYXJjYS52MS5EZWxldGVDdXN0b21JbWFnZVJlc3BvbnNlEmAKE0xpc3RBdmFpbGFibGVJbWFnZXMSIy5hcmNhLnYxLkxpc3RBdmFpbGFibGVJbWFnZXNSZXF1ZXN0GiQuYXJjYS52MS5MaXN0QXZhaWxhYmxlSW1hZ2VzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpJbWFnZVByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message arca.v1.CustomImage
@@ -27,9 +27,9 @@ export type CustomImage = Message<"arca.v1.CustomImage"> & {
   name: string;
 
   /**
-   * @generated from field: string runtime_type = 3;
+   * @generated from field: string template_type = 3;
    */
-  runtimeType: string;
+  templateType: string;
 
   /**
    * @generated from field: map<string, string> data = 4;
@@ -42,9 +42,9 @@ export type CustomImage = Message<"arca.v1.CustomImage"> & {
   description: string;
 
   /**
-   * @generated from field: repeated string associated_runtime_ids = 6;
+   * @generated from field: repeated string associated_template_ids = 6;
    */
-  associatedRuntimeIds: string[];
+  associatedTemplateIds: string[];
 
   /**
    * @generated from field: string created_at = 7;
@@ -99,9 +99,9 @@ export type CreateCustomImageRequest = Message<"arca.v1.CreateCustomImageRequest
   name: string;
 
   /**
-   * @generated from field: string runtime_type = 2;
+   * @generated from field: string template_type = 2;
    */
-  runtimeType: string;
+  templateType: string;
 
   /**
    * @generated from field: map<string, string> data = 3;
@@ -114,9 +114,9 @@ export type CreateCustomImageRequest = Message<"arca.v1.CreateCustomImageRequest
   description: string;
 
   /**
-   * @generated from field: repeated string runtime_ids = 5;
+   * @generated from field: repeated string template_ids = 5;
    */
-  runtimeIds: string[];
+  templateIds: string[];
 };
 
 /**
@@ -158,9 +158,9 @@ export type UpdateCustomImageRequest = Message<"arca.v1.UpdateCustomImageRequest
   name: string;
 
   /**
-   * @generated from field: string runtime_type = 3;
+   * @generated from field: string template_type = 3;
    */
-  runtimeType: string;
+  templateType: string;
 
   /**
    * @generated from field: map<string, string> data = 4;
@@ -173,9 +173,9 @@ export type UpdateCustomImageRequest = Message<"arca.v1.UpdateCustomImageRequest
   description: string;
 
   /**
-   * @generated from field: repeated string runtime_ids = 6;
+   * @generated from field: repeated string template_ids = 6;
    */
-  runtimeIds: string[];
+  templateIds: string[];
 };
 
 /**
@@ -237,9 +237,9 @@ export const DeleteCustomImageResponseSchema: GenMessage<DeleteCustomImageRespon
  */
 export type ListAvailableImagesRequest = Message<"arca.v1.ListAvailableImagesRequest"> & {
   /**
-   * @generated from field: string runtime_id = 1;
+   * @generated from field: string template_id = 1;
    */
-  runtimeId: string;
+  templateId: string;
 };
 
 /**

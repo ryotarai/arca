@@ -2,7 +2,7 @@ package db
 
 import "testing"
 
-func TestGetRuntimeExposureMethod(t *testing.T) {
+func TestGetTemplateExposureMethod(t *testing.T) {
 	tests := []struct {
 		name       string
 		configJSON string
@@ -37,15 +37,15 @@ func TestGetRuntimeExposureMethod(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GetRuntimeExposureMethod(tt.configJSON)
+			got := GetTemplateExposureMethod(tt.configJSON)
 			if got != tt.want {
-				t.Errorf("GetRuntimeExposureMethod() = %q, want %q", got, tt.want)
+				t.Errorf("GetTemplateExposureMethod() = %q, want %q", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestGetRuntimeAutoStopTimeoutSeconds(t *testing.T) {
+func TestGetTemplateAutoStopTimeoutSeconds(t *testing.T) {
 	tests := []struct {
 		name       string
 		configJSON string
@@ -85,9 +85,9 @@ func TestGetRuntimeAutoStopTimeoutSeconds(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GetRuntimeAutoStopTimeoutSeconds(tt.configJSON)
+			got := GetTemplateAutoStopTimeoutSeconds(tt.configJSON)
 			if got != tt.want {
-				t.Errorf("GetRuntimeAutoStopTimeoutSeconds() = %d, want %d", got, tt.want)
+				t.Errorf("GetTemplateAutoStopTimeoutSeconds() = %d, want %d", got, tt.want)
 			}
 		})
 	}

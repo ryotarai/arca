@@ -7,12 +7,12 @@ import {
 } from './helpers/auth'
 
 test.describe('navigation', () => {
-  test('admin sidebar shows Runtimes, Users, and Admin settings links', async ({ page }) => {
+  test('admin sidebar shows Machine Templates, Users, and Admin settings links', async ({ page }) => {
     await loginAsAdmin(page)
 
     await expect(page.getByRole('link', { name: 'Machines' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'User settings' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Runtimes' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Machine Templates' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Users' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Groups' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Admin settings' })).toBeVisible()
@@ -35,7 +35,7 @@ test.describe('navigation', () => {
       await expect(ctx.page.getByRole('link', { name: 'Machines' })).toBeVisible()
       await expect(ctx.page.getByRole('link', { name: 'User settings' })).toBeVisible()
       // Admin links should not be visible
-      await expect(ctx.page.getByRole('link', { name: 'Runtimes' })).toHaveCount(0)
+      await expect(ctx.page.getByRole('link', { name: 'Machine Templates' })).toHaveCount(0)
       await expect(ctx.page.getByRole('link', { name: 'Users' })).toHaveCount(0)
       await expect(ctx.page.getByRole('link', { name: 'Groups' })).toHaveCount(0)
       await expect(ctx.page.getByRole('link', { name: 'Admin settings' })).toHaveCount(0)
@@ -59,9 +59,9 @@ test.describe('navigation', () => {
     await expect(page).toHaveURL('/machines')
     await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Runtimes' }).click()
-    await expect(page).toHaveURL('/runtimes')
-    await expect(page.getByRole('heading', { name: 'Runtimes' })).toBeVisible()
+    await page.getByRole('link', { name: 'Machine Templates' }).click()
+    await expect(page).toHaveURL('/machine-templates')
+    await expect(page.getByRole('heading', { name: 'Machine Templates' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Users' }).click()
     await expect(page).toHaveURL('/users')
@@ -94,8 +94,8 @@ test.describe('navigation', () => {
       userPassword,
     )
     try {
-      await ctx.page.goto('/runtimes')
-      await expect(ctx.page.getByRole('heading', { name: 'Runtimes' })).toHaveCount(0)
+      await ctx.page.goto('/machine-templates')
+      await expect(ctx.page.getByRole('heading', { name: 'Machine Templates' })).toHaveCount(0)
 
       await ctx.page.goto('/users')
       // Non-admin is redirected to /machines

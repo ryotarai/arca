@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   getMachine,
-  listAvailableRuntimes,
+  listAvailableMachineTemplates,
   listMachines,
   startMachine,
   stopMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, RuntimeSummary, User } from '@/lib/types'
+import type { Machine, MachineTemplateSummary, User } from '@/lib/types'
 
 type MachinesPageProps = {
   user: User | null
@@ -53,7 +53,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function MachinesPage({ user, onLogout }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
-  const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
+  const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -72,13 +72,13 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
       }
       running = true
       try {
-        const [items, runtimeItems] = await Promise.all([
+        const [items, templateItems] = await Promise.all([
           listMachines({ timeoutMs: pollingRequestTimeoutMs }),
-          listAvailableRuntimes(),
+          listAvailableMachineTemplates(),
         ])
         if (!cancelled) {
           setMachines(items)
-          setRuntimes(runtimeItems)
+          setTemplates(templateItems)
           setError('')
         }
       } catch (e) {
@@ -180,7 +180,7 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">runtime: {runtimes.find((r) => r.id === machine.runtimeId)?.name ?? machine.runtimeId}</p>
+                          <p className="text-xs text-muted-foreground">template: {templates.find((r) => r.id === machine.templateId)?.name ?? machine.templateId}</p>
                           <div className="mt-1 flex items-center gap-2">
                             <StatusBadge status={machine.status} />
                           </div>
