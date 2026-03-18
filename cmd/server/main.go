@@ -124,7 +124,7 @@ func main() {
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, Cloudflare: cfClient, ConsoleTunnel: consoleTunnel, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor, LLMTokenExecutor: server.NewLLMTokenExecutor()}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

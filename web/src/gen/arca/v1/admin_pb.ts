@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/admin.proto.
  */
 export const file_arca_v1_admin: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL2FkbWluLnByb3RvEgdhcmNhLnYxIiwKGVN0YXJ0SW1wZXJzb25hdGlvblJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCSIcChpTdGFydEltcGVyc29uYXRpb25SZXNwb25zZSIaChhTdG9wSW1wZXJzb25hdGlvblJlcXVlc3QiGwoZU3RvcEltcGVyc29uYXRpb25SZXNwb25zZSIfCh1HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVxdWVzdCJ4Ch5HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVzcG9uc2USGAoQaXNfaW1wZXJzb25hdGluZxgBIAEoCBIfChdpbXBlcnNvbmF0ZWRfdXNlcl9lbWFpbBgCIAEoCRIbChNvcmlnaW5hbF91c2VyX2VtYWlsGAMgASgJIiUKFExpc3RBdWRpdExvZ3NSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFIj4KFUxpc3RBdWRpdExvZ3NSZXNwb25zZRIlCgphdWRpdF9sb2dzGAEgAygLMhEuYXJjYS52MS5BdWRpdExvZyKlAQoIQXVkaXRMb2cSCgoCaWQYASABKAkSEwoLYWN0b3JfZW1haWwYAiABKAkSFwoPYWN0aW5nX2FzX2VtYWlsGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIVCg1yZXNvdXJjZV90eXBlGAUgASgJEhMKC3Jlc291cmNlX2lkGAYgASgJEg8KB2RldGFpbHMYByABKAkSEgoKY3JlYXRlZF9hdBgIIAEoCTKEAwoMQWRtaW5TZXJ2aWNlEl0KElN0YXJ0SW1wZXJzb25hdGlvbhIiLmFyY2EudjEuU3RhcnRJbXBlcnNvbmF0aW9uUmVxdWVzdBojLmFyY2EudjEuU3RhcnRJbXBlcnNvbmF0aW9uUmVzcG9uc2USWgoRU3RvcEltcGVyc29uYXRpb24SIS5hcmNhLnYxLlN0b3BJbXBlcnNvbmF0aW9uUmVxdWVzdBoiLmFyY2EudjEuU3RvcEltcGVyc29uYXRpb25SZXNwb25zZRJpChZHZXRJbXBlcnNvbmF0aW9uU3RhdHVzEiYuYXJjYS52MS5HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVxdWVzdBonLmFyY2EudjEuR2V0SW1wZXJzb25hdGlvblN0YXR1c1Jlc3BvbnNlEk4KDUxpc3RBdWRpdExvZ3MSHS5hcmNhLnYxLkxpc3RBdWRpdExvZ3NSZXF1ZXN0Gh4uYXJjYS52MS5MaXN0QXVkaXRMb2dzUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpBZG1pblByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
+  fileDesc("ChNhcmNhL3YxL2FkbWluLnByb3RvEgdhcmNhLnYxIiwKGVN0YXJ0SW1wZXJzb25hdGlvblJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCSIcChpTdGFydEltcGVyc29uYXRpb25SZXNwb25zZSIaChhTdG9wSW1wZXJzb25hdGlvblJlcXVlc3QiGwoZU3RvcEltcGVyc29uYXRpb25SZXNwb25zZSIfCh1HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVxdWVzdCJ4Ch5HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVzcG9uc2USGAoQaXNfaW1wZXJzb25hdGluZxgBIAEoCBIfChdpbXBlcnNvbmF0ZWRfdXNlcl9lbWFpbBgCIAEoCRIbChNvcmlnaW5hbF91c2VyX2VtYWlsGAMgASgJIiUKFExpc3RBdWRpdExvZ3NSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFIj4KFUxpc3RBdWRpdExvZ3NSZXNwb25zZRIlCgphdWRpdF9sb2dzGAEgAygLMhEuYXJjYS52MS5BdWRpdExvZyKlAQoIQXVkaXRMb2cSCgoCaWQYASABKAkSEwoLYWN0b3JfZW1haWwYAiABKAkSFwoPYWN0aW5nX2FzX2VtYWlsGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIVCg1yZXNvdXJjZV90eXBlGAUgASgJEhMKC3Jlc291cmNlX2lkGAYgASgJEg8KB2RldGFpbHMYByABKAkSEgoKY3JlYXRlZF9hdBgIIAEoCSLQAQoOU2VydmVyTExNTW9kZWwSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIVCg10b2tlbl9jb21tYW5kGAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBRISCgpjcmVhdGVkX2F0GAggASgJEhIKCnVwZGF0ZWRfYXQYCSABKAkiHAoaTGlzdFNlcnZlckxMTU1vZGVsc1JlcXVlc3QiRgobTGlzdFNlcnZlckxMTU1vZGVsc1Jlc3BvbnNlEicKBm1vZGVscxgBIAMoCzIXLmFyY2EudjEuU2VydmVyTExNTW9kZWwiqQEKG0NyZWF0ZVNlcnZlckxMTU1vZGVsUmVxdWVzdBITCgtjb25maWdfbmFtZRgBIAEoCRIVCg1lbmRwb2ludF90eXBlGAIgASgJEhcKD2N1c3RvbV9lbmRwb2ludBgDIAEoCRISCgptb2RlbF9uYW1lGAQgASgJEhUKDXRva2VuX2NvbW1hbmQYBSABKAkSGgoSbWF4X2NvbnRleHRfdG9rZW5zGAYgASgFIkYKHENyZWF0ZVNlcnZlckxMTU1vZGVsUmVzcG9uc2USJgoFbW9kZWwYASABKAsyFy5hcmNhLnYxLlNlcnZlckxMTU1vZGVsIrUBChtVcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIVCg10b2tlbl9jb21tYW5kGAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBSJGChxVcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlc3BvbnNlEiYKBW1vZGVsGAEgASgLMhcuYXJjYS52MS5TZXJ2ZXJMTE1Nb2RlbCIpChtEZWxldGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkiHgocRGVsZXRlU2VydmVyTExNTW9kZWxSZXNwb25zZTKVBgoMQWRtaW5TZXJ2aWNlEl0KElN0YXJ0SW1wZXJzb25hdGlvbhIiLmFyY2EudjEuU3RhcnRJbXBlcnNvbmF0aW9uUmVxdWVzdBojLmFyY2EudjEuU3RhcnRJbXBlcnNvbmF0aW9uUmVzcG9uc2USWgoRU3RvcEltcGVyc29uYXRpb24SIS5hcmNhLnYxLlN0b3BJbXBlcnNvbmF0aW9uUmVxdWVzdBoiLmFyY2EudjEuU3RvcEltcGVyc29uYXRpb25SZXNwb25zZRJpChZHZXRJbXBlcnNvbmF0aW9uU3RhdHVzEiYuYXJjYS52MS5HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVxdWVzdBonLmFyY2EudjEuR2V0SW1wZXJzb25hdGlvblN0YXR1c1Jlc3BvbnNlEk4KDUxpc3RBdWRpdExvZ3MSHS5hcmNhLnYxLkxpc3RBdWRpdExvZ3NSZXF1ZXN0Gh4uYXJjYS52MS5MaXN0QXVkaXRMb2dzUmVzcG9uc2USYAoTTGlzdFNlcnZlckxMTU1vZGVscxIjLmFyY2EudjEuTGlzdFNlcnZlckxMTU1vZGVsc1JlcXVlc3QaJC5hcmNhLnYxLkxpc3RTZXJ2ZXJMTE1Nb2RlbHNSZXNwb25zZRJjChRDcmVhdGVTZXJ2ZXJMTE1Nb2RlbBIkLmFyY2EudjEuQ3JlYXRlU2VydmVyTExNTW9kZWxSZXF1ZXN0GiUuYXJjYS52MS5DcmVhdGVTZXJ2ZXJMTE1Nb2RlbFJlc3BvbnNlEmMKFFVwZGF0ZVNlcnZlckxMTU1vZGVsEiQuYXJjYS52MS5VcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZVNlcnZlckxMTU1vZGVsUmVzcG9uc2USYwoURGVsZXRlU2VydmVyTExNTW9kZWwSJC5hcmNhLnYxLkRlbGV0ZVNlcnZlckxMTU1vZGVsUmVxdWVzdBolLmFyY2EudjEuRGVsZXRlU2VydmVyTExNTW9kZWxSZXNwb25zZUKMAQoLY29tLmFyY2EudjFCCkFkbWluUHJvdG9QAVo0Z2l0aHViLmNvbS9yeW90YXJhaS9hcmNhL2ludGVybmFsL2dlbi9hcmNhL3YxO2FyY2F2MaICA0FYWKoCB0FyY2EuVjHKAgdBcmNhXFYx4gITQXJjYVxWMVxHUEJNZXRhZGF0YeoCCEFyY2E6OlYxYgZwcm90bzM");
 
 /**
  * @generated from message arca.v1.StartImpersonationRequest
@@ -195,6 +195,246 @@ export const AuditLogSchema: GenMessage<AuditLog> = /*@__PURE__*/
   messageDesc(file_arca_v1_admin, 8);
 
 /**
+ * @generated from message arca.v1.ServerLLMModel
+ */
+export type ServerLLMModel = Message<"arca.v1.ServerLLMModel"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string config_name = 2;
+   */
+  configName: string;
+
+  /**
+   * @generated from field: string endpoint_type = 3;
+   */
+  endpointType: string;
+
+  /**
+   * @generated from field: string custom_endpoint = 4;
+   */
+  customEndpoint: string;
+
+  /**
+   * @generated from field: string model_name = 5;
+   */
+  modelName: string;
+
+  /**
+   * @generated from field: string token_command = 6;
+   */
+  tokenCommand: string;
+
+  /**
+   * @generated from field: int32 max_context_tokens = 7;
+   */
+  maxContextTokens: number;
+
+  /**
+   * @generated from field: string created_at = 8;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: string updated_at = 9;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message arca.v1.ServerLLMModel.
+ * Use `create(ServerLLMModelSchema)` to create a new message.
+ */
+export const ServerLLMModelSchema: GenMessage<ServerLLMModel> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 9);
+
+/**
+ * @generated from message arca.v1.ListServerLLMModelsRequest
+ */
+export type ListServerLLMModelsRequest = Message<"arca.v1.ListServerLLMModelsRequest"> & {
+};
+
+/**
+ * Describes the message arca.v1.ListServerLLMModelsRequest.
+ * Use `create(ListServerLLMModelsRequestSchema)` to create a new message.
+ */
+export const ListServerLLMModelsRequestSchema: GenMessage<ListServerLLMModelsRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 10);
+
+/**
+ * @generated from message arca.v1.ListServerLLMModelsResponse
+ */
+export type ListServerLLMModelsResponse = Message<"arca.v1.ListServerLLMModelsResponse"> & {
+  /**
+   * @generated from field: repeated arca.v1.ServerLLMModel models = 1;
+   */
+  models: ServerLLMModel[];
+};
+
+/**
+ * Describes the message arca.v1.ListServerLLMModelsResponse.
+ * Use `create(ListServerLLMModelsResponseSchema)` to create a new message.
+ */
+export const ListServerLLMModelsResponseSchema: GenMessage<ListServerLLMModelsResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 11);
+
+/**
+ * @generated from message arca.v1.CreateServerLLMModelRequest
+ */
+export type CreateServerLLMModelRequest = Message<"arca.v1.CreateServerLLMModelRequest"> & {
+  /**
+   * @generated from field: string config_name = 1;
+   */
+  configName: string;
+
+  /**
+   * @generated from field: string endpoint_type = 2;
+   */
+  endpointType: string;
+
+  /**
+   * @generated from field: string custom_endpoint = 3;
+   */
+  customEndpoint: string;
+
+  /**
+   * @generated from field: string model_name = 4;
+   */
+  modelName: string;
+
+  /**
+   * @generated from field: string token_command = 5;
+   */
+  tokenCommand: string;
+
+  /**
+   * @generated from field: int32 max_context_tokens = 6;
+   */
+  maxContextTokens: number;
+};
+
+/**
+ * Describes the message arca.v1.CreateServerLLMModelRequest.
+ * Use `create(CreateServerLLMModelRequestSchema)` to create a new message.
+ */
+export const CreateServerLLMModelRequestSchema: GenMessage<CreateServerLLMModelRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 12);
+
+/**
+ * @generated from message arca.v1.CreateServerLLMModelResponse
+ */
+export type CreateServerLLMModelResponse = Message<"arca.v1.CreateServerLLMModelResponse"> & {
+  /**
+   * @generated from field: arca.v1.ServerLLMModel model = 1;
+   */
+  model?: ServerLLMModel;
+};
+
+/**
+ * Describes the message arca.v1.CreateServerLLMModelResponse.
+ * Use `create(CreateServerLLMModelResponseSchema)` to create a new message.
+ */
+export const CreateServerLLMModelResponseSchema: GenMessage<CreateServerLLMModelResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 13);
+
+/**
+ * @generated from message arca.v1.UpdateServerLLMModelRequest
+ */
+export type UpdateServerLLMModelRequest = Message<"arca.v1.UpdateServerLLMModelRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string config_name = 2;
+   */
+  configName: string;
+
+  /**
+   * @generated from field: string endpoint_type = 3;
+   */
+  endpointType: string;
+
+  /**
+   * @generated from field: string custom_endpoint = 4;
+   */
+  customEndpoint: string;
+
+  /**
+   * @generated from field: string model_name = 5;
+   */
+  modelName: string;
+
+  /**
+   * @generated from field: string token_command = 6;
+   */
+  tokenCommand: string;
+
+  /**
+   * @generated from field: int32 max_context_tokens = 7;
+   */
+  maxContextTokens: number;
+};
+
+/**
+ * Describes the message arca.v1.UpdateServerLLMModelRequest.
+ * Use `create(UpdateServerLLMModelRequestSchema)` to create a new message.
+ */
+export const UpdateServerLLMModelRequestSchema: GenMessage<UpdateServerLLMModelRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 14);
+
+/**
+ * @generated from message arca.v1.UpdateServerLLMModelResponse
+ */
+export type UpdateServerLLMModelResponse = Message<"arca.v1.UpdateServerLLMModelResponse"> & {
+  /**
+   * @generated from field: arca.v1.ServerLLMModel model = 1;
+   */
+  model?: ServerLLMModel;
+};
+
+/**
+ * Describes the message arca.v1.UpdateServerLLMModelResponse.
+ * Use `create(UpdateServerLLMModelResponseSchema)` to create a new message.
+ */
+export const UpdateServerLLMModelResponseSchema: GenMessage<UpdateServerLLMModelResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 15);
+
+/**
+ * @generated from message arca.v1.DeleteServerLLMModelRequest
+ */
+export type DeleteServerLLMModelRequest = Message<"arca.v1.DeleteServerLLMModelRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message arca.v1.DeleteServerLLMModelRequest.
+ * Use `create(DeleteServerLLMModelRequestSchema)` to create a new message.
+ */
+export const DeleteServerLLMModelRequestSchema: GenMessage<DeleteServerLLMModelRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 16);
+
+/**
+ * @generated from message arca.v1.DeleteServerLLMModelResponse
+ */
+export type DeleteServerLLMModelResponse = Message<"arca.v1.DeleteServerLLMModelResponse"> & {
+};
+
+/**
+ * Describes the message arca.v1.DeleteServerLLMModelResponse.
+ * Use `create(DeleteServerLLMModelResponseSchema)` to create a new message.
+ */
+export const DeleteServerLLMModelResponseSchema: GenMessage<DeleteServerLLMModelResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_admin, 17);
+
+/**
  * @generated from service arca.v1.AdminService
  */
 export const AdminService: GenService<{
@@ -229,6 +469,38 @@ export const AdminService: GenService<{
     methodKind: "unary";
     input: typeof ListAuditLogsRequestSchema;
     output: typeof ListAuditLogsResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.AdminService.ListServerLLMModels
+   */
+  listServerLLMModels: {
+    methodKind: "unary";
+    input: typeof ListServerLLMModelsRequestSchema;
+    output: typeof ListServerLLMModelsResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.AdminService.CreateServerLLMModel
+   */
+  createServerLLMModel: {
+    methodKind: "unary";
+    input: typeof CreateServerLLMModelRequestSchema;
+    output: typeof CreateServerLLMModelResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.AdminService.UpdateServerLLMModel
+   */
+  updateServerLLMModel: {
+    methodKind: "unary";
+    input: typeof UpdateServerLLMModelRequestSchema;
+    output: typeof UpdateServerLLMModelResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.AdminService.DeleteServerLLMModel
+   */
+  deleteServerLLMModel: {
+    methodKind: "unary";
+    input: typeof DeleteServerLLMModelRequestSchema;
+    output: typeof DeleteServerLLMModelResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_arca_v1_admin, 0);

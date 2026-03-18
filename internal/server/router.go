@@ -27,8 +27,9 @@ type Dependencies struct {
 	Cloudflare    *cloudflare.Client
 	ConsoleTunnel *ConsoleTunnelManager
 	MachineProxy  *MachineProxyHandler
-	Slack         *notification.SlackService
-	Encryptor     *crypto.Encryptor
+	Slack            *notification.SlackService
+	Encryptor        *crypto.Encryptor
+	LLMTokenExecutor *LLMTokenExecutor
 }
 
 type HealthChecker interface {
@@ -110,7 +111,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil {
-		path, handler := arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store, deps.Authenticator, deps.Encryptor))
+		path, handler := arcav1connect.NewTunnelServiceHandler(newTunnelConnectService(deps.Store, deps.Authenticator, deps.Encryptor, deps.LLMTokenExecutor))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil && deps.Slack != nil {

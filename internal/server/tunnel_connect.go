@@ -14,13 +14,14 @@ import (
 )
 
 type tunnelConnectService struct {
-	store         *db.Store
-	authenticator Authenticator
-	encryptor     *crypto.Encryptor
+	store             *db.Store
+	authenticator     Authenticator
+	encryptor         *crypto.Encryptor
+	llmTokenExecutor  *LLMTokenExecutor
 }
 
-func newTunnelConnectService(store *db.Store, authenticator Authenticator, encryptor *crypto.Encryptor) *tunnelConnectService {
-	return &tunnelConnectService{store: store, authenticator: authenticator, encryptor: encryptor}
+func newTunnelConnectService(store *db.Store, authenticator Authenticator, encryptor *crypto.Encryptor, llmTokenExecutor *LLMTokenExecutor) *tunnelConnectService {
+	return &tunnelConnectService{store: store, authenticator: authenticator, encryptor: encryptor, llmTokenExecutor: llmTokenExecutor}
 }
 
 func (s *tunnelConnectService) CreateMachineTunnel(context.Context, *connect.Request[arcav1.CreateMachineTunnelRequest]) (*connect.Response[arcav1.CreateMachineTunnelResponse], error) {
@@ -214,14 +215,17 @@ func (s *tunnelConnectService) GetMachineLLMModels(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve machine owner"))
 	}
 
-	models, err := s.store.ListUserLLMModelsWithAPIKey(ctx, ownerUserID)
+	// Build a map of config_name -> model from user models (user models take priority)
+	configNameSet := make(map[string]bool)
+
+	userModels, err := s.store.ListUserLLMModelsWithAPIKey(ctx, ownerUserID)
 	if err != nil {
 		log.Printf("list user llm models failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list LLM models"))
 	}
 
-	items := make([]*arcav1.MachineLLMModel, 0, len(models))
-	for _, m := range models {
+	items := make([]*arcav1.MachineLLMModel, 0, len(userModels))
+	for _, m := range userModels {
 		apiKey := ""
 		if s.encryptor != nil && m.APIKeyEncrypted != "" {
 			decrypted, err := s.encryptor.Decrypt(m.APIKeyEncrypted)
@@ -239,6 +243,44 @@ func (s *tunnelConnectService) GetMachineLLMModels(ctx context.Context, req *con
 			ApiKey:           apiKey,
 			MaxContextTokens: int32(m.MaxContextTokens),
 		})
+		configNameSet[m.ConfigName] = true
+	}
+
+	// Merge server-wide LLM models (skip if config_name already provided by user)
+	if s.llmTokenExecutor != nil {
+		serverModels, err := s.store.ListServerLLMModels(ctx)
+		if err != nil {
+			log.Printf("list server llm models failed: %v", err)
+			// Continue without server models rather than failing
+		} else if len(serverModels) > 0 {
+			// Get owner's email for token command stdin
+			ownerEmail := ""
+			ownerUser, err := s.store.GetUserByID(ctx, ownerUserID)
+			if err != nil {
+				log.Printf("get owner user for token command failed: %v", err)
+			} else {
+				ownerEmail = ownerUser.Email
+			}
+
+			for _, sm := range serverModels {
+				if configNameSet[sm.ConfigName] {
+					continue // User model takes priority
+				}
+				token, err := s.llmTokenExecutor.GetToken(ctx, sm.ID, sm.TokenCommand, ownerEmail, ownerUserID)
+				if err != nil {
+					log.Printf("execute token command for server model %s failed: %v", sm.ID, err)
+					continue
+				}
+				items = append(items, &arcav1.MachineLLMModel{
+					ConfigName:       sm.ConfigName,
+					EndpointType:     sm.EndpointType,
+					CustomEndpoint:   sm.CustomEndpoint,
+					ModelName:        sm.ModelName,
+					ApiKey:           token,
+					MaxContextTokens: int32(sm.MaxContextTokens),
+				})
+			}
+		}
 	}
 
 	return connect.NewResponse(&arcav1.GetMachineLLMModelsResponse{Models: items}), nil

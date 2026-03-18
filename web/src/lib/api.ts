@@ -1219,16 +1219,20 @@ export async function listAvailableImages(runtimeId: string): Promise<CustomImag
 // Admin / Impersonation API
 import {
   AdminService,
+  CreateServerLLMModelRequestSchema,
+  DeleteServerLLMModelRequestSchema,
   GetImpersonationStatusRequestSchema,
   ListAuditLogsRequestSchema,
+  ListServerLLMModelsRequestSchema,
   StartImpersonationRequestSchema,
   StopImpersonationRequestSchema,
+  UpdateServerLLMModelRequestSchema,
 } from '@/gen/arca/v1/admin_pb'
-import type { AuditLog } from '@/gen/arca/v1/admin_pb'
+import type { AuditLog, ServerLLMModel } from '@/gen/arca/v1/admin_pb'
 
 const adminClient = createClient(AdminService, connectTransport)
 
-export type { AuditLog }
+export type { AuditLog, ServerLLMModel }
 
 export type ImpersonationStatus = {
   isImpersonating: boolean
@@ -1256,4 +1260,64 @@ export async function getImpersonationStatus(): Promise<ImpersonationStatus> {
 export async function listAuditLogs(limit = 100): Promise<AuditLog[]> {
   const response = await adminClient.listAuditLogs(create(ListAuditLogsRequestSchema, { limit }))
   return response.auditLogs
+}
+
+// Server LLM Model API
+export async function listServerLLMModels(): Promise<ServerLLMModel[]> {
+  const response = await adminClient.listServerLLMModels(create(ListServerLLMModelsRequestSchema))
+  return response.models
+}
+
+export async function createServerLLMModel(params: {
+  configName: string
+  endpointType: string
+  customEndpoint: string
+  modelName: string
+  tokenCommand: string
+  maxContextTokens: number
+}): Promise<ServerLLMModel> {
+  const response = await adminClient.createServerLLMModel(
+    create(CreateServerLLMModelRequestSchema, {
+      configName: params.configName,
+      endpointType: params.endpointType,
+      customEndpoint: params.customEndpoint,
+      modelName: params.modelName,
+      tokenCommand: params.tokenCommand,
+      maxContextTokens: params.maxContextTokens,
+    }),
+  )
+  if (response.model == null) {
+    throw new Error('request failed')
+  }
+  return response.model
+}
+
+export async function updateServerLLMModel(params: {
+  id: string
+  configName: string
+  endpointType: string
+  customEndpoint: string
+  modelName: string
+  tokenCommand: string
+  maxContextTokens: number
+}): Promise<ServerLLMModel> {
+  const response = await adminClient.updateServerLLMModel(
+    create(UpdateServerLLMModelRequestSchema, {
+      id: params.id,
+      configName: params.configName,
+      endpointType: params.endpointType,
+      customEndpoint: params.customEndpoint,
+      modelName: params.modelName,
+      tokenCommand: params.tokenCommand,
+      maxContextTokens: params.maxContextTokens,
+    }),
+  )
+  if (response.model == null) {
+    throw new Error('request failed')
+  }
+  return response.model
+}
+
+export async function deleteServerLLMModel(id: string): Promise<void> {
+  await adminClient.deleteServerLLMModel(create(DeleteServerLLMModelRequestSchema, { id }))
 }
