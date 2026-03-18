@@ -68,8 +68,9 @@ func (r *LxdRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	if !exists {
 		opts.StartupScript = r.startupScript
 		cloudConfig := cloudInitUserData(machine, opts)
+		image := r.resolveImage(machine)
 
-		if err := r.launchContainer(ctx, containerName, cloudConfig); err != nil {
+		if err := r.launchContainer(ctx, containerName, image, cloudConfig); err != nil {
 			return "", err
 		}
 		return containerName, nil
@@ -203,11 +204,24 @@ func (r *LxdRuntime) containerExists(ctx context.Context, name string) (bool, er
 	return false, err
 }
 
-func (r *LxdRuntime) launchContainer(ctx context.Context, name, cloudConfig string) error {
+func (r *LxdRuntime) resolveImage(machine db.Machine) string {
+	opts := parseMachineOptionsMap(machine)
+	if opts != nil {
+		if alias := strings.TrimSpace(opts["custom_image_image_alias"]); alias != "" {
+			return alias
+		}
+		if fp := strings.TrimSpace(opts["custom_image_image_fingerprint"]); fp != "" {
+			return fp
+		}
+	}
+	return r.image
+}
+
+func (r *LxdRuntime) launchContainer(ctx context.Context, name, image, cloudConfig string) error {
 	// Use lxc init + config set + start instead of lxc launch --config
 	// to avoid "argument list too long" when cloud-init data (which includes
 	// the arcad binary) exceeds the OS command-line argument limit.
-	if _, err := r.runLxc(ctx, "init", r.image, name); err != nil {
+	if _, err := r.runLxc(ctx, "init", image, name); err != nil {
 		return fmt.Errorf("init lxd container: %w", err)
 	}
 

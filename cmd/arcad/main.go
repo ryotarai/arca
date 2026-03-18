@@ -17,7 +17,18 @@ import (
 
 func main() {
 	userMode := flag.Bool("user", false, "run in user mode (reverse proxy, no setup)")
+	setupOnce := flag.Bool("setup-once", false, "run setup steps once and exit (for Packer image builds)")
 	flag.Parse()
+
+	// --setup-once can also be triggered via ARCAD_SETUP_ONCE=true
+	if !*setupOnce && strings.EqualFold(os.Getenv("ARCAD_SETUP_ONCE"), "true") {
+		*setupOnce = true
+	}
+
+	if *setupOnce {
+		runSetupOnce()
+		return
+	}
 
 	cfg, err := arcad.ConfigFromEnv()
 	if err != nil {
@@ -131,6 +142,22 @@ func runRootMode(cfg arcad.Config) {
 	// Idle until signalled.
 	log.Printf("arcad (root) setup complete, waiting for signal")
 	<-ctx.Done()
+}
+
+// runSetupOnce runs the idempotent setup steps once without connecting to
+// the control plane, then exits. This is intended for use inside Packer
+// provisioners to pre-bake dependencies into a machine image.
+func runSetupOnce() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	log.Printf("arcad --setup-once: running offline setup")
+
+	setupCfg := arcad.SetupConfigFromEnv()
+	if err := arcad.RunSetupOnce(ctx, setupCfg); err != nil {
+		log.Fatalf("setup-once failed: %v", err)
+	}
+	log.Printf("arcad --setup-once: complete")
 }
 
 func splitCSV(value string) []string {

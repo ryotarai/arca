@@ -49,6 +49,7 @@ message CreateMachineRequest {
   string name = 1;
   string runtime_id = 2;
   map<string, string> options = 3;
+  string custom_image_id = 4;
 }
 
 message CreateMachineResponse {

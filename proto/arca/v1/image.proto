@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package arca.v1;
+
+option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
+
+service ImageService {
+  rpc ListCustomImages(ListCustomImagesRequest) returns (ListCustomImagesResponse);
+  rpc CreateCustomImage(CreateCustomImageRequest) returns (CreateCustomImageResponse);
+  rpc UpdateCustomImage(UpdateCustomImageRequest) returns (UpdateCustomImageResponse);
+  rpc DeleteCustomImage(DeleteCustomImageRequest) returns (DeleteCustomImageResponse);
+  rpc ListAvailableImages(ListAvailableImagesRequest) returns (ListAvailableImagesResponse);
+}
+
+message CustomImage {
+  string id = 1;
+  string name = 2;
+  string runtime_type = 3;
+  map<string, string> data = 4;
+  string description = 5;
+  repeated string associated_runtime_ids = 6;
+  string created_at = 7;
+}
+
+message ListCustomImagesRequest {}
+
+message ListCustomImagesResponse {
+  repeated CustomImage images = 1;
+}
+
+message CreateCustomImageRequest {
+  string name = 1;
+  string runtime_type = 2;
+  map<string, string> data = 3;
+  string description = 4;
+  repeated string runtime_ids = 5;
+}
+
+message CreateCustomImageResponse {
+  CustomImage image = 1;
+}
+
+message UpdateCustomImageRequest {
+  string id = 1;
+  string name = 2;
+  string runtime_type = 3;
+  map<string, string> data = 4;
+  string description = 5;
+  repeated string runtime_ids = 6;
+}
+
+message UpdateCustomImageResponse {
+  CustomImage image = 1;
+}
+
+message DeleteCustomImageRequest {
+  string id = 1;
+}
+
+message DeleteCustomImageResponse {}
+
+message ListAvailableImagesRequest {
+  string runtime_id = 1;
+}
+
+message ListAvailableImagesResponse {
+  repeated CustomImage images = 1;
+}

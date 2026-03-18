@@ -18,6 +18,7 @@ import { UserSetupPage } from '@/pages/UserSetupPage'
 import { AccessDeniedPage } from '@/pages/AccessDeniedPage'
 import { GroupsPage } from '@/pages/GroupsPage'
 import { AuditLogPage } from '@/pages/AuditLogPage'
+import { CustomImagesPage } from '@/pages/CustomImagesPage'
 import { AppLayout } from '@/pages/AppLayout'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 
@@ -178,6 +179,7 @@ export function App() {
               />
             }
           />
+          <Route path="/admin/images" element={<CustomImagesPage user={user} onLogout={handleLogout} />} />
           <Route path="/admin/audit-logs" element={<AuditLogPage user={user} onLogout={handleLogout} />} />
         </Route>
 

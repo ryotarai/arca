@@ -103,9 +103,20 @@ func NewLibvirtRuntimeWithOptions(options LibvirtRuntimeOptions) *LibvirtRuntime
 	}
 }
 
+func (r *LibvirtRuntime) resolveBaseImage(machine db.Machine) string {
+	machineOpts := parseMachineOptionsMap(machine)
+	if machineOpts != nil {
+		if vol := strings.TrimSpace(machineOpts["custom_image_volume_name"]); vol != "" {
+			return vol
+		}
+	}
+	return r.baseImage
+}
+
 func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts RuntimeStartOptions) (string, error) {
-	if _, err := os.Stat(r.baseImage); err != nil {
-		return "", fmt.Errorf("libvirt base image %q is not available: %w", r.baseImage, err)
+	baseImage := r.resolveBaseImage(machine)
+	if _, err := os.Stat(baseImage); err != nil {
+		return "", fmt.Errorf("libvirt base image %q is not available: %w", baseImage, err)
 	}
 
 	domainName := r.domainName(machine)
@@ -114,7 +125,7 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 		return "", err
 	}
 
-	if err := r.ensureDiskImage(ctx, workspace); err != nil {
+	if err := r.ensureDiskImage(ctx, workspace, baseImage); err != nil {
 		return "", err
 	}
 	opts.StartupScript = r.startupScript
@@ -257,12 +268,12 @@ func (r *LibvirtRuntime) domainName(machine db.Machine) string {
 	return "arca-machine-" + machine.ID[:12]
 }
 
-func (r *LibvirtRuntime) ensureDiskImage(ctx context.Context, workspace string) error {
+func (r *LibvirtRuntime) ensureDiskImage(ctx context.Context, workspace, baseImage string) error {
 	diskPath := filepath.Join(workspace, "disk.qcow2")
 	if _, err := os.Stat(diskPath); err == nil {
 		return nil
 	}
-	_, err := runCommand(ctx, "qemu-img", "create", "-f", "qcow2", "-F", "qcow2", "-b", r.baseImage, diskPath, r.diskSize)
+	_, err := runCommand(ctx, "qemu-img", "create", "-f", "qcow2", "-F", "qcow2", "-b", baseImage, diskPath, r.diskSize)
 	return err
 }
 

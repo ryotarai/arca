@@ -334,6 +334,7 @@ type CreateMachineRequest struct {
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	RuntimeId     string                 `protobuf:"bytes,2,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
 	Options       map[string]string      `protobuf:"bytes,3,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CustomImageId string                 `protobuf:"bytes,4,opt,name=custom_image_id,json=customImageId,proto3" json:"custom_image_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -387,6 +388,13 @@ func (x *CreateMachineRequest) GetOptions() map[string]string {
 		return x.Options
 	}
 	return nil
+}
+
+func (x *CreateMachineRequest) GetCustomImageId() string {
+	if x != nil {
+		return x.CustomImageId
+	}
+	return ""
 }
 
 type CreateMachineResponse struct {
@@ -1029,12 +1037,13 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\"@\n" +
 	"\x12GetMachineResponse\x12*\n" +
-	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"\xcb\x01\n" +
+	"\amachine\x18\x01 \x01(\v2\x10.arca.v1.MachineR\amachine\"\xf3\x01\n" +
 	"\x14CreateMachineRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
 	"runtime_id\x18\x02 \x01(\tR\truntimeId\x12D\n" +
-	"\aoptions\x18\x03 \x03(\v2*.arca.v1.CreateMachineRequest.OptionsEntryR\aoptions\x1a:\n" +
+	"\aoptions\x18\x03 \x03(\v2*.arca.v1.CreateMachineRequest.OptionsEntryR\aoptions\x12&\n" +
+	"\x0fcustom_image_id\x18\x04 \x01(\tR\rcustomImageId\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"h\n" +

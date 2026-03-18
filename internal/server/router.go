@@ -120,6 +120,9 @@ func NewRouter(deps Dependencies) http.Handler {
 	if deps.Store != nil && deps.Authenticator != nil {
 		path, handler := arcav1connect.NewAdminServiceHandler(newAdminConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
+
+		path, handler = arcav1connect.NewImageServiceHandler(newImageConnectService(deps.Store, deps.Authenticator))
+		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil {
 		authorizeHandler := newConsoleAuthorizeHandler(deps.Store, deps.Authenticator)

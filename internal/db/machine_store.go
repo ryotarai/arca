@@ -42,6 +42,7 @@ type Machine struct {
 	SetupVersion    string
 	Endpoint        string
 	OptionsJSON     string
+	CustomImageID   string
 	Status          string
 	DesiredStatus   string
 	ContainerID     string
@@ -113,7 +114,7 @@ type MachineEventInput struct {
 
 var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
 
-func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtimeID, setupVersion string, optionsJSON ...string) (Machine, error) {
+func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtimeID, setupVersion string, extra ...string) (Machine, error) {
 	machineID, err := randomID()
 	if err != nil {
 		return Machine{}, err
@@ -131,8 +132,12 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 	runtimeID = NormalizeMachineRuntime(runtimeID)
 	setupVersion = strings.TrimSpace(setupVersion)
 	opts := "{}"
-	if len(optionsJSON) > 0 && optionsJSON[0] != "" {
-		opts = optionsJSON[0]
+	if len(extra) > 0 && extra[0] != "" {
+		opts = extra[0]
+	}
+	customImageID := ""
+	if len(extra) > 1 {
+		customImageID = strings.TrimSpace(extra[1])
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -157,7 +162,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 	switch s.driver {
 	case DriverSQLite:
 		q := s.sqliteQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion, OptionsJson: opts}); err != nil {
+		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion, OptionsJson: opts, CustomImageID: customImageID}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -217,7 +222,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion, OptionsJson: opts}); err != nil {
+		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, RuntimeID: runtimeID, SetupVersion: setupVersion, OptionsJson: opts, CustomImageID: customImageID}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -290,6 +295,7 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, runtim
 		SetupVersion:  setupVersion,
 		Endpoint:      "",
 		OptionsJSON:   opts,
+		CustomImageID: customImageID,
 		Status:        MachineStatusPending,
 		DesiredStatus: MachineDesiredRunning,
 		MachineToken:  machineToken,
@@ -316,6 +322,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				SetupVersion:    strings.TrimSpace(row.SetupVersion),
 				Endpoint:        strings.TrimSpace(row.Endpoint),
 				OptionsJSON:     row.OptionsJson,
+				CustomImageID:   row.CustomImageID,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -346,6 +353,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				SetupVersion:    strings.TrimSpace(row.SetupVersion),
 				Endpoint:        strings.TrimSpace(row.Endpoint),
 				OptionsJSON:     row.OptionsJson,
+				CustomImageID:   row.CustomImageID,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -571,6 +579,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
 			OptionsJSON:     row.OptionsJson,
+			CustomImageID:   row.CustomImageID,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -593,6 +602,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
 			OptionsJSON:     row.OptionsJson,
+			CustomImageID:   row.CustomImageID,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -625,6 +635,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
 			OptionsJSON:     row.OptionsJson,
+			CustomImageID:   row.CustomImageID,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -649,6 +660,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			SetupVersion:    strings.TrimSpace(row.SetupVersion),
 			Endpoint:        strings.TrimSpace(row.Endpoint),
 			OptionsJSON:     row.OptionsJson,
+			CustomImageID:   row.CustomImageID,
 			Status:          row.Status,
 			DesiredStatus:   row.DesiredStatus,
 			ContainerID:     row.ContainerID,
@@ -777,6 +789,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				Name:            row.Name,
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 				OptionsJSON:     row.OptionsJson,
+				CustomImageID:   row.CustomImageID,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -804,6 +817,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				Name:            row.Name,
 				RuntimeID:       NormalizeMachineRuntime(row.RuntimeID),
 				OptionsJSON:     row.OptionsJson,
+				CustomImageID:   row.CustomImageID,
 				Status:          row.Status,
 				DesiredStatus:   row.DesiredStatus,
 				ContainerID:     row.ContainerID,
@@ -1712,12 +1726,12 @@ func (s *Store) GetMachineAccessRequestByID(ctx context.Context, requestID strin
 			resolvedAt = row.ResolvedAt.Int64
 		}
 		return AccessRequest{
-			ID:        row.ID,
-			MachineID: row.MachineID,
-			UserID:    row.UserID,
-			Status:    row.Status,
-			Message:   row.Message,
-			CreatedAt: row.CreatedAt,
+			ID:         row.ID,
+			MachineID:  row.MachineID,
+			UserID:     row.UserID,
+			Status:     row.Status,
+			Message:    row.Message,
+			CreatedAt:  row.CreatedAt,
 			ResolvedAt: resolvedAt,
 		}, nil
 	case DriverPostgres:
@@ -1730,12 +1744,12 @@ func (s *Store) GetMachineAccessRequestByID(ctx context.Context, requestID strin
 			resolvedAt = row.ResolvedAt.Int64
 		}
 		return AccessRequest{
-			ID:        row.ID,
-			MachineID: row.MachineID,
-			UserID:    row.UserID,
-			Status:    row.Status,
-			Message:   row.Message,
-			CreatedAt: row.CreatedAt,
+			ID:         row.ID,
+			MachineID:  row.MachineID,
+			UserID:     row.UserID,
+			Status:     row.Status,
+			Message:    row.Message,
+			CreatedAt:  row.CreatedAt,
 			ResolvedAt: resolvedAt,
 		}, nil
 	default:
