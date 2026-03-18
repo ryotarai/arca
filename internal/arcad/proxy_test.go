@@ -46,6 +46,10 @@ func (s *proxyStubControlPlane) ReportMachineReadiness(_ context.Context, _ bool
 	return true, nil
 }
 
+func (s *proxyStubControlPlane) GetMachineLLMModels(_ context.Context) ([]MachineLLMModel, error) {
+	return nil, nil
+}
+
 func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
 	return "https://control.example/auth/authorize?target=" + target
 }

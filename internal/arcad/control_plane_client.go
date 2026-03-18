@@ -17,6 +17,7 @@ const (
 	exchangeArcadSessionEndpoint   = "/arca.v1.TicketService/ExchangeArcadSession"
 	validateArcadSessionEndpoint   = "/arca.v1.TicketService/ValidateArcadSession"
 	reportMachineReadinessEndpoint = "/arca.v1.TunnelService/ReportMachineReadiness"
+	getMachineLLMModelsEndpoint    = "/arca.v1.TunnelService/GetMachineLLMModels"
 )
 
 // Exposure describes host routing and visibility.
@@ -50,11 +51,22 @@ type ArcadSessionClaims struct {
 	ExpiresAt time.Time
 }
 
+// MachineLLMModel represents an LLM model configuration for a machine.
+type MachineLLMModel struct {
+	ConfigName       string `json:"config_name"`
+	EndpointType     string `json:"endpoint_type"`
+	CustomEndpoint   string `json:"custom_endpoint"`
+	ModelName        string `json:"model_name"`
+	APIKey           string `json:"api_key"`
+	MaxContextTokens int32  `json:"max_context_tokens"`
+}
+
 type ControlPlaneClient interface {
 	GetExposureByHost(context.Context, string) (Exposure, error)
 	ExchangeArcadSession(context.Context, string, string) (ArcadSessionClaims, error)
 	ValidateArcadSession(context.Context, string, string, string) (ArcadSessionClaims, error)
 	ReportMachineReadiness(ctx context.Context, ready bool, reason, containerID, arcadVersion string) (bool, error)
+	GetMachineLLMModels(ctx context.Context) ([]MachineLLMModel, error)
 	AuthorizeURL(string) string
 }
 
@@ -225,6 +237,55 @@ func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host,
 		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session validation response")
 	}
 	return ArcadSessionClaims{UserID: userID}, nil
+}
+
+func (c *HTTPControlPlaneClient) GetMachineLLMModels(ctx context.Context) ([]MachineLLMModel, error) {
+	body, err := json.Marshal(map[string]string{})
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+getMachineLLMModelsEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Arca-Machine-ID", c.machineID)
+	if strings.TrimSpace(c.machineToken) != "" {
+		req.Header.Set("Authorization", "Bearer "+c.machineToken)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("get machine llm models failed: status %d", resp.StatusCode)
+	}
+	var decoded struct {
+		Models []struct {
+			ConfigName       string `json:"configName"`
+			EndpointType     string `json:"endpointType"`
+			CustomEndpoint   string `json:"customEndpoint"`
+			ModelName        string `json:"modelName"`
+			APIKey           string `json:"apiKey"`
+			MaxContextTokens int32  `json:"maxContextTokens"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return nil, fmt.Errorf("decode machine llm models: %w", err)
+	}
+	models := make([]MachineLLMModel, len(decoded.Models))
+	for i, m := range decoded.Models {
+		models[i] = MachineLLMModel{
+			ConfigName:       m.ConfigName,
+			EndpointType:     m.EndpointType,
+			CustomEndpoint:   m.CustomEndpoint,
+			ModelName:        m.ModelName,
+			APIKey:           m.APIKey,
+			MaxContextTokens: m.MaxContextTokens,
+		}
+	}
+	return models, nil
 }
 
 func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
@@ -15,10 +16,11 @@ import (
 type tunnelConnectService struct {
 	store         *db.Store
 	authenticator Authenticator
+	encryptor     *crypto.Encryptor
 }
 
-func newTunnelConnectService(store *db.Store, authenticator Authenticator) *tunnelConnectService {
-	return &tunnelConnectService{store: store, authenticator: authenticator}
+func newTunnelConnectService(store *db.Store, authenticator Authenticator, encryptor *crypto.Encryptor) *tunnelConnectService {
+	return &tunnelConnectService{store: store, authenticator: authenticator, encryptor: encryptor}
 }
 
 func (s *tunnelConnectService) CreateMachineTunnel(context.Context, *connect.Request[arcav1.CreateMachineTunnelRequest]) (*connect.Response[arcav1.CreateMachineTunnelResponse], error) {
@@ -183,6 +185,63 @@ func (s *tunnelConnectService) ReportMachineReadiness(ctx context.Context, req *
 	}
 
 	return connect.NewResponse(&arcav1.ReportMachineReadinessResponse{Accepted: updated}), nil
+}
+
+func (s *tunnelConnectService) GetMachineLLMModels(ctx context.Context, req *connect.Request[arcav1.GetMachineLLMModelsRequest]) (*connect.Response[arcav1.GetMachineLLMModelsResponse], error) {
+	if s.store == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("tunnel service unavailable"))
+	}
+
+	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))
+	if machineToken == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine token is required"))
+	}
+	machineID, err := s.store.GetMachineIDByMachineToken(ctx, machineToken)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
+		}
+		log.Printf("get machine id by token failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
+	}
+
+	ownerUserID, err := s.store.GetMachineOwnerUserID(ctx, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return connect.NewResponse(&arcav1.GetMachineLLMModelsResponse{}), nil
+		}
+		log.Printf("get machine owner failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve machine owner"))
+	}
+
+	models, err := s.store.ListUserLLMModelsWithAPIKey(ctx, ownerUserID)
+	if err != nil {
+		log.Printf("list user llm models failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list LLM models"))
+	}
+
+	items := make([]*arcav1.MachineLLMModel, 0, len(models))
+	for _, m := range models {
+		apiKey := ""
+		if s.encryptor != nil && m.APIKeyEncrypted != "" {
+			decrypted, err := s.encryptor.Decrypt(m.APIKeyEncrypted)
+			if err != nil {
+				log.Printf("decrypt api key for model %s failed: %v", m.ID, err)
+				continue
+			}
+			apiKey = decrypted
+		}
+		items = append(items, &arcav1.MachineLLMModel{
+			ConfigName:       m.ConfigName,
+			EndpointType:     m.EndpointType,
+			CustomEndpoint:   m.CustomEndpoint,
+			ModelName:        m.ModelName,
+			ApiKey:           apiKey,
+			MaxContextTokens: int32(m.MaxContextTokens),
+		})
+	}
+
+	return connect.NewResponse(&arcav1.GetMachineLLMModelsResponse{Models: items}), nil
 }
 
 func toMachineExposureMessage(exposure db.MachineExposure) *arcav1.MachineExposure {
