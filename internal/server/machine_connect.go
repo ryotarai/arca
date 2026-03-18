@@ -124,7 +124,19 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		optionsJSON = string(data)
 	}
 
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion(), optionsJSON)
+	customImageID := strings.TrimSpace(req.Msg.GetCustomImageId())
+	if customImageID != "" {
+		if err := s.validateCustomImage(ctx, runtimeID, customImageID); err != nil {
+			return nil, err
+		}
+		// Inject custom image data into options so runtimes can resolve images
+		optionsJSON, err = s.injectCustomImageOptions(ctx, customImageID, optionsJSON)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion(), optionsJSON, customImageID)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
@@ -500,6 +512,78 @@ func parseMachineOptions(optionsJSON string) map[string]string {
 		return nil
 	}
 	return opts
+}
+
+func (s *machineConnectService) injectCustomImageOptions(ctx context.Context, customImageID, optionsJSON string) (string, error) {
+	img, err := s.dbStore.GetCustomImage(ctx, customImageID)
+	if err != nil {
+		log.Printf("get custom image for options injection failed: %v", err)
+		return "", connect.NewError(connect.CodeInternal, errors.New("failed to resolve custom image"))
+	}
+
+	var imgData map[string]string
+	if err := json.Unmarshal([]byte(img.DataJSON), &imgData); err != nil {
+		return "", connect.NewError(connect.CodeInternal, errors.New("failed to parse custom image data"))
+	}
+
+	opts := make(map[string]string)
+	if optionsJSON != "" && optionsJSON != "{}" {
+		_ = json.Unmarshal([]byte(optionsJSON), &opts)
+	}
+
+	// Inject custom image data with prefix to avoid conflicts
+	for k, v := range imgData {
+		opts["custom_image_"+k] = v
+	}
+
+	data, err := json.Marshal(opts)
+	if err != nil {
+		return "", connect.NewError(connect.CodeInternal, errors.New("failed to encode options"))
+	}
+	return string(data), nil
+}
+
+func (s *machineConnectService) validateCustomImage(ctx context.Context, runtimeID, customImageID string) error {
+	if s.dbStore == nil {
+		return connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
+	}
+
+	img, err := s.dbStore.GetCustomImage(ctx, customImageID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image not found"))
+		}
+		log.Printf("get custom image failed: %v", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve custom image"))
+	}
+
+	// Verify image is associated with the specified runtime
+	runtimeIDs, err := s.dbStore.ListRuntimeIDsByCustomImageID(ctx, customImageID)
+	if err != nil {
+		log.Printf("list runtime IDs for image failed: %v", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to verify image association"))
+	}
+	found := false
+	for _, rid := range runtimeIDs {
+		if rid == runtimeID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image is not associated with the specified runtime"))
+	}
+
+	// Verify runtime type matches
+	runtime, err := s.store.GetRuntimeByID(ctx, runtimeID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+	}
+	if strings.ToLower(runtime.Type) != strings.ToLower(img.RuntimeType) {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image runtime type does not match runtime"))
+	}
+
+	return nil
 }
 
 func (s *machineConnectService) validateMachineType(ctx context.Context, runtimeID, machineType string) error {

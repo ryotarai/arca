@@ -350,8 +350,8 @@ export async function listMachines(options: PollingOptions = {}): Promise<Machin
   return response.machines
 }
 
-export async function createMachine(name: string, runtimeID: string, options?: Record<string, string>): Promise<Machine> {
-  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID, options: options ?? {} }))
+export async function createMachine(name: string, runtimeID: string, options?: Record<string, string>, customImageId?: string): Promise<Machine> {
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, runtimeId: runtimeID, options: options ?? {}, customImageId: customImageId ?? '' }))
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -1137,6 +1137,83 @@ export async function updateUserLLMModel(params: {
 
 export async function deleteUserLLMModel(id: string): Promise<void> {
   await userClient.deleteUserLLMModel(create(DeleteUserLLMModelRequestSchema, { id }))
+}
+
+// Custom Image API
+import {
+  CreateCustomImageRequestSchema,
+  DeleteCustomImageRequestSchema,
+  ImageService,
+  ListAvailableImagesRequestSchema,
+  ListCustomImagesRequestSchema,
+  UpdateCustomImageRequestSchema,
+} from '@/gen/arca/v1/image_pb'
+import type { CustomImage } from '@/gen/arca/v1/image_pb'
+
+const imageClient = createClient(ImageService, connectTransport)
+
+export type { CustomImage }
+
+export async function listCustomImages(): Promise<CustomImage[]> {
+  const response = await imageClient.listCustomImages(create(ListCustomImagesRequestSchema))
+  return response.images
+}
+
+export async function createCustomImage(params: {
+  name: string
+  runtimeType: string
+  data: Record<string, string>
+  description: string
+  runtimeIds: string[]
+}): Promise<CustomImage> {
+  const response = await imageClient.createCustomImage(
+    create(CreateCustomImageRequestSchema, {
+      name: params.name,
+      runtimeType: params.runtimeType,
+      data: params.data,
+      description: params.description,
+      runtimeIds: params.runtimeIds,
+    }),
+  )
+  if (response.image == null) {
+    throw new Error('request failed')
+  }
+  return response.image
+}
+
+export async function updateCustomImage(params: {
+  id: string
+  name: string
+  runtimeType: string
+  data: Record<string, string>
+  description: string
+  runtimeIds: string[]
+}): Promise<CustomImage> {
+  const response = await imageClient.updateCustomImage(
+    create(UpdateCustomImageRequestSchema, {
+      id: params.id,
+      name: params.name,
+      runtimeType: params.runtimeType,
+      data: params.data,
+      description: params.description,
+      runtimeIds: params.runtimeIds,
+    }),
+  )
+  if (response.image == null) {
+    throw new Error('request failed')
+  }
+  return response.image
+}
+
+export async function deleteCustomImage(id: string): Promise<void> {
+  await imageClient.deleteCustomImage(create(DeleteCustomImageRequestSchema, { id }))
+}
+
+export async function listAvailableImages(runtimeId: string): Promise<CustomImage[]> {
+  const response = await imageClient.listAvailableImages(
+    create(ListAvailableImagesRequestSchema, { runtimeId }),
+  )
+  return response.images
 }
 
 // Admin / Impersonation API

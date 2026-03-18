@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMachine, listAvailableRuntimes, listRuntimes } from '@/lib/api'
+import { createMachine, listAvailableImages, listAvailableRuntimes, listRuntimes } from '@/lib/api'
+import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
 
@@ -20,6 +21,8 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
   const [runtimeDetails, setRuntimeDetails] = useState<RuntimeCatalogItem[]>([])
   const [machineType, setMachineType] = useState('')
+  const [customImageId, setCustomImageId] = useState('')
+  const [availableImages, setAvailableImages] = useState<CustomImage[]>([])
   const [loadingRuntimes, setLoadingRuntimes] = useState(true)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -65,6 +68,31 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     }
   }, [user])
 
+  // Fetch available images when runtime changes
+  useEffect(() => {
+    if (selectedRuntimeID === '') {
+      setAvailableImages([])
+      setCustomImageId('')
+      return
+    }
+    let cancelled = false
+    const fetchImages = async () => {
+      try {
+        const imgs = await listAvailableImages(selectedRuntimeID)
+        if (!cancelled) {
+          setAvailableImages(imgs)
+          setCustomImageId('')
+        }
+      } catch {
+        if (!cancelled) {
+          setAvailableImages([])
+        }
+      }
+    }
+    void fetchImages()
+    return () => { cancelled = true }
+  }, [selectedRuntimeID])
+
   if (user == null) {
     return <Navigate to="/login" replace />
   }
@@ -88,7 +116,12 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       if (machineType.trim() !== '') {
         options.machine_type = machineType.trim()
       }
-      const created = await createMachine(trimmedName, selectedRuntimeID, Object.keys(options).length > 0 ? options : undefined)
+      const created = await createMachine(
+        trimmedName,
+        selectedRuntimeID,
+        Object.keys(options).length > 0 ? options : undefined,
+        customImageId || undefined,
+      )
       await navigate(`/machines/${created.id}`)
     } catch (e) {
       setError(messageFromError(e))
@@ -195,6 +228,28 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                   </div>
                 )
               })()}
+
+              {availableImages.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="create-machine-image">Image</Label>
+                  <select
+                    id="create-machine-image"
+                    value={customImageId}
+                    onChange={(event) => setCustomImageId(event.target.value)}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                  >
+                    <option value="">Default</option>
+                    {availableImages.map((img) => (
+                      <option key={img.id} value={img.id}>
+                        {img.name}{img.description ? ` - ${img.description}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Select a custom image or use the runtime default.
+                  </p>
+                </div>
+              )}
 
               {runtimes.length === 0 && !loadingRuntimes && (
                 <p className="text-sm text-amber-300">Create at least one runtime in the runtime catalog before creating machines.</p>

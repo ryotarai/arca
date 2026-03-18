@@ -33,6 +33,18 @@ func machineTypeFromOptions(machine db.Machine, defaultType string) string {
 	return defaultType
 }
 
+func parseMachineOptionsMap(machine db.Machine) map[string]string {
+	optionsJSON := strings.TrimSpace(machine.OptionsJSON)
+	if optionsJSON == "" || optionsJSON == "{}" {
+		return nil
+	}
+	var opts map[string]string
+	if err := json.Unmarshal([]byte(optionsJSON), &opts); err != nil {
+		return nil
+	}
+	return opts
+}
+
 const (
 	defaultGceMachineType        = "e2-standard-2"
 	defaultGceDiskSizeGB   int64 = 40
@@ -249,7 +261,8 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	if !found {
 		opts.StartupScript = r.startupScript
 		cloudInit := cloudInitUserData(machine, opts)
-		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit, effectiveMachineType))
+		imageProject, imageFamily := r.resolveImage(machine)
+		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit, effectiveMachineType, imageProject, imageFamily))
 		if err != nil {
 			return "", fmt.Errorf("create gce instance %q: %w", instanceName, err)
 		}
@@ -491,7 +504,20 @@ func (r *GceRuntime) setMachineTypeIfNeeded(ctx context.Context, client gceCompu
 	return r.waitOperation(ctx, client, op, "setMachineType")
 }
 
-func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType string) *gceInsertInstanceRequest {
+func (r *GceRuntime) resolveImage(machine db.Machine) (string, string) {
+	opts := parseMachineOptionsMap(machine)
+	if opts != nil {
+		if proj := strings.TrimSpace(opts["custom_image_image_project"]); proj != "" {
+			fam := strings.TrimSpace(opts["custom_image_image_family"])
+			if fam != "" {
+				return proj, fam
+			}
+		}
+	}
+	return r.imageProject, r.imageFamily
+}
+
+func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType, imageProject, imageFamily string) *gceInsertInstanceRequest {
 	req := &gceInsertInstanceRequest{
 		Name:        instanceName,
 		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", r.zone, machineType),
@@ -513,7 +539,7 @@ func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType string) *
 				SourceImage string `json:"sourceImage"`
 				DiskSizeGb  int64  `json:"diskSizeGb"`
 			}{
-				SourceImage: fmt.Sprintf("projects/%s/global/images/family/%s", r.imageProject, r.imageFamily),
+				SourceImage: fmt.Sprintf("projects/%s/global/images/family/%s", imageProject, imageFamily),
 				DiskSizeGb:  r.diskSizeGB,
 			},
 		},

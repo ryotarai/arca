@@ -58,14 +58,25 @@ type AuthTicket struct {
 	CreatedAt  int64
 }
 
+type CustomImage struct {
+	ID          string
+	Name        string
+	RuntimeType string
+	DataJson    string
+	Description string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type Machine struct {
-	ID           string
-	Name         string
-	RuntimeID    string
-	SetupVersion string
-	Endpoint     string
-	OptionsJson  string
-	CreatedAt    time.Time
+	ID            string
+	Name          string
+	RuntimeID     string
+	SetupVersion  string
+	Endpoint      string
+	OptionsJson   string
+	CustomImageID string
+	CreatedAt     time.Time
 }
 
 type MachineAccessRequest struct {
@@ -168,6 +179,11 @@ type Runtime struct {
 	ConfigJson string
 	CreatedAt  int64
 	UpdatedAt  int64
+}
+
+type RuntimeCustomImage struct {
+	RuntimeID     string
+	CustomImageID string
 }
 
 type Session struct {

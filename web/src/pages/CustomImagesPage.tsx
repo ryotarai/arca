@@ -1,0 +1,312 @@
+import { useEffect, useState } from 'react'
+import { Navigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  createCustomImage,
+  deleteCustomImage,
+  listCustomImages,
+  listRuntimes,
+  updateCustomImage,
+} from '@/lib/api'
+import type { CustomImage } from '@/lib/api'
+import { messageFromError } from '@/lib/errors'
+import type { RuntimeCatalogItem, User } from '@/lib/types'
+
+type CustomImagesPageProps = {
+  user: User | null
+  onLogout: () => Promise<void>
+}
+
+type ImageFormData = {
+  name: string
+  runtimeType: string
+  description: string
+  data: Record<string, string>
+  runtimeIds: string[]
+}
+
+const emptyForm: ImageFormData = {
+  name: '',
+  runtimeType: 'gce',
+  description: '',
+  data: {},
+  runtimeIds: [],
+}
+
+export function CustomImagesPage({ user }: CustomImagesPageProps) {
+  const [images, setImages] = useState<CustomImage[]>([])
+  const [runtimes, setRuntimes] = useState<RuntimeCatalogItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState<ImageFormData>(emptyForm)
+  const [saving, setSaving] = useState(false)
+
+  const refresh = async () => {
+    try {
+      const [imgs, rts] = await Promise.all([listCustomImages(), listRuntimes()])
+      setImages(imgs)
+      setRuntimes(rts)
+    } catch (e) {
+      setError(messageFromError(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      void refresh()
+    }
+  }, [user])
+
+  if (user == null) return <Navigate to="/login" replace />
+  if (user.role !== 'admin') return <Navigate to="/" replace />
+
+  const filteredRuntimes = runtimes.filter((r) => r.type === form.runtimeType)
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      if (editingId) {
+        await updateCustomImage({
+          id: editingId,
+          name: form.name,
+          runtimeType: form.runtimeType,
+          data: form.data,
+          description: form.description,
+          runtimeIds: form.runtimeIds,
+        })
+      } else {
+        await createCustomImage({
+          name: form.name,
+          runtimeType: form.runtimeType,
+          data: form.data,
+          description: form.description,
+          runtimeIds: form.runtimeIds,
+        })
+      }
+      setShowForm(false)
+      setEditingId(null)
+      setForm(emptyForm)
+      await refresh()
+    } catch (e) {
+      setError(messageFromError(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this custom image?')) return
+    setError('')
+    try {
+      await deleteCustomImage(id)
+      await refresh()
+    } catch (e) {
+      setError(messageFromError(e))
+    }
+  }
+
+  const handleEdit = (img: CustomImage) => {
+    setEditingId(img.id)
+    setForm({
+      name: img.name,
+      runtimeType: img.runtimeType,
+      description: img.description,
+      data: { ...img.data },
+      runtimeIds: [...img.associatedRuntimeIds],
+    })
+    setShowForm(true)
+  }
+
+  const handleCreate = () => {
+    setEditingId(null)
+    setForm(emptyForm)
+    setShowForm(true)
+  }
+
+  const setDataField = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, data: { ...prev.data, [key]: value } }))
+  }
+
+  const toggleRuntime = (runtimeId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      runtimeIds: prev.runtimeIds.includes(runtimeId)
+        ? prev.runtimeIds.filter((id) => id !== runtimeId)
+        : [...prev.runtimeIds, runtimeId],
+    }))
+  }
+
+  return (
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-5xl space-y-6">
+        <header className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-6">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Admin</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Custom Images</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage custom machine images for runtimes.</p>
+          </div>
+          <Button onClick={handleCreate}>New image</Button>
+        </header>
+
+        {error && (
+          <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
+            {error}
+          </p>
+        )}
+
+        {showForm && (
+          <Card className="py-0 shadow-sm">
+            <CardHeader className="p-6 pb-3">
+              <CardTitle className="text-xl">{editingId ? 'Edit image' : 'New image'}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6 pt-3">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="my-custom-image" />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Runtime type</Label>
+                <select
+                  value={form.runtimeType}
+                  onChange={(e) => setForm((p) => ({ ...p, runtimeType: e.target.value, data: {}, runtimeIds: [] }))}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                >
+                  <option value="gce">GCE</option>
+                  <option value="lxd">LXD</option>
+                  <option value="libvirt">Libvirt</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+                  rows={2}
+                  placeholder="Optional description"
+                />
+              </div>
+
+              {form.runtimeType === 'gce' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Image project</Label>
+                    <Input value={form.data.image_project ?? ''} onChange={(e) => setDataField('image_project', e.target.value)} placeholder="my-gcp-project" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Image family</Label>
+                    <Input value={form.data.image_family ?? ''} onChange={(e) => setDataField('image_family', e.target.value)} placeholder="my-custom-family" />
+                  </div>
+                </>
+              )}
+
+              {form.runtimeType === 'lxd' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Image alias</Label>
+                    <Input value={form.data.image_alias ?? ''} onChange={(e) => setDataField('image_alias', e.target.value)} placeholder="my-custom-image" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Image fingerprint (alternative)</Label>
+                    <Input value={form.data.image_fingerprint ?? ''} onChange={(e) => setDataField('image_fingerprint', e.target.value)} placeholder="abc123..." />
+                  </div>
+                </>
+              )}
+
+              {form.runtimeType === 'libvirt' && (
+                <div className="space-y-2">
+                  <Label>Volume name</Label>
+                  <Input value={form.data.volume_name ?? ''} onChange={(e) => setDataField('volume_name', e.target.value)} placeholder="/var/lib/libvirt/images/my-image.qcow2" />
+                </div>
+              )}
+
+              {filteredRuntimes.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Associated runtimes</Label>
+                  <div className="space-y-1">
+                    {filteredRuntimes.map((rt) => (
+                      <label key={rt.id} className="flex items-center gap-2 text-sm text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={form.runtimeIds.includes(rt.id)}
+                          onChange={() => toggleRuntime(rt.id)}
+                          className="rounded border-input"
+                        />
+                        {rt.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
+                </Button>
+                <Button variant="secondary" onClick={() => { setShowForm(false); setEditingId(null) }}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : images.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No custom images yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Runtime type</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Description</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Runtimes</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {images.map((img) => (
+                  <tr key={img.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-medium text-foreground">{img.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground uppercase">{img.runtimeType}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{img.description || '-'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {img.associatedRuntimeIds.length > 0
+                        ? img.associatedRuntimeIds.map((rid) => runtimes.find((r) => r.id === rid)?.name ?? rid).join(', ')
+                        : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{img.createdAt ? new Date(img.createdAt).toLocaleDateString() : '-'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => handleEdit(img)}>
+                          Edit
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(img.id)}>
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </main>
+  )
+}
