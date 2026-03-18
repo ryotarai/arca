@@ -32,6 +32,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix web ci
 
+      - name: Build frontend
+        run: make build-frontend
+
+      - name: Generate sqlc
+        run: make sqlc
+
       - name: Install Playwright browsers
         run: npx --prefix web playwright install --with-deps chromium
 
