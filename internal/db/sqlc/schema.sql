@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS machines (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   runtime_id TEXT NOT NULL DEFAULT 'libvirt',
+  runtime_type TEXT NOT NULL DEFAULT '',
+  runtime_config_json TEXT NOT NULL DEFAULT '{}',
   setup_version TEXT NOT NULL DEFAULT '',
   endpoint TEXT NOT NULL DEFAULT '',
   options_json TEXT NOT NULL DEFAULT '{}',

@@ -97,6 +97,56 @@ func TestRoutingRuntime_MissingCatalogRuntimeFails(t *testing.T) {
 	}
 }
 
+func TestRoutingRuntime_UsesSnapshotConfigWhenAvailable(t *testing.T) {
+	t.Parallel()
+
+	store := &routingRuntimeStoreStub{
+		entries: map[string]db.RuntimeCatalog{
+			"rt-lxd": {ID: "rt-lxd", Type: db.RuntimeTypeLXD, ConfigJSON: `{"lxd":{"endpoint":"http://old-host:8443","startupScript":"echo old"}}`},
+		},
+	}
+
+	factoryCalls := make(map[string]string) // runtimeID -> configJSON used
+	runtime := NewRoutingRuntimeWithCatalog(store, map[string]Runtime{})
+	runtime.factory = map[string]RuntimeFactory{
+		db.RuntimeTypeLXD: func(catalog db.RuntimeCatalog) (Runtime, error) {
+			factoryCalls[catalog.ID] = catalog.ConfigJSON
+			return &fakeRuntime{name: "lxd:" + catalog.ID}, nil
+		},
+	}
+
+	ctx := context.Background()
+
+	// Machine with snapshotted config should use it instead of catalog
+	snapshotConfig := `{"lxd":{"endpoint":"http://snapshot-host:8443","startupScript":"echo snapshot"}}`
+	_, err := runtime.EnsureRunning(ctx, db.Machine{
+		ID:               "machine-snap",
+		RuntimeID:        "rt-lxd",
+		RuntimeType:      db.RuntimeTypeLXD,
+		RuntimeConfigJSON: snapshotConfig,
+	}, RuntimeStartOptions{})
+	if err != nil {
+		t.Fatalf("ensure running with snapshot: %v", err)
+	}
+	if factoryCalls["rt-lxd"] != snapshotConfig {
+		t.Fatalf("expected snapshot config to be used, got %q", factoryCalls["rt-lxd"])
+	}
+
+	// Machine without snapshot should fall back to catalog
+	delete(factoryCalls, "rt-lxd")
+	_, err = runtime.EnsureRunning(ctx, db.Machine{
+		ID:        "machine-no-snap",
+		RuntimeID: "rt-lxd",
+	}, RuntimeStartOptions{})
+	if err != nil {
+		t.Fatalf("ensure running without snapshot: %v", err)
+	}
+	catalogConfig := `{"lxd":{"endpoint":"http://old-host:8443","startupScript":"echo old"}}`
+	if factoryCalls["rt-lxd"] != catalogConfig {
+		t.Fatalf("expected catalog config to be used, got %q", factoryCalls["rt-lxd"])
+	}
+}
+
 func TestRuntimeFromCatalog_StartupScriptIsPropagated(t *testing.T) {
 	t.Parallel()
 

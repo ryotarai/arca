@@ -44,7 +44,7 @@ func NewRoutingRuntimeWithCatalog(store RuntimeCatalogStore, runtimes map[string
 }
 
 func (r *RoutingRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts RuntimeStartOptions) (string, error) {
-	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
+	runtime, err := r.runtimeForMachine(ctx, machine)
 	if err != nil {
 		return "", err
 	}
@@ -52,7 +52,7 @@ func (r *RoutingRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 }
 
 func (r *RoutingRuntime) EnsureStopped(ctx context.Context, machine db.Machine) error {
-	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
+	runtime, err := r.runtimeForMachine(ctx, machine)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (r *RoutingRuntime) EnsureStopped(ctx context.Context, machine db.Machine) 
 }
 
 func (r *RoutingRuntime) EnsureDeleted(ctx context.Context, machine db.Machine) error {
-	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
+	runtime, err := r.runtimeForMachine(ctx, machine)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (r *RoutingRuntime) EnsureDeleted(ctx context.Context, machine db.Machine) 
 }
 
 func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (bool, string, error) {
-	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
+	runtime, err := r.runtimeForMachine(ctx, machine)
 	if err != nil {
 		return false, "", err
 	}
@@ -76,24 +76,51 @@ func (r *RoutingRuntime) IsRunning(ctx context.Context, machine db.Machine) (boo
 }
 
 func (r *RoutingRuntime) GetMachineInfo(ctx context.Context, machine db.Machine) (*RuntimeMachineInfo, error) {
-	runtime, err := r.runtimeFor(ctx, machine.RuntimeID)
+	runtime, err := r.runtimeForMachine(ctx, machine)
 	if err != nil {
 		return nil, err
 	}
 	return runtime.GetMachineInfo(ctx, machine)
 }
 
-func (r *RoutingRuntime) runtimeFor(ctx context.Context, runtimeID string) (Runtime, error) {
-	runtimeID = strings.TrimSpace(runtimeID)
+// runtimeForMachine resolves a Runtime using the machine's snapshotted
+// runtime type and config. Falls back to runtime catalog lookup when
+// the snapshot is empty (pre-migration machines).
+func (r *RoutingRuntime) runtimeForMachine(ctx context.Context, machine db.Machine) (Runtime, error) {
+	runtimeID := strings.TrimSpace(machine.RuntimeID)
 	if runtimeID == "" {
 		return nil, fmt.Errorf("runtime is not specified")
 	}
 
+	// Check static runtimes first (used in tests)
 	runtime, ok := r.runtimes[runtimeID]
 	if ok && runtime != nil {
 		return runtime, nil
 	}
 
+	// Prefer machine's snapshotted runtime type and config
+	runtimeType := strings.TrimSpace(machine.RuntimeType)
+	configJSON := strings.TrimSpace(machine.RuntimeConfigJSON)
+	if runtimeType != "" && configJSON != "" && configJSON != "{}" {
+		factory := r.factory[runtimeType]
+		if factory == nil {
+			return nil, fmt.Errorf("runtime type %q is not supported", runtimeType)
+		}
+		rt, err := factory(db.RuntimeCatalog{
+			ID:         runtimeID,
+			Type:       runtimeType,
+			ConfigJSON: configJSON,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("resolve runtime %q from snapshot: %w", runtimeID, err)
+		}
+		if rt == nil {
+			return nil, fmt.Errorf("runtime %q is not configured", runtimeID)
+		}
+		return rt, nil
+	}
+
+	// Fallback: look up from runtime catalog (pre-migration machines)
 	if r.store == nil {
 		return nil, fmt.Errorf("runtime %q is not configured", runtimeID)
 	}
@@ -111,14 +138,14 @@ func (r *RoutingRuntime) runtimeFor(ctx context.Context, runtimeID string) (Runt
 		return nil, fmt.Errorf("runtime type %q is not supported", catalogRuntime.Type)
 	}
 
-	runtime, err = factory(catalogRuntime)
+	rt, err := factory(catalogRuntime)
 	if err != nil {
 		return nil, fmt.Errorf("resolve runtime %q: %w", runtimeID, err)
 	}
-	if runtime == nil {
+	if rt == nil {
 		return nil, fmt.Errorf("runtime %q is not configured", runtimeID)
 	}
-	return runtime, nil
+	return rt, nil
 }
 
 func runtimeFromLibvirtCatalog(catalogRuntime db.RuntimeCatalog) (Runtime, error) {

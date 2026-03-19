@@ -262,9 +262,6 @@ func (w *Worker) reconcileMachines(ctx context.Context, nowUnix int64, machines 
 }
 
 func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines []db.Machine) {
-	// Cache runtime configs per runtime_id to avoid N+1 queries
-	runtimeConfigs := make(map[string]string) // runtime_id -> config_json
-
 	for _, machine := range machines {
 		if machine.Status != db.MachineStatusRunning {
 			slog.Debug("auto-stop skip: not running", "machine_id", machine.ID, "status", machine.Status)
@@ -275,18 +272,7 @@ func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines [
 			continue
 		}
 
-		configJSON, ok := runtimeConfigs[machine.RuntimeID]
-		if !ok {
-			rt, rtErr := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
-			if rtErr != nil {
-				slog.Warn("auto-stop runtime lookup failed", "machine_id", machine.ID, "runtime_id", machine.RuntimeID, "error", rtErr)
-				continue
-			}
-			configJSON = rt.ConfigJSON
-			runtimeConfigs[machine.RuntimeID] = configJSON
-		}
-
-		timeout := db.GetRuntimeAutoStopTimeoutSeconds(configJSON)
+		timeout := db.GetRuntimeAutoStopTimeoutSeconds(machine.RuntimeConfigJSON)
 		if timeout <= 0 {
 			slog.Debug("auto-stop skip: no timeout configured", "machine_id", machine.ID, "timeout", timeout)
 			continue
@@ -402,11 +388,9 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		return fmt.Errorf("load setup state: %w", err)
 	}
 	controlPlaneURL := controlPlaneURLFromSetup(setup)
-	// Override control plane URL if the runtime has a server_api_url configured
-	if runtimeCatalog, rtErr := w.store.GetRuntimeByID(ctx, machine.RuntimeID); rtErr == nil {
-		if override := db.GetRuntimeServerAPIURL(runtimeCatalog.ConfigJSON); override != "" {
-			controlPlaneURL = override
-		}
+	// Override control plane URL from machine's snapshotted runtime config
+	if override := db.GetRuntimeServerAPIURL(machine.RuntimeConfigJSON); override != "" {
+		controlPlaneURL = override
 	}
 	if controlPlaneURL == "" {
 		return fmt.Errorf("server domain is not configured")
@@ -572,11 +556,7 @@ func controlPlaneURLFromSetup(setup db.SetupState) string {
 }
 
 func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machine db.Machine) error {
-	runtimeCatalog, err := w.store.GetRuntimeByID(ctx, machine.RuntimeID)
-	if err != nil {
-		return fmt.Errorf("load runtime config: %w", err)
-	}
-	exposureCfg := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON)
+	exposureCfg := db.GetRuntimeExposureConfig(machine.RuntimeConfigJSON)
 
 	baseDomain := strings.TrimSpace(exposureCfg.BaseDomain)
 	domainPrefix := strings.TrimSpace(exposureCfg.DomainPrefix)

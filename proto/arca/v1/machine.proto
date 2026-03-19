@@ -29,6 +29,8 @@ message Machine {
   string user_role = 11;
   string arcad_version = 12;
   map<string, string> options = 13;
+  string runtime_type = 14;
+  string runtime_config_json = 15;
 }
 
 message ListMachinesRequest {}
@@ -69,7 +71,7 @@ message UpdateMachineResponse {
 
 message StartMachineRequest {
   string machine_id = 1;
-  string runtime_id = 2;
+  reserved 2; // was runtime_id
 }
 
 message StartMachineResponse {

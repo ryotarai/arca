@@ -47,11 +47,7 @@ func (h *MachineProxyHandler) IsMachineProxyRequest(r *http.Request) bool {
 	if err != nil {
 		return false
 	}
-	runtimeCatalog, err := h.store.GetRuntimeByID(r.Context(), m.RuntimeID)
-	if err != nil {
-		return false
-	}
-	return db.GetRuntimeExposureMethod(runtimeCatalog.ConfigJSON) == db.MachineExposureMethodProxyViaServer
+	return db.GetRuntimeExposureMethod(m.RuntimeConfigJSON) == db.MachineExposureMethodProxyViaServer
 }
 
 // TryServeHTTP attempts to handle the request as a machine proxy request.
@@ -83,14 +79,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 		return true
 	}
 
-	runtimeCatalog, err := h.store.GetRuntimeByID(r.Context(), m.RuntimeID)
-	if err != nil {
-		log.Printf("machine proxy: lookup runtime %q failed: %v", m.RuntimeID, err)
-		http.Error(w, "runtime not found", http.StatusBadGateway)
-		return true
-	}
-
-	exposureMethod := db.GetRuntimeExposureMethod(runtimeCatalog.ConfigJSON)
+	exposureMethod := db.GetRuntimeExposureMethod(m.RuntimeConfigJSON)
 	if exposureMethod != db.MachineExposureMethodProxyViaServer {
 		return false
 	}
@@ -104,7 +93,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 			log.Printf("machine proxy: ip cache lookup for %q failed: %v", m.ID, infoErr)
 		}
 	}
-	connectivity := db.GetRuntimeExposureConfig(runtimeCatalog.ConfigJSON).Connectivity
+	connectivity := db.GetRuntimeExposureConfig(m.RuntimeConfigJSON).Connectivity
 	upstreamURL := resolveUpstreamURL(machineInfo, m, exposure, connectivity)
 	if upstreamURL == "" {
 		http.Error(w, "machine upstream unavailable", http.StatusBadGateway)

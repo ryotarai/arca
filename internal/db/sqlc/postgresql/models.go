@@ -69,14 +69,16 @@ type CustomImage struct {
 }
 
 type Machine struct {
-	ID            string
-	Name          string
-	RuntimeID     string
-	SetupVersion  string
-	Endpoint      string
-	OptionsJson   string
-	CustomImageID string
-	CreatedAt     time.Time
+	ID                string
+	Name              string
+	RuntimeID         string
+	RuntimeType       string
+	RuntimeConfigJson string
+	SetupVersion      string
+	Endpoint          string
+	OptionsJson       string
+	CustomImageID     string
+	CreatedAt         time.Time
 }
 
 type MachineAccessRequest struct {

@@ -14,7 +14,7 @@ const (
 	gceCatalogConfigJSON     = `{"gce":{"project":"arca-project","zone":"us-central1-a","network":"main","subnetwork":"main","serviceAccountEmail":"svc@example.iam.gserviceaccount.com"}}`
 )
 
-func TestMachineRuntimeSelection_CreateRequiresExplicitRuntimeAndAllowsStartOverride(t *testing.T) {
+func TestMachineRuntimeSelection_CreateRequiresExplicitRuntime(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
@@ -26,10 +26,6 @@ func TestMachineRuntimeSelection_CreateRequiresExplicitRuntimeAndAllowsStartOver
 	}
 	ownerToken := loginToken(t, authenticator, "runtime-owner@example.com", "owner-password")
 
-	defaultRuntime, err := store.CreateRuntime(ctx, "default-libvirt", db.RuntimeTypeLibvirt, libvirtCatalogConfigJSON)
-	if err != nil {
-		t.Fatalf("create default runtime: %v", err)
-	}
 	overrideRuntime, err := store.CreateRuntime(ctx, "edge-gce", db.RuntimeTypeGCE, gceCatalogConfigJSON)
 	if err != nil {
 		t.Fatalf("create override runtime: %v", err)
@@ -52,17 +48,6 @@ func TestMachineRuntimeSelection_CreateRequiresExplicitRuntimeAndAllowsStartOver
 	}
 	if got := createdWithExplicit.Msg.GetMachine().GetRuntimeId(); got != overrideRuntime.ID {
 		t.Fatalf("explicit runtime id = %q, want %q", got, overrideRuntime.ID)
-	}
-
-	startResp, err := service.StartMachine(ctx, authRequest(arcav1.StartMachineRequest{
-		MachineId: createdWithExplicit.Msg.GetMachine().GetId(),
-		RuntimeId: defaultRuntime.ID,
-	}, ownerToken))
-	if err != nil {
-		t.Fatalf("start machine with explicit runtime override: %v", err)
-	}
-	if got := startResp.Msg.GetMachine().GetRuntimeId(); got != defaultRuntime.ID {
-		t.Fatalf("runtime id after start override = %q, want %q", got, defaultRuntime.ID)
 	}
 }
 
