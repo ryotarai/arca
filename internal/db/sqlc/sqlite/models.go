@@ -59,26 +59,26 @@ type AuthTicket struct {
 }
 
 type CustomImage struct {
-	ID          string
-	Name        string
-	RuntimeType string
-	DataJson    string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID           string
+	Name         string
+	TemplateType string
+	DataJson     string
+	Description  string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type Machine struct {
-	ID                string
-	Name              string
-	RuntimeID         string
-	RuntimeType       string
-	RuntimeConfigJson string
-	SetupVersion      string
-	Endpoint          string
-	OptionsJson       string
-	CustomImageID     string
-	CreatedAt         time.Time
+	ID                 string
+	Name               string
+	TemplateID         string
+	TemplateType       string
+	TemplateConfigJson string
+	SetupVersion       string
+	Endpoint           string
+	OptionsJson        string
+	CustomImageID      string
+	CreatedAt          time.Time
 }
 
 type MachineAccessRequest struct {
@@ -155,16 +155,7 @@ type MachineState struct {
 	ArcadVersion    string
 }
 
-type MachineToken struct {
-	ID        string
-	MachineID string
-	TokenHash string
-	Token     string
-	CreatedAt int64
-	RevokedAt sql.NullInt64
-}
-
-type Runtime struct {
+type MachineTemplate struct {
 	ID         string
 	Name       string
 	Type       string
@@ -173,9 +164,13 @@ type Runtime struct {
 	UpdatedAt  int64
 }
 
-type RuntimeCustomImage struct {
-	RuntimeID     string
-	CustomImageID string
+type MachineToken struct {
+	ID        string
+	MachineID string
+	TokenHash string
+	Token     string
+	CreatedAt int64
+	RevokedAt sql.NullInt64
 }
 
 type ServerLlmModel struct {
@@ -207,6 +202,11 @@ type SetupState struct {
 	BaseDomain   string
 	DomainPrefix string
 	UpdatedAt    int64
+}
+
+type TemplateCustomImage struct {
+	TemplateID    string
+	CustomImageID string
 }
 
 type User struct {

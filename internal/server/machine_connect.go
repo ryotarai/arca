@@ -126,23 +126,23 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	runtimeID, err := s.resolveCreateRuntimeID(ctx, req.Msg.GetRuntimeId())
+	templateID, err := s.resolveCreateTemplateID(ctx, req.Msg.GetTemplateId())
 	if err != nil {
 		return nil, err
 	}
 
-	// Snapshot runtime config at creation time
-	runtime, err := s.store.GetRuntimeByID(ctx, runtimeID)
+	// Snapshot template config at creation time
+	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
 	if err != nil {
-		log.Printf("get runtime for snapshot failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+		log.Printf("get template for snapshot failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 	}
 
 	options := req.Msg.GetOptions()
 	optionsJSON := "{}"
 	if len(options) > 0 {
 		if machineType := strings.TrimSpace(options["machine_type"]); machineType != "" {
-			if err := s.validateMachineType(ctx, runtimeID, machineType); err != nil {
+			if err := s.validateMachineType(ctx, templateID, machineType); err != nil {
 				return nil, err
 			}
 		}
@@ -155,17 +155,17 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 
 	customImageID := strings.TrimSpace(req.Msg.GetCustomImageId())
 	if customImageID != "" {
-		if err := s.validateCustomImage(ctx, runtimeID, customImageID); err != nil {
+		if err := s.validateCustomImage(ctx, templateID, customImageID); err != nil {
 			return nil, err
 		}
-		// Inject custom image data into options so runtimes can resolve images
+		// Inject custom image data into options so templates can resolve images
 		optionsJSON, err = s.injectCustomImageOptions(ctx, customImageID, optionsJSON)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, runtimeID, currentSetupVersion(), optionsJSON, customImageID, runtime.Type, runtime.ConfigJSON)
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, templateID, currentSetupVersion(), optionsJSON, customImageID, tmpl.Type, tmpl.ConfigJSON)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
@@ -217,7 +217,7 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 
 	// Validate machine_type if provided
 	if machineType := strings.TrimSpace(options["machine_type"]); machineType != "" {
-		if err := s.validateMachineType(ctx, machine.RuntimeID, machineType); err != nil {
+		if err := s.validateMachineType(ctx, machine.TemplateID, machineType); err != nil {
 			return nil, err
 		}
 	}
@@ -301,35 +301,35 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 	return connect.NewResponse(&arcav1.StartMachineResponse{Machine: toMachineMessage(machine)}), nil
 }
 
-func (s *machineConnectService) resolveCreateRuntimeID(ctx context.Context, requestedRuntimeID string) (string, error) {
-	runtimeID := strings.TrimSpace(requestedRuntimeID)
-	if runtimeID == "" {
-		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("runtime id is required"))
+func (s *machineConnectService) resolveCreateTemplateID(ctx context.Context, requestedTemplateID string) (string, error) {
+	templateID := strings.TrimSpace(requestedTemplateID)
+	if templateID == "" {
+		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("template id is required"))
 	}
 
-	if err := s.validateRuntimeExists(ctx, runtimeID); err != nil {
+	if err := s.validateTemplateExists(ctx, templateID); err != nil {
 		return "", err
 	}
 
-	return runtimeID, nil
+	return templateID, nil
 }
 
-func (s *machineConnectService) validateRuntimeExists(ctx context.Context, runtimeID string) error {
-	runtimeID = strings.TrimSpace(runtimeID)
-	if runtimeID == "" {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime id is required"))
+func (s *machineConnectService) validateTemplateExists(ctx context.Context, templateID string) error {
+	templateID = strings.TrimSpace(templateID)
+	if templateID == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("template id is required"))
 	}
 
-	_, err := s.store.GetRuntimeByID(ctx, runtimeID)
+	_, err := s.store.GetMachineTemplateByID(ctx, templateID)
 	if err == nil {
 		return nil
 	}
 	if errors.Is(err, sql.ErrNoRows) {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime not found"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found"))
 	}
 
-	log.Printf("get runtime failed: %v", err)
-	return connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+	log.Printf("get template failed: %v", err)
+	return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 }
 
 func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Request[arcav1.StopMachineRequest]) (*connect.Response[arcav1.StopMachineResponse], error) {
@@ -494,17 +494,17 @@ func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.M
 		DesiredStatus:   machine.DesiredStatus,
 		LastError:       machine.LastError,
 		Endpoint:        machine.Endpoint,
-		RuntimeId:       machine.RuntimeID,
+		TemplateId:      machine.TemplateID,
 		UpdateRequired:  machineUpdateRequired(machine),
 		Ready:           machine.Ready,
 		ReadyReportedAt: machine.ReadyReportedAt,
 		UserRole:        machine.UserRole,
 		ArcadVersion:    machine.ArcadVersion,
 		Options:         parseMachineOptions(machine.OptionsJSON),
-		RuntimeType:     machine.RuntimeType,
+		TemplateType:    machine.TemplateType,
 	}
 	if includeConfig {
-		msg.RuntimeConfigJson = machine.RuntimeConfigJSON
+		msg.TemplateConfigJson = machine.TemplateConfigJSON
 	}
 	return msg
 }
@@ -553,7 +553,7 @@ func (s *machineConnectService) injectCustomImageOptions(ctx context.Context, cu
 	return string(data), nil
 }
 
-func (s *machineConnectService) validateCustomImage(ctx context.Context, runtimeID, customImageID string) error {
+func (s *machineConnectService) validateCustomImage(ctx context.Context, templateID, customImageID string) error {
 	if s.dbStore == nil {
 		return connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
 	}
@@ -567,62 +567,62 @@ func (s *machineConnectService) validateCustomImage(ctx context.Context, runtime
 		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve custom image"))
 	}
 
-	// Verify image is associated with the specified runtime
-	runtimeIDs, err := s.dbStore.ListRuntimeIDsByCustomImageID(ctx, customImageID)
+	// Verify image is associated with the specified template
+	templateIDs, err := s.dbStore.ListTemplateIDsByCustomImageID(ctx, customImageID)
 	if err != nil {
-		log.Printf("list runtime IDs for image failed: %v", err)
+		log.Printf("list template IDs for image failed: %v", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to verify image association"))
 	}
 	found := false
-	for _, rid := range runtimeIDs {
-		if rid == runtimeID {
+	for _, tid := range templateIDs {
+		if tid == templateID {
 			found = true
 			break
 		}
 	}
 	if !found {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image is not associated with the specified runtime"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image is not associated with the specified template"))
 	}
 
-	// Verify runtime type matches
-	runtime, err := s.store.GetRuntimeByID(ctx, runtimeID)
+	// Verify template type matches
+	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 	}
-	if strings.ToLower(runtime.Type) != strings.ToLower(img.RuntimeType) {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image runtime type does not match runtime"))
+	if strings.ToLower(tmpl.Type) != strings.ToLower(img.TemplateType) {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image type does not match template"))
 	}
 
 	return nil
 }
 
-func (s *machineConnectService) validateMachineType(ctx context.Context, runtimeID, machineType string) error {
-	runtime, err := s.store.GetRuntimeByID(ctx, runtimeID)
+func (s *machineConnectService) validateMachineType(ctx context.Context, templateID, machineType string) error {
+	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime not found"))
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found"))
 		}
-		log.Printf("get runtime failed: %v", err)
-		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve runtime"))
+		log.Printf("get template failed: %v", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 	}
 
-	config := &arcav1.RuntimeConfig{}
-	if err := protojson.Unmarshal([]byte(runtime.ConfigJSON), config); err != nil {
-		log.Printf("decode runtime config failed: %v", err)
-		return connect.NewError(connect.CodeInternal, errors.New("failed to decode runtime config"))
+	config := &arcav1.MachineTemplateConfig{}
+	if err := protojson.Unmarshal([]byte(tmpl.ConfigJSON), config); err != nil {
+		log.Printf("decode template config failed: %v", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to decode template config"))
 	}
 
 	gce := config.GetGce()
 	if gce == nil {
-		return nil // non-GCE runtime, no validation needed
+		return nil // non-GCE template, no validation needed
 	}
 
 	allowed := gce.GetAllowedMachineTypes()
 	if len(allowed) == 0 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("runtime has no allowed machine types configured"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("template has no allowed machine types configured"))
 	}
 	if !slices.Contains(allowed, machineType) {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("machine type is not allowed for this runtime"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("machine type is not allowed for this template"))
 	}
 	return nil
 }

@@ -272,7 +272,7 @@ func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines [
 			continue
 		}
 
-		timeout := db.GetRuntimeAutoStopTimeoutSeconds(machine.RuntimeConfigJSON)
+		timeout := db.GetTemplateAutoStopTimeoutSeconds(machine.TemplateConfigJSON)
 		if timeout <= 0 {
 			slog.Debug("auto-stop skip: no timeout configured", "machine_id", machine.ID, "timeout", timeout)
 			continue
@@ -389,7 +389,7 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	controlPlaneURL := controlPlaneURLFromSetup(setup)
 	// Override control plane URL from machine's snapshotted runtime config
-	if override := db.GetRuntimeServerAPIURL(machine.RuntimeConfigJSON); override != "" {
+	if override := db.GetTemplateServerAPIURL(machine.TemplateConfigJSON); override != "" {
 		controlPlaneURL = override
 	}
 	if controlPlaneURL == "" {
@@ -556,7 +556,7 @@ func controlPlaneURLFromSetup(setup db.SetupState) string {
 }
 
 func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machine db.Machine) error {
-	exposureCfg := db.GetRuntimeExposureConfig(machine.RuntimeConfigJSON)
+	exposureCfg := db.GetTemplateExposureConfig(machine.TemplateConfigJSON)
 
 	baseDomain := strings.TrimSpace(exposureCfg.BaseDomain)
 	domainPrefix := strings.TrimSpace(exposureCfg.DomainPrefix)

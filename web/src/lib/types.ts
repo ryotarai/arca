@@ -60,9 +60,9 @@ export type MachineExposureConfig = {
   connectivity: 'private_ip' | 'public_ip' | ''
 }
 
-export type RuntimeCatalogType = 'libvirt' | 'gce' | 'lxd'
+export type MachineTemplateType = 'libvirt' | 'gce' | 'lxd'
 
-export type RuntimeCatalogConfig =
+export type MachineTemplateConfig =
   | {
       type: 'libvirt'
       uri: string
@@ -87,17 +87,17 @@ export type RuntimeCatalogConfig =
       startupScript: string
     }
 
-export type RuntimeSummary = {
+export type MachineTemplateSummary = {
   id: string
   name: string
-  type: RuntimeCatalogType
+  type: MachineTemplateType
 }
 
-export type RuntimeCatalogItem = {
+export type MachineTemplateItem = {
   id: string
   name: string
-  type: RuntimeCatalogType
-  config: RuntimeCatalogConfig
+  type: MachineTemplateType
+  config: MachineTemplateConfig
   exposure: MachineExposureConfig
   serverApiUrl: string
   autoStopTimeoutSeconds: number

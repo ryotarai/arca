@@ -71,7 +71,7 @@ func main() {
 			workerConcurrency = n
 		}
 	}
-	runtime := machine.NewRoutingRuntimeWithCatalog(store, map[string]machine.Runtime{})
+	runtime := machine.NewRoutingTemplateWithCatalog(store, map[string]machine.Runtime{})
 	ipCache := machine.NewMachineIPCache(runtime, store, 5*time.Minute)
 	slackService := notification.NewSlackService(store)
 	machineWorker := machine.NewWorker(store, runtime, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency)

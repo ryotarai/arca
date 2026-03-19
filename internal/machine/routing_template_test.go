@@ -9,14 +9,14 @@ import (
 	"github.com/ryotarai/arca/internal/db"
 )
 
-type routingRuntimeStoreStub struct {
-	entries map[string]db.RuntimeCatalog
+type routingTemplateStoreStub struct {
+	entries map[string]db.MachineTemplate
 }
 
-func (s *routingRuntimeStoreStub) GetRuntimeByID(_ context.Context, runtimeID string) (db.RuntimeCatalog, error) {
-	entry, ok := s.entries[runtimeID]
+func (s *routingTemplateStoreStub) GetMachineTemplateByID(_ context.Context, templateID string) (db.MachineTemplate, error) {
+	entry, ok := s.entries[templateID]
 	if !ok {
-		return db.RuntimeCatalog{}, sql.ErrNoRows
+		return db.MachineTemplate{}, sql.ErrNoRows
 	}
 	return entry, nil
 }
@@ -45,71 +45,71 @@ func (r *fakeRuntime) GetMachineInfo(context.Context, db.Machine) (*RuntimeMachi
 	return &RuntimeMachineInfo{}, nil
 }
 
-func TestRoutingRuntime_ResolvesCatalogRuntimeIDsAcrossTypes(t *testing.T) {
+func TestRoutingTemplate_ResolvesCatalogTemplateIDsAcrossTypes(t *testing.T) {
 	t.Parallel()
 
-	store := &routingRuntimeStoreStub{
-		entries: map[string]db.RuntimeCatalog{
-			"rt-libvirt": {ID: "rt-libvirt", Type: db.RuntimeTypeLibvirt, ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt"}}`},
-			"rt-gce":     {ID: "rt-gce", Type: db.RuntimeTypeGCE, ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce"}}`},
+	store := &routingTemplateStoreStub{
+		entries: map[string]db.MachineTemplate{
+			"rt-libvirt": {ID: "rt-libvirt", Type: db.TemplateTypeLibvirt, ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt"}}`},
+			"rt-gce":     {ID: "rt-gce", Type: db.TemplateTypeGCE, ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce"}}`},
 		},
 	}
 
-	runtime := NewRoutingRuntimeWithCatalog(store, map[string]Runtime{})
-	runtime.factory = map[string]RuntimeFactory{
-		db.RuntimeTypeLibvirt: func(catalog db.RuntimeCatalog) (Runtime, error) {
+	routing := NewRoutingTemplateWithCatalog(store, map[string]Runtime{})
+	routing.factory = map[string]TemplateFactory{
+		db.TemplateTypeLibvirt: func(catalog db.MachineTemplate) (Runtime, error) {
 			return &fakeRuntime{name: "catalog-libvirt:" + catalog.ID}, nil
 		},
-		db.RuntimeTypeGCE: func(catalog db.RuntimeCatalog) (Runtime, error) {
+		db.TemplateTypeGCE: func(catalog db.MachineTemplate) (Runtime, error) {
 			return &fakeRuntime{name: "catalog-gce:" + catalog.ID}, nil
 		},
 	}
 
 	ctx := context.Background()
 
-	libvirtContainer, err := runtime.EnsureRunning(ctx, db.Machine{ID: "machine-libvirt", RuntimeID: "rt-libvirt"}, RuntimeStartOptions{})
+	libvirtContainer, err := routing.EnsureRunning(ctx, db.Machine{ID: "machine-libvirt", TemplateID: "rt-libvirt"}, RuntimeStartOptions{})
 	if err != nil {
-		t.Fatalf("ensure running libvirt catalog runtime: %v", err)
+		t.Fatalf("ensure running libvirt catalog template: %v", err)
 	}
 	if libvirtContainer != "catalog-libvirt:rt-libvirt" {
 		t.Fatalf("catalog libvirt container id = %q, want %q", libvirtContainer, "catalog-libvirt:rt-libvirt")
 	}
 
-	gceContainer, err := runtime.EnsureRunning(ctx, db.Machine{ID: "machine-gce", RuntimeID: "rt-gce"}, RuntimeStartOptions{})
+	gceContainer, err := routing.EnsureRunning(ctx, db.Machine{ID: "machine-gce", TemplateID: "rt-gce"}, RuntimeStartOptions{})
 	if err != nil {
-		t.Fatalf("ensure running gce catalog runtime: %v", err)
+		t.Fatalf("ensure running gce catalog template: %v", err)
 	}
 	if gceContainer != "catalog-gce:rt-gce" {
 		t.Fatalf("catalog gce container id = %q, want %q", gceContainer, "catalog-gce:rt-gce")
 	}
 }
 
-func TestRoutingRuntime_MissingCatalogRuntimeFails(t *testing.T) {
+func TestRoutingTemplate_MissingCatalogTemplateFails(t *testing.T) {
 	t.Parallel()
 
-	runtime := NewRoutingRuntimeWithCatalog(&routingRuntimeStoreStub{entries: map[string]db.RuntimeCatalog{}}, map[string]Runtime{})
-	_, _, err := runtime.IsRunning(context.Background(), db.Machine{ID: "machine-missing", RuntimeID: "rt-missing"})
+	routing := NewRoutingTemplateWithCatalog(&routingTemplateStoreStub{entries: map[string]db.MachineTemplate{}}, map[string]Runtime{})
+	_, _, err := routing.IsRunning(context.Background(), db.Machine{ID: "machine-missing", TemplateID: "rt-missing"})
 	if err == nil {
-		t.Fatalf("expected missing runtime lookup to fail")
+		t.Fatalf("expected missing template lookup to fail")
 	}
 	if !strings.Contains(err.Error(), "not found") {
-		t.Fatalf("error = %q, want runtime not found", err.Error())
+		t.Fatalf("error = %q, want template not found", err.Error())
 	}
 }
 
-func TestRoutingRuntime_UsesSnapshotConfigWhenAvailable(t *testing.T) {
+func TestRoutingTemplate_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 	t.Parallel()
 
-	store := &routingRuntimeStoreStub{
-		entries: map[string]db.RuntimeCatalog{
-			"rt-lxd": {ID: "rt-lxd", Type: db.RuntimeTypeLXD, ConfigJSON: `{"lxd":{"endpoint":"http://old-host:8443","startupScript":"echo old"}}`},
+	store := &routingTemplateStoreStub{
+		entries: map[string]db.MachineTemplate{
+			"rt-lxd": {ID: "rt-lxd", Type: db.TemplateTypeLXD, ConfigJSON: `{"lxd":{"endpoint":"http://old-host:8443","startupScript":"echo old"}}`},
 		},
 	}
 
-	factoryCalls := make(map[string]string) // runtimeID -> configJSON used
-	runtime := NewRoutingRuntimeWithCatalog(store, map[string]Runtime{})
-	runtime.factory = map[string]RuntimeFactory{
-		db.RuntimeTypeLXD: func(catalog db.RuntimeCatalog) (Runtime, error) {
+	factoryCalls := make(map[string]string) // templateID -> configJSON used
+	routing := NewRoutingTemplateWithCatalog(store, map[string]Runtime{})
+	routing.factory = map[string]TemplateFactory{
+		db.TemplateTypeLXD: func(catalog db.MachineTemplate) (Runtime, error) {
 			factoryCalls[catalog.ID] = catalog.ConfigJSON
 			return &fakeRuntime{name: "lxd:" + catalog.ID}, nil
 		},
@@ -119,11 +119,11 @@ func TestRoutingRuntime_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 
 	// Machine with snapshotted config should use it instead of catalog
 	snapshotConfig := `{"lxd":{"endpoint":"http://snapshot-host:8443","startupScript":"echo snapshot"}}`
-	_, err := runtime.EnsureRunning(ctx, db.Machine{
-		ID:               "machine-snap",
-		RuntimeID:        "rt-lxd",
-		RuntimeType:      db.RuntimeTypeLXD,
-		RuntimeConfigJSON: snapshotConfig,
+	_, err := routing.EnsureRunning(ctx, db.Machine{
+		ID:                "machine-snap",
+		TemplateID:         "rt-lxd",
+		TemplateType:       db.TemplateTypeLXD,
+		TemplateConfigJSON: snapshotConfig,
 	}, RuntimeStartOptions{})
 	if err != nil {
 		t.Fatalf("ensure running with snapshot: %v", err)
@@ -134,9 +134,9 @@ func TestRoutingRuntime_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 
 	// Machine without snapshot should fall back to catalog
 	delete(factoryCalls, "rt-lxd")
-	_, err = runtime.EnsureRunning(ctx, db.Machine{
+	_, err = routing.EnsureRunning(ctx, db.Machine{
 		ID:        "machine-no-snap",
-		RuntimeID: "rt-lxd",
+		TemplateID: "rt-lxd",
 	}, RuntimeStartOptions{})
 	if err != nil {
 		t.Fatalf("ensure running without snapshot: %v", err)
@@ -147,16 +147,16 @@ func TestRoutingRuntime_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 	}
 }
 
-func TestRuntimeFromCatalog_StartupScriptIsPropagated(t *testing.T) {
+func TestTemplateFromConfig_StartupScriptIsPropagated(t *testing.T) {
 	t.Parallel()
 
-	libvirtRuntime, err := runtimeFromLibvirtCatalog(db.RuntimeCatalog{
+	libvirtRuntime, err := templateFromLibvirtConfig(db.MachineTemplate{
 		ID:         "rt-libvirt",
-		Type:       db.RuntimeTypeLibvirt,
+		Type:       db.TemplateTypeLibvirt,
 		ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt startup"}}`,
 	})
 	if err != nil {
-		t.Fatalf("runtimeFromLibvirtCatalog: %v", err)
+		t.Fatalf("templateFromLibvirtConfig: %v", err)
 	}
 	libvirtImpl, ok := libvirtRuntime.(*LibvirtRuntime)
 	if !ok {
@@ -166,13 +166,13 @@ func TestRuntimeFromCatalog_StartupScriptIsPropagated(t *testing.T) {
 		t.Fatalf("libvirt startup script = %q", libvirtImpl.startupScript)
 	}
 
-	gceRuntime, err := runtimeFromGceCatalog(db.RuntimeCatalog{
+	gceRuntime, err := templateFromGceConfig(db.MachineTemplate{
 		ID:         "rt-gce",
-		Type:       db.RuntimeTypeGCE,
+		Type:       db.TemplateTypeGCE,
 		ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce startup"}}`,
 	})
 	if err != nil {
-		t.Fatalf("runtimeFromGceCatalog: %v", err)
+		t.Fatalf("templateFromGceConfig: %v", err)
 	}
 	gceImpl, ok := gceRuntime.(*GceRuntime)
 	if !ok {

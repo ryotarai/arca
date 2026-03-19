@@ -47,7 +47,7 @@ func (h *MachineProxyHandler) IsMachineProxyRequest(r *http.Request) bool {
 	if err != nil {
 		return false
 	}
-	return db.GetRuntimeExposureMethod(m.RuntimeConfigJSON) == db.MachineExposureMethodProxyViaServer
+	return db.GetTemplateExposureMethod(m.TemplateConfigJSON) == db.MachineExposureMethodProxyViaServer
 }
 
 // TryServeHTTP attempts to handle the request as a machine proxy request.
@@ -79,7 +79,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 		return true
 	}
 
-	exposureMethod := db.GetRuntimeExposureMethod(m.RuntimeConfigJSON)
+	exposureMethod := db.GetTemplateExposureMethod(m.TemplateConfigJSON)
 	if exposureMethod != db.MachineExposureMethodProxyViaServer {
 		return false
 	}
@@ -93,7 +93,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 			log.Printf("machine proxy: ip cache lookup for %q failed: %v", m.ID, infoErr)
 		}
 	}
-	connectivity := db.GetRuntimeExposureConfig(m.RuntimeConfigJSON).Connectivity
+	connectivity := db.GetTemplateExposureConfig(m.TemplateConfigJSON).Connectivity
 	upstreamURL := resolveUpstreamURL(machineInfo, m, exposure, connectivity)
 	if upstreamURL == "" {
 		http.Error(w, "machine upstream unavailable", http.StatusBadGateway)

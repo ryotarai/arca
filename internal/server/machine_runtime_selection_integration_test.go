@@ -14,101 +14,101 @@ const (
 	gceCatalogConfigJSON     = `{"gce":{"project":"arca-project","zone":"us-central1-a","network":"main","subnetwork":"main","serviceAccountEmail":"svc@example.iam.gserviceaccount.com"}}`
 )
 
-func TestMachineRuntimeSelection_CreateRequiresExplicitRuntime(t *testing.T) {
+func TestMachineTemplateSelection_CreateRequiresExplicitTemplate(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
 	service := newMachineConnectService(authenticator, store, store)
 
-	if _, _, err := authenticator.Register(ctx, "runtime-owner@example.com", "owner-password"); err != nil {
+	if _, _, err := authenticator.Register(ctx, "template-owner@example.com", "owner-password"); err != nil {
 		t.Fatalf("register owner: %v", err)
 	}
-	ownerToken := loginToken(t, authenticator, "runtime-owner@example.com", "owner-password")
+	ownerToken := loginToken(t, authenticator, "template-owner@example.com", "owner-password")
 
-	overrideRuntime, err := store.CreateRuntime(ctx, "edge-gce", db.RuntimeTypeGCE, gceCatalogConfigJSON)
+	overrideTemplate, err := store.CreateMachineTemplate(ctx, "edge-gce", db.TemplateTypeGCE, gceCatalogConfigJSON)
 	if err != nil {
-		t.Fatalf("create override runtime: %v", err)
+		t.Fatalf("create override template: %v", err)
 	}
 
-	_, err = service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{Name: "machine-missing-runtime"}, ownerToken))
+	_, err = service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{Name: "machine-missing-template"}, ownerToken))
 	if err == nil {
-		t.Fatalf("expected create to fail when runtime id is omitted")
+		t.Fatalf("expected create to fail when template id is omitted")
 	}
 	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
-		t.Fatalf("create missing-runtime error code = %v, want %v", got, connect.CodeInvalidArgument)
+		t.Fatalf("create missing-template error code = %v, want %v", got, connect.CodeInvalidArgument)
 	}
 
 	createdWithExplicit, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
-		Name:      "machine-explicit-runtime",
-		RuntimeId: overrideRuntime.ID,
+		Name:       "machine-explicit-template",
+		TemplateId: overrideTemplate.ID,
 	}, ownerToken))
 	if err != nil {
-		t.Fatalf("create machine with explicit runtime: %v", err)
+		t.Fatalf("create machine with explicit template: %v", err)
 	}
-	if got := createdWithExplicit.Msg.GetMachine().GetRuntimeId(); got != overrideRuntime.ID {
-		t.Fatalf("explicit runtime id = %q, want %q", got, overrideRuntime.ID)
+	if got := createdWithExplicit.Msg.GetMachine().GetTemplateId(); got != overrideTemplate.ID {
+		t.Fatalf("explicit template id = %q, want %q", got, overrideTemplate.ID)
 	}
 }
 
-func TestMachineRuntimeSelection_InvalidOrDeletedRuntimeIsRejected(t *testing.T) {
+func TestMachineTemplateSelection_InvalidOrDeletedTemplateIsRejected(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)
 	service := newMachineConnectService(authenticator, store, store)
 
-	if _, _, err := authenticator.Register(ctx, "runtime-owner-deleted@example.com", "owner-password"); err != nil {
+	if _, _, err := authenticator.Register(ctx, "template-owner-deleted@example.com", "owner-password"); err != nil {
 		t.Fatalf("register owner: %v", err)
 	}
-	ownerToken := loginToken(t, authenticator, "runtime-owner-deleted@example.com", "owner-password")
+	ownerToken := loginToken(t, authenticator, "template-owner-deleted@example.com", "owner-password")
 
-	runtimeEntry, err := store.CreateRuntime(ctx, "runtime-to-delete", db.RuntimeTypeLibvirt, libvirtCatalogConfigJSON)
+	templateEntry, err := store.CreateMachineTemplate(ctx, "template-to-delete", db.TemplateTypeLibvirt, libvirtCatalogConfigJSON)
 	if err != nil {
-		t.Fatalf("create runtime: %v", err)
+		t.Fatalf("create template: %v", err)
 	}
 
 	machineResp, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
-		Name:      "machine-runtime-deletion",
-		RuntimeId: runtimeEntry.ID,
+		Name:       "machine-template-deletion",
+		TemplateId: templateEntry.ID,
 	}, ownerToken))
 	if err != nil {
-		t.Fatalf("create machine before runtime deletion: %v", err)
+		t.Fatalf("create machine before template deletion: %v", err)
 	}
 
-	if deleted, err := store.DeleteRuntimeByID(ctx, runtimeEntry.ID); err == nil {
-		t.Fatalf("expected delete runtime to fail while in use, got deleted=%v", deleted)
-	} else if err != db.ErrRuntimeInUse {
-		t.Fatalf("delete runtime error = %v, want %v", err, db.ErrRuntimeInUse)
+	if deleted, err := store.DeleteMachineTemplateByID(ctx, templateEntry.ID); err == nil {
+		t.Fatalf("expected delete template to fail while in use, got deleted=%v", deleted)
+	} else if err != db.ErrTemplateInUse {
+		t.Fatalf("delete template error = %v, want %v", err, db.ErrTemplateInUse)
 	}
 
 	startResp, err := service.StartMachine(ctx, authRequest(arcav1.StartMachineRequest{MachineId: machineResp.Msg.GetMachine().GetId()}, ownerToken))
 	if err != nil {
-		t.Fatalf("start machine with still-configured runtime: %v", err)
+		t.Fatalf("start machine with still-configured template: %v", err)
 	}
-	if got := startResp.Msg.GetMachine().GetRuntimeId(); got != runtimeEntry.ID {
-		t.Fatalf("runtime id after start = %q, want %q", got, runtimeEntry.ID)
+	if got := startResp.Msg.GetMachine().GetTemplateId(); got != templateEntry.ID {
+		t.Fatalf("template id after start = %q, want %q", got, templateEntry.ID)
 	}
 
 	createdResp, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
-		Name:      "machine-runtime-still-valid",
-		RuntimeId: runtimeEntry.ID,
+		Name:       "machine-template-still-valid",
+		TemplateId: templateEntry.ID,
 	}, ownerToken))
 	if err != nil {
-		t.Fatalf("expected create to succeed with runtime still configured: %v", err)
+		t.Fatalf("expected create to succeed with template still configured: %v", err)
 	}
-	if got := createdResp.Msg.GetMachine().GetRuntimeId(); got != runtimeEntry.ID {
-		t.Fatalf("create runtime id = %q, want %q", got, runtimeEntry.ID)
+	if got := createdResp.Msg.GetMachine().GetTemplateId(); got != templateEntry.ID {
+		t.Fatalf("create template id = %q, want %q", got, templateEntry.ID)
 	}
 
 	_, err = service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
-		Name:      "machine-runtime-unknown-id",
-		RuntimeId: "runtime-does-not-exist",
+		Name:       "machine-template-unknown-id",
+		TemplateId: "template-does-not-exist",
 	}, ownerToken))
 	if err == nil {
-		t.Fatalf("expected create to fail with unknown runtime id")
+		t.Fatalf("expected create to fail with unknown template id")
 	}
 	if got := connect.CodeOf(err); got != connect.CodeInvalidArgument {
-		t.Fatalf("create unknown-runtime error code = %v, want %v", got, connect.CodeInvalidArgument)
+		t.Fatalf("create unknown-template error code = %v, want %v", got, connect.CodeInvalidArgument)
 	}
 }

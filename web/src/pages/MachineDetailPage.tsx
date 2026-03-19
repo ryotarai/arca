@@ -9,8 +9,8 @@ import {
   deleteMachine,
   listMachineEvents,
   listMachineExposures,
-  listAvailableRuntimes,
-  listRuntimes,
+  listAvailableMachineTemplates,
+  listMachineTemplates,
   listMachineAccessRequests,
   resolveMachineAccessRequest,
   startMachine,
@@ -19,7 +19,7 @@ import {
 } from '@/lib/api'
 import type { MachineAccessRequest } from '@/gen/arca/v1/sharing_pb'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, MachineEvent, RuntimeCatalogItem, RuntimeSummary, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineTemplateItem, MachineTemplateSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -179,8 +179,8 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const navigate = useNavigate()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [events, setEvents] = useState<MachineEvent[]>([])
-  const [runtimes, setRuntimes] = useState<RuntimeSummary[]>([])
-  const [runtimeDetails, setRuntimeDetails] = useState<RuntimeCatalogItem[]>([])
+  const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
+  const [templateDetails, setTemplateDetails] = useState<MachineTemplateItem[]>([])
   const [editingMachineType, setEditingMachineType] = useState(false)
   const [editMachineType, setEditMachineType] = useState('')
   const [savingMachineType, setSavingMachineType] = useState(false)
@@ -215,18 +215,18 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const [item, eventItems, exposureItems, runtimeItems, runtimeDetailItems] = await Promise.all([
+        const [item, eventItems, exposureItems, templateItems, templateDetailItems] = await Promise.all([
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineExposures(machineID),
-          listAvailableRuntimes(),
-          listRuntimes(),
+          listAvailableMachineTemplates(),
+          listMachineTemplates(),
         ])
         if (!cancelled) {
           setMachine(item)
           setEvents(eventItems)
-          setRuntimes(runtimeItems)
-          setRuntimeDetails(runtimeDetailItems)
+          setTemplates(templateItems)
+          setTemplateDetails(templateDetailItems)
           setError('')
           // Fetch access requests for admins
           if (item.userRole === 'admin') {
@@ -363,7 +363,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl">Machine overview</CardTitle>
-            <CardDescription>Runtime, state, endpoint, and lifecycle controls.</CardDescription>
+            <CardDescription>Template, state, endpoint, and lifecycle controls.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-6 pt-3">
             {loading ? (
@@ -378,24 +378,24 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                 </div>
                 {isAdmin && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                    <p className="text-sm text-muted-foreground">Runtime</p>
-                    {machine.runtimeId === '' ? (
+                    <p className="text-sm text-muted-foreground">Template</p>
+                    {machine.templateId === '' ? (
                       <p className="text-sm text-foreground">Unassigned</p>
                     ) : (
                       <Link
-                        to={`/runtimes/${machine.runtimeId}`}
+                        to={`/machine-templates/${machine.templateId}`}
                         className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
                       >
-                        {runtimes.find((r) => r.id === machine.runtimeId)?.name ?? machine.runtimeId}
+                        {templates.find((r) => r.id === machine.templateId)?.name ?? machine.templateId}
                       </Link>
                     )}
-                    {machine.runtimeType && (
-                      <p className="text-xs text-muted-foreground">Type: {machine.runtimeType}</p>
+                    {machine.templateType && (
+                      <p className="text-xs text-muted-foreground">Type: {machine.templateType}</p>
                     )}
                   </div>
                 )}
                 {(() => {
-                  const rt = runtimeDetails.find((r) => r.id === machine.runtimeId)
+                  const rt = templateDetails.find((r) => r.id === machine.templateId)
                   if (rt == null || rt.type !== 'gce' || rt.config.type !== 'gce') return null
                   const currentMT = machine.options?.machine_type || rt.config.machineType || 'e2-standard-2'
                   const isStopped = machine.status === 'stopped'
