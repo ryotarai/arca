@@ -82,7 +82,9 @@ func (s *machineConnectService) ListMachines(ctx context.Context, req *connect.R
 		if allTags != nil {
 			machine.Tags = allTags[machine.ID]
 		}
-		items = append(items, toMachineMessageWithAdmin(machine, isAdmin))
+		msg := toMachineMessageWithAdmin(machine, isAdmin)
+		msg.RestartNeeded = s.computeRestartNeeded(ctx, machine)
+		items = append(items, msg)
 	}
 
 	return connect.NewResponse(&arcav1.ListMachinesResponse{Machines: items}), nil
@@ -115,7 +117,9 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 				if mErr == nil {
 					m.UserRole = role
 					s.populateMachineTags(ctx, &m)
-					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(m, isAdmin)}), nil
+					msg := toMachineMessageWithAdmin(m, isAdmin)
+					msg.RestartNeeded = s.computeRestartNeeded(ctx, m)
+					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: msg}), nil
 				}
 			}
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
@@ -126,7 +130,9 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 	machine.UserRole = role
 	s.populateMachineTags(ctx, &machine)
 
-	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(machine, isAdmin)}), nil
+	msg := toMachineMessageWithAdmin(machine, isAdmin)
+	msg.RestartNeeded = s.computeRestartNeeded(ctx, machine)
+	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: msg}), nil
 }
 
 func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.Request[arcav1.CreateMachineRequest]) (*connect.Response[arcav1.CreateMachineResponse], error) {
@@ -637,6 +643,27 @@ func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.M
 		msg.InfrastructureConfigJson = machine.InfrastructureConfigJSON
 	}
 	return msg
+}
+
+// computeRestartNeeded checks whether a machine's applied boot config hash
+// differs from its profile's current boot config hash. Returns true when a
+// restart is needed to pick up profile changes.
+func (s *machineConnectService) computeRestartNeeded(ctx context.Context, machine db.Machine) bool {
+	if s.dbStore == nil {
+		return false
+	}
+	profileID := strings.TrimSpace(machine.ProfileID)
+	if profileID == "" {
+		return false
+	}
+	profile, err := s.dbStore.GetMachineProfileByID(ctx, profileID)
+	if err != nil {
+		return false
+	}
+	if profile.BootConfigHash == "" || machine.AppliedBootConfigHash == "" {
+		return false
+	}
+	return machine.AppliedBootConfigHash != profile.BootConfigHash
 }
 
 func parseMachineOptions(optionsJSON string) map[string]string {
