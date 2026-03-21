@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { ListSkeleton } from '@/components/ListSkeleton'
 import {
   getMachine,
   listAvailableMachineTemplates,
@@ -13,6 +11,9 @@ import {
   stopMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { usePolling } from '@/hooks/use-polling'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { ListSkeleton } from '@/components/ListSkeleton'
 import type { Machine, MachineTemplateSummary, User } from '@/lib/types'
 
 type MachinesPageProps = {
@@ -62,58 +63,23 @@ function StatusBadge({ status }: { status: string }) {
 export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '' }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+
+  const [actionError, setActionError] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
 
-  useEffect(() => {
-    if (user == null) {
-      return
-    }
+  const { loading, error: pollingError } = usePolling(
+    useCallback(async () => {
+      const [items, templateItems] = await Promise.all([
+        listMachines({ timeoutMs: pollingRequestTimeoutMs }),
+        listAvailableMachineTemplates(),
+      ])
+      setMachines(items)
+      setTemplates(templateItems)
+    }, []),
+    { intervalMs: pollingIntervalMs, enabled: user != null },
+  )
 
-    let cancelled = false
-    let timer: number | null = null
-    let running = false
-
-    const run = async () => {
-      if (cancelled || running) {
-        return
-      }
-      running = true
-      try {
-        const [items, templateItems] = await Promise.all([
-          listMachines({ timeoutMs: pollingRequestTimeoutMs }),
-          listAvailableMachineTemplates(),
-        ])
-        if (!cancelled) {
-          setMachines(items)
-          setTemplates(templateItems)
-          setError('')
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(messageFromError(e))
-        }
-      } finally {
-        running = false
-        if (!cancelled) {
-          setLoading(false)
-          timer = window.setTimeout(() => {
-            void run()
-          }, pollingIntervalMs)
-        }
-      }
-    }
-
-    void run()
-
-    return () => {
-      cancelled = true
-      if (timer != null) {
-        window.clearTimeout(timer)
-      }
-    }
-  }, [user])
+  const error = actionError || pollingError
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -125,29 +91,28 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
       description: 'Are you sure you want to restart this machine?',
       confirmLabel: 'Restart',
       variant: 'default',
-      onConfirm: () => {
-        void (async () => {
-          setError('')
-          try {
-            await stopMachine(machineID)
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        try {
+          await stopMachine(machineID)
 
-            const startedAt = Date.now()
-            while (Date.now() < startedAt + restartWaitTimeoutMs) {
-              const machine = await getMachine(machineID)
-              if (machine.status === 'stopped') {
-                break
-              }
-              await new Promise<void>((resolve) => {
-                window.setTimeout(resolve, restartWaitIntervalMs)
-              })
+          const startedAt = Date.now()
+          while (Date.now() < startedAt + restartWaitTimeoutMs) {
+            const machine = await getMachine(machineID)
+            if (machine.status === 'stopped') {
+              break
             }
-
-            const updated = await startMachine(machineID)
-            setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
-          } catch (e) {
-            setError(messageFromError(e))
+            await new Promise<void>((resolve) => {
+              window.setTimeout(resolve, restartWaitIntervalMs)
+            })
           }
-        })()
+
+          const updated = await startMachine(machineID)
+          setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
+        } catch (e) {
+          setActionError(messageFromError(e))
+        }
       },
     })
   }
@@ -220,7 +185,7 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
                             </>
                           )}
                           {machine.userRole === 'admin' && machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' && (
-                            <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => submitRestart(machine.id)}>
+                            <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
                               Restart to update
                             </Button>
                           )}
@@ -245,16 +210,13 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
       </section>
 
       <ConfirmDialog
-        open={confirmAction != null}
+        open={confirmAction !== null}
         onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
         title={confirmAction?.title ?? ''}
         description={confirmAction?.description ?? ''}
-        confirmLabel={confirmAction?.confirmLabel ?? 'Confirm'}
-        variant={confirmAction?.variant ?? 'default'}
-        onConfirm={() => {
-          confirmAction?.onConfirm()
-          setConfirmAction(null)
-        }}
+        confirmLabel={confirmAction?.confirmLabel}
+        variant={confirmAction?.variant}
+        onConfirm={() => { if (confirmAction) void confirmAction.onConfirm() }}
       />
     </main>
   )

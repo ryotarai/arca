@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Copy, Check, ExternalLink, Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { ListSkeleton } from '@/components/ListSkeleton'
-import { Skeleton } from '@/components/ui/skeleton'
 import { SharingDialog } from '@/components/SharingDialog'
 import {
   getMachine,
@@ -21,6 +18,10 @@ import {
 } from '@/lib/api'
 import type { MachineAccessRequest } from '@/gen/arca/v1/sharing_pb'
 import { messageFromError } from '@/lib/errors'
+import { usePolling } from '@/hooks/use-polling'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ListSkeleton } from '@/components/ListSkeleton'
 import type { Machine, MachineEvent, MachineTemplateSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
@@ -216,12 +217,11 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const [editingMachineType, setEditingMachineType] = useState(false)
   const [editMachineType, setEditMachineType] = useState('')
   const [savingMachineType, setSavingMachineType] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
   const [sharingOpen, setSharingOpen] = useState(false)
   const [accessRequests, setAccessRequests] = useState<MachineAccessRequest[]>([])
-  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
   const endpointURL = machine == null || machine.name === '' || baseDomain === '' ? null : `https://${machineHostname(domainPrefix, machine.name, baseDomain)}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const shelleyURL = endpointURL != null ? `${endpointURL}/__arca/shelley` : null
@@ -234,66 +234,34 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
   }, [events])
 
-  useEffect(() => {
-    if (user == null || machineID == null || machineID === '') {
-      return
-    }
+  const pollingEnabled = user != null && machineID != null && machineID !== ''
 
-    let cancelled = false
-    let timer: number | null = null
-    let running = false
-
-    const run = async () => {
-      if (cancelled || running) {
-        return
-      }
-      running = true
-      try {
-        const [item, eventItems, exposureItems, templateItems] = await Promise.all([
-          getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
-          listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
-          listMachineExposures(machineID),
-          listAvailableMachineTemplates(),
-        ])
-        if (!cancelled) {
-          setMachine(item)
-          setEvents(eventItems)
-          setTemplates(templateItems)
-          setError('')
-          // Fetch access requests for admins
-          if (item.userRole === 'admin') {
-            try {
-              const reqs = await listMachineAccessRequests(machineID)
-              if (!cancelled) setAccessRequests(reqs)
-            } catch {
-              // ignore errors for access requests polling
-            }
-          }
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(messageFromError(e))
-        }
-      } finally {
-        running = false
-        if (!cancelled) {
-          setLoading(false)
-          timer = window.setTimeout(() => {
-            void run()
-          }, pollingIntervalMs)
+  const { loading, error: pollingError } = usePolling(
+    useCallback(async () => {
+      if (machineID == null || machineID === '') return
+      const [item, eventItems, , templateItems] = await Promise.all([
+        getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
+        listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
+        listMachineExposures(machineID),
+        listAvailableMachineTemplates(),
+      ])
+      setMachine(item)
+      setEvents(eventItems)
+      setTemplates(templateItems)
+      // Fetch access requests for admins
+      if (item.userRole === 'admin') {
+        try {
+          const reqs = await listMachineAccessRequests(machineID)
+          setAccessRequests(reqs)
+        } catch {
+          // ignore errors for access requests polling
         }
       }
-    }
+    }, [machineID]),
+    { intervalMs: pollingIntervalMs, enabled: pollingEnabled },
+  )
 
-    void run()
-
-    return () => {
-      cancelled = true
-      if (timer != null) {
-        window.clearTimeout(timer)
-      }
-    }
-  }, [user, machineID])
+  const error = actionError || pollingError
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -303,12 +271,12 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   }
 
   const handleStart = async () => {
-    setError('')
+    setActionError('')
     try {
       const updated = await startMachine(machineID)
       setMachine(updated)
     } catch (e) {
-      setError(messageFromError(e))
+      setActionError(messageFromError(e))
     }
   }
 
@@ -317,17 +285,16 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
       title: 'Stop machine',
       description: 'Are you sure you want to stop this machine?',
       confirmLabel: 'Stop',
-      variant: 'destructive',
-      onConfirm: () => {
-        void (async () => {
-          setError('')
-          try {
-            const updated = await stopMachine(machineID)
-            setMachine(updated)
-          } catch (e) {
-            setError(messageFromError(e))
-          }
-        })()
+      variant: 'default',
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        try {
+          const updated = await stopMachine(machineID)
+          setMachine(updated)
+        } catch (e) {
+          setActionError(messageFromError(e))
+        }
       },
     })
   }
@@ -338,28 +305,27 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
       description: 'Are you sure you want to restart this machine?',
       confirmLabel: 'Restart',
       variant: 'default',
-      onConfirm: () => {
-        void (async () => {
-          setError('')
-          try {
-            await stopMachine(machineID)
-            const startedAt = Date.now()
-            while (Date.now() < startedAt + restartWaitTimeoutMs) {
-              const current = await getMachine(machineID)
-              setMachine(current)
-              if (current.status === 'stopped') {
-                break
-              }
-              await new Promise<void>((resolve) => {
-                window.setTimeout(resolve, restartWaitIntervalMs)
-              })
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        try {
+          await stopMachine(machineID)
+          const startedAt = Date.now()
+          while (Date.now() < startedAt + restartWaitTimeoutMs) {
+            const current = await getMachine(machineID)
+            setMachine(current)
+            if (current.status === 'stopped') {
+              break
             }
-            const updated = await startMachine(machineID)
-            setMachine(updated)
-          } catch (e) {
-            setError(messageFromError(e))
+            await new Promise<void>((resolve) => {
+              window.setTimeout(resolve, restartWaitIntervalMs)
+            })
           }
-        })()
+          const updated = await startMachine(machineID)
+          setMachine(updated)
+        } catch (e) {
+          setActionError(messageFromError(e))
+        }
       },
     })
   }
@@ -367,21 +333,20 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const handleDelete = () => {
     setConfirmAction({
       title: 'Delete machine',
-      description: 'Are you sure you want to delete this machine? This action cannot be undone.',
+      description: 'Delete this machine? This action cannot be undone.',
       confirmLabel: 'Delete',
       variant: 'destructive',
-      onConfirm: () => {
-        void (async () => {
-          setError('')
-          setDeleting(true)
-          try {
-            await deleteMachine(machineID)
-            await navigate('/machines')
-          } catch (e) {
-            setError(messageFromError(e))
-            setDeleting(false)
-          }
-        })()
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        setDeleting(true)
+        try {
+          await deleteMachine(machineID)
+          await navigate('/machines')
+        } catch (e) {
+          setActionError(messageFromError(e))
+          setDeleting(false)
+        }
       },
     })
   }
@@ -393,7 +358,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
         <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold text-foreground">
-              {loading ? <Skeleton className="h-7 w-48 inline-block" /> : machine?.name ?? 'Machine not found'}
+              {loading ? 'Loading...' : machine?.name ?? 'Machine not found'}
             </h1>
             {machine != null && (
               <div className="mt-2 flex items-center gap-3">
@@ -475,13 +440,13 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
 
                   const handleSaveMachineType = async () => {
                     setSavingMachineType(true)
-                    setError('')
+                    setActionError('')
                     try {
                       const updated = await updateMachineOptions(machineID, { machine_type: editMachineType.trim() })
                       setMachine(updated)
                       setEditingMachineType(false)
                     } catch (e) {
-                      setError(messageFromError(e))
+                      setActionError(messageFromError(e))
                     } finally {
                       setSavingMachineType(false)
                     }
@@ -587,7 +552,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                       type="button"
                       variant="secondary"
                       className="h-9 px-3"
-                      onClick={() => handleStop()}
+                      onClick={() => void handleStop()}
                       disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
                     >
                       Stop
@@ -596,7 +561,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                       type="button"
                       variant="secondary"
                       className="h-9 px-3"
-                      onClick={() => handleRestart()}
+                      onClick={() => void handleRestart()}
                       disabled={isTransitioning}
                     >
                       {machine.updateRequired && !isTransitioning ? 'Restart to update' : 'Restart'}
@@ -607,7 +572,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                       type="button"
                       variant="destructive"
                       className="h-9 px-3"
-                      onClick={() => handleDelete()}
+                      onClick={() => void handleDelete()}
                       disabled={deleting}
                     >
                       {deleting ? 'Deleting...' : 'Delete machine'}
@@ -660,7 +625,10 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
         )}
 
         {loading && (
-          <ListSkeleton count={2} />
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-48" />
+            <ListSkeleton count={2} />
+          </div>
         )}
 
         {!loading && machine == null && (
@@ -677,16 +645,13 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
       )}
 
       <ConfirmDialog
-        open={confirmAction != null}
+        open={confirmAction !== null}
         onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
         title={confirmAction?.title ?? ''}
         description={confirmAction?.description ?? ''}
-        confirmLabel={confirmAction?.confirmLabel ?? 'Confirm'}
-        variant={confirmAction?.variant ?? 'default'}
-        onConfirm={() => {
-          confirmAction?.onConfirm()
-          setConfirmAction(null)
-        }}
+        confirmLabel={confirmAction?.confirmLabel}
+        variant={confirmAction?.variant}
+        onConfirm={() => { if (confirmAction) void confirmAction.onConfirm() }}
       />
     </main>
   )

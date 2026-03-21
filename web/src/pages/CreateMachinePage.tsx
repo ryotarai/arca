@@ -14,9 +14,33 @@ type CreateMachinePageProps = {
   onLogout: () => Promise<void>
 }
 
+const machineNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+
+function validateMachineName(value: string): string {
+  const trimmed = value.trim()
+  if (trimmed === '') {
+    return 'Name is required.'
+  }
+  if (trimmed.length < 3) {
+    return 'Name must be at least 3 characters.'
+  }
+  if (trimmed.length > 63) {
+    return 'Name must be 63 characters or less.'
+  }
+  if (trimmed.startsWith('arca-')) {
+    return 'Name cannot start with arca-.'
+  }
+  if (!machineNamePattern.test(trimmed)) {
+    return 'Name must use lowercase letters, digits, and hyphens only, and cannot start or end with a hyphen.'
+  }
+  return ''
+}
+
 export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  const [nameError, setNameError] = useState('')
+  const [nameTouched, setNameTouched] = useState(false)
   const [selectedTemplateID, setSelectedTemplateID] = useState('')
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
   const [machineType, setMachineType] = useState('')
@@ -98,8 +122,10 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmedName = name.trim()
-    if (trimmedName === '') {
-      setError('Name is required.')
+    const nameValidationError = validateMachineName(trimmedName)
+    if (nameValidationError !== '') {
+      setNameTouched(true)
+      setNameError(nameValidationError)
       return
     }
     if (selectedTemplateID.trim() === '') {
@@ -166,11 +192,23 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                 <Input
                   id="create-machine-name"
                   value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  className="h-10"
+                  onChange={(event) => {
+                    setName(event.target.value)
+                    if (nameTouched) {
+                      setNameError(validateMachineName(event.target.value))
+                    }
+                  }}
+                  onBlur={() => {
+                    setNameTouched(true)
+                    setNameError(validateMachineName(name))
+                  }}
+                  className={`h-10${nameError !== '' ? ' border-red-400' : ''}`}
                   placeholder="my-machine"
                   required
                 />
+                {nameError !== '' && (
+                  <p className="text-xs text-red-300">{nameError}</p>
+                )}
               </div>
 
               <div className="space-y-2">
