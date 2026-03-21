@@ -15,12 +15,12 @@ INSERT INTO users (id, email, password_hash)
 VALUES (sqlc.arg(id), sqlc.arg(email), sqlc.arg(password_hash));
 
 -- name: ListUsers :many
-SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, agent_prompt, created_at
 FROM users
 ORDER BY created_at DESC;
 
 -- name: GetUserByEmail :one
-SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, agent_prompt, created_at
 FROM users
 WHERE email = sqlc.arg(email)
 LIMIT 1;
@@ -33,7 +33,7 @@ ORDER BY email ASC
 LIMIT sqlc.arg(limit_count);
 
 -- name: GetUserByID :one
-SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, agent_prompt, created_at
 FROM users
 WHERE id = sqlc.arg(id)
 LIMIT 1;
@@ -165,7 +165,7 @@ INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES (sqlc.arg(id), sqlc.arg(user_id), sqlc.arg(token_hash), sqlc.arg(expires_at_unix));
 
 -- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.startup_script, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.startup_script, u.agent_prompt, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = sqlc.arg(token_hash)
@@ -1038,3 +1038,9 @@ SELECT
     COALESCE(SUM(CASE WHEN status = 'failed' AND updated_at > sqlc.arg(since) THEN 1 ELSE 0 END), 0) as failed,
     COALESCE(SUM(CASE WHEN status = 'running' AND lease_until < sqlc.arg(now) THEN 1 ELSE 0 END), 0) as stuck
 FROM machine_jobs;
+
+-- name: GetUserAgentPromptByID :one
+SELECT agent_prompt FROM users WHERE id = sqlc.arg(id) LIMIT 1;
+
+-- name: UpdateUserAgentPromptByID :execrows
+UPDATE users SET agent_prompt = sqlc.arg(agent_prompt) WHERE id = sqlc.arg(id);

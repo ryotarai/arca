@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN agent_prompt TEXT NOT NULL DEFAULT '';

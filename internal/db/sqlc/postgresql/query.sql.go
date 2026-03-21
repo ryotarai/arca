@@ -1524,8 +1524,19 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 	return i, err
 }
 
+const getUserAgentPromptByID = `-- name: GetUserAgentPromptByID :one
+SELECT agent_prompt FROM users WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserAgentPromptByID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserAgentPromptByID, id)
+	var agent_prompt string
+	err := row.Scan(&agent_prompt)
+	return agent_prompt, err
+}
+
 const getUserByActiveSessionTokenHash = `-- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.startup_script, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.startup_script, u.agent_prompt, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1
@@ -1549,13 +1560,14 @@ func (q *Queries) GetUserByActiveSessionTokenHash(ctx context.Context, arg GetUs
 		&i.PasswordSetupRequired,
 		&i.Role,
 		&i.StartupScript,
+		&i.AgentPrompt,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, agent_prompt, created_at
 FROM users
 WHERE email = $1
 LIMIT 1
@@ -1571,13 +1583,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordSetupRequired,
 		&i.Role,
 		&i.StartupScript,
+		&i.AgentPrompt,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, agent_prompt, created_at
 FROM users
 WHERE id = $1
 LIMIT 1
@@ -1593,6 +1606,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.PasswordSetupRequired,
 		&i.Role,
 		&i.StartupScript,
+		&i.AgentPrompt,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -2991,7 +3005,7 @@ func (q *Queries) ListUserMachinesByMachineID(ctx context.Context, machineID str
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, agent_prompt, created_at
 FROM users
 ORDER BY created_at DESC
 `
@@ -3012,6 +3026,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PasswordSetupRequired,
 			&i.Role,
 			&i.StartupScript,
+			&i.AgentPrompt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -3660,6 +3675,23 @@ func (q *Queries) UpdateServerLLMModel(ctx context.Context, arg UpdateServerLLMM
 		arg.UpdatedAt,
 		arg.ID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserAgentPromptByID = `-- name: UpdateUserAgentPromptByID :execrows
+UPDATE users SET agent_prompt = $1 WHERE id = $2
+`
+
+type UpdateUserAgentPromptByIDParams struct {
+	AgentPrompt string
+	ID          string
+}
+
+func (q *Queries) UpdateUserAgentPromptByID(ctx context.Context, arg UpdateUserAgentPromptByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserAgentPromptByID, arg.AgentPrompt, arg.ID)
 	if err != nil {
 		return 0, err
 	}

@@ -219,6 +219,7 @@ type User struct {
 	PasswordSetupRequired bool
 	Role                  string
 	StartupScript         string
+	AgentPrompt           string
 	CreatedAt             time.Time
 }
 
