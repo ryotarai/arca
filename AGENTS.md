@@ -161,9 +161,9 @@ Regenerate from sources instead:
 
 ### ⚠️ Worktree Requirement (MANDATORY — NO EXCEPTIONS)
 - **NEVER write to files or create commits in the main working directory.** The only exception is gitignored directories such as `tmp/`. All code changes, file edits, and commits MUST happen inside a git worktree.
-- **Always create a git worktree at `.worktrees/BRANCH_NAME`** before starting any work. Use `git worktree add .worktrees/<branch-name> -b <branch-name>` (or the `EnterWorktree` tool / `isolation: "worktree"` for agents) and perform all work inside that worktree directory.
-- After creating the worktree, `cd` into `.worktrees/<branch-name>/` and do ALL file reads, edits, builds, tests, and commits there.
-- **Subagent working directory**: When dispatching subagents, always set the working directory to the worktree path (`.worktrees/<branch-name>/`). Subagents must run all commands and file operations within the worktree, never in the main repository root. Include the absolute worktree path in the subagent prompt.
+- **Always create a git worktree at `.claude/worktrees/BRANCH_NAME`** before starting any work. Use `git worktree add .claude/worktrees/<branch-name> -b <branch-name>` (or the `EnterWorktree` tool / `isolation: "worktree"` for agents) and perform all work inside that worktree directory.
+- After creating the worktree, `cd` into `.claude/worktrees/<branch-name>/` and do ALL file reads, edits, builds, tests, and commits there.
+- **Subagent working directory**: When dispatching subagents, always set the working directory to the worktree path (`.claude/worktrees/<branch-name>/`). Subagents must run all commands and file operations within the worktree, never in the main repository root. Include the absolute worktree path in the subagent prompt.
 
 ### Git & Branch Hygiene
 - Always run `git fetch origin` before referencing or operating on `origin/main` (or any remote branch) to ensure you have the latest state.

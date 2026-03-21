@@ -11,6 +11,6 @@ bin/
 *.db-wal
 internal/server/ui/dist/
 
-.worktrees/
+.claude/worktrees/
 .claude/*.local.json
 *.local.md
