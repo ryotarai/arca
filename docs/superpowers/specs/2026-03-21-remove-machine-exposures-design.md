@@ -2,17 +2,18 @@
 
 ## Summary
 
-Remove the `machine_exposures` table and eliminate duplicated domain configuration (prefix, base_domain) from machine templates. The `setup_state` table becomes the single source of truth for domain settings. Hostnames are computed dynamically as `{prefix}{machine_name}.{base_domain}`.
+Remove the `machine_exposures` table and eliminate duplicated domain configuration (prefix, base_domain) from machine templates and `machines.endpoint`. The `setup_state` table becomes the single source of truth for domain settings. Hostnames are computed dynamically as `{prefix}{machine_name}.{base_domain}`.
 
 ## Motivation
 
-Currently, `domain_prefix` and `base_domain` are stored in three places:
+Currently, `domain_prefix` and `base_domain` are stored/derived in multiple places:
 
 1. `setup_state` table (admin config)
 2. Machine template `config_json` (`MachineExposureConfig`)
 3. `machine_exposures.hostname` (precomputed full hostname)
+4. `machines.endpoint` (copy of hostname written by worker)
 
-If an admin changes the prefix or base domain, the precomputed hostnames and template-embedded values become stale. The `machine_exposures` table adds no unique data beyond what can be derived from the machine name and admin config.
+If an admin changes the prefix or base domain, the precomputed hostnames in `machine_exposures` and `machines.endpoint`, as well as template-embedded values, become stale. The `machine_exposures` table adds no unique data beyond what can be derived from the machine name and admin config.
 
 Additionally, the `service` field (`http://localhost:21030`) is always the hardcoded arcad port and should not be stored.
 
@@ -25,6 +26,7 @@ Additionally, the `service` field (`http://localhost:21030`) is always the hardc
 3. **`machineSubdomain()` / `sanitizeSubdomainPart()`** — remove sanitization logic from `worker.go`. Machine names must be validated at creation time instead.
 4. **`exposure.proto` unused fields** — remove `public`, `visibility`, `selected_user_ids` from `MachineExposure` message. Remove `EndpointVisibility` enum. These were never implemented in the DB or server.
 5. **`db.MachineExposure` struct** — remove from `setup_ticket_tunnel_store.go`.
+6. **`machines.endpoint` hostname writes** — stop writing hostname to `machines.endpoint` in worker. This field must not contain prefix/base_domain-derived values.
 
 ### What Changes
 
@@ -67,10 +69,18 @@ Host header → strip base_domain suffix → strip prefix → GetMachineByName(n
 
 #### Worker (worker.go)
 
-`ensureMachineExposureProxyViaServer()` simplifies to:
-- Get `setup_state` for prefix/base_domain
-- Compute hostname via `MachineHostname()`
-- Update `machines.endpoint` with the computed hostname (no exposure upsert)
+`ensureMachineExposureProxyViaServer()` simplifies dramatically — the exposure upsert and endpoint write are both removed. The function may be eliminated entirely or reduced to a validation check that setup_state has base_domain configured.
+
+#### Machine API Response (endpoint field)
+
+The `machines.endpoint` DB column is no longer written by the worker. Instead, the API layer (`machine_connect.go`) computes the hostname dynamically when building the response:
+
+```go
+// In toMachineProto() or equivalent
+endpoint := MachineHostname(setupState.DomainPrefix, machine.Name, setupState.BaseDomain)
+```
+
+The UI continues to work without changes — it receives the computed hostname in the API response.
 
 #### arcad `GetMachineExposureByHostname` RPC
 
@@ -110,3 +120,4 @@ The arcad listen port (21030) becomes a constant in the proxy resolution logic, 
 
 - Per-exposure visibility/access control (not yet implemented, can be added later on machines table or a new table if needed)
 - Multiple exposures per machine (currently always "default"; can revisit if needed)
+- Removing `machines.endpoint` column itself (may still be useful for other purposes; just stop writing hostname to it)
