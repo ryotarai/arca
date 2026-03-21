@@ -3690,7 +3690,7 @@ func (q *Queries) UpdateUserRoleByID(ctx context.Context, arg UpdateUserRoleByID
 const upsertAdminViewMode = `-- name: UpsertAdminViewMode :exec
 INSERT INTO admin_view_mode (user_id, mode, updated_at)
 VALUES ($1, $2, $3)
-ON CONFLICT(user_id) DO UPDATE SET mode = $2, updated_at = $3
+ON CONFLICT(user_id) DO UPDATE SET mode = excluded.mode, updated_at = excluded.updated_at
 `
 
 type UpsertAdminViewModeParams struct {

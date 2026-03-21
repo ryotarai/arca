@@ -56,7 +56,7 @@ func authenticateUserFromHeaderWithResult(ctx context.Context, authenticator Aut
 		result, err := authenticator.AuthenticateFull(ctx, sessionToken)
 		if err == nil {
 			// Apply admin view mode override (skip for static API tokens)
-			if result.Role == db.UserRoleAdmin && !result.IsStaticToken {
+			if result.Role == db.UserRoleAdmin && !result.IsStaticToken && store != nil {
 				mode, modeErr := store.GetAdminViewMode(ctx, result.UserID)
 				if modeErr == nil && mode == "user" {
 					result.Role = db.UserRoleUser
@@ -71,7 +71,7 @@ func authenticateUserFromHeaderWithResult(ctx context.Context, authenticator Aut
 		if err == nil {
 			result := auth.AuthResult{UserID: userID, Email: email, Role: role}
 			// Apply admin view mode override
-			if result.Role == db.UserRoleAdmin {
+			if result.Role == db.UserRoleAdmin && store != nil {
 				mode, modeErr := store.GetAdminViewMode(ctx, result.UserID)
 				if modeErr == nil && mode == "user" {
 					result.Role = db.UserRoleUser

@@ -452,9 +452,6 @@ func (s *machineConnectService) authenticateWithResult(ctx context.Context, head
 	if s.store == nil {
 		return auth.AuthResult{}, connect.NewError(connect.CodeUnavailable, errors.New("machine store unavailable"))
 	}
-	if s.dbStore == nil {
-		return auth.AuthResult{}, connect.NewError(connect.CodeUnavailable, errors.New("db store unavailable"))
-	}
 
 	return authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.dbStore, header)
 }

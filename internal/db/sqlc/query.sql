@@ -889,7 +889,7 @@ WHERE id = sqlc.arg(id);
 -- name: UpsertAdminViewMode :exec
 INSERT INTO admin_view_mode (user_id, mode, updated_at)
 VALUES (sqlc.arg(user_id), sqlc.arg(mode), sqlc.arg(updated_at))
-ON CONFLICT(user_id) DO UPDATE SET mode = sqlc.arg(mode), updated_at = sqlc.arg(updated_at);
+ON CONFLICT(user_id) DO UPDATE SET mode = excluded.mode, updated_at = excluded.updated_at;
 
 -- name: GetAdminViewMode :one
 SELECT mode FROM admin_view_mode WHERE user_id = sqlc.arg(user_id);
