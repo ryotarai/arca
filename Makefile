@@ -11,7 +11,7 @@ VERSION ?= dev
 VERSION_PKG := github.com/ryotarai/arca/internal/version
 LDFLAGS := -X $(VERSION_PKG).Version=$(VERSION)
 
-.PHONY: build build-frontend build-server build-server-dev proto sqlc vet test test-all go/test web/test web/test-fast web/test-slow run watch
+.PHONY: build build-frontend build-server build-server-dev proto sqlc vet test/backend test/e2e test/e2e-all go/test web/test web/test-fast web/test-slow run watch
 build: build-frontend build-server
 
 build-frontend: proto
@@ -46,9 +46,11 @@ sqlc:
 vet:
 	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) vet ./...
 
-test: vet go/test web/test-fast
+test/backend: vet go/test
 
-test-all: go/test web/test
+test/e2e: web/test-fast
+
+test/e2e-all: web/test
 
 go/test:
 	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) test ./cmd/... ./internal/...
