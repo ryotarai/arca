@@ -3,6 +3,8 @@ import { Link, Navigate } from 'react-router-dom'
 import { Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { ListSkeleton } from '@/components/ListSkeleton'
 import {
   getMachine,
   listAvailableMachineTemplates,
@@ -62,6 +64,7 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
 
   useEffect(() => {
     if (user == null) {
@@ -116,31 +119,37 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
     return <Navigate to="/login" replace />
   }
 
-  const submitRestart = async (machineID: string) => {
-    if (!window.confirm('Restart this machine?')) {
-      return
-    }
+  const submitRestart = (machineID: string) => {
+    setConfirmAction({
+      title: 'Restart machine',
+      description: 'Are you sure you want to restart this machine?',
+      confirmLabel: 'Restart',
+      variant: 'default',
+      onConfirm: () => {
+        void (async () => {
+          setError('')
+          try {
+            await stopMachine(machineID)
 
-    setError('')
-    try {
-      await stopMachine(machineID)
+            const startedAt = Date.now()
+            while (Date.now() < startedAt + restartWaitTimeoutMs) {
+              const machine = await getMachine(machineID)
+              if (machine.status === 'stopped') {
+                break
+              }
+              await new Promise<void>((resolve) => {
+                window.setTimeout(resolve, restartWaitIntervalMs)
+              })
+            }
 
-      const startedAt = Date.now()
-      while (Date.now() < startedAt + restartWaitTimeoutMs) {
-        const machine = await getMachine(machineID)
-        if (machine.status === 'stopped') {
-          break
-        }
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, restartWaitIntervalMs)
-        })
-      }
-
-      const updated = await startMachine(machineID)
-      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
-    } catch (e) {
-      setError(messageFromError(e))
-    }
+            const updated = await startMachine(machineID)
+            setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
+          } catch (e) {
+            setError(messageFromError(e))
+          }
+        })()
+      },
+    })
   }
 
   return (
@@ -168,7 +177,7 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
+              <ListSkeleton />
             ) : machines.length === 0 ? (
               <p className="text-sm text-muted-foreground">No machines yet.</p>
             ) : (
@@ -211,7 +220,7 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
                             </>
                           )}
                           {machine.userRole === 'admin' && machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' && (
-                            <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => void submitRestart(machine.id)}>
+                            <Button type="button" variant="secondary" className="h-9 px-3" onClick={() => submitRestart(machine.id)}>
                               Restart to update
                             </Button>
                           )}
@@ -234,6 +243,19 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
           </CardContent>
         </Card>
       </section>
+
+      <ConfirmDialog
+        open={confirmAction != null}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
+        title={confirmAction?.title ?? ''}
+        description={confirmAction?.description ?? ''}
+        confirmLabel={confirmAction?.confirmLabel ?? 'Confirm'}
+        variant={confirmAction?.variant ?? 'default'}
+        onConfirm={() => {
+          confirmAction?.onConfirm()
+          setConfirmAction(null)
+        }}
+      />
     </main>
   )
 }
