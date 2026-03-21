@@ -75,6 +75,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	// Apply a 30-second timeout to API requests but skip it for machine
 	// proxy requests which carry long-lived WebSocket connections (e.g. ttyd).
 	r.Use(timeoutUnlessMachineProxy(deps.MachineProxy, 30*time.Second))
+	r.Use(securityHeaders)
 
 	if deps.Authenticator != nil {
 		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator, deps.Store))
@@ -190,6 +191,15 @@ func spaHandler() http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = io.Copy(w, indexFile)
 	}
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // timeoutUnlessMachineProxy returns a middleware that applies the given timeout
