@@ -10,7 +10,6 @@ import {
   listMachineEvents,
   listMachineExposures,
   listAvailableMachineTemplates,
-  listMachineTemplates,
   listMachineAccessRequests,
   resolveMachineAccessRequest,
   startMachine,
@@ -19,7 +18,7 @@ import {
 } from '@/lib/api'
 import type { MachineAccessRequest } from '@/gen/arca/v1/sharing_pb'
 import { messageFromError } from '@/lib/errors'
-import type { Machine, MachineEvent, MachineTemplateItem, MachineTemplateSummary, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineTemplateSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -180,7 +179,6 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [machine, setMachine] = useState<Machine | null>(null)
   const [events, setEvents] = useState<MachineEvent[]>([])
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
-  const [templateDetails, setTemplateDetails] = useState<MachineTemplateItem[]>([])
   const [editingMachineType, setEditingMachineType] = useState(false)
   const [editMachineType, setEditMachineType] = useState('')
   const [savingMachineType, setSavingMachineType] = useState(false)
@@ -215,18 +213,16 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
       }
       running = true
       try {
-        const [item, eventItems, exposureItems, templateItems, templateDetailItems] = await Promise.all([
+        const [item, eventItems, exposureItems, templateItems] = await Promise.all([
           getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
           listMachineExposures(machineID),
           listAvailableMachineTemplates(),
-          listMachineTemplates(),
         ])
         if (!cancelled) {
           setMachine(item)
           setEvents(eventItems)
           setTemplates(templateItems)
-          setTemplateDetails(templateDetailItems)
           setError('')
           // Fetch access requests for admins
           if (item.userRole === 'admin') {
@@ -395,11 +391,11 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
                   </div>
                 )}
                 {(() => {
-                  const rt = templateDetails.find((r) => r.id === machine.templateId)
-                  if (rt == null || rt.type !== 'gce' || rt.config.type !== 'gce') return null
-                  const currentMT = machine.options?.machine_type || rt.config.machineType || 'e2-standard-2'
+                  const rt = templates.find((r) => r.id === machine.templateId)
+                  if (rt == null || rt.type !== 'gce') return null
+                  const currentMT = machine.options?.machine_type || (rt.allowedMachineTypes ?? [])[0] || 'e2-standard-2'
                   const isStopped = machine.status === 'stopped'
-                  const allowed = rt.config.allowedMachineTypes ?? []
+                  const allowed = rt.allowedMachineTypes ?? []
 
                   const handleSaveMachineType = async () => {
                     setSavingMachineType(true)

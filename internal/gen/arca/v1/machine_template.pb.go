@@ -1039,12 +1039,13 @@ func (*DeleteMachineTemplateResponse) Descriptor() ([]byte, []int) {
 }
 
 type MachineTemplateSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type          MachineTemplateType    `protobuf:"varint,3,opt,name=type,proto3,enum=arca.v1.MachineTemplateType" json:"type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Type                MachineTemplateType    `protobuf:"varint,3,opt,name=type,proto3,enum=arca.v1.MachineTemplateType" json:"type,omitempty"`
+	AllowedMachineTypes []string               `protobuf:"bytes,4,rep,name=allowed_machine_types,json=allowedMachineTypes,proto3" json:"allowed_machine_types,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *MachineTemplateSummary) Reset() {
@@ -1096,6 +1097,13 @@ func (x *MachineTemplateSummary) GetType() MachineTemplateType {
 		return x.Type
 	}
 	return MachineTemplateType_MACHINE_TEMPLATE_TYPE_UNSPECIFIED
+}
+
+func (x *MachineTemplateSummary) GetAllowedMachineTypes() []string {
+	if x != nil {
+		return x.AllowedMachineTypes
+	}
+	return nil
 }
 
 type ListAvailableMachineTemplatesRequest struct {
@@ -1249,11 +1257,12 @@ const file_arca_v1_machine_template_proto_rawDesc = "" +
 	"\x1cDeleteMachineTemplateRequest\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\"\x1f\n" +
-	"\x1dDeleteMachineTemplateResponse\"n\n" +
+	"\x1dDeleteMachineTemplateResponse\"\xa2\x01\n" +
 	"\x16MachineTemplateSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x120\n" +
-	"\x04type\x18\x03 \x01(\x0e2\x1c.arca.v1.MachineTemplateTypeR\x04type\"&\n" +
+	"\x04type\x18\x03 \x01(\x0e2\x1c.arca.v1.MachineTemplateTypeR\x04type\x122\n" +
+	"\x15allowed_machine_types\x18\x04 \x03(\tR\x13allowedMachineTypes\"&\n" +
 	"$ListAvailableMachineTemplatesRequest\"f\n" +
 	"%ListAvailableMachineTemplatesResponse\x12=\n" +
 	"\ttemplates\x18\x01 \x03(\v2\x1f.arca.v1.MachineTemplateSummaryR\ttemplates*\x9d\x01\n" +

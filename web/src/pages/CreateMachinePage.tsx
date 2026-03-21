@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMachine, listAvailableImages, listAvailableMachineTemplates, listMachineTemplates } from '@/lib/api'
+import { createMachine, listAvailableImages, listAvailableMachineTemplates } from '@/lib/api'
 import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { MachineTemplateItem, MachineTemplateSummary, User } from '@/lib/types'
+import type { MachineTemplateSummary, User } from '@/lib/types'
 
 type CreateMachinePageProps = {
   user: User | null
@@ -19,7 +19,6 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const [name, setName] = useState('')
   const [selectedTemplateID, setSelectedTemplateID] = useState('')
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
-  const [templateDetails, setTemplateDetails] = useState<MachineTemplateItem[]>([])
   const [machineType, setMachineType] = useState('')
   const [customImageId, setCustomImageId] = useState('')
   const [availableImages, setAvailableImages] = useState<CustomImage[]>([])
@@ -38,12 +37,11 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       setLoadingTemplates(true)
       setError('')
       try {
-        const [items, details] = await Promise.all([listAvailableMachineTemplates(), listMachineTemplates()])
+        const items = await listAvailableMachineTemplates()
         if (cancelled) {
           return
         }
         setTemplates(items)
-        setTemplateDetails(details)
         setSelectedTemplateID((current) => {
           if (current !== '' && items.some((template) => template.id === current)) {
             return current
@@ -113,10 +111,10 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     setError('')
     try {
       const options: Record<string, string> = {}
-      const selectedTemplate = templateDetails.find((r) => r.id === selectedTemplateID)
+      const selectedTemplate = templates.find((r) => r.id === selectedTemplateID)
       const effectiveMachineType = machineType.trim() ||
-        (selectedTemplate?.type === 'gce' && selectedTemplate.config.type === 'gce'
-          ? (selectedTemplate.config.allowedMachineTypes ?? [])[0] ?? ''
+        (selectedTemplate?.type === 'gce'
+          ? (selectedTemplate.allowedMachineTypes ?? [])[0] ?? ''
           : '')
       if (effectiveMachineType !== '') {
         options.machine_type = effectiveMachineType
@@ -196,11 +194,9 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
               </div>
 
               {(() => {
-                const selectedTemplate = templateDetails.find((r) => r.id === selectedTemplateID)
+                const selectedTemplate = templates.find((r) => r.id === selectedTemplateID)
                 if (selectedTemplate == null || selectedTemplate.type !== 'gce') return null
-                const gceConfig = selectedTemplate.config
-                if (gceConfig.type !== 'gce') return null
-                const allowed = gceConfig.allowedMachineTypes ?? []
+                const allowed = selectedTemplate.allowedMachineTypes ?? []
                 if (allowed.length === 0) return null
                 return (
                   <div className="space-y-2">

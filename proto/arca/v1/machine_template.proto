@@ -122,6 +122,7 @@ message MachineTemplateSummary {
   string id = 1;
   string name = 2;
   MachineTemplateType type = 3;
+  repeated string allowed_machine_types = 4;
 }
 
 message ListAvailableMachineTemplatesRequest {}

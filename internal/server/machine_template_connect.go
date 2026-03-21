@@ -187,11 +187,17 @@ func (s *machineTemplateConnectService) ListAvailableMachineTemplates(ctx contex
 			log.Printf("invalid template row id=%s: %v", template.ID, err)
 			continue
 		}
-		items = append(items, &arcav1.MachineTemplateSummary{
+		summary := &arcav1.MachineTemplateSummary{
 			Id:   template.ID,
 			Name: template.Name,
 			Type: templateType,
-		})
+		}
+		if config, err := unmarshalTemplateConfigJSON(template.ConfigJSON); err == nil {
+			if gce := config.GetGce(); gce != nil {
+				summary.AllowedMachineTypes = gce.GetAllowedMachineTypes()
+			}
+		}
+		items = append(items, summary)
 	}
 
 	return connect.NewResponse(&arcav1.ListAvailableMachineTemplatesResponse{Templates: items}), nil

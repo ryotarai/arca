@@ -91,6 +91,7 @@ export type MachineTemplateSummary = {
   id: string
   name: string
   type: MachineTemplateType
+  allowedMachineTypes: string[]
 }
 
 export type MachineTemplateItem = {
