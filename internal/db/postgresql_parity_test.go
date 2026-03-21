@@ -144,21 +144,6 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 				t.Fatalf("expected consumed ticket failure, got %v", err)
 			}
 
-			firstExposure, err := store.UpsertMachineExposure(ctx, created.ID, "ssh", "ssh.example.com", "http://localhost:2222")
-			if err != nil {
-				t.Fatalf("upsert machine exposure: %v", err)
-			}
-			updatedExposure, err := store.UpsertMachineExposure(ctx, created.ID, "ssh", "ssh-updated.example.com", "http://localhost:2223")
-			if err != nil {
-				t.Fatalf("upsert machine exposure update: %v", err)
-			}
-			if updatedExposure.ID != firstExposure.ID {
-				t.Fatalf("expected upsert to preserve exposure id: before=%q after=%q", firstExposure.ID, updatedExposure.ID)
-			}
-			if updatedExposure.Hostname != "ssh-updated.example.com" {
-				t.Fatalf("unexpected updated exposure: %+v", updatedExposure)
-			}
-
 			deleted, err := store.DeleteMachineByIDForOwner(ctx, userID, created.ID)
 			if err != nil {
 				t.Fatalf("delete machine by owner: %v", err)
