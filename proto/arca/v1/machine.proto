@@ -9,6 +9,7 @@ service MachineService {
   rpc GetMachine(GetMachineRequest) returns (GetMachineResponse);
   rpc CreateMachine(CreateMachineRequest) returns (CreateMachineResponse);
   rpc UpdateMachine(UpdateMachineRequest) returns (UpdateMachineResponse);
+  rpc UpdateMachineTags(UpdateMachineTagsRequest) returns (UpdateMachineTagsResponse);
   rpc StartMachine(StartMachineRequest) returns (StartMachineResponse);
   rpc StopMachine(StopMachineRequest) returns (StopMachineResponse);
   rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
@@ -31,6 +32,7 @@ message Machine {
   map<string, string> options = 13;
   string template_type = 14;
   string template_config_json = 15;
+  repeated string tags = 16;
 }
 
 message ListMachinesRequest {}
@@ -52,6 +54,7 @@ message CreateMachineRequest {
   string template_id = 2;
   map<string, string> options = 3;
   string custom_image_id = 4;
+  repeated string tags = 5;
 }
 
 message CreateMachineResponse {
@@ -105,6 +108,15 @@ message MachineEvent {
 message ListMachineEventsRequest {
   string machine_id = 1;
   int32 limit = 2;
+}
+
+message UpdateMachineTagsRequest {
+  string machine_id = 1;
+  repeated string tags = 2;
+}
+
+message UpdateMachineTagsResponse {
+  Machine machine = 1;
 }
 
 message ListMachineEventsResponse {
