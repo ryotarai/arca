@@ -18,7 +18,7 @@ test.describe('sharing', () => {
 
     try {
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
       await page.getByRole('button', { name: 'Share' }).click()
       await expect(page.getByText('Share machine')).toBeVisible()
       await expect(page.getByText('General access')).toBeVisible()
@@ -207,13 +207,13 @@ test.describe('sharing', () => {
       )
       try {
         await ctx.page.goto(`/machines/${machineID}`)
-        await expect(ctx.page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+        await expect(ctx.page.getByRole('heading', { name: machineName })).toBeVisible()
         // Viewer should NOT see admin controls
         await expect(
           ctx.page.getByRole('button', { name: 'Start', exact: true }),
         ).toHaveCount(0)
         await expect(ctx.page.getByRole('button', { name: 'Stop' })).toHaveCount(0)
-        await expect(ctx.page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
+        await expect(ctx.page.getByRole('button', { name: 'Delete machine' })).toHaveCount(0)
         await expect(ctx.page.getByRole('button', { name: 'Share' })).toHaveCount(0)
       } finally {
         await ctx.close()
