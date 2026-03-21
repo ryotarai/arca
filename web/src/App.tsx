@@ -146,9 +146,9 @@ export function App() {
 
         <Route element={<AppLayout user={user} onLogout={handleLogout} impersonation={impersonation} />}>
           <Route path="/" element={<Navigate to="/machines" replace />} />
-          <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} baseDomain={setupStatus.baseDomain} domainPrefix={setupStatus.domainPrefix} />} />
           <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />
-          <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machines/:machineID" element={<MachineDetailPage user={user} onLogout={handleLogout} baseDomain={setupStatus.baseDomain} domainPrefix={setupStatus.domainPrefix} />} />
           <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
           <Route path="/groups" element={<GroupsPage user={user} onLogout={handleLogout} />} />
           <Route path="/machine-templates" element={<MachineTemplatesListPage user={user} onLogout={handleLogout} />} />

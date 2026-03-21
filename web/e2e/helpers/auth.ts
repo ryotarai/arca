@@ -3,7 +3,7 @@ import { expect, type APIResponse, type Browser, type Page } from '@playwright/t
 export const adminEmail = 'admin@example.com'
 export const adminPassword = 'password123'
 
-const defaultSetupConfig = {
+export const defaultSetupConfig = {
   baseDomain: 'example.com',
   domainPrefix: 'arca-',
 }

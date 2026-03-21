@@ -449,8 +449,6 @@ function toMachineTemplateItem(input: {
       | { case: undefined; value?: undefined }
     exposure?: {
       method?: number
-      domainPrefix?: string
-      baseDomain?: string
       connectivity?: number
     }
     serverApiUrl?: string
@@ -496,8 +494,6 @@ function toMachineTemplateItem(input: {
   const connectivityNum = exposureInput?.connectivity ?? 0
   const exposure: MachineExposureConfig = {
     method: machineExposureMethodFromProto(exposureInput?.method ?? 0),
-    domainPrefix: exposureInput?.domainPrefix ?? '',
-    baseDomain: exposureInput?.baseDomain ?? '',
     connectivity: connectivityNum === 1 ? 'private_ip' : connectivityNum === 2 ? 'public_ip' : '',
   }
 
@@ -563,8 +559,6 @@ function templateConfigPayload(type: MachineTemplateTypeLocal, config: MachineTe
   if (exposure) {
     result.exposure = {
       method: machineExposureMethodToProto(exposure.method),
-      domainPrefix: exposure.domainPrefix,
-      baseDomain: exposure.baseDomain,
       connectivity: exposure.connectivity === 'private_ip' ? 1 : exposure.connectivity === 'public_ip' ? 2 : 0,
     }
   }

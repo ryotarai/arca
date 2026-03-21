@@ -16,6 +16,12 @@ import type { Machine, MachineTemplateSummary, User } from '@/lib/types'
 type MachinesPageProps = {
   user: User | null
   onLogout: () => Promise<void>
+  baseDomain?: string
+  domainPrefix?: string
+}
+
+function machineHostname(prefix: string, machineName: string, baseDomain: string): string {
+  return `${prefix}${machineName}.${baseDomain}`
 }
 
 const pollingIntervalMs = 60000
@@ -51,7 +57,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-export function MachinesPage({ user, onLogout }: MachinesPageProps) {
+export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '' }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -190,15 +196,15 @@ export function MachinesPage({ user, onLogout }: MachinesPageProps) {
                         </div>
 
                         <div className="flex flex-wrap items-center justify-end gap-2 sm:max-w-md">
-                          {machine.status === 'running' && machine.endpoint !== '' && (machine.userRole === 'admin' || machine.userRole === 'editor') && (
+                          {machine.status === 'running' && baseDomain !== '' && (machine.userRole === 'admin' || machine.userRole === 'editor') && (
                             <>
                               <Button asChild variant="secondary" className="h-9 px-3">
-                                <a href={`https://${machine.endpoint}/__arca/ttyd`} target="_blank" rel="noreferrer">
+                                <a href={`https://${machineHostname(domainPrefix, machine.name, baseDomain)}/__arca/ttyd`} target="_blank" rel="noreferrer">
                                   <Terminal className="h-4 w-4" /> Terminal
                                 </a>
                               </Button>
                               <Button asChild variant="secondary" className="h-9 px-3">
-                                <a href={`https://${machine.endpoint}/__arca/shelley`} target="_blank" rel="noreferrer">
+                                <a href={`https://${machineHostname(domainPrefix, machine.name, baseDomain)}/__arca/shelley`} target="_blank" rel="noreferrer">
                                   <Bot className="h-4 w-4" /> Shelley
                                 </a>
                               </Button>

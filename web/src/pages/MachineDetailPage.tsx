@@ -23,6 +23,12 @@ import type { Machine, MachineEvent, MachineTemplateSummary, User } from '@/lib/
 type MachineDetailPageProps = {
   user: User | null
   onLogout: () => Promise<void>
+  baseDomain?: string
+  domainPrefix?: string
+}
+
+function machineHostname(prefix: string, machineName: string, baseDomain: string): string {
+  return `${prefix}${machineName}.${baseDomain}`
 }
 
 const pollingIntervalMs = 60000
@@ -173,7 +179,7 @@ function AccessRequestsPanel({
   )
 }
 
-export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
+export function MachineDetailPage({ user, onLogout, baseDomain = '', domainPrefix = '' }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const navigate = useNavigate()
   const [machine, setMachine] = useState<Machine | null>(null)
@@ -187,7 +193,7 @@ export function MachineDetailPage({ user, onLogout }: MachineDetailPageProps) {
   const [error, setError] = useState('')
   const [sharingOpen, setSharingOpen] = useState(false)
   const [accessRequests, setAccessRequests] = useState<MachineAccessRequest[]>([])
-  const endpointURL = machine == null || machine.endpoint === '' ? null : `https://${machine.endpoint}`
+  const endpointURL = machine == null || machine.name === '' || baseDomain === '' ? null : `https://${machineHostname(domainPrefix, machine.name, baseDomain)}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const shelleyURL = endpointURL != null ? `${endpointURL}/__arca/shelley` : null
   const isRunning = machine?.status === 'running'

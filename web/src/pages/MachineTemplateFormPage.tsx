@@ -32,8 +32,6 @@ type TemplateFormState = {
   lxdEndpoint: string
   lxdStartupScript: string
   exposureMethod: MachineExposureMethodType
-  exposureDomainPrefix: string
-  exposureBaseDomain: string
   exposureConnectivity: 'private_ip' | 'public_ip' | ''
   serverApiUrl: string
   autoStopTimeoutHours: string
@@ -62,8 +60,6 @@ function emptyTemplateForm(): TemplateFormState {
     lxdEndpoint: '',
     lxdStartupScript: '',
     exposureMethod: 'proxy_via_server',
-    exposureDomainPrefix: '',
-    exposureBaseDomain: '',
     exposureConnectivity: '',
     serverApiUrl: '',
     autoStopTimeoutHours: '',
@@ -168,8 +164,6 @@ function toConfig(form: TemplateFormState): MachineTemplateConfig {
 function toExposureConfig(form: TemplateFormState): MachineExposureConfig {
   return {
     method: form.exposureMethod,
-    domainPrefix: form.exposureDomainPrefix.trim(),
-    baseDomain: form.exposureBaseDomain.trim(),
     connectivity: form.exposureConnectivity,
   }
 }
@@ -177,8 +171,6 @@ function toExposureConfig(form: TemplateFormState): MachineExposureConfig {
 function fillFormFromTemplate(template: MachineTemplateItem): TemplateFormState {
   const exposureFields = {
     exposureMethod: template.exposure.method,
-    exposureDomainPrefix: template.exposure.domainPrefix,
-    exposureBaseDomain: template.exposure.baseDomain,
     exposureConnectivity: template.exposure.connectivity,
     serverApiUrl: template.serverApiUrl,
     autoStopTimeoutHours: template.autoStopTimeoutSeconds > 0 ? String(template.autoStopTimeoutSeconds / 3600) : '',
@@ -466,14 +458,6 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
                   <p className="text-xs text-muted-foreground">
                     Machine traffic is reverse-proxied through the Arca server.
                   </p>
-                  <div className="space-y-2">
-                    <Label htmlFor="template-exposure-domain-prefix">Domain prefix</Label>
-                    <Input id="template-exposure-domain-prefix" value={form.exposureDomainPrefix} onChange={(event) => setForm((current) => ({ ...current, exposureDomainPrefix: event.target.value }))} className="h-10" placeholder="arca-" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="template-exposure-base-domain">Base domain</Label>
-                    <Input id="template-exposure-base-domain" value={form.exposureBaseDomain} onChange={(event) => setForm((current) => ({ ...current, exposureBaseDomain: event.target.value }))} className="h-10" placeholder="example.com" />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="template-exposure-connectivity">Connectivity</Label>
                     <select
