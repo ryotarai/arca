@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ExternalLink, Terminal, Bot } from 'lucide-react'
+import { Copy, Check, ExternalLink, Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SharingDialog } from '@/components/SharingDialog'
@@ -22,7 +22,6 @@ import type { Machine, MachineEvent, MachineTemplateSummary, User } from '@/lib/
 
 type MachineDetailPageProps = {
   user: User | null
-  onLogout: () => Promise<void>
   baseDomain?: string
   domainPrefix?: string
 }
@@ -91,6 +90,32 @@ function EventLevelBadge({ level }: { level: string }) {
     >
       {normalized}
     </span>
+  )
+}
+
+function CopyableID({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(id)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleCopy()}
+      className="group inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+      title="Copy machine ID"
+    >
+      <span className="font-mono">{id}</span>
+      {copied ? (
+        <Check className="h-3 w-3 text-emerald-400" />
+      ) : (
+        <Copy className="h-3 w-3 opacity-0 transition group-hover:opacity-100" />
+      )}
+    </button>
   )
 }
 
@@ -179,7 +204,7 @@ function AccessRequestsPanel({
   )
 }
 
-export function MachineDetailPage({ user, onLogout, baseDomain = '', domainPrefix = '' }: MachineDetailPageProps) {
+export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: MachineDetailPageProps) {
   const { machineID } = useParams()
   const navigate = useNavigate()
   const [machine, setMachine] = useState<Machine | null>(null)
@@ -199,6 +224,7 @@ export function MachineDetailPage({ user, onLogout, baseDomain = '', domainPrefi
   const isRunning = machine?.status === 'running'
   const isAdmin = machine?.userRole === 'admin'
   const isEditor = machine?.userRole === 'editor'
+  const isTransitioning = machine?.status === 'starting' || machine?.status === 'stopping' || machine?.status === 'pending' || machine?.status === 'deleting'
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
@@ -339,45 +365,67 @@ export function MachineDetailPage({ user, onLogout, baseDomain = '', domainPrefi
   }
 
   return (
-    <main className="min-h-dvh px-6 py-10">
+    <main className="px-6 py-10">
       <section className="mx-auto w-full max-w-3xl space-y-6">
-        <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-foreground">Machine detail</h1>
-            <p className="mt-1 text-xs text-muted-foreground">{machineID}</p>
+        {/* Page header: machine name + status + share action */}
+        <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold text-foreground">
+              {loading ? 'Loading...' : machine?.name ?? 'Machine not found'}
+            </h1>
+            {machine != null && (
+              <div className="mt-2 flex items-center gap-3">
+                <StatusBadge status={machine.status} />
+                <CopyableID id={machineID} />
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {isRunning && endpointURL != null && (
+              <>
+                <Button asChild variant="secondary" className="h-9 px-3">
+                  <a href={endpointURL} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4" /> Endpoint
+                  </a>
+                </Button>
+                {(isAdmin || isEditor) && ttydURL != null && (
+                  <Button asChild variant="secondary" className="h-9 px-3">
+                    <a href={ttydURL} target="_blank" rel="noreferrer">
+                      <Terminal className="h-4 w-4" /> Terminal
+                    </a>
+                  </Button>
+                )}
+                {(isAdmin || isEditor) && shelleyURL != null && (
+                  <Button asChild variant="secondary" className="h-9 px-3">
+                    <a href={shelleyURL} target="_blank" rel="noreferrer">
+                      <Bot className="h-4 w-4" /> Shelley
+                    </a>
+                  </Button>
+                )}
+              </>
+            )}
             {isAdmin && (
               <Button type="button" variant="secondary" onClick={() => setSharingOpen(true)}>
                 Share
               </Button>
             )}
-            <Button asChild type="button" variant="secondary">
-              <Link to="/machines">Back</Link>
-            </Button>
-            <Button type="button" variant="secondary" onClick={onLogout}>
-              Logout
-            </Button>
           </div>
         </header>
 
-        <Card className="py-0 shadow-sm">
-          <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl">Machine overview</CardTitle>
-            <CardDescription>Template, state, endpoint, and lifecycle controls.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6 pt-3">
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : machine == null ? (
-              <p className="text-sm text-muted-foreground">Machine not found.</p>
-            ) : (
-              <>
-                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="text-lg font-semibold text-foreground">{machine.name}</p>
-                </div>
+        {error !== '' && (
+          <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
+            {error}
+          </p>
+        )}
+
+        {!loading && machine != null && (
+          <>
+            {/* Machine information card */}
+            <Card className="py-0 shadow-sm">
+              <CardHeader className="space-y-2 p-6 pb-3">
+                <CardTitle className="text-xl">Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6 pt-3">
                 {isAdmin && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Template</p>
@@ -472,12 +520,6 @@ export function MachineDetailPage({ user, onLogout, baseDomain = '', domainPrefi
                     </div>
                   )
                 })()}
-                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={machine.status} />
-                  </div>
-                </div>
                 {isRunning && endpointURL != null && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Endpoint</p>
@@ -492,36 +534,23 @@ export function MachineDetailPage({ user, onLogout, baseDomain = '', domainPrefi
                     <p className="text-xs text-muted-foreground">Proxied to localhost:11030 inside the machine</p>
                   </div>
                 )}
-                {isRunning && endpointURL != null && (
-                  <div className="flex items-center gap-2">
-                    <Button asChild variant="secondary" className="h-9 px-3">
-                      <a href={endpointURL} target="_blank" rel="noreferrer">
-                        <ExternalLink className="h-4 w-4" /> Endpoint
-                      </a>
-                    </Button>
-                    {(isAdmin || isEditor) && ttydURL != null && (
-                      <Button asChild variant="secondary" className="h-9 px-3">
-                        <a href={ttydURL} target="_blank" rel="noreferrer">
-                          <Terminal className="h-4 w-4" /> Terminal
-                        </a>
-                      </Button>
-                    )}
-                    {(isAdmin || isEditor) && shelleyURL != null && (
-                      <Button asChild variant="secondary" className="h-9 px-3">
-                        <a href={shelleyURL} target="_blank" rel="noreferrer">
-                          <Bot className="h-4 w-4" /> Shelley
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                )}
                 {machine.lastError != null && machine.lastError !== '' && (
                   <div className="rounded-lg border border-red-400/30 bg-red-500/12 p-4">
-                    <p className="text-sm text-red-200">last error</p>
+                    <p className="text-sm text-red-200">Last error</p>
                     <p className="mt-1 break-all text-xs text-red-100">{machine.lastError}</p>
                   </div>
                 )}
-                {isAdmin && (
+              </CardContent>
+            </Card>
+
+            {/* Lifecycle controls card (admin only) */}
+            {isAdmin && (
+              <Card className="py-0 shadow-sm">
+                <CardHeader className="space-y-2 p-6 pb-3">
+                  <CardTitle className="text-xl">Controls</CardTitle>
+                  <CardDescription>Manage machine lifecycle.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 p-6 pt-3">
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
@@ -546,70 +575,74 @@ export function MachineDetailPage({ user, onLogout, baseDomain = '', domainPrefi
                       variant="secondary"
                       className="h-9 px-3"
                       onClick={() => void handleRestart()}
-                      disabled={machine.status === 'starting' || machine.status === 'stopping' || machine.status === 'pending' || machine.status === 'deleting'}
+                      disabled={isTransitioning}
                     >
-                      {machine.updateRequired && machine.status !== 'starting' && machine.status !== 'stopping' && machine.status !== 'pending' && machine.status !== 'deleting' ? 'Restart to update' : 'Restart'}
+                      {machine.updateRequired && !isTransitioning ? 'Restart to update' : 'Restart'}
                     </Button>
+                  </div>
+                  <div className="border-t border-border pt-4">
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="destructive"
                       className="h-9 px-3"
                       onClick={() => void handleDelete()}
                       disabled={deleting}
                     >
-                      {deleting ? 'Deleting...' : 'Delete'}
+                      {deleting ? 'Deleting...' : 'Delete machine'}
                     </Button>
                   </div>
-                )}
-              </>
+                </CardContent>
+              </Card>
             )}
 
-            {error !== '' && (
-              <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
-                {error}
-              </p>
+            {/* Access requests (admin only) */}
+            {isAdmin && accessRequests.length > 0 && (
+              <AccessRequestsPanel
+                machineID={machineID}
+                requests={accessRequests}
+                onResolved={(id) => setAccessRequests((prev) => prev.filter((r) => r.id !== id))}
+              />
             )}
-          </CardContent>
-        </Card>
 
-        {isAdmin && accessRequests.length > 0 && (
-          <AccessRequestsPanel
-            machineID={machineID}
-            requests={accessRequests}
-            onResolved={(id) => setAccessRequests((prev) => prev.filter((r) => r.id !== id))}
-          />
+            {/* Machine events (admin only) */}
+            {isAdmin && (
+              <Card className="py-0 shadow-sm">
+                <CardHeader className="space-y-2 p-6 pb-3">
+                  <CardTitle className="text-xl">Events</CardTitle>
+                  <CardDescription>Recent state transitions and worker activities.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 pt-3">
+                  {sortedEvents.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No events yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {sortedEvents.map((event) => (
+                        <div key={event.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <EventLevelBadge level={event.level} />
+                              <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">{event.eventType}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{formatEventTimestamp(Number(event.createdAt))}</span>
+                          </div>
+                          <p className="mt-2 text-sm text-foreground">{event.message}</p>
+                          {event.jobId !== '' && <p className="mt-1 text-xs text-muted-foreground">job: {event.jobId}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
 
-        {isAdmin && (
-          <Card className="py-0 shadow-sm">
-            <CardHeader className="space-y-2 p-6 pb-3">
-              <CardTitle className="text-xl">Machine events</CardTitle>
-              <CardDescription>Recent state transitions and worker activities.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 pt-3">
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading events...</p>
-              ) : sortedEvents.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No events yet.</p>
-              ) : (
-                <div className="space-y-2">
-                  {sortedEvents.map((event) => (
-                    <div key={event.id} className="rounded-lg border border-border bg-muted/30 p-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <EventLevelBadge level={event.level} />
-                          <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">{event.eventType}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{formatEventTimestamp(Number(event.createdAt))}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-foreground">{event.message}</p>
-                      {event.jobId !== '' && <p className="mt-1 text-xs text-muted-foreground">job: {event.jobId}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {loading && (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        )}
+
+        {!loading && machine == null && (
+          <p className="text-sm text-muted-foreground">Machine not found.</p>
         )}
       </section>
 

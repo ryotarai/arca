@@ -118,7 +118,7 @@ test.describe('machine creation', () => {
     await page.getByLabel('Name').fill(machineName)
     await page.getByRole('button', { name: 'Create machine' }).click()
     await expect(page).toHaveURL(/\/machines\/.+/)
-    await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
 
     const machine = await waitForMachineByName(page, machineName)
     await bestEffortDeleteMachine(page, machine.id)
@@ -143,8 +143,7 @@ test.describe('machine detail', () => {
 
     try {
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
-      await expect(page.getByText(machineName)).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
       await expect(
         page.getByText(/pending|starting|running|stopping|stopped|failed/),
       ).toBeVisible()
@@ -162,10 +161,10 @@ test.describe('machine detail', () => {
 
     try {
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Delete machine' })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Share' })).toBeVisible()
     } finally {
       await bestEffortDeleteMachine(page, machineID)
@@ -180,7 +179,7 @@ test.describe('machine detail', () => {
 
     try {
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
 
       page.once('dialog', (dialog) => dialog.accept())
       await page.getByRole('button', { name: 'Stop' }).click()
@@ -198,10 +197,10 @@ test.describe('machine detail', () => {
 
     try {
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
 
       page.once('dialog', (dialog) => dialog.accept())
-      await page.getByRole('button', { name: 'Delete' }).click()
+      await page.getByRole('button', { name: 'Delete machine' }).click()
       await expect(page).toHaveURL('/machines')
       await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
     } finally {
@@ -217,7 +216,7 @@ test.describe('machine detail', () => {
 
     try {
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
 
       const templateLink = page.locator('a[href^="/machine-templates/"]').first()
       await expect(templateLink).toBeVisible({ timeout: 15_000 })
@@ -241,7 +240,8 @@ test.describe('machine detail', () => {
 
     try {
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByText('Machine events')).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()
     } finally {
       await bestEffortDeleteMachine(page, machineID)
     }

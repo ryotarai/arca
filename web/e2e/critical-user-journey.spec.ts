@@ -25,7 +25,7 @@ test.describe('critical user journey', () => {
       await page.getByLabel('Name').fill(machineName)
       await page.getByRole('button', { name: 'Create machine' }).click()
       await expect(page).toHaveURL(/\/machines\/.+/)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
 
       const createdMachine = await waitForMachineByName(page, machineName, {
         timeoutMs: 90_000,
@@ -49,9 +49,9 @@ test.describe('critical user journey', () => {
       await machineRow.getByRole('link', { name: 'Details' }).click()
 
       await page.goto(`/machines/${machineID}`)
-      await expect(page.getByRole('heading', { name: 'Machine detail' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
       await expect(page.getByText('running', { exact: false })).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Delete machine' })).toBeVisible()
 
       await page.getByRole('link', { name: 'Machine Templates' }).click()
       await expect(page).toHaveURL('/machine-templates')
