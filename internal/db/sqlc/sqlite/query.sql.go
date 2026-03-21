@@ -133,6 +133,32 @@ func (q *Queries) CountRateLimitEntries(ctx context.Context, arg CountRateLimitE
 	return count, err
 }
 
+const countRecentJobsByStatus = `-- name: CountRecentJobsByStatus :one
+SELECT
+    COALESCE(SUM(CASE WHEN status = 'succeeded' AND updated_at > ?1 THEN 1 ELSE 0 END), 0) as succeeded,
+    COALESCE(SUM(CASE WHEN status = 'failed' AND updated_at > ?1 THEN 1 ELSE 0 END), 0) as failed,
+    COALESCE(SUM(CASE WHEN status = 'running' AND lease_until < ?2 THEN 1 ELSE 0 END), 0) as stuck
+FROM machine_jobs
+`
+
+type CountRecentJobsByStatusParams struct {
+	Since int64
+	Now   sql.NullInt64
+}
+
+type CountRecentJobsByStatusRow struct {
+	Succeeded interface{}
+	Failed    interface{}
+	Stuck     interface{}
+}
+
+func (q *Queries) CountRecentJobsByStatus(ctx context.Context, arg CountRecentJobsByStatusParams) (CountRecentJobsByStatusRow, error) {
+	row := q.db.QueryRowContext(ctx, countRecentJobsByStatus, arg.Since, arg.Now)
+	var i CountRecentJobsByStatusRow
+	err := row.Scan(&i.Succeeded, &i.Failed, &i.Stuck)
+	return i, err
+}
+
 const createArcadExchangeToken = `-- name: CreateArcadExchangeToken :exec
 INSERT INTO arcad_exchange_tokens (id, token_hash, user_id, machine_id, exposure_id, expires_at, created_at)
 VALUES (

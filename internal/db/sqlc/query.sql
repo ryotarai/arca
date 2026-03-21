@@ -1009,3 +1009,10 @@ SELECT COUNT(*) FROM rate_limit_entries WHERE key = sqlc.arg(key) AND timestamp_
 
 -- name: CleanupRateLimitEntries :exec
 DELETE FROM rate_limit_entries WHERE timestamp_unix < sqlc.arg(cutoff);
+
+-- name: CountRecentJobsByStatus :one
+SELECT
+    COALESCE(SUM(CASE WHEN status = 'succeeded' AND updated_at > sqlc.arg(since) THEN 1 ELSE 0 END), 0) as succeeded,
+    COALESCE(SUM(CASE WHEN status = 'failed' AND updated_at > sqlc.arg(since) THEN 1 ELSE 0 END), 0) as failed,
+    COALESCE(SUM(CASE WHEN status = 'running' AND lease_until < sqlc.arg(now) THEN 1 ELSE 0 END), 0) as stuck
+FROM machine_jobs;

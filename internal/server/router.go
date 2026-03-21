@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -145,6 +146,30 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = io.WriteString(w, "ok")
+	})
+
+	// Readiness check endpoint — reports DB connectivity and job health metrics.
+	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := deps.HealthChecker.Ping(req.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = io.WriteString(w, `{"status":"unhealthy","db":"down"}`)
+			return
+		}
+
+		nowUnix := time.Now().Unix()
+		fiveMinAgo := nowUnix - 300
+		stats, err := deps.Store.CountRecentJobsByStatus(req.Context(), fiveMinAgo, nowUnix)
+		if err != nil {
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"status":"healthy","db":"up","jobs":"unknown"}`)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `{"status":"healthy","db":"up","jobs":{"succeeded":%d,"failed":%d,"stuck":%d}}`,
+			stats.Succeeded, stats.Failed, stats.Stuck)
 	})
 
 	// Machine proxy middleware: intercept requests with Host headers matching
