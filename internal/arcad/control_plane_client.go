@@ -17,7 +17,8 @@ const (
 	exchangeArcadSessionEndpoint   = "/arca.v1.TicketService/ExchangeArcadSession"
 	validateArcadSessionEndpoint   = "/arca.v1.TicketService/ValidateArcadSession"
 	reportMachineReadinessEndpoint = "/arca.v1.ExposureService/ReportMachineReadiness"
-	getMachineLLMModelsEndpoint    = "/arca.v1.ExposureService/GetMachineLLMModels"
+	getMachineLLMModelsEndpoint          = "/arca.v1.ExposureService/GetMachineLLMModels"
+	getMachineAgentGuidelineEndpoint     = "/arca.v1.ExposureService/GetMachineAgentGuideline"
 )
 
 // Exposure describes host routing and visibility.
@@ -68,6 +69,7 @@ type ControlPlaneClient interface {
 	ValidateArcadSession(context.Context, string, string, string) (ArcadSessionClaims, error)
 	ReportMachineReadiness(ctx context.Context, ready bool, reason, containerID, arcadVersion string) (bool, error)
 	GetMachineLLMModels(ctx context.Context) ([]MachineLLMModel, error)
+	GetMachineAgentGuideline(ctx context.Context) (string, error)
 	AuthorizeURL(string) string
 }
 
@@ -289,6 +291,37 @@ func (c *HTTPControlPlaneClient) GetMachineLLMModels(ctx context.Context) ([]Mac
 		}
 	}
 	return models, nil
+}
+
+func (c *HTTPControlPlaneClient) GetMachineAgentGuideline(ctx context.Context) (string, error) {
+	body, err := json.Marshal(map[string]string{})
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+getMachineAgentGuidelineEndpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Arca-Machine-ID", c.machineID)
+	if strings.TrimSpace(c.machineToken) != "" {
+		req.Header.Set("Authorization", "Bearer "+c.machineToken)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("get machine agent guideline failed: status %d", resp.StatusCode)
+	}
+	var decoded struct {
+		Guideline string `json:"guideline"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return "", fmt.Errorf("decode machine agent guideline: %w", err)
+	}
+	return decoded.Guideline, nil
 }
 
 func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {

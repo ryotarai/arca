@@ -93,6 +93,9 @@ func (s *llmStubControlPlane) ReportMachineReadiness(_ context.Context, _ bool, 
 func (s *llmStubControlPlane) GetMachineLLMModels(_ context.Context) ([]MachineLLMModel, error) {
 	return s.models, s.err
 }
+func (s *llmStubControlPlane) GetMachineAgentGuideline(_ context.Context) (string, error) {
+	return "", nil
+}
 func (s *llmStubControlPlane) AuthorizeURL(_ string) string { return "" }
 
 func TestNewLLMSyncer_ShelleyURL(t *testing.T) {
