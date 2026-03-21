@@ -36,7 +36,7 @@ test.describe('non-admin mode', () => {
     await expect(page.getByRole('link', { name: 'User settings' })).toBeVisible()
 
     // Admin navigation items should be hidden
-    await expect(page.getByRole('link', { name: 'Machine Templates' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Machine Profiles' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Groups' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Admin settings' })).toHaveCount(0)
@@ -63,8 +63,8 @@ test.describe('non-admin mode', () => {
     await page.goto('/groups')
     await expect(page).toHaveURL('/machines')
 
-    // /machine-templates redirects to /machines
-    await page.goto('/machine-templates')
+    // /machine-profiles redirects to /machines
+    await page.goto('/machine-profiles')
     await expect(page).toHaveURL('/machines')
   })
 

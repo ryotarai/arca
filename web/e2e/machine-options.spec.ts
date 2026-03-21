@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './helpers/auth'
-import { createMachineTemplateViaAPI } from './helpers/machine-template'
+import { createMachineProfileViaAPI } from './helpers/machine-profile'
 
 test.describe('machine options', () => {
   test('create machine with options via API and read them back', async ({ page }) => {
     await loginAsAdmin(page)
 
     // Create a GCE runtime with allowed machine types
-    const runtime = await createMachineTemplateViaAPI(page, {
+    const runtime = await createMachineProfileViaAPI(page, {
       name: `gce-opts-${Date.now()}`,
       type: 'gce',
       config: {
@@ -30,7 +30,7 @@ test.describe('machine options', () => {
     const createResp = await page.request.post('/arca.v1.MachineService/CreateMachine', {
       data: {
         name: `opts-test-${Date.now()}`,
-        templateId: runtime.id,
+        profileId: runtime.id,
         options: { machine_type: 'e2-medium' },
       },
     })
@@ -56,7 +56,7 @@ test.describe('machine options', () => {
   test('update machine options requires stopped status', async ({ page }) => {
     await loginAsAdmin(page)
 
-    const runtime = await createMachineTemplateViaAPI(page, {
+    const runtime = await createMachineProfileViaAPI(page, {
       name: `gce-upd-${Date.now()}`,
       type: 'gce',
       config: {
@@ -79,7 +79,7 @@ test.describe('machine options', () => {
     const createResp = await page.request.post('/arca.v1.MachineService/CreateMachine', {
       data: {
         name: `upd-test-${Date.now()}`,
-        templateId: runtime.id,
+        profileId: runtime.id,
         options: { machine_type: 'e2-standard-2' },
       },
     })
@@ -105,7 +105,7 @@ test.describe('machine options', () => {
   test('create machine rejects invalid machine type', async ({ page }) => {
     await loginAsAdmin(page)
 
-    const runtime = await createMachineTemplateViaAPI(page, {
+    const runtime = await createMachineProfileViaAPI(page, {
       name: `gce-inv-${Date.now()}`,
       type: 'gce',
       config: {
@@ -124,18 +124,18 @@ test.describe('machine options', () => {
       },
     })
 
-    // Verify the template config was stored with allowedMachineTypes
-    const listResp = await page.request.post('/arca.v1.MachineTemplateService/ListMachineTemplates', { data: {} })
+    // Verify the profile config was stored with allowedMachineTypes
+    const listResp = await page.request.post('/arca.v1.MachineProfileService/ListMachineProfiles', { data: {} })
     const listPayload = (await listResp.json()) as {
-      templates?: Array<{ id?: string; config?: { gce?: { allowedMachineTypes?: string[] } } }>
+      profiles?: Array<{ id?: string; config?: { gce?: { allowedMachineTypes?: string[] } } }>
     }
-    const storedTemplate = listPayload.templates?.find((r) => r.id === runtime.id)
-    expect(storedTemplate?.config?.gce?.allowedMachineTypes).toEqual(['e2-medium', 'e2-standard-2'])
+    const storedProfile = listPayload.profiles?.find((r) => r.id === runtime.id)
+    expect(storedProfile?.config?.gce?.allowedMachineTypes).toEqual(['e2-medium', 'e2-standard-2'])
 
     const resp = await page.request.post('/arca.v1.MachineService/CreateMachine', {
       data: {
         name: `inv-test-${Date.now()}`,
-        templateId: runtime.id,
+        profileId: runtime.id,
         options: { machine_type: 'n1-standard-96' },
       },
       failOnStatusCode: false,
@@ -145,10 +145,10 @@ test.describe('machine options', () => {
     expect(payload.message).toContain('not allowed')
   })
 
-  test('create machine rejects empty allowedMachineTypes in template config', async ({ page }) => {
+  test('create machine rejects empty allowedMachineTypes in profile config', async ({ page }) => {
     await loginAsAdmin(page)
 
-    const resp = await page.request.post('/arca.v1.MachineTemplateService/CreateMachineTemplate', {
+    const resp = await page.request.post('/arca.v1.MachineProfileService/CreateMachineProfile', {
       data: {
         name: `gce-empty-mt-${Date.now()}`,
         type: 2,
@@ -173,10 +173,10 @@ test.describe('machine options', () => {
     expect(payload.message).toContain('allowed machine type')
   })
 
-  test('create machine form shows machine type for GCE template', async ({ page }) => {
+  test('create machine form shows machine type for GCE profile', async ({ page }) => {
     await loginAsAdmin(page)
 
-    const runtime = await createMachineTemplateViaAPI(page, {
+    const runtime = await createMachineProfileViaAPI(page, {
       name: `gce-form-${Date.now()}`,
       type: 'gce',
       config: {
@@ -196,27 +196,27 @@ test.describe('machine options', () => {
     })
 
     await page.goto('/machines/create')
-    await page.waitForSelector('#create-machine-template')
+    await page.waitForSelector('#create-machine-profile')
 
-    // Select the GCE template
-    await page.selectOption('#create-machine-template', runtime.id)
+    // Select the GCE profile
+    await page.selectOption('#create-machine-profile', runtime.id)
 
     // Machine type selector should appear
     const machineTypeField = page.locator('#create-machine-type')
     await expect(machineTypeField).toBeVisible({ timeout: 5000 })
   })
 
-  test('template form has allowed machine types field for GCE', async ({ page }) => {
+  test('profile form has allowed machine types field for GCE', async ({ page }) => {
     await loginAsAdmin(page)
 
-    await page.goto('/machine-templates/new')
-    await page.waitForSelector('#template-type')
+    await page.goto('/machine-profiles/new')
+    await page.waitForSelector('#profile-type')
 
     // Select GCE type
-    await page.selectOption('#template-type', 'gce')
+    await page.selectOption('#profile-type', 'gce')
 
     // Check allowed machine types field is visible
-    const allowedField = page.locator('#template-gce-allowed-machine-types')
+    const allowedField = page.locator('#profile-gce-allowed-machine-types')
     await expect(allowedField).toBeVisible()
   })
 })
