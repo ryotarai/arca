@@ -1000,6 +1000,7 @@ export async function testSlackNotification(channelId?: string): Promise<void> {
 export type UserNotificationSettingsData = {
   slackEnabled: boolean
   slackUserId: string
+  slackAdminEnabled: boolean
 }
 
 export async function getUserNotificationSettings(): Promise<UserNotificationSettingsData> {
@@ -1007,6 +1008,7 @@ export async function getUserNotificationSettings(): Promise<UserNotificationSet
   return {
     slackEnabled: response.settings?.slackEnabled ?? true,
     slackUserId: response.settings?.slackUserId ?? '',
+    slackAdminEnabled: response.slackAdminEnabled,
   }
 }
 

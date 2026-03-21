@@ -120,6 +120,12 @@ func (s *notificationConnectService) GetUserNotificationSettings(ctx context.Con
 		return nil, err
 	}
 
+	slackConfig, err := s.store.GetSlackConfig(ctx)
+	if err != nil {
+		log.Printf("get slack config failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load slack config"))
+	}
+
 	settings, err := s.store.GetUserNotificationSettings(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -129,6 +135,7 @@ func (s *notificationConnectService) GetUserNotificationSettings(ctx context.Con
 					SlackEnabled: true,
 					SlackUserId:  "",
 				},
+				SlackAdminEnabled: slackConfig.Enabled,
 			}), nil
 		}
 		log.Printf("get user notification settings failed: %v", err)
@@ -140,6 +147,7 @@ func (s *notificationConnectService) GetUserNotificationSettings(ctx context.Con
 			SlackEnabled: settings.SlackEnabled,
 			SlackUserId:  settings.SlackUserID,
 		},
+		SlackAdminEnabled: slackConfig.Enabled,
 	}), nil
 }
 

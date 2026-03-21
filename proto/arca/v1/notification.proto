@@ -48,6 +48,7 @@ message GetUserNotificationSettingsRequest {}
 
 message GetUserNotificationSettingsResponse {
   UserNotificationSettings settings = 1;
+  bool slack_admin_enabled = 2;
 }
 
 message UpdateUserNotificationSettingsRequest {

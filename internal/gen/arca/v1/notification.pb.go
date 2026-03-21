@@ -426,10 +426,11 @@ func (*GetUserNotificationSettingsRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetUserNotificationSettingsResponse struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Settings      *UserNotificationSettings `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState    `protogen:"open.v1"`
+	Settings          *UserNotificationSettings `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
+	SlackAdminEnabled bool                      `protobuf:"varint,2,opt,name=slack_admin_enabled,json=slackAdminEnabled,proto3" json:"slack_admin_enabled,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetUserNotificationSettingsResponse) Reset() {
@@ -467,6 +468,13 @@ func (x *GetUserNotificationSettingsResponse) GetSettings() *UserNotificationSet
 		return x.Settings
 	}
 	return nil
+}
+
+func (x *GetUserNotificationSettingsResponse) GetSlackAdminEnabled() bool {
+	if x != nil {
+		return x.SlackAdminEnabled
+	}
+	return false
 }
 
 type UpdateUserNotificationSettingsRequest struct {
@@ -581,9 +589,10 @@ const file_arca_v1_notification_proto_rawDesc = "" +
 	"\x18UserNotificationSettings\x12#\n" +
 	"\rslack_enabled\x18\x01 \x01(\bR\fslackEnabled\x12\"\n" +
 	"\rslack_user_id\x18\x02 \x01(\tR\vslackUserId\"$\n" +
-	"\"GetUserNotificationSettingsRequest\"d\n" +
+	"\"GetUserNotificationSettingsRequest\"\x94\x01\n" +
 	"#GetUserNotificationSettingsResponse\x12=\n" +
-	"\bsettings\x18\x01 \x01(\v2!.arca.v1.UserNotificationSettingsR\bsettings\"f\n" +
+	"\bsettings\x18\x01 \x01(\v2!.arca.v1.UserNotificationSettingsR\bsettings\x12.\n" +
+	"\x13slack_admin_enabled\x18\x02 \x01(\bR\x11slackAdminEnabled\"f\n" +
 	"%UpdateUserNotificationSettingsRequest\x12=\n" +
 	"\bsettings\x18\x01 \x01(\v2!.arca.v1.UserNotificationSettingsR\bsettings\"g\n" +
 	"&UpdateUserNotificationSettingsResponse\x12=\n" +
