@@ -44,3 +44,4 @@
     - claude-code
   when: brew_stat_after.stat.exists
   ignore_errors: yes
+

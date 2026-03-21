@@ -15,7 +15,6 @@ import (
 )
 
 const callbackPath = "/callback"
-const claudecodeuiBasePath = "/__arca/claudecodeui"
 const ttydBasePath = "/__arca/ttyd"
 const shelleyBasePath = "/__arca/shelley"
 const readyPath = "/__arca/readyz"
@@ -23,9 +22,8 @@ const readyPath = "/__arca/readyz"
 type Proxy struct {
 	cache         *ExposureCache
 	controlPlane  ControlPlaneClient
-	upstream      *url.URL
-	claudecodeui  *url.URL
-	ttyd          *url.URL
+	upstream *url.URL
+	ttyd     *url.URL
 	shelley       *url.URL
 	ttydSocket    string
 	sessionCookie string
@@ -38,15 +36,13 @@ func NewProxy(cache *ExposureCache, controlPlane ControlPlaneClient, sessionCook
 	if upstream == nil {
 		upstream = &url.URL{Scheme: "http", Host: "127.0.0.1:11030"}
 	}
-	claudecodeui := &url.URL{Scheme: "http", Host: "127.0.0.1:21031"}
 	ttyd := &url.URL{Scheme: "http", Host: "unix"}
 	shelley := &url.URL{Scheme: "http", Host: "127.0.0.1:21032"}
 	return &Proxy{
-		cache:         cache,
-		controlPlane:  controlPlane,
-		upstream:      upstream,
-		claudecodeui:  claudecodeui,
-		ttyd:          ttyd,
+		cache:        cache,
+		controlPlane: controlPlane,
+		upstream:     upstream,
+		ttyd:         ttyd,
 		shelley:       shelley,
 		ttydSocket:    ttydSocket,
 		sessionCookie: sessionCookie,
@@ -141,9 +137,6 @@ func (p *Proxy) handleReady(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) targetUpstream(path string) *url.URL {
-	if path == claudecodeuiBasePath || strings.HasPrefix(path, claudecodeuiBasePath+"/") {
-		return p.claudecodeui
-	}
 	if path == ttydBasePath || strings.HasPrefix(path, ttydBasePath+"/") {
 		return p.ttyd
 	}
