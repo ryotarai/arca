@@ -5,8 +5,7 @@
   vars:
     daemon_user: "{{ lookup('env', 'ARCA_DAEMON_USER') | default('arcad', true) }}"
     interactive_user: "{{ lookup('env', 'ARCA_INTERACTIVE_USER') | default('arcauser', true) }}"
-    authorized_keys_b64: "{{ lookup('env', 'ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64') | default('', true) }}"
-    agent_endpoint_url: "{{ lookup('env', 'ARCA_AGENT_ENDPOINT_URL') | default('http://localhost:11030', true) }}"
+agent_endpoint_url: "{{ lookup('env', 'ARCA_AGENT_ENDPOINT_URL') | default('http://localhost:11030', true) }}"
     shelley_binary_url_base: "{{ lookup('env', 'SHELLEY_BINARY_URL_BASE') | default('', true) }}"
     shelley_base_path: "{{ lookup('env', 'SHELLEY_BASE_PATH') | default('/__arca/shelley', true) }}"
     shelley_port: "{{ lookup('env', 'SHELLEY_PORT') | default('21032', true) }}"
@@ -23,8 +22,7 @@
     - workspace
     - shelley
     - { role: env_permissions, tags: ['runtime_only'] }
-    - { role: ssh_keys, tags: ['runtime_only'] }
-    - { role: user_startup, tags: ['runtime_only'] }
+- { role: user_startup, tags: ['runtime_only'] }
     - { role: agent_guidelines, tags: ['runtime_only'] }
     - { role: systemd_units, tags: ['runtime_only'] }
     - { role: sentinel, tags: ['runtime_only'] }

@@ -16,10 +16,6 @@ export type ManagedUser = {
   createdAt: number
 }
 
-export type UserSettings = {
-  sshPublicKeys: string[]
-}
-
 export type AdminViewMode = {
   mode: string
   isAdmin: boolean
