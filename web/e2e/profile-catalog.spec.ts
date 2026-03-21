@@ -71,8 +71,8 @@ test.describe('profile catalog', () => {
     await expect(page).toHaveURL('/machine-profiles')
   })
 
-  test('type change (libvirt to GCE) validates type-specific fields', async ({ page }) => {
-    const profileName = `type-change-${Date.now()}`
+  test('provider type is immutable on edit', async ({ page }) => {
+    const profileName = `immutable-type-${Date.now()}`
     await loginAsAdmin(page)
     await page.goto('/machine-profiles/new')
 
@@ -87,22 +87,13 @@ test.describe('profile catalog', () => {
     await expect(page.getByRole('heading', { name: 'Profile detail' })).toBeVisible()
     await page.getByRole('link', { name: 'Edit' }).click()
 
-    await page.getByLabel('Type').selectOption('gce')
-    await expect(page.getByRole('button', { name: 'Save profile' })).toBeDisabled()
-
-    await page.getByLabel('Project', { exact: true }).fill('my-project')
-    await page.getByLabel('Zone', { exact: true }).fill('us-central1-a')
-    await page.getByLabel('Network').first().fill('vpc-main')
-    await page.getByLabel('Subnetwork').fill('subnet-main')
-    await page.getByLabel('Service account email').fill('svc@example.iam.gserviceaccount.com')
-    await page.getByLabel('Machine types').fill('e2-standard-2')
-    await page.getByRole('button', { name: 'Save profile' }).click()
-
-    // Redirected back to detail; verify type changed
-    await expect(page.getByRole('heading', { name: 'Profile detail' })).toBeVisible()
-    await expect(page.getByText('gce')).toBeVisible()
+    // Provider type should be disabled on edit (immutable after creation)
+    await expect(page.locator('#profile-type')).toBeDisabled()
 
     // cleanup
+    await page.goto('/machine-profiles')
+    // find and delete the profile
+    await page.getByRole('link', { name: profileName }).click()
     await page.getByRole('button', { name: 'Delete' }).click()
     await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
     await expect(page).toHaveURL('/machine-profiles')
