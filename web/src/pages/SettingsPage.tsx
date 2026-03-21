@@ -463,6 +463,7 @@ function LLMModelsCard({ userId }: { userId: string }) {
 function NotificationSettingsCard({ userId }: { userId: string }) {
   const [slackEnabled, setSlackEnabled] = useState(true)
   const [slackUserId, setSlackUserId] = useState('')
+  const [slackAdminEnabled, setSlackAdminEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -476,6 +477,7 @@ function NotificationSettingsCard({ userId }: { userId: string }) {
         if (cancelled) return
         setSlackEnabled(settings.slackEnabled)
         setSlackUserId(settings.slackUserId)
+        setSlackAdminEnabled(settings.slackAdminEnabled)
       } catch {
         // Notification settings may not be available; use defaults.
       } finally {
@@ -485,6 +487,10 @@ function NotificationSettingsCard({ userId }: { userId: string }) {
     void load()
     return () => { cancelled = true }
   }, [userId])
+
+  if (!loading && !slackAdminEnabled) {
+    return null
+  }
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
