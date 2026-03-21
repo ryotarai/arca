@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+type AdminViewMode struct {
+	UserID    string
+	Mode      string
+	UpdatedAt int64
+}
+
 type AppMetum struct {
 	Key   string
 	Value string
@@ -186,14 +192,12 @@ type ServerLlmModel struct {
 }
 
 type Session struct {
-	ID                   string
-	UserID               string
-	TokenHash            string
-	ExpiresAt            int64
-	RevokedAt            sql.NullTime
-	ImpersonatedUserID   sql.NullString
-	ImpersonatedByUserID sql.NullString
-	CreatedAt            time.Time
+	ID        string
+	UserID    string
+	TokenHash string
+	ExpiresAt int64
+	RevokedAt sql.NullTime
+	CreatedAt time.Time
 }
 
 type SetupState struct {

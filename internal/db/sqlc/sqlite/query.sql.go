@@ -73,22 +73,6 @@ func (q *Queries) ClaimMachineJob(ctx context.Context, arg ClaimMachineJobParams
 	return result.RowsAffected()
 }
 
-const clearSessionImpersonation = `-- name: ClearSessionImpersonation :execrows
-UPDATE sessions
-SET impersonated_user_id = NULL,
-    impersonated_by_user_id = NULL
-WHERE token_hash = ?1
-  AND revoked_at IS NULL
-`
-
-func (q *Queries) ClearSessionImpersonation(ctx context.Context, tokenHash string) (int64, error) {
-	result, err := q.db.ExecContext(ctx, clearSessionImpersonation, tokenHash)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const countActiveStartOrReconcileJobsByMachineID = `-- name: CountActiveStartOrReconcileJobsByMachineID :one
 SELECT COUNT(1)
 FROM machine_jobs
@@ -1010,6 +994,17 @@ func (q *Queries) GetActiveUserSetupTokenByUserID(ctx context.Context, arg GetAc
 	return i, err
 }
 
+const getAdminViewMode = `-- name: GetAdminViewMode :one
+SELECT mode FROM admin_view_mode WHERE user_id = ?1
+`
+
+func (q *Queries) GetAdminViewMode(ctx context.Context, userID string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getAdminViewMode, userID)
+	var mode string
+	err := row.Scan(&mode)
+	return mode, err
+}
+
 const getCustomImage = `-- name: GetCustomImage :one
 SELECT id, name, template_type, data_json, description, created_at, updated_at
 FROM custom_images
@@ -1444,32 +1439,6 @@ func (q *Queries) GetServerLLMModel(ctx context.Context, id string) (ServerLlmMo
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
-}
-
-const getSessionImpersonation = `-- name: GetSessionImpersonation :one
-SELECT impersonated_user_id, impersonated_by_user_id
-FROM sessions
-WHERE token_hash = ?1
-  AND revoked_at IS NULL
-  AND expires_at > ?2
-LIMIT 1
-`
-
-type GetSessionImpersonationParams struct {
-	TokenHash string
-	NowUnix   int64
-}
-
-type GetSessionImpersonationRow struct {
-	ImpersonatedUserID   sql.NullString
-	ImpersonatedByUserID sql.NullString
-}
-
-func (q *Queries) GetSessionImpersonation(ctx context.Context, arg GetSessionImpersonationParams) (GetSessionImpersonationRow, error) {
-	row := q.db.QueryRowContext(ctx, getSessionImpersonation, arg.TokenHash, arg.NowUnix)
-	var i GetSessionImpersonationRow
-	err := row.Scan(&i.ImpersonatedUserID, &i.ImpersonatedByUserID)
 	return i, err
 }
 
@@ -3343,28 +3312,6 @@ func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmail
 	return items, nil
 }
 
-const setSessionImpersonation = `-- name: SetSessionImpersonation :execrows
-UPDATE sessions
-SET impersonated_user_id = ?1,
-    impersonated_by_user_id = ?2
-WHERE token_hash = ?3
-  AND revoked_at IS NULL
-`
-
-type SetSessionImpersonationParams struct {
-	ImpersonatedUserID   sql.NullString
-	ImpersonatedByUserID sql.NullString
-	TokenHash            string
-}
-
-func (q *Queries) SetSessionImpersonation(ctx context.Context, arg SetSessionImpersonationParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, setSessionImpersonation, arg.ImpersonatedUserID, arg.ImpersonatedByUserID, arg.TokenHash)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const updateCustomImage = `-- name: UpdateCustomImage :execrows
 UPDATE custom_images
 SET name = ?1,
@@ -3738,6 +3685,23 @@ func (q *Queries) UpdateUserRoleByID(ctx context.Context, arg UpdateUserRoleByID
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const upsertAdminViewMode = `-- name: UpsertAdminViewMode :exec
+INSERT INTO admin_view_mode (user_id, mode, updated_at)
+VALUES (?1, ?2, ?3)
+ON CONFLICT(user_id) DO UPDATE SET mode = sqlc.arg(mode), updated_at = sqlc.arg(updated_at)
+`
+
+type UpsertAdminViewModeParams struct {
+	UserID    string
+	Mode      string
+	UpdatedAt int64
+}
+
+func (q *Queries) UpsertAdminViewMode(ctx context.Context, arg UpsertAdminViewModeParams) error {
+	_, err := q.db.ExecContext(ctx, upsertAdminViewMode, arg.UserID, arg.Mode, arg.UpdatedAt)
+	return err
 }
 
 const upsertMachineExposure = `-- name: UpsertMachineExposure :exec
