@@ -8,9 +8,9 @@ import { CreateMachinePage } from '@/pages/CreateMachinePage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
 import { MachinesPage } from '@/pages/MachinesPage'
 import { OidcCallbackPage } from '@/pages/OidcCallbackPage'
-import { MachineTemplatesListPage } from '@/pages/MachineTemplatesListPage'
-import { MachineTemplateFormPage } from '@/pages/MachineTemplateFormPage'
-import { MachineTemplateDetailPage } from '@/pages/MachineTemplateDetailPage'
+import { MachineProfilesListPage } from '@/pages/MachineProfilesListPage'
+import { MachineProfileFormPage } from '@/pages/MachineProfileFormPage'
+import { MachineProfileDetailPage } from '@/pages/MachineProfileDetailPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { AdminSettingsPage } from '@/pages/AdminSettingsPage'
 import { SetupPage } from '@/pages/SetupPage'
@@ -153,10 +153,13 @@ export function App() {
           <Route path="/machines/:machineID" element={<MachineDetailPage user={user} baseDomain={setupStatus.baseDomain} domainPrefix={setupStatus.domainPrefix} />} />
           <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
           <Route path="/groups" element={<GroupsPage user={user} onLogout={handleLogout} />} />
-          <Route path="/machine-templates" element={<MachineTemplatesListPage user={user} onLogout={handleLogout} />} />
-          <Route path="/machine-templates/new" element={<MachineTemplateFormPage user={user} onLogout={handleLogout} />} />
-          <Route path="/machine-templates/:templateID" element={<MachineTemplateDetailPage user={user} onLogout={handleLogout} />} />
-          <Route path="/machine-templates/:templateID/edit" element={<MachineTemplateFormPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-profiles" element={<MachineProfilesListPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-profiles/new" element={<MachineProfileFormPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-profiles/:profileID" element={<MachineProfileDetailPage user={user} onLogout={handleLogout} />} />
+          <Route path="/machine-profiles/:profileID/edit" element={<MachineProfileFormPage user={user} onLogout={handleLogout} />} />
+          {/* Redirect old template URLs to profile URLs */}
+          <Route path="/machine-templates" element={<Navigate to="/machine-profiles" replace />} />
+          <Route path="/machine-templates/*" element={<Navigate to="/machine-profiles" replace />} />
           <Route
             path="/settings"
             element={

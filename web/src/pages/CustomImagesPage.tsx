@@ -9,12 +9,12 @@ import {
   createCustomImage,
   deleteCustomImage,
   listCustomImages,
-  listMachineTemplates,
+  listMachineProfiles,
   updateCustomImage,
 } from '@/lib/api'
 import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { MachineTemplateItem, User } from '@/lib/types'
+import type { MachineProfileItem, User } from '@/lib/types'
 
 type CustomImagesPageProps = {
   user: User | null
@@ -39,7 +39,7 @@ const emptyForm: ImageFormData = {
 
 export function CustomImagesPage({ user }: CustomImagesPageProps) {
   const [images, setImages] = useState<CustomImage[]>([])
-  const [templates, setTemplates] = useState<MachineTemplateItem[]>([])
+  const [profiles, setProfiles] = useState<MachineProfileItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -50,9 +50,9 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
 
   const refresh = async () => {
     try {
-      const [imgs, rts] = await Promise.all([listCustomImages(), listMachineTemplates()])
+      const [imgs, rts] = await Promise.all([listCustomImages(), listMachineProfiles()])
       setImages(imgs)
-      setTemplates(rts)
+      setProfiles(rts)
     } catch (e) {
       setError(messageFromError(e))
     } finally {
@@ -69,7 +69,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
   if (user == null) return <Navigate to="/login" replace />
   if (user.role !== 'admin') return <Navigate to="/" replace />
 
-  const filteredTemplates = templates.filter((r) => r.type === form.templateType)
+  const filteredProfiles = profiles.filter((r) => r.type === form.templateType)
 
   const handleSave = async () => {
     setSaving(true)
@@ -146,7 +146,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
     setForm((prev) => ({ ...prev, data: { ...prev.data, [key]: value } }))
   }
 
-  const toggleTemplate = (templateId: string) => {
+  const toggleProfile = (templateId: string) => {
     setForm((prev) => ({
       ...prev,
       templateIds: prev.templateIds.includes(templateId)
@@ -162,7 +162,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Admin</p>
             <h1 className="mt-2 text-2xl font-semibold text-foreground">Custom Images</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Manage custom machine images for templates.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Manage custom machine images for profiles.</p>
           </div>
           <Button onClick={handleCreate}>New image</Button>
         </header>
@@ -185,7 +185,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Template type</Label>
+                <Label>Provider type</Label>
                 <select
                   value={form.templateType}
                   onChange={(e) => setForm((p) => ({ ...p, templateType: e.target.value, data: {}, templateIds: [] }))}
@@ -241,16 +241,16 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                 </div>
               )}
 
-              {filteredTemplates.length > 0 && (
+              {filteredProfiles.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Associated templates</Label>
+                  <Label>Associated profiles</Label>
                   <div className="space-y-1">
-                    {filteredTemplates.map((rt) => (
+                    {filteredProfiles.map((rt) => (
                       <label key={rt.id} className="flex items-center gap-2 text-sm text-foreground">
                         <input
                           type="checkbox"
                           checked={form.templateIds.includes(rt.id)}
-                          onChange={() => toggleTemplate(rt.id)}
+                          onChange={() => toggleProfile(rt.id)}
                           className="rounded border-input"
                         />
                         {rt.name}
@@ -282,9 +282,9 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Template type</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Provider type</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Description</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Templates</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Profiles</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -297,7 +297,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                     <td className="px-4 py-3 text-muted-foreground">{img.description || '-'}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {img.associatedTemplateIds.length > 0
-                        ? img.associatedTemplateIds.map((rid) => templates.find((r) => r.id === rid)?.name ?? rid).join(', ')
+                        ? img.associatedTemplateIds.map((rid) => profiles.find((r) => r.id === rid)?.name ?? rid).join(', ')
                         : '-'}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{img.createdAt ? new Date(img.createdAt).toLocaleDateString() : '-'}</td>

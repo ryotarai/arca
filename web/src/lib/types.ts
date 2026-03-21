@@ -1,5 +1,5 @@
 import { Machine as MachineMessage } from '@/gen/arca/v1/machine_pb'
-import { type MachineExposure as MachineExposureMessage } from '@/gen/arca/v1/tunnel_pb'
+import { type MachineExposure as MachineExposureMessage } from '@/gen/arca/v1/exposure_pb'
 
 export type User = {
   id: string
@@ -54,9 +54,9 @@ export type MachineExposureConfig = {
   connectivity: 'private_ip' | 'public_ip' | ''
 }
 
-export type MachineTemplateType = 'libvirt' | 'gce' | 'lxd'
+export type MachineProfileType = 'libvirt' | 'gce' | 'lxd'
 
-export type MachineTemplateConfig =
+export type MachineProfileConfig =
   | {
       type: 'libvirt'
       uri: string
@@ -81,18 +81,18 @@ export type MachineTemplateConfig =
       startupScript: string
     }
 
-export type MachineTemplateSummary = {
+export type MachineProfileSummary = {
   id: string
   name: string
-  type: MachineTemplateType
+  type: MachineProfileType
   allowedMachineTypes: string[]
 }
 
-export type MachineTemplateItem = {
+export type MachineProfileItem = {
   id: string
   name: string
-  type: MachineTemplateType
-  config: MachineTemplateConfig
+  type: MachineProfileType
+  config: MachineProfileConfig
   exposure: MachineExposureConfig
   serverApiUrl: string
   autoStopTimeoutSeconds: number
@@ -100,3 +100,9 @@ export type MachineTemplateItem = {
   createdAt: number
   updatedAt: number
 }
+
+// Backward-compatible aliases for code that still references old names
+export type MachineTemplateType = MachineProfileType
+export type MachineTemplateConfig = MachineProfileConfig
+export type MachineTemplateSummary = MachineProfileSummary
+export type MachineTemplateItem = MachineProfileItem

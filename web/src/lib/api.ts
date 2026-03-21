@@ -10,6 +10,7 @@ import {
   StartOidcLoginRequestSchema,
 } from '@/gen/arca/v1/auth_pb'
 import {
+  ChangeMachineProfileRequestSchema,
   CreateMachineRequestSchema,
   DeleteMachineRequestSchema,
   GetMachineRequestSchema,
@@ -22,14 +23,14 @@ import {
   UpdateMachineTagsRequestSchema,
 } from '@/gen/arca/v1/machine_pb'
 import {
-  CreateMachineTemplateRequestSchema,
-  DeleteMachineTemplateRequestSchema,
-  ListAvailableMachineTemplatesRequestSchema,
-  ListMachineTemplatesRequestSchema,
-  MachineTemplateService,
-  MachineTemplateType,
-  UpdateMachineTemplateRequestSchema,
-} from '@/gen/arca/v1/machine_template_pb'
+  CreateMachineProfileRequestSchema,
+  DeleteMachineProfileRequestSchema,
+  ListAvailableProfilesRequestSchema,
+  ListMachineProfilesRequestSchema,
+  MachineProfileService,
+  MachineProfileType,
+  UpdateMachineProfileRequestSchema,
+} from '@/gen/arca/v1/machine_profile_pb'
 import {
   ListMachineExposuresRequestSchema,
   ExposureService,
@@ -89,10 +90,10 @@ import type {
   MachineExposureConfig,
   MachineExposureMethodType,
   ManagedUser,
-  MachineTemplateConfig,
-  MachineTemplateItem,
-  MachineTemplateType as MachineTemplateTypeLocal,
-  MachineTemplateSummary,
+  MachineProfileConfig,
+  MachineProfileItem,
+  MachineProfileType as MachineProfileTypeLocal,
+  MachineProfileSummary,
   SetupStatus,
   User,
 } from '@/lib/types'
@@ -104,7 +105,7 @@ const connectTransport = createConnectTransport({
 
 const authClient = createClient(AuthService, connectTransport)
 const machineClient = createClient(MachineService, connectTransport)
-const templateClient = createClient(MachineTemplateService, connectTransport)
+const profileClient = createClient(MachineProfileService, connectTransport)
 const exposureClient = createClient(ExposureService, connectTransport)
 const userClient = createClient(UserService, connectTransport)
 const sharingClient = createClient(SharingService, connectTransport)
@@ -332,8 +333,8 @@ export async function listMachines(options: PollingOptions = {}): Promise<Machin
   return response.machines
 }
 
-export async function createMachine(name: string, templateID: string, options?: Record<string, string>, customImageId?: string, tags?: string[]): Promise<Machine> {
-  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, templateId: templateID, options: options ?? {}, customImageId: customImageId ?? '', tags: tags ?? [] }))
+export async function createMachine(name: string, profileID: string, options?: Record<string, string>, customImageId?: string, tags?: string[]): Promise<Machine> {
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, profileId: profileID, options: options ?? {}, customImageId: customImageId ?? '', tags: tags ?? [] }))
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -407,15 +408,15 @@ export async function deleteMachine(id: string): Promise<void> {
   await machineClient.deleteMachine(create(DeleteMachineRequestSchema, { machineId: id }))
 }
 
-function templateTypeToProto(type: MachineTemplateTypeLocal): MachineTemplateType {
-  if (type === 'gce') return MachineTemplateType.GCE
-  if (type === 'lxd') return MachineTemplateType.LXD
-  return MachineTemplateType.LIBVIRT
+function profileTypeToProto(type: MachineProfileTypeLocal): MachineProfileType {
+  if (type === 'gce') return MachineProfileType.GCE
+  if (type === 'lxd') return MachineProfileType.LXD
+  return MachineProfileType.LIBVIRT
 }
 
-function templateTypeFromProto(type: MachineTemplateType): MachineTemplateTypeLocal {
-  if (type === MachineTemplateType.GCE) return 'gce'
-  if (type === MachineTemplateType.LXD) return 'lxd'
+function profileTypeFromProto(type: MachineProfileType): MachineProfileTypeLocal {
+  if (type === MachineProfileType.GCE) return 'gce'
+  if (type === MachineProfileType.LXD) return 'lxd'
   return 'libvirt'
 }
 
@@ -427,10 +428,10 @@ function machineExposureMethodToProto(_method: MachineExposureMethodType): numbe
   return 2
 }
 
-function toMachineTemplateItem(input: {
+function toMachineProfileItem(input: {
   id: string
   name: string
-  type: MachineTemplateType
+  type: MachineProfileType
   config?: {
     provider:
       | { case: 'libvirt'; value: { uri: string; network: string; storagePool: string; startupScript: string } }
@@ -450,10 +451,10 @@ function toMachineTemplateItem(input: {
   }
   createdAt: bigint
   updatedAt: bigint
-}): MachineTemplateItem {
-  const templateType = templateTypeFromProto(input.type)
-  let config: MachineTemplateConfig
-  if (templateType === 'gce') {
+}): MachineProfileItem {
+  const profileType = profileTypeFromProto(input.type)
+  let config: MachineProfileConfig
+  if (profileType === 'gce') {
     const gce = input.config?.provider.case === 'gce' ? input.config.provider.value : undefined
     config = {
       type: 'gce',
@@ -466,7 +467,7 @@ function toMachineTemplateItem(input: {
       diskSizeGb: Number(gce?.diskSizeGb ?? 0),
       allowedMachineTypes: gce?.allowedMachineTypes ?? [],
     }
-  } else if (templateType === 'lxd') {
+  } else if (profileType === 'lxd') {
     const lxd = input.config?.provider.case === 'lxd' ? input.config.provider.value : undefined
     config = {
       type: 'lxd',
@@ -494,7 +495,7 @@ function toMachineTemplateItem(input: {
   return {
     id: input.id,
     name: input.name,
-    type: templateType,
+    type: profileType,
     config,
     exposure,
     serverApiUrl: input.config?.serverApiUrl ?? '',
@@ -505,7 +506,7 @@ function toMachineTemplateItem(input: {
   }
 }
 
-function templateConfigPayload(type: MachineTemplateTypeLocal, config: MachineTemplateConfig, exposure?: MachineExposureConfig, serverApiUrl?: string, autoStopTimeoutSeconds?: number, agentPrompt?: string) {
+function profileConfigPayload(type: MachineProfileTypeLocal, config: MachineProfileConfig, exposure?: MachineExposureConfig, serverApiUrl?: string, autoStopTimeoutSeconds?: number, agentPrompt?: string) {
   let provider
   if (type === 'gce') {
     if (config.type !== 'gce') {
@@ -569,69 +570,83 @@ function templateConfigPayload(type: MachineTemplateTypeLocal, config: MachineTe
   return result
 }
 
-export async function listMachineTemplates(): Promise<MachineTemplateItem[]> {
-  const response = await templateClient.listMachineTemplates(create(ListMachineTemplatesRequestSchema))
-  return response.templates.map((template) => toMachineTemplateItem(template))
+export async function listMachineProfiles(): Promise<MachineProfileItem[]> {
+  const response = await profileClient.listMachineProfiles(create(ListMachineProfilesRequestSchema))
+  return response.profiles.map((profile) => toMachineProfileItem(profile))
 }
 
-export async function listAvailableMachineTemplates(): Promise<MachineTemplateSummary[]> {
-  const response = await templateClient.listAvailableMachineTemplates(create(ListAvailableMachineTemplatesRequestSchema))
-  return response.templates.map((template) => ({
-    id: template.id,
-    name: template.name,
-    type: templateTypeFromProto(template.type),
-    allowedMachineTypes: template.allowedMachineTypes,
+export async function listAvailableProfiles(): Promise<MachineProfileSummary[]> {
+  const response = await profileClient.listAvailableProfiles(create(ListAvailableProfilesRequestSchema))
+  return response.profiles.map((profile) => ({
+    id: profile.id,
+    name: profile.name,
+    type: profileTypeFromProto(profile.type),
+    allowedMachineTypes: profile.allowedMachineTypes,
   }))
 }
 
-export async function createMachineTemplate(
+export async function createMachineProfile(
   name: string,
-  type: MachineTemplateTypeLocal,
-  config: MachineTemplateConfig,
+  type: MachineProfileTypeLocal,
+  config: MachineProfileConfig,
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
   autoStopTimeoutSeconds?: number,
   agentPrompt?: string,
-): Promise<MachineTemplateItem> {
-  const response = await templateClient.createMachineTemplate(
-    create(CreateMachineTemplateRequestSchema, {
+): Promise<MachineProfileItem> {
+  const response = await profileClient.createMachineProfile(
+    create(CreateMachineProfileRequestSchema, {
       name,
-      type: templateTypeToProto(type),
-      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds, agentPrompt),
+      type: profileTypeToProto(type),
+      config: profileConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds, agentPrompt),
     }),
   )
-  if (response.template == null) {
+  if (response.profile == null) {
     throw new Error('request failed')
   }
-  return toMachineTemplateItem(response.template)
+  return toMachineProfileItem(response.profile)
 }
 
-export async function updateMachineTemplate(
-  templateID: string,
+// Backward-compatible aliases
+export const listMachineTemplates = listMachineProfiles
+export const listAvailableMachineTemplates = listAvailableProfiles
+
+export async function updateMachineProfile(
+  profileID: string,
   name: string,
-  type: MachineTemplateTypeLocal,
-  config: MachineTemplateConfig,
+  type: MachineProfileTypeLocal,
+  config: MachineProfileConfig,
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
   autoStopTimeoutSeconds?: number,
   agentPrompt?: string,
-): Promise<MachineTemplateItem> {
-  const response = await templateClient.updateMachineTemplate(
-    create(UpdateMachineTemplateRequestSchema, {
-      templateId: templateID,
+): Promise<MachineProfileItem> {
+  const response = await profileClient.updateMachineProfile(
+    create(UpdateMachineProfileRequestSchema, {
+      profileId: profileID,
       name,
-      type: templateTypeToProto(type),
-      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds, agentPrompt),
+      type: profileTypeToProto(type),
+      config: profileConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds, agentPrompt),
     }),
   )
-  if (response.template == null) {
+  if (response.profile == null) {
     throw new Error('request failed')
   }
-  return toMachineTemplateItem(response.template)
+  return toMachineProfileItem(response.profile)
 }
 
-export async function deleteMachineTemplate(templateID: string): Promise<void> {
-  await templateClient.deleteMachineTemplate(create(DeleteMachineTemplateRequestSchema, { templateId: templateID }))
+export async function deleteMachineProfile(profileID: string): Promise<void> {
+  await profileClient.deleteMachineProfile(create(DeleteMachineProfileRequestSchema, { profileId: profileID }))
+}
+
+export async function changeMachineProfile(machineID: string, profileID: string): Promise<Machine> {
+  const response = await machineClient.changeMachineProfile(
+    create(ChangeMachineProfileRequestSchema, { machineId: machineID, profileId: profileID }),
+  )
+  if (response.machine == null) {
+    throw new Error('request failed')
+  }
+  return response.machine
 }
 
 export async function getSetupStatus(): Promise<SetupStatus> {

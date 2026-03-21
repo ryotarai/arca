@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   getMachine,
-  listAvailableMachineTemplates,
+  listAvailableProfiles,
   listMachines,
   startMachine,
   stopMachine,
@@ -14,7 +14,7 @@ import { messageFromError } from '@/lib/errors'
 import { usePolling } from '@/hooks/use-polling'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { ListSkeleton } from '@/components/ListSkeleton'
-import type { Machine, MachineTemplateSummary, User } from '@/lib/types'
+import type { Machine, MachineProfileSummary, User } from '@/lib/types'
 
 type MachinesPageProps = {
   user: User | null
@@ -62,19 +62,19 @@ function StatusBadge({ status }: { status: string }) {
 
 export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '' }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
-  const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
+  const [profiles, setProfiles] = useState<MachineProfileSummary[]>([])
 
   const [actionError, setActionError] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
 
   const { loading, error: pollingError } = usePolling(
     useCallback(async () => {
-      const [items, templateItems] = await Promise.all([
+      const [items, profileItems] = await Promise.all([
         listMachines({ timeoutMs: pollingRequestTimeoutMs }),
-        listAvailableMachineTemplates(),
+        listAvailableProfiles(),
       ])
       setMachines(items)
-      setTemplates(templateItems)
+      setProfiles(profileItems)
     }, []),
     { intervalMs: pollingIntervalMs, enabled: user != null },
   )
@@ -168,9 +168,14 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
                               </span>
                             ))}
                           </div>
-                          <p className="text-xs text-muted-foreground">template: {templates.find((r) => r.id === machine.templateId)?.name ?? machine.templateId}</p>
+                          <p className="text-xs text-muted-foreground">profile: {profiles.find((r) => r.id === machine.profileId)?.name ?? machine.profileId}</p>
                           <div className="mt-1 flex items-center gap-2">
                             <StatusBadge status={machine.status} />
+                            {machine.restartNeeded && machine.status === 'running' && (
+                              <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
+                                Restart needed
+                              </span>
+                            )}
                           </div>
                           {machine.lastError != null && machine.lastError !== '' && (
                             <p className="text-xs text-red-300 break-all">error: {machine.lastError}</p>

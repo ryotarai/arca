@@ -4,11 +4,11 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { deleteMachineTemplate, listAvailableMachineTemplates, listMachineTemplates } from '@/lib/api'
+import { deleteMachineProfile, listAvailableProfiles, listMachineProfiles } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { MachineTemplateItem, MachineTemplateSummary, User } from '@/lib/types'
+import type { MachineProfileItem, MachineProfileSummary, User } from '@/lib/types'
 
-type MachineTemplateDetailPageProps = {
+type MachineProfileDetailPageProps = {
   user: User | null
   onLogout: () => Promise<void>
 }
@@ -20,19 +20,19 @@ function formatUnix(unix: number): string {
   return new Date(unix * 1000).toLocaleString()
 }
 
-export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDetailPageProps) {
-  const { templateID } = useParams()
+export function MachineProfileDetailPage({ user, onLogout }: MachineProfileDetailPageProps) {
+  const { profileID } = useParams()
   const navigate = useNavigate()
   const isAdmin = user?.role === 'admin'
-  const [template, setTemplate] = useState<MachineTemplateItem | null>(null)
-  const [summary, setSummary] = useState<MachineTemplateSummary | null>(null)
+  const [profile, setProfile] = useState<MachineProfileItem | null>(null)
+  const [summary, setSummary] = useState<MachineProfileSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
 
   useEffect(() => {
-    if (user == null || templateID == null || templateID === '') {
+    if (user == null || profileID == null || profileID === '') {
       return
     }
 
@@ -43,13 +43,13 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
       setError('')
       try {
         if (isAdmin) {
-          const items = await listMachineTemplates()
+          const items = await listMachineProfiles()
           if (cancelled) return
-          setTemplate(items.find((item) => item.id === templateID) ?? null)
+          setProfile(items.find((item) => item.id === profileID) ?? null)
         } else {
-          const items = await listAvailableMachineTemplates()
+          const items = await listAvailableProfiles()
           if (cancelled) return
-          setSummary(items.find((item) => item.id === templateID) ?? null)
+          setSummary(items.find((item) => item.id === profileID) ?? null)
         }
       } catch (e) {
         if (!cancelled) {
@@ -67,19 +67,19 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
     return () => {
       cancelled = true
     }
-  }, [user, templateID, isAdmin])
+  }, [user, profileID, isAdmin])
 
   if (user == null) {
     return <Navigate to="/login" replace />
   }
-  if (templateID == null || templateID === '') {
-    return <Navigate to={isAdmin ? '/machine-templates' : '/machines'} replace />
+  if (profileID == null || profileID === '') {
+    return <Navigate to={isAdmin ? '/machine-profiles' : '/machines'} replace />
   }
 
   const handleDelete = () => {
     setConfirmAction({
-      title: 'Delete template',
-      description: 'Are you sure you want to delete this template?',
+      title: 'Delete profile',
+      description: 'Are you sure you want to delete this profile?',
       confirmLabel: 'Delete',
       variant: 'destructive',
       onConfirm: () => {
@@ -87,8 +87,8 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
           setDeleting(true)
           setError('')
           try {
-            await deleteMachineTemplate(templateID)
-            navigate('/machine-templates')
+            await deleteMachineProfile(profileID)
+            navigate('/machine-profiles')
           } catch (err) {
             setError(messageFromError(err))
           } finally {
@@ -105,14 +105,14 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
         <header className="flex flex-col items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-6 md:flex-row md:items-center">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
-            <h1 className="mt-2 text-2xl font-semibold text-foreground">Template detail</h1>
-            <p className="mt-1 text-xs text-muted-foreground">{templateID}</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">Profile detail</h1>
+            <p className="mt-1 text-xs text-muted-foreground">{profileID}</p>
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && (
               <>
                 <Button asChild variant="secondary">
-                  <Link to={`/machine-templates/${templateID}/edit`}>
+                  <Link to={`/machine-profiles/${profileID}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Edit
                   </Link>
@@ -124,62 +124,62 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
               </>
             )}
             <Button asChild type="button" variant="secondary">
-              <Link to={isAdmin ? '/machine-templates' : '/machines'}>Back</Link>
+              <Link to={isAdmin ? '/machine-profiles' : '/machines'}>Back</Link>
             </Button>
           </div>
         </header>
 
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl">Template metadata</CardTitle>
-            <CardDescription>Configuration and timestamps for this template entry.</CardDescription>
+            <CardTitle className="text-xl">Profile metadata</CardTitle>
+            <CardDescription>Configuration and timestamps for this profile.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-6 pt-3">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : isAdmin && template != null ? (
+            ) : isAdmin && profile != null ? (
               <>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="text-lg font-semibold text-foreground">{template.name}</p>
+                  <p className="text-lg font-semibold text-foreground">{profile.name}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Type</p>
-                  <p className="text-sm text-foreground">{template.type}</p>
+                  <p className="text-sm text-muted-foreground">Provider type</p>
+                  <p className="text-sm text-foreground">{profile.type}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="text-sm text-foreground">{formatUnix(template.createdAt)}</p>
+                  <p className="text-sm text-foreground">{formatUnix(profile.createdAt)}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Updated</p>
-                  <p className="text-sm text-foreground">{formatUnix(template.updatedAt)}</p>
+                  <p className="text-sm text-foreground">{formatUnix(profile.updatedAt)}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Machine exposure</p>
                   <p className="text-sm text-foreground">Method: Proxy via Server</p>
-                  {template.exposure.connectivity !== '' && <p className="text-sm text-foreground">Connectivity: {template.exposure.connectivity}</p>}
+                  {profile.exposure.connectivity !== '' && <p className="text-sm text-foreground">Connectivity: {profile.exposure.connectivity}</p>}
                 </div>
-                {template.config.type === 'libvirt' ? (
+                {profile.config.type === 'libvirt' ? (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Config</p>
-                    <p className="text-sm text-foreground">URI: {template.config.uri}</p>
-                    <p className="text-sm text-foreground">Network: {template.config.network}</p>
-                    <p className="text-sm text-foreground">Storage pool: {template.config.storagePool}</p>
+                    <p className="text-sm text-foreground">URI: {profile.config.uri}</p>
+                    <p className="text-sm text-foreground">Network: {profile.config.network}</p>
+                    <p className="text-sm text-foreground">Storage pool: {profile.config.storagePool}</p>
                   </div>
-                ) : template.config.type === 'lxd' ? (
+                ) : profile.config.type === 'lxd' ? (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Config</p>
-                    <p className="text-sm text-foreground">Endpoint: {template.config.endpoint}</p>
+                    <p className="text-sm text-foreground">Endpoint: {profile.config.endpoint}</p>
                   </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Config</p>
-                    <p className="text-sm text-foreground">Project: {template.config.project}</p>
-                    <p className="text-sm text-foreground">Zone: {template.config.zone}</p>
-                    <p className="text-sm text-foreground">Network: {template.config.network}</p>
-                    <p className="text-sm text-foreground">Subnetwork: {template.config.subnetwork}</p>
-                    <p className="text-sm text-foreground">Service account email: {template.config.serviceAccountEmail}</p>
+                    <p className="text-sm text-foreground">Project: {profile.config.project}</p>
+                    <p className="text-sm text-foreground">Zone: {profile.config.zone}</p>
+                    <p className="text-sm text-foreground">Network: {profile.config.network}</p>
+                    <p className="text-sm text-foreground">Subnetwork: {profile.config.subnetwork}</p>
+                    <p className="text-sm text-foreground">Service account email: {profile.config.serviceAccountEmail}</p>
                   </div>
                 )}
               </>
@@ -190,12 +190,12 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
                   <p className="text-lg font-semibold text-foreground">{summary.name}</p>
                 </div>
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm text-muted-foreground">Type</p>
+                  <p className="text-sm text-muted-foreground">Provider type</p>
                   <p className="text-sm text-foreground">{summary.type}</p>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Template not found.</p>
+              <p className="text-sm text-muted-foreground">Profile not found.</p>
             )}
 
             {error !== '' && (

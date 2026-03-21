@@ -9,7 +9,7 @@ import {
   deleteMachine,
   listMachineEvents,
   listMachineExposures,
-  listAvailableMachineTemplates,
+  listAvailableProfiles,
   listMachineAccessRequests,
   resolveMachineAccessRequest,
   startMachine,
@@ -23,7 +23,7 @@ import { usePolling } from '@/hooks/use-polling'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ListSkeleton } from '@/components/ListSkeleton'
-import type { Machine, MachineEvent, MachineTemplateSummary, User } from '@/lib/types'
+import type { Machine, MachineEvent, MachineProfileSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
   user: User | null
@@ -214,7 +214,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const navigate = useNavigate()
   const [machine, setMachine] = useState<Machine | null>(null)
   const [events, setEvents] = useState<MachineEvent[]>([])
-  const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
+  const [profiles, setProfiles] = useState<MachineProfileSummary[]>([])
   const [editingMachineType, setEditingMachineType] = useState(false)
   const [editMachineType, setEditMachineType] = useState('')
   const [savingMachineType, setSavingMachineType] = useState(false)
@@ -243,15 +243,15 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const { loading, error: pollingError } = usePolling(
     useCallback(async () => {
       if (machineID == null || machineID === '') return
-      const [item, eventItems, , templateItems] = await Promise.all([
+      const [item, eventItems, , profileItems] = await Promise.all([
         getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
         listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
         listMachineExposures(machineID),
-        listAvailableMachineTemplates(),
+        listAvailableProfiles(),
       ])
       setMachine(item)
       setEvents(eventItems)
-      setTemplates(templateItems)
+      setProfiles(profileItems)
       // Fetch access requests for admins
       if (item.userRole === 'admin') {
         try {
@@ -411,6 +411,22 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
 
         {!loading && machine != null && (
           <>
+            {/* Restart-needed banner */}
+            {machine.restartNeeded && isAdmin && (
+              <div className="flex items-center justify-between rounded-lg border border-amber-400/30 bg-amber-500/12 px-4 py-3">
+                <p className="text-sm text-amber-200">Profile updated. Changes will apply on next restart.</p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void handleRestart()}
+                  disabled={isTransitioning}
+                >
+                  Restart
+                </Button>
+              </div>
+            )}
+
             {/* Machine information card */}
             <Card className="py-0 shadow-sm">
               <CardHeader className="space-y-2 p-6 pb-3">
@@ -419,19 +435,19 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
               <CardContent className="space-y-4 p-6 pt-3">
                 {isAdmin && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-                    <p className="text-sm text-muted-foreground">Template</p>
-                    {machine.templateId === '' ? (
+                    <p className="text-sm text-muted-foreground">Profile</p>
+                    {machine.profileId === '' ? (
                       <p className="text-sm text-foreground">Unassigned</p>
                     ) : (
                       <Link
-                        to={`/machine-templates/${machine.templateId}`}
+                        to={`/machine-profiles/${machine.profileId}`}
                         className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
                       >
-                        {templates.find((r) => r.id === machine.templateId)?.name ?? machine.templateId}
+                        {profiles.find((r) => r.id === machine.profileId)?.name ?? machine.profileId}
                       </Link>
                     )}
-                    {machine.templateType && (
-                      <p className="text-xs text-muted-foreground">Type: {machine.templateType}</p>
+                    {machine.providerType && (
+                      <p className="text-xs text-muted-foreground">Provider: {machine.providerType}</p>
                     )}
                   </div>
                 )}
@@ -496,7 +512,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                   )}
                 </div>
                 {(() => {
-                  const rt = templates.find((r) => r.id === machine.templateId)
+                  const rt = profiles.find((r) => r.id === machine.profileId)
                   if (rt == null || rt.type !== 'gce') return null
                   const currentMT = machine.options?.machine_type || (rt.allowedMachineTypes ?? [])[0] || 'e2-standard-2'
                   const isStopped = machine.status === 'stopped'
