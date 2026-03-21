@@ -46,7 +46,8 @@ function resourceLink(resourceType: string, resourceId: string): string | null {
     case 'machine':
       return `/machines/${resourceId}`
     case 'template':
-      return `/machine-templates/${resourceId}`
+    case 'profile':
+      return `/machine-profiles/${resourceId}`
     default:
       return null
   }
