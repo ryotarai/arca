@@ -61,8 +61,9 @@ If the worker crashes mid-job, the job lease expires and another worker retries.
 
 ### Timeouts
 
-- Overall imaging job TTL: 15 minutes.
+- Overall imaging job TTL: 20 minutes.
 - Per-step context timeouts: arcad prepare-for-image 60s, stop 90s, snapshot 10m (GCE image creation can take several minutes), restart 4m.
+- Per-step timeouts are capped by remaining job TTL.
 
 ## Exclusion Control
 
@@ -72,7 +73,7 @@ If the worker crashes mid-job, the job lease expires and another worker retries.
 
 - Set to `'create_image'` when imaging begins. Cleared to `NULL` on completion or failure.
 - API handlers for `StartMachine`, `StopMachine`, `DeleteMachine` check `locked_operation IS NOT NULL` and reject with a descriptive error.
-- The reconcile sweep query is updated to add `AND locked_operation IS NULL`, preventing the reconciler from interfering with locked machines.
+- The reconcile sweep query is updated to add `AND locked_operation IS NULL`, preventing the reconciler from interfering with locked machines. The `autoStopMachines` sweep must also skip locked machines.
 - This pattern is extensible for future exclusive operations (e.g., resize, migrate).
 
 ### Additional Checks
@@ -90,9 +91,9 @@ Authorization: Bearer <machine_token>
 Response: 200 OK on success
 ```
 
-Cleanup steps (all completed before responding):
+Cleanup steps (all completed before responding). Note: arcad itself continues running to complete the cleanup and return the response. It is terminated later when the server stops the machine.
 
-1. Stop arca services (shelley, ttyd).
+1. Stop other arca services (shelley, ttyd) — arcad itself remains running.
 2. Remove `/etc/arca/arcad.env` (tokens, machine ID, control plane URL).
 3. Remove arcad state files.
 4. Run `cloud-init clean` (clears `/var/lib/cloud/`, enables re-run on next boot).
@@ -109,6 +110,16 @@ This is the minimum required cleanup for arca-specific security (tokens, keys, m
 ### Backward Compatibility
 
 Older arcad versions will not have the `/api/prepare-for-image` endpoint. If the server receives a 404 response, the job fails with a clear error message indicating that the arcad version does not support image creation. Proceeding without cleanup would leave sensitive data (tokens, keys) in the image.
+
+## Server-to-Arcad Communication
+
+The worker calls arcad's HTTP API inside the machine. This is a new communication direction (normally arcad calls the server).
+
+- **Machine IP**: obtained via `runtime.GetMachineInfo()` (LXD: `lxc list --format=json`, GCE: instance metadata).
+- **Port**: arcad listens on port 21032 (existing internal API port used for readiness checks).
+- **Auth**: `Authorization: Bearer <machine_token>` (token stored in the machines DB table).
+- **Network**: direct connection over the private network (LXD bridge `10.200.0.0/24`, GCE VPC).
+- **TLS**: plain HTTP (arcad's internal API is not TLS-enabled; traffic stays on private network).
 
 ## Recovery After Imaging
 
@@ -139,6 +150,7 @@ Uses `lxc` CLI (consistent with existing codebase):
 
 ```
 lxc publish {containerName} --alias {imageName}
+lxc image info {imageName} --format=json   # to reliably retrieve fingerprint
 ```
 
 Returned data:
@@ -146,7 +158,7 @@ Returned data:
 {"image_alias": "{imageName}", "image_fingerprint": "{fingerprint}"}
 ```
 
-The fingerprint is parsed from `lxc publish` output, providing a stable reference even if the alias is later reassigned.
+The fingerprint is retrieved via `lxc image info --format=json` after publish (more reliable than parsing `lxc publish` output across LXD versions).
 
 ### GCE
 
@@ -161,7 +173,7 @@ Returned data:
 {"image_project": "{project}", "image_name": "{imageName}"}
 ```
 
-GCE image resolution: `resolveImage()` is extended to support `custom_image_image_name`. When set, the image is resolved as `projects/{project}/global/images/{name}` (specific image), as opposed to the existing `image_family` path which resolves as `projects/{project}/global/images/family/{family}` (latest in family).
+GCE image resolution: `resolveImage()` is extended to return a full source image URL. When `custom_image_image_name` is set, the URL is formatted as `projects/{project}/global/images/{name}` (specific image). The existing `image_family` path formats as `projects/{project}/global/images/family/{family}` (latest in family). The `instanceSpec()` function must use the returned URL directly rather than assuming the family format.
 
 ### Idempotency
 
@@ -242,7 +254,9 @@ ALTER TABLE machine_jobs ADD COLUMN metadata_json TEXT;
 - `description`: generic job description column.
 - `metadata_json`: job-type-specific data. For `create_image`: `{"image_name": "..."}`. Updated with `{"image_name": "...", "custom_image_id": "..."}` on success.
 
-The CHECK constraint on `kind` must be updated to include `'create_image'`. SQLite requires table recreation for CHECK constraint changes.
+The `MachineJob` Go struct and `ClaimNextMachineJob` query must be extended to include `description` and `metadata_json` fields so the worker can access them.
+
+The CHECK constraint on `kind` must be updated to include `'create_image'`. SQLite does not support `ALTER CONSTRAINT`, so the migration must recreate the `machine_jobs` table (create new table → copy data → drop old → rename). This is a distinct migration task requiring careful testing.
 
 ### Reconcile Query Update
 
@@ -293,3 +307,9 @@ The following event types are emitted during the imaging flow for progress visib
 - `imaging_restarting`: machine restart initiated.
 - `imaging_completed`: image created and machine recovered.
 - `imaging_failed`: error at any step (includes error details).
+
+## Out of Scope
+
+- **Libvirt runtime**: returns `ErrNotSupported`. Can be added later.
+- **Provider-level image deletion**: when a custom_images record is deleted via the existing API, the underlying LXD/GCE image is not cleaned up. Provider-side cleanup is a future enhancement.
+- **General system sanitization**: the arcad cleanup covers arca-specific security requirements only. Full system sanitization (logs, cached credentials from user tools) is the user's responsibility before image creation.
