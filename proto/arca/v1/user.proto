@@ -20,6 +20,8 @@ rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
   rpc DuplicateUserLLMModel(DuplicateUserLLMModelRequest) returns (DuplicateUserLLMModelResponse);
   rpc GetUserStartupScript(GetUserStartupScriptRequest) returns (GetUserStartupScriptResponse);
   rpc UpdateUserStartupScript(UpdateUserStartupScriptRequest) returns (UpdateUserStartupScriptResponse);
+  rpc GetUserAgentPrompt(GetUserAgentPromptRequest) returns (GetUserAgentPromptResponse);
+  rpc UpdateUserAgentPrompt(UpdateUserAgentPromptRequest) returns (UpdateUserAgentPromptResponse);
 }
 
 message ManagedUser {
@@ -160,4 +162,18 @@ message UpdateUserStartupScriptRequest {
 
 message UpdateUserStartupScriptResponse {
   string startup_script = 1;
+}
+
+message GetUserAgentPromptRequest {}
+
+message GetUserAgentPromptResponse {
+  string agent_prompt = 1;
+}
+
+message UpdateUserAgentPromptRequest {
+  string agent_prompt = 1;
+}
+
+message UpdateUserAgentPromptResponse {
+  string agent_prompt = 1;
 }

@@ -13,7 +13,7 @@ test.describe('user settings', () => {
     await page.goto('/settings')
     await expect(page.getByText('Startup script', { exact: true })).toBeVisible()
 
-    const textarea = page.locator('textarea')
+    const textarea = page.getByPlaceholder('#!/bin/bash')
     await textarea.fill('echo hello')
     await page.getByRole('button', { name: 'Save startup script' }).click()
     await expect(page.getByText('Startup script updated.')).toBeVisible()

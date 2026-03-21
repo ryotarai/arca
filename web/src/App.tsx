@@ -45,6 +45,7 @@ export function App() {
     iapAutoProvisioning: false,
     oidcAutoProvisioning: false,
     serverDomain: '',
+    agentPrompt: '',
   })
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export function App() {
                   iapAutoProvisioning: false,
                   oidcAutoProvisioning: false,
                   serverDomain: '',
+                  agentPrompt: '',
                 })
               }
             />

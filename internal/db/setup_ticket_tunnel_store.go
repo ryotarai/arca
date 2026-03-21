@@ -37,6 +37,7 @@ type SetupState struct {
 	IAPAutoProvisioning            bool
 	OIDCAutoProvisioning           bool
 	ServerDomain                   string
+	AgentPrompt                    string
 	UpdatedAtUnix                  int64
 }
 
@@ -108,6 +109,10 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
 	}
+	agentPrompt, err := s.getMetaValue(ctx, setupMetaAgentPrompt)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return SetupState{}, err
+	}
 
 	hasAdmin, err := s.HasAdminUser(ctx)
 	if err != nil {
@@ -141,6 +146,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			IAPAutoProvisioning:            iapAutoProvisioning,
 			OIDCAutoProvisioning:           oidcAutoProvisioning,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
+			AgentPrompt:                    agentPrompt,
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	case DriverPostgres:
@@ -169,6 +175,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 			IAPAutoProvisioning:            iapAutoProvisioning,
 			OIDCAutoProvisioning:           oidcAutoProvisioning,
 			ServerDomain:                   strings.TrimSpace(serverDomain),
+			AgentPrompt:                    agentPrompt,
 			UpdatedAtUnix:                  state.UpdatedAt,
 		}, nil
 	default:
@@ -251,7 +258,10 @@ func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	if err := s.upsertMetaValue(ctx, setupMetaOIDCAutoProvisioning, boolMetaValue(state.OIDCAutoProvisioning)); err != nil {
 		return err
 	}
-	return s.upsertMetaValue(ctx, setupMetaServerDomain, strings.TrimSpace(state.ServerDomain))
+	if err := s.upsertMetaValue(ctx, setupMetaServerDomain, strings.TrimSpace(state.ServerDomain)); err != nil {
+		return err
+	}
+	return s.upsertMetaValue(ctx, setupMetaAgentPrompt, state.AgentPrompt)
 }
 
 func (s *Store) GetSetupPassword(ctx context.Context) (string, error) {
@@ -283,6 +293,7 @@ const setupMetaIAPAudience = "setup.iap.audience"
 const setupMetaIAPAutoProvisioning = "setup.iap.auto_provisioning"
 const setupMetaOIDCAutoProvisioning = "setup.oidc.auto_provisioning"
 const setupMetaServerDomain = "setup.server_domain"
+const setupMetaAgentPrompt = "agent_prompt"
 
 func parseBoolMetaValue(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))

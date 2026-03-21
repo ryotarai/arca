@@ -33,6 +33,10 @@ func (s *stubControlPlaneClient) GetMachineLLMModels(_ context.Context) ([]Machi
 	return nil, nil
 }
 
+func (s *stubControlPlaneClient) GetMachineAgentGuideline(_ context.Context) (string, error) {
+	return "", nil
+}
+
 func (s *stubControlPlaneClient) AuthorizeURL(_ string) string {
 	return ""
 }

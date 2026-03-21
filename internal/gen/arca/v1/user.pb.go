@@ -1521,6 +1521,174 @@ func (x *UpdateUserStartupScriptResponse) GetStartupScript() string {
 	return ""
 }
 
+type GetUserAgentPromptRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserAgentPromptRequest) Reset() {
+	*x = GetUserAgentPromptRequest{}
+	mi := &file_arca_v1_user_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserAgentPromptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserAgentPromptRequest) ProtoMessage() {}
+
+func (x *GetUserAgentPromptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserAgentPromptRequest.ProtoReflect.Descriptor instead.
+func (*GetUserAgentPromptRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{29}
+}
+
+type GetUserAgentPromptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgentPrompt   string                 `protobuf:"bytes,1,opt,name=agent_prompt,json=agentPrompt,proto3" json:"agent_prompt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserAgentPromptResponse) Reset() {
+	*x = GetUserAgentPromptResponse{}
+	mi := &file_arca_v1_user_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserAgentPromptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserAgentPromptResponse) ProtoMessage() {}
+
+func (x *GetUserAgentPromptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserAgentPromptResponse.ProtoReflect.Descriptor instead.
+func (*GetUserAgentPromptResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetUserAgentPromptResponse) GetAgentPrompt() string {
+	if x != nil {
+		return x.AgentPrompt
+	}
+	return ""
+}
+
+type UpdateUserAgentPromptRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgentPrompt   string                 `protobuf:"bytes,1,opt,name=agent_prompt,json=agentPrompt,proto3" json:"agent_prompt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserAgentPromptRequest) Reset() {
+	*x = UpdateUserAgentPromptRequest{}
+	mi := &file_arca_v1_user_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserAgentPromptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserAgentPromptRequest) ProtoMessage() {}
+
+func (x *UpdateUserAgentPromptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserAgentPromptRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserAgentPromptRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *UpdateUserAgentPromptRequest) GetAgentPrompt() string {
+	if x != nil {
+		return x.AgentPrompt
+	}
+	return ""
+}
+
+type UpdateUserAgentPromptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AgentPrompt   string                 `protobuf:"bytes,1,opt,name=agent_prompt,json=agentPrompt,proto3" json:"agent_prompt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserAgentPromptResponse) Reset() {
+	*x = UpdateUserAgentPromptResponse{}
+	mi := &file_arca_v1_user_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserAgentPromptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserAgentPromptResponse) ProtoMessage() {}
+
+func (x *UpdateUserAgentPromptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserAgentPromptResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserAgentPromptResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *UpdateUserAgentPromptResponse) GetAgentPrompt() string {
+	if x != nil {
+		return x.AgentPrompt
+	}
+	return ""
+}
+
 var File_arca_v1_user_proto protoreflect.FileDescriptor
 
 const file_arca_v1_user_proto_rawDesc = "" +
@@ -1623,7 +1791,15 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x1eUpdateUserStartupScriptRequest\x12%\n" +
 	"\x0estartup_script\x18\x01 \x01(\tR\rstartupScript\"H\n" +
 	"\x1fUpdateUserStartupScriptResponse\x12%\n" +
-	"\x0estartup_script\x18\x01 \x01(\tR\rstartupScript2\xa7\t\n" +
+	"\x0estartup_script\x18\x01 \x01(\tR\rstartupScript\"\x1b\n" +
+	"\x19GetUserAgentPromptRequest\"?\n" +
+	"\x1aGetUserAgentPromptResponse\x12!\n" +
+	"\fagent_prompt\x18\x01 \x01(\tR\vagentPrompt\"A\n" +
+	"\x1cUpdateUserAgentPromptRequest\x12!\n" +
+	"\fagent_prompt\x18\x01 \x01(\tR\vagentPrompt\"B\n" +
+	"\x1dUpdateUserAgentPromptResponse\x12!\n" +
+	"\fagent_prompt\x18\x01 \x01(\tR\vagentPrompt2\xee\n" +
+	"\n" +
 	"\vUserService\x12B\n" +
 	"\tListUsers\x12\x19.arca.v1.ListUsersRequest\x1a\x1a.arca.v1.ListUsersResponse\x12E\n" +
 	"\n" +
@@ -1638,7 +1814,9 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x12DeleteUserLLMModel\x12\".arca.v1.DeleteUserLLMModelRequest\x1a#.arca.v1.DeleteUserLLMModelResponse\x12f\n" +
 	"\x15DuplicateUserLLMModel\x12%.arca.v1.DuplicateUserLLMModelRequest\x1a&.arca.v1.DuplicateUserLLMModelResponse\x12c\n" +
 	"\x14GetUserStartupScript\x12$.arca.v1.GetUserStartupScriptRequest\x1a%.arca.v1.GetUserStartupScriptResponse\x12l\n" +
-	"\x17UpdateUserStartupScript\x12'.arca.v1.UpdateUserStartupScriptRequest\x1a(.arca.v1.UpdateUserStartupScriptResponseB\x8b\x01\n" +
+	"\x17UpdateUserStartupScript\x12'.arca.v1.UpdateUserStartupScriptRequest\x1a(.arca.v1.UpdateUserStartupScriptResponse\x12]\n" +
+	"\x12GetUserAgentPrompt\x12\".arca.v1.GetUserAgentPromptRequest\x1a#.arca.v1.GetUserAgentPromptResponse\x12f\n" +
+	"\x15UpdateUserAgentPrompt\x12%.arca.v1.UpdateUserAgentPromptRequest\x1a&.arca.v1.UpdateUserAgentPromptResponseB\x8b\x01\n" +
 	"\vcom.arca.v1B\tUserProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -1653,7 +1831,7 @@ func file_arca_v1_user_proto_rawDescGZIP() []byte {
 	return file_arca_v1_user_proto_rawDescData
 }
 
-var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_arca_v1_user_proto_goTypes = []any{
 	(*ManagedUser)(nil),                     // 0: arca.v1.ManagedUser
 	(*ListUsersRequest)(nil),                // 1: arca.v1.ListUsersRequest
@@ -1684,13 +1862,17 @@ var file_arca_v1_user_proto_goTypes = []any{
 	(*GetUserStartupScriptResponse)(nil),    // 26: arca.v1.GetUserStartupScriptResponse
 	(*UpdateUserStartupScriptRequest)(nil),  // 27: arca.v1.UpdateUserStartupScriptRequest
 	(*UpdateUserStartupScriptResponse)(nil), // 28: arca.v1.UpdateUserStartupScriptResponse
-	(*User)(nil),                            // 29: arca.v1.User
+	(*GetUserAgentPromptRequest)(nil),       // 29: arca.v1.GetUserAgentPromptRequest
+	(*GetUserAgentPromptResponse)(nil),      // 30: arca.v1.GetUserAgentPromptResponse
+	(*UpdateUserAgentPromptRequest)(nil),    // 31: arca.v1.UpdateUserAgentPromptRequest
+	(*UpdateUserAgentPromptResponse)(nil),   // 32: arca.v1.UpdateUserAgentPromptResponse
+	(*User)(nil),                            // 33: arca.v1.User
 }
 var file_arca_v1_user_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.ListUsersResponse.users:type_name -> arca.v1.ManagedUser
 	0,  // 1: arca.v1.CreateUserResponse.user:type_name -> arca.v1.ManagedUser
 	0,  // 2: arca.v1.IssueUserSetupTokenResponse.user:type_name -> arca.v1.ManagedUser
-	29, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
+	33, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
 	0,  // 4: arca.v1.UpdateUserRoleResponse.user:type_name -> arca.v1.ManagedUser
 	13, // 5: arca.v1.SearchUsersResponse.users:type_name -> arca.v1.UserSearchResult
 	14, // 6: arca.v1.ListUserLLMModelsResponse.models:type_name -> arca.v1.LLMModel
@@ -1710,21 +1892,25 @@ var file_arca_v1_user_proto_depIdxs = []int32{
 	23, // 20: arca.v1.UserService.DuplicateUserLLMModel:input_type -> arca.v1.DuplicateUserLLMModelRequest
 	25, // 21: arca.v1.UserService.GetUserStartupScript:input_type -> arca.v1.GetUserStartupScriptRequest
 	27, // 22: arca.v1.UserService.UpdateUserStartupScript:input_type -> arca.v1.UpdateUserStartupScriptRequest
-	2,  // 23: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
-	4,  // 24: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
-	6,  // 25: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
-	8,  // 26: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
-	10, // 27: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
-	12, // 28: arca.v1.UserService.SearchUsers:output_type -> arca.v1.SearchUsersResponse
-	16, // 29: arca.v1.UserService.ListUserLLMModels:output_type -> arca.v1.ListUserLLMModelsResponse
-	18, // 30: arca.v1.UserService.CreateUserLLMModel:output_type -> arca.v1.CreateUserLLMModelResponse
-	20, // 31: arca.v1.UserService.UpdateUserLLMModel:output_type -> arca.v1.UpdateUserLLMModelResponse
-	22, // 32: arca.v1.UserService.DeleteUserLLMModel:output_type -> arca.v1.DeleteUserLLMModelResponse
-	24, // 33: arca.v1.UserService.DuplicateUserLLMModel:output_type -> arca.v1.DuplicateUserLLMModelResponse
-	26, // 34: arca.v1.UserService.GetUserStartupScript:output_type -> arca.v1.GetUserStartupScriptResponse
-	28, // 35: arca.v1.UserService.UpdateUserStartupScript:output_type -> arca.v1.UpdateUserStartupScriptResponse
-	23, // [23:36] is the sub-list for method output_type
-	10, // [10:23] is the sub-list for method input_type
+	29, // 23: arca.v1.UserService.GetUserAgentPrompt:input_type -> arca.v1.GetUserAgentPromptRequest
+	31, // 24: arca.v1.UserService.UpdateUserAgentPrompt:input_type -> arca.v1.UpdateUserAgentPromptRequest
+	2,  // 25: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
+	4,  // 26: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
+	6,  // 27: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
+	8,  // 28: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
+	10, // 29: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
+	12, // 30: arca.v1.UserService.SearchUsers:output_type -> arca.v1.SearchUsersResponse
+	16, // 31: arca.v1.UserService.ListUserLLMModels:output_type -> arca.v1.ListUserLLMModelsResponse
+	18, // 32: arca.v1.UserService.CreateUserLLMModel:output_type -> arca.v1.CreateUserLLMModelResponse
+	20, // 33: arca.v1.UserService.UpdateUserLLMModel:output_type -> arca.v1.UpdateUserLLMModelResponse
+	22, // 34: arca.v1.UserService.DeleteUserLLMModel:output_type -> arca.v1.DeleteUserLLMModelResponse
+	24, // 35: arca.v1.UserService.DuplicateUserLLMModel:output_type -> arca.v1.DuplicateUserLLMModelResponse
+	26, // 36: arca.v1.UserService.GetUserStartupScript:output_type -> arca.v1.GetUserStartupScriptResponse
+	28, // 37: arca.v1.UserService.UpdateUserStartupScript:output_type -> arca.v1.UpdateUserStartupScriptResponse
+	30, // 38: arca.v1.UserService.GetUserAgentPrompt:output_type -> arca.v1.GetUserAgentPromptResponse
+	32, // 39: arca.v1.UserService.UpdateUserAgentPrompt:output_type -> arca.v1.UpdateUserAgentPromptResponse
+	25, // [25:40] is the sub-list for method output_type
+	10, // [10:25] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -1742,7 +1928,7 @@ func file_arca_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_user_proto_rawDesc), len(file_arca_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

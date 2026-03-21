@@ -50,6 +50,10 @@ func (s *proxyStubControlPlane) GetMachineLLMModels(_ context.Context) ([]Machin
 	return nil, nil
 }
 
+func (s *proxyStubControlPlane) GetMachineAgentGuideline(_ context.Context) (string, error) {
+	return "", nil
+}
+
 func (s *proxyStubControlPlane) AuthorizeURL(target string) string {
 	return "https://control.example/auth/authorize?target=" + target
 }

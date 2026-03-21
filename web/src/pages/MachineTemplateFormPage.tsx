@@ -36,6 +36,7 @@ type TemplateFormState = {
   exposureConnectivity: 'private_ip' | 'public_ip' | ''
   serverApiUrl: string
   autoStopTimeoutHours: string
+  agentPrompt: string
 }
 
 const templateNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
@@ -64,6 +65,7 @@ function emptyTemplateForm(): TemplateFormState {
     exposureConnectivity: '',
     serverApiUrl: '',
     autoStopTimeoutHours: '',
+    agentPrompt: '',
   }
 }
 
@@ -175,6 +177,7 @@ function fillFormFromTemplate(template: MachineTemplateItem): TemplateFormState 
     exposureConnectivity: template.exposure.connectivity,
     serverApiUrl: template.serverApiUrl,
     autoStopTimeoutHours: template.autoStopTimeoutSeconds > 0 ? String(template.autoStopTimeoutSeconds / 3600) : '',
+    agentPrompt: template.agentPrompt ?? '',
   } as const
   if (template.type === 'gce') {
     return {
@@ -291,11 +294,12 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
       const serverApiUrl = form.serverApiUrl.trim() || undefined
       const autoStopHours = parseFloat(form.autoStopTimeoutHours.trim())
       const autoStopTimeoutSeconds = autoStopHours > 0 ? Math.round(autoStopHours * 3600) : 0
+      const agentPrompt = form.agentPrompt
       if (form.id === '') {
-        const created = await createMachineTemplate(templateName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds || undefined)
+        const created = await createMachineTemplate(templateName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds || undefined, agentPrompt || undefined)
         navigate(`/machine-templates/${created.id}`)
       } else {
-        await updateMachineTemplate(form.id, templateName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds)
+        await updateMachineTemplate(form.id, templateName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds, agentPrompt)
         navigate(`/machine-templates/${form.id}`)
       }
     } catch (err) {
@@ -508,6 +512,19 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
                     placeholder="0 (disabled)"
                   />
                   <p className="text-xs text-muted-foreground">Automatically stop machines after this many hours of inactivity. Set to 0 or leave empty to disable.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="template-agent-prompt">Agent prompt (optional)</Label>
+                  <textarea
+                    id="template-agent-prompt"
+                    value={form.agentPrompt}
+                    onChange={(event) => setForm((current) => ({ ...current, agentPrompt: event.target.value }))}
+                    rows={4}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    placeholder="Example: This is a Python project environment. Use poetry for dependency management."
+                  />
+                  <p className="text-xs text-muted-foreground">This prompt is injected into agent guidelines on machines created from this template.</p>
                 </div>
 
                 <div className="flex items-center gap-3">

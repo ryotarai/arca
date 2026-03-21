@@ -44,6 +44,7 @@ export type SetupStatus = {
   iapAutoProvisioning: boolean
   oidcAutoProvisioning: boolean
   serverDomain: string
+  agentPrompt: string
 }
 
 export type MachineExposureMethodType = 'proxy_via_server'
@@ -95,6 +96,7 @@ export type MachineTemplateItem = {
   exposure: MachineExposureConfig
   serverApiUrl: string
   autoStopTimeoutSeconds: number
+  agentPrompt: string
   createdAt: number
   updatedAt: number
 }

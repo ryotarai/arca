@@ -653,6 +653,86 @@ func (x *MachineLLMModel) GetMaxContextTokens() int32 {
 	return 0
 }
 
+type GetMachineAgentGuidelineRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMachineAgentGuidelineRequest) Reset() {
+	*x = GetMachineAgentGuidelineRequest{}
+	mi := &file_arca_v1_exposure_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMachineAgentGuidelineRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMachineAgentGuidelineRequest) ProtoMessage() {}
+
+func (x *GetMachineAgentGuidelineRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_exposure_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMachineAgentGuidelineRequest.ProtoReflect.Descriptor instead.
+func (*GetMachineAgentGuidelineRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{12}
+}
+
+type GetMachineAgentGuidelineResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Guideline     string                 `protobuf:"bytes,1,opt,name=guideline,proto3" json:"guideline,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMachineAgentGuidelineResponse) Reset() {
+	*x = GetMachineAgentGuidelineResponse{}
+	mi := &file_arca_v1_exposure_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMachineAgentGuidelineResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMachineAgentGuidelineResponse) ProtoMessage() {}
+
+func (x *GetMachineAgentGuidelineResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_exposure_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMachineAgentGuidelineResponse.ProtoReflect.Descriptor instead.
+func (*GetMachineAgentGuidelineResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetMachineAgentGuidelineResponse) GetGuideline() string {
+	if x != nil {
+		return x.Guideline
+	}
+	return ""
+}
+
 var File_arca_v1_exposure_proto protoreflect.FileDescriptor
 
 const file_arca_v1_exposure_proto_rawDesc = "" +
@@ -700,13 +780,17 @@ const file_arca_v1_exposure_proto_rawDesc = "" +
 	"\n" +
 	"model_name\x18\x04 \x01(\tR\tmodelName\x12\x17\n" +
 	"\aapi_key\x18\x05 \x01(\tR\x06apiKey\x12,\n" +
-	"\x12max_context_tokens\x18\x06 \x01(\x05R\x10maxContextTokens2\xa8\x04\n" +
+	"\x12max_context_tokens\x18\x06 \x01(\x05R\x10maxContextTokens\"!\n" +
+	"\x1fGetMachineAgentGuidelineRequest\"@\n" +
+	" GetMachineAgentGuidelineResponse\x12\x1c\n" +
+	"\tguideline\x18\x01 \x01(\tR\tguideline2\x99\x05\n" +
 	"\x0fExposureService\x12f\n" +
 	"\x15UpsertMachineExposure\x12%.arca.v1.UpsertMachineExposureRequest\x1a&.arca.v1.UpsertMachineExposureResponse\x12c\n" +
 	"\x14ListMachineExposures\x12$.arca.v1.ListMachineExposuresRequest\x1a%.arca.v1.ListMachineExposuresResponse\x12{\n" +
 	"\x1cGetMachineExposureByHostname\x12,.arca.v1.GetMachineExposureByHostnameRequest\x1a-.arca.v1.GetMachineExposureByHostnameResponse\x12i\n" +
 	"\x16ReportMachineReadiness\x12&.arca.v1.ReportMachineReadinessRequest\x1a'.arca.v1.ReportMachineReadinessResponse\x12`\n" +
-	"\x13GetMachineLLMModels\x12#.arca.v1.GetMachineLLMModelsRequest\x1a$.arca.v1.GetMachineLLMModelsResponseB\x8f\x01\n" +
+	"\x13GetMachineLLMModels\x12#.arca.v1.GetMachineLLMModelsRequest\x1a$.arca.v1.GetMachineLLMModelsResponse\x12o\n" +
+	"\x18GetMachineAgentGuideline\x12(.arca.v1.GetMachineAgentGuidelineRequest\x1a).arca.v1.GetMachineAgentGuidelineResponseB\x8f\x01\n" +
 	"\vcom.arca.v1B\rExposureProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -721,7 +805,7 @@ func file_arca_v1_exposure_proto_rawDescGZIP() []byte {
 	return file_arca_v1_exposure_proto_rawDescData
 }
 
-var file_arca_v1_exposure_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_arca_v1_exposure_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_arca_v1_exposure_proto_goTypes = []any{
 	(*MachineExposure)(nil),                      // 0: arca.v1.MachineExposure
 	(*UpsertMachineExposureRequest)(nil),         // 1: arca.v1.UpsertMachineExposureRequest
@@ -735,6 +819,8 @@ var file_arca_v1_exposure_proto_goTypes = []any{
 	(*GetMachineLLMModelsRequest)(nil),           // 9: arca.v1.GetMachineLLMModelsRequest
 	(*GetMachineLLMModelsResponse)(nil),          // 10: arca.v1.GetMachineLLMModelsResponse
 	(*MachineLLMModel)(nil),                      // 11: arca.v1.MachineLLMModel
+	(*GetMachineAgentGuidelineRequest)(nil),      // 12: arca.v1.GetMachineAgentGuidelineRequest
+	(*GetMachineAgentGuidelineResponse)(nil),     // 13: arca.v1.GetMachineAgentGuidelineResponse
 }
 var file_arca_v1_exposure_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.UpsertMachineExposureResponse.exposure:type_name -> arca.v1.MachineExposure
@@ -746,13 +832,15 @@ var file_arca_v1_exposure_proto_depIdxs = []int32{
 	5,  // 6: arca.v1.ExposureService.GetMachineExposureByHostname:input_type -> arca.v1.GetMachineExposureByHostnameRequest
 	7,  // 7: arca.v1.ExposureService.ReportMachineReadiness:input_type -> arca.v1.ReportMachineReadinessRequest
 	9,  // 8: arca.v1.ExposureService.GetMachineLLMModels:input_type -> arca.v1.GetMachineLLMModelsRequest
-	2,  // 9: arca.v1.ExposureService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
-	4,  // 10: arca.v1.ExposureService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
-	6,  // 11: arca.v1.ExposureService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
-	8,  // 12: arca.v1.ExposureService.ReportMachineReadiness:output_type -> arca.v1.ReportMachineReadinessResponse
-	10, // 13: arca.v1.ExposureService.GetMachineLLMModels:output_type -> arca.v1.GetMachineLLMModelsResponse
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
+	12, // 9: arca.v1.ExposureService.GetMachineAgentGuideline:input_type -> arca.v1.GetMachineAgentGuidelineRequest
+	2,  // 10: arca.v1.ExposureService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
+	4,  // 11: arca.v1.ExposureService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
+	6,  // 12: arca.v1.ExposureService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
+	8,  // 13: arca.v1.ExposureService.ReportMachineReadiness:output_type -> arca.v1.ReportMachineReadinessResponse
+	10, // 14: arca.v1.ExposureService.GetMachineLLMModels:output_type -> arca.v1.GetMachineLLMModelsResponse
+	13, // 15: arca.v1.ExposureService.GetMachineAgentGuideline:output_type -> arca.v1.GetMachineAgentGuidelineResponse
+	10, // [10:16] is the sub-list for method output_type
+	4,  // [4:10] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -769,7 +857,7 @@ func file_arca_v1_exposure_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_exposure_proto_rawDesc), len(file_arca_v1_exposure_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

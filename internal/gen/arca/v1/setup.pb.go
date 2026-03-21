@@ -40,6 +40,7 @@ type SetupStatus struct {
 	OidcAutoProvisioning           bool                   `protobuf:"varint,21,opt,name=oidc_auto_provisioning,json=oidcAutoProvisioning,proto3" json:"oidc_auto_provisioning,omitempty"`
 	BaseDomain                     string                 `protobuf:"bytes,22,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
 	DomainPrefix                   string                 `protobuf:"bytes,23,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	AgentPrompt                    string                 `protobuf:"bytes,24,opt,name=agent_prompt,json=agentPrompt,proto3" json:"agent_prompt,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
@@ -189,6 +190,13 @@ func (x *SetupStatus) GetBaseDomain() string {
 func (x *SetupStatus) GetDomainPrefix() string {
 	if x != nil {
 		return x.DomainPrefix
+	}
+	return ""
+}
+
+func (x *SetupStatus) GetAgentPrompt() string {
+	if x != nil {
+		return x.AgentPrompt
 	}
 	return ""
 }
@@ -499,6 +507,7 @@ type UpdateDomainSettingsRequest struct {
 	OidcAutoProvisioning          bool                   `protobuf:"varint,19,opt,name=oidc_auto_provisioning,json=oidcAutoProvisioning,proto3" json:"oidc_auto_provisioning,omitempty"`
 	BaseDomain                    string                 `protobuf:"bytes,20,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
 	DomainPrefix                  string                 `protobuf:"bytes,21,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
+	AgentPrompt                   string                 `protobuf:"bytes,22,opt,name=agent_prompt,json=agentPrompt,proto3" json:"agent_prompt,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -645,6 +654,13 @@ func (x *UpdateDomainSettingsRequest) GetDomainPrefix() string {
 	return ""
 }
 
+func (x *UpdateDomainSettingsRequest) GetAgentPrompt() string {
+	if x != nil {
+		return x.AgentPrompt
+	}
+	return ""
+}
+
 type UpdateDomainSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -693,7 +709,7 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xb0\x06\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xd3\x06\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x12'\n" +
@@ -714,7 +730,8 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x16oidc_auto_provisioning\x18\x15 \x01(\bR\x14oidcAutoProvisioning\x12\x1f\n" +
 	"\vbase_domain\x18\x16 \x01(\tR\n" +
 	"baseDomain\x12#\n" +
-	"\rdomain_prefix\x18\x17 \x01(\tR\fdomainPrefixJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\x0f\x10\x10\"\x17\n" +
+	"\rdomain_prefix\x18\x17 \x01(\tR\fdomainPrefix\x12!\n" +
+	"\fagent_prompt\x18\x18 \x01(\tR\vagentPromptJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\x0f\x10\x10\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"C\n" +
@@ -732,7 +749,7 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x0esetup_password\x18\v \x01(\tR\rsetupPasswordJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\t\x10\n" +
 	"\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\x93\x06\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xb6\x06\n" +
 	"\x1bUpdateDomainSettingsRequest\x12'\n" +
 	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\x12G\n" +
 	" disable_internet_public_exposure\x18\x04 \x01(\bR\x1ddisableInternetPublicExposure\x12!\n" +
@@ -752,7 +769,8 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x16oidc_auto_provisioning\x18\x13 \x01(\bR\x14oidcAutoProvisioning\x12\x1f\n" +
 	"\vbase_domain\x18\x14 \x01(\tR\n" +
 	"baseDomain\x12#\n" +
-	"\rdomain_prefix\x18\x15 \x01(\tR\fdomainPrefixJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\v\x10\fJ\x04\b\r\x10\x0eJ\x04\b\x0e\x10\x0f\"L\n" +
+	"\rdomain_prefix\x18\x15 \x01(\tR\fdomainPrefix\x12!\n" +
+	"\fagent_prompt\x18\x16 \x01(\tR\vagentPromptJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\v\x10\fJ\x04\b\r\x10\x0eJ\x04\b\x0e\x10\x0f\"L\n" +
 	"\x1cUpdateDomainSettingsResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\xf8\x02\n" +
 	"\fSetupService\x12Q\n" +
