@@ -27,5 +27,9 @@ build {
   provisioner "shell" {
     script          = "scripts/provision.sh"
     execute_command = "sudo sh -c '{{ .Path }}'"
+    environment_vars = [
+      "ARCA_SERVER_URL=${var.arca_server_url}",
+      "ARCA_API_TOKEN=${var.arca_api_token}",
+    ]
   }
 }
