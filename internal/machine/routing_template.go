@@ -148,9 +148,11 @@ func (r *RoutingTemplate) runtimeForMachine(ctx context.Context, machine db.Mach
 	return rt, nil
 }
 
+var templateConfigUnmarshaler = protojson.UnmarshalOptions{DiscardUnknown: true}
+
 func templateFromLibvirtConfig(catalogTemplate db.MachineTemplate) (Runtime, error) {
 	config := &arcav1.MachineTemplateConfig{}
-	if err := protojson.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
+	if err := templateConfigUnmarshaler.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
 		return nil, fmt.Errorf("decode template config: %w", err)
 	}
 
@@ -169,7 +171,7 @@ func templateFromLibvirtConfig(catalogTemplate db.MachineTemplate) (Runtime, err
 
 func templateFromGceConfig(catalogTemplate db.MachineTemplate) (Runtime, error) {
 	config := &arcav1.MachineTemplateConfig{}
-	if err := protojson.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
+	if err := templateConfigUnmarshaler.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
 		return nil, fmt.Errorf("decode template config: %w", err)
 	}
 
@@ -195,7 +197,7 @@ func templateFromGceConfig(catalogTemplate db.MachineTemplate) (Runtime, error) 
 
 func templateFromLxdConfig(catalogTemplate db.MachineTemplate) (Runtime, error) {
 	config := &arcav1.MachineTemplateConfig{}
-	if err := protojson.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
+	if err := templateConfigUnmarshaler.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
 		return nil, fmt.Errorf("decode template config: %w", err)
 	}
 

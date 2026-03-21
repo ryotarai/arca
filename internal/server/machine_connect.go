@@ -591,7 +591,8 @@ func (s *machineConnectService) validateMachineType(ctx context.Context, templat
 	}
 
 	config := &arcav1.MachineTemplateConfig{}
-	if err := protojson.Unmarshal([]byte(tmpl.ConfigJSON), config); err != nil {
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err := unmarshaler.Unmarshal([]byte(tmpl.ConfigJSON), config); err != nil {
 		log.Printf("decode template config failed: %v", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to decode template config"))
 	}
