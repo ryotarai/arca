@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/ryotarai/arca/internal/db"
 )
@@ -378,11 +377,6 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "runtime_starting", "starting machine runtime")
 
-	if err := w.ensureMachineExposureProxyViaServer(ctx, machine); err != nil {
-		return err
-	}
-	w.emitEvent(ctx, machine.ID, jobID, "info", "exposure_ready", "machine exposure registered (proxy via server)")
-
 	setup, err := w.store.GetSetupState(ctx)
 	if err != nil {
 		return fmt.Errorf("load setup state: %w", err)
@@ -503,83 +497,11 @@ func (w *Worker) waitMachineReady(ctx context.Context, machineID string) error {
 	}
 }
 
-func machineSubdomain(prefix, name string) string {
-	prefix = sanitizeSubdomainPart(prefix)
-	name = strings.ToLower(strings.TrimSpace(name))
-	var b strings.Builder
-	prevDash := false
-	for _, r := range name {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			b.WriteRune(r)
-			prevDash = false
-			continue
-		}
-		if prevDash || b.Len() == 0 {
-			continue
-		}
-		b.WriteByte('-')
-		prevDash = true
-	}
-	out := strings.Trim(b.String(), "-")
-	if out == "" {
-		return "machine"
-	}
-	out = strings.Trim(prefix+out, "-")
-	if out == "" {
-		return "machine"
-	}
-	if len(out) > 63 {
-		out = strings.Trim(out[:63], "-")
-		if out == "" {
-			return "machine"
-		}
-	}
-	return out
-}
-
-func sanitizeSubdomainPart(value string) string {
-	value = strings.ToLower(strings.TrimSpace(value))
-	var b strings.Builder
-	for _, r := range value {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' {
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
-}
-
 func controlPlaneURLFromSetup(setup db.SetupState) string {
 	if serverDomain := strings.TrimSpace(setup.ServerDomain); serverDomain != "" {
 		return "https://" + serverDomain
 	}
 	return ""
-}
-
-func (w *Worker) ensureMachineExposureProxyViaServer(ctx context.Context, machine db.Machine) error {
-	exposureCfg := db.GetTemplateExposureConfig(machine.TemplateConfigJSON)
-
-	baseDomain := strings.TrimSpace(exposureCfg.BaseDomain)
-	domainPrefix := strings.TrimSpace(exposureCfg.DomainPrefix)
-	if baseDomain == "" {
-		return fmt.Errorf("machine exposure base domain is not configured in runtime exposure config")
-	}
-
-	hostname := machineSubdomain(domainPrefix, machine.Name) + "." + baseDomain
-
-	// Use arcad's listen port (21030) as the service URL so the server
-	// proxies to arcad, which handles __arca/* path routing (ttyd, shelley, etc.).
-	if _, err := w.store.UpsertMachineExposure(ctx, machine.ID, "default", hostname, "http://localhost:21030"); err != nil {
-		return fmt.Errorf("upsert machine exposure: %w", err)
-	}
-	if err := w.store.UpdateMachineEndpointByID(ctx, machine.ID, hostname); err != nil {
-		return fmt.Errorf("update machine endpoint: %w", err)
-	}
-	slog.Info(
-		"machine exposure registered (proxy via server)",
-		"machine_id", machine.ID,
-		"hostname", hostname,
-	)
-	return nil
 }
 
 func (w *Worker) handleStop(ctx context.Context, machine db.Machine, jobID string) error {

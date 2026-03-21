@@ -284,8 +284,6 @@ func validateTemplateRequest(name string, templateType arcav1.MachineTemplateTyp
 	if exp := config.GetExposure(); exp != nil {
 		exposureConfig = &arcav1.MachineExposureConfig{
 			Method:       exp.GetMethod(),
-			DomainPrefix: strings.ToLower(strings.TrimSpace(exp.GetDomainPrefix())),
-			BaseDomain:   strings.ToLower(strings.TrimSpace(exp.GetBaseDomain())),
 			Connectivity: exp.GetConnectivity(),
 		}
 	}

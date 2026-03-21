@@ -152,21 +152,28 @@ func (s *ticketConnectService) ValidateArcadSession(ctx context.Context, req *co
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to validate session"))
 	}
 
-	exposure, err := s.store.GetMachineExposureByHostname(ctx, hostname)
+	// Resolve machine from hostname via setup_state
+	setup, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		log.Printf("validate arcad session setup state lookup failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve exposure"))
+	}
+	machineName, ok := db.ExtractMachineNameFromHostname(hostname, setup.DomainPrefix, setup.BaseDomain)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid session"))
+	}
+	m, err := s.store.GetMachineByName(ctx, machineName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid session"))
 		}
-		log.Printf("validate arcad session exposure lookup failed: %v", err)
+		log.Printf("validate arcad session machine lookup failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve exposure"))
 	}
-	if exposure.MachineID != machineID {
+	if m.ID != machineID {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid session"))
 	}
-	if session.ExposureID != "" && exposure.ID != session.ExposureID {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid session"))
-	}
-	if !canUserAccessExposure(ctx, s.store, exposure, session.UserID, targetPath) {
+	if !canUserAccessMachine(ctx, s.store, m.ID, session.UserID, targetPath) {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("access denied"))
 	}
 

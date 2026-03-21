@@ -7,8 +7,8 @@ import (
 	"github.com/ryotarai/arca/internal/db"
 )
 
-func canUserAccessExposure(ctx context.Context, store *db.Store, exposure db.MachineExposure, userID, targetPath string) bool {
-	role := store.ResolveMachineRole(ctx, userID, exposure.MachineID)
+func canUserAccessMachine(ctx context.Context, store *db.Store, machineID, userID, targetPath string) bool {
+	role := store.ResolveMachineRole(ctx, userID, machineID)
 	if role == db.MachineRoleNone {
 		return false
 	}

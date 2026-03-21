@@ -488,13 +488,12 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 
 func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.Machine {
 	msg := &arcav1.Machine{
-		Id:              machine.ID,
-		Name:            machine.Name,
-		Status:          machine.Status,
-		DesiredStatus:   machine.DesiredStatus,
-		LastError:       machine.LastError,
-		Endpoint:        machine.Endpoint,
-		TemplateId:      machine.TemplateID,
+		Id:            machine.ID,
+		Name:          machine.Name,
+		Status:        machine.Status,
+		DesiredStatus: machine.DesiredStatus,
+		LastError:     machine.LastError,
+		TemplateId:    machine.TemplateID,
 		UpdateRequired:  machineUpdateRequired(machine),
 		Ready:           machine.Ready,
 		ReadyReportedAt: machine.ReadyReportedAt,

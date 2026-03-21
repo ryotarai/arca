@@ -1,8 +1,6 @@
 package server
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -15,9 +13,9 @@ import (
 )
 
 // MachineProxyHandler handles HTTP requests for machines exposed via
-// "proxy via server" mode. It looks up the machine exposure by hostname
-// (from the Host header), resolves the machine's upstream address, and
-// reverse-proxies the request. Authentication is handled by arcad.
+// "proxy via server" mode. It resolves hostname→machine via setup_state
+// prefix/base_domain configuration, and reverse-proxies the request.
+// Authentication is handled by arcad.
 type MachineProxyHandler struct {
 	store   *db.Store
 	ipCache *machine.MachineIPCache
@@ -27,10 +25,27 @@ func NewMachineProxyHandler(store *db.Store, ipCache *machine.MachineIPCache) *M
 	return &MachineProxyHandler{store: store, ipCache: ipCache}
 }
 
+// resolveMachineFromHostname looks up a machine by hostname using setup_state
+// prefix/base_domain to extract the machine name, then fetches the machine.
+func (h *MachineProxyHandler) resolveMachineFromHostname(r *http.Request, hostname string) (db.Machine, bool) {
+	setup, err := h.store.GetSetupState(r.Context())
+	if err != nil {
+		return db.Machine{}, false
+	}
+	name, ok := db.ExtractMachineNameFromHostname(hostname, setup.DomainPrefix, setup.BaseDomain)
+	if !ok {
+		return db.Machine{}, false
+	}
+	m, err := h.store.GetMachineByName(r.Context(), name)
+	if err != nil {
+		return db.Machine{}, false
+	}
+	return m, true
+}
+
 // IsMachineProxyRequest returns true if the request's Host header matches a
-// machine exposure that uses proxy-via-server mode. This is a lightweight
-// check (DB lookups only, no proxying) used by the timeout middleware to
-// skip the deadline for long-lived WebSocket connections.
+// machine that uses proxy-via-server mode. This is a lightweight check used
+// by the timeout middleware to skip the deadline for long-lived WebSocket connections.
 func (h *MachineProxyHandler) IsMachineProxyRequest(r *http.Request) bool {
 	if h == nil || h.store == nil {
 		return false
@@ -39,19 +54,15 @@ func (h *MachineProxyHandler) IsMachineProxyRequest(r *http.Request) bool {
 	if hostname == "" {
 		return false
 	}
-	exposure, err := h.store.GetMachineExposureByHostname(r.Context(), hostname)
-	if err != nil {
-		return false
-	}
-	m, err := h.store.GetMachineByID(r.Context(), exposure.MachineID)
-	if err != nil {
+	m, ok := h.resolveMachineFromHostname(r, hostname)
+	if !ok {
 		return false
 	}
 	return db.GetTemplateExposureMethod(m.TemplateConfigJSON) == db.MachineExposureMethodProxyViaServer
 }
 
 // TryServeHTTP attempts to handle the request as a machine proxy request.
-// Returns true if the request was handled (the Host matched a machine exposure).
+// Returns true if the request was handled (the Host matched a machine).
 func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Request) bool {
 	if h == nil || h.store == nil {
 		return false
@@ -62,23 +73,12 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 		return false
 	}
 
-	exposure, err := h.store.GetMachineExposureByHostname(r.Context(), hostname)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false
-		}
-		log.Printf("machine proxy: lookup exposure by hostname %q failed: %v", hostname, err)
+	m, ok := h.resolveMachineFromHostname(r, hostname)
+	if !ok {
 		return false
 	}
 
 	// Check if this machine uses proxy-via-server exposure
-	m, err := h.store.GetMachineByID(r.Context(), exposure.MachineID)
-	if err != nil {
-		log.Printf("machine proxy: lookup machine %q failed: %v", exposure.MachineID, err)
-		http.Error(w, "machine not found", http.StatusBadGateway)
-		return true
-	}
-
 	exposureMethod := db.GetTemplateExposureMethod(m.TemplateConfigJSON)
 	if exposureMethod != db.MachineExposureMethodProxyViaServer {
 		return false
@@ -94,7 +94,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 		}
 	}
 	connectivity := db.GetTemplateExposureConfig(m.TemplateConfigJSON).Connectivity
-	upstreamURL := resolveUpstreamURL(machineInfo, m, exposure, connectivity)
+	upstreamURL := resolveUpstreamURL(machineInfo, connectivity)
 	if upstreamURL == "" {
 		http.Error(w, "machine upstream unavailable", http.StatusBadGateway)
 		return true
@@ -123,21 +123,9 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 	return true
 }
 
-func resolveUpstreamURL(info *machine.RuntimeMachineInfo, m db.Machine, exposure db.MachineExposure, connectivity string) string {
-	service := strings.TrimSpace(exposure.Service)
-	if service == "" {
-		service = "http://localhost:11030"
-	}
+const arcadPort = "21030"
 
-	serviceURL, err := url.Parse(service)
-	if err != nil {
-		return ""
-	}
-	port := serviceURL.Port()
-	if port == "" {
-		port = "11030"
-	}
-
+func resolveUpstreamURL(info *machine.RuntimeMachineInfo, connectivity string) string {
 	// Determine the target IP based on the runtime's connectivity setting.
 	var ip string
 	if info != nil {
@@ -154,14 +142,7 @@ func resolveUpstreamURL(info *machine.RuntimeMachineInfo, m db.Machine, exposure
 	}
 
 	if ip != "" {
-		return "http://" + net.JoinHostPort(ip, port)
-	}
-
-	// Legacy fallback: check if endpoint is an IP address.
-	if m.Endpoint != "" {
-		if parsed := net.ParseIP(m.Endpoint); parsed != nil {
-			return "http://" + net.JoinHostPort(m.Endpoint, port)
-		}
+		return "http://" + net.JoinHostPort(ip, arcadPort)
 	}
 
 	return ""
