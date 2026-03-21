@@ -450,6 +450,36 @@ func (s *userConnectService) UpdateUserLLMModel(ctx context.Context, req *connec
 	}), nil
 }
 
+func (s *userConnectService) GetUserAgentPrompt(ctx context.Context, req *connect.Request[arcav1.GetUserAgentPromptRequest]) (*connect.Response[arcav1.GetUserAgentPromptResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	prompt, err := s.store.GetUserAgentPrompt(ctx, userID)
+	if err != nil {
+		log.Printf("get user agent prompt failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user agent prompt"))
+	}
+
+	return connect.NewResponse(&arcav1.GetUserAgentPromptResponse{AgentPrompt: prompt}), nil
+}
+
+func (s *userConnectService) UpdateUserAgentPrompt(ctx context.Context, req *connect.Request[arcav1.UpdateUserAgentPromptRequest]) (*connect.Response[arcav1.UpdateUserAgentPromptResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	prompt := req.Msg.GetAgentPrompt()
+	if err := s.store.SetUserAgentPrompt(ctx, userID, prompt); err != nil {
+		log.Printf("update user agent prompt failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update user agent prompt"))
+	}
+
+	return connect.NewResponse(&arcav1.UpdateUserAgentPromptResponse{AgentPrompt: prompt}), nil
+}
+
 func (s *userConnectService) DeleteUserLLMModel(ctx context.Context, req *connect.Request[arcav1.DeleteUserLLMModelRequest]) (*connect.Response[arcav1.DeleteUserLLMModelResponse], error) {
 	userID, err := s.authenticateUser(ctx, req.Header())
 	if err != nil {
