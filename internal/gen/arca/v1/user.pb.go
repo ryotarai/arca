@@ -1477,6 +1477,94 @@ func (*DeleteUserLLMModelResponse) Descriptor() ([]byte, []int) {
 	return file_arca_v1_user_proto_rawDescGZIP(), []int{27}
 }
 
+type DuplicateUserLLMModelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DuplicateUserLLMModelRequest) Reset() {
+	*x = DuplicateUserLLMModelRequest{}
+	mi := &file_arca_v1_user_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DuplicateUserLLMModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DuplicateUserLLMModelRequest) ProtoMessage() {}
+
+func (x *DuplicateUserLLMModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DuplicateUserLLMModelRequest.ProtoReflect.Descriptor instead.
+func (*DuplicateUserLLMModelRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *DuplicateUserLLMModelRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DuplicateUserLLMModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *LLMModel              `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DuplicateUserLLMModelResponse) Reset() {
+	*x = DuplicateUserLLMModelResponse{}
+	mi := &file_arca_v1_user_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DuplicateUserLLMModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DuplicateUserLLMModelResponse) ProtoMessage() {}
+
+func (x *DuplicateUserLLMModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DuplicateUserLLMModelResponse.ProtoReflect.Descriptor instead.
+func (*DuplicateUserLLMModelResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *DuplicateUserLLMModelResponse) GetModel() *LLMModel {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
 var File_arca_v1_user_proto protoreflect.FileDescriptor
 
 const file_arca_v1_user_proto_rawDesc = "" +
@@ -1577,7 +1665,11 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x05model\x18\x01 \x01(\v2\x11.arca.v1.LLMModelR\x05model\"+\n" +
 	"\x19DeleteUserLLMModelRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1c\n" +
-	"\x1aDeleteUserLLMModelResponse2\xa1\b\n" +
+	"\x1aDeleteUserLLMModelResponse\".\n" +
+	"\x1cDuplicateUserLLMModelRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
+	"\x1dDuplicateUserLLMModelResponse\x12'\n" +
+	"\x05model\x18\x01 \x01(\v2\x11.arca.v1.LLMModelR\x05model2\x89\t\n" +
 	"\vUserService\x12B\n" +
 	"\tListUsers\x12\x19.arca.v1.ListUsersRequest\x1a\x1a.arca.v1.ListUsersResponse\x12E\n" +
 	"\n" +
@@ -1591,7 +1683,8 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x11ListUserLLMModels\x12!.arca.v1.ListUserLLMModelsRequest\x1a\".arca.v1.ListUserLLMModelsResponse\x12]\n" +
 	"\x12CreateUserLLMModel\x12\".arca.v1.CreateUserLLMModelRequest\x1a#.arca.v1.CreateUserLLMModelResponse\x12]\n" +
 	"\x12UpdateUserLLMModel\x12\".arca.v1.UpdateUserLLMModelRequest\x1a#.arca.v1.UpdateUserLLMModelResponse\x12]\n" +
-	"\x12DeleteUserLLMModel\x12\".arca.v1.DeleteUserLLMModelRequest\x1a#.arca.v1.DeleteUserLLMModelResponseB\x8b\x01\n" +
+	"\x12DeleteUserLLMModel\x12\".arca.v1.DeleteUserLLMModelRequest\x1a#.arca.v1.DeleteUserLLMModelResponse\x12f\n" +
+	"\x15DuplicateUserLLMModel\x12%.arca.v1.DuplicateUserLLMModelRequest\x1a&.arca.v1.DuplicateUserLLMModelResponseB\x8b\x01\n" +
 	"\vcom.arca.v1B\tUserProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -1606,43 +1699,45 @@ func file_arca_v1_user_proto_rawDescGZIP() []byte {
 	return file_arca_v1_user_proto_rawDescData
 }
 
-var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_arca_v1_user_proto_goTypes = []any{
-	(*ManagedUser)(nil),                 // 0: arca.v1.ManagedUser
-	(*ListUsersRequest)(nil),            // 1: arca.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),           // 2: arca.v1.ListUsersResponse
-	(*CreateUserRequest)(nil),           // 3: arca.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),          // 4: arca.v1.CreateUserResponse
-	(*IssueUserSetupTokenRequest)(nil),  // 5: arca.v1.IssueUserSetupTokenRequest
-	(*IssueUserSetupTokenResponse)(nil), // 6: arca.v1.IssueUserSetupTokenResponse
-	(*CompleteUserSetupRequest)(nil),    // 7: arca.v1.CompleteUserSetupRequest
-	(*CompleteUserSetupResponse)(nil),   // 8: arca.v1.CompleteUserSetupResponse
-	(*UpdateUserRoleRequest)(nil),       // 9: arca.v1.UpdateUserRoleRequest
-	(*UpdateUserRoleResponse)(nil),      // 10: arca.v1.UpdateUserRoleResponse
-	(*UserSettings)(nil),                // 11: arca.v1.UserSettings
-	(*GetUserSettingsRequest)(nil),      // 12: arca.v1.GetUserSettingsRequest
-	(*GetUserSettingsResponse)(nil),     // 13: arca.v1.GetUserSettingsResponse
-	(*UpdateUserSettingsRequest)(nil),   // 14: arca.v1.UpdateUserSettingsRequest
-	(*UpdateUserSettingsResponse)(nil),  // 15: arca.v1.UpdateUserSettingsResponse
-	(*SearchUsersRequest)(nil),          // 16: arca.v1.SearchUsersRequest
-	(*SearchUsersResponse)(nil),         // 17: arca.v1.SearchUsersResponse
-	(*UserSearchResult)(nil),            // 18: arca.v1.UserSearchResult
-	(*LLMModel)(nil),                    // 19: arca.v1.LLMModel
-	(*ListUserLLMModelsRequest)(nil),    // 20: arca.v1.ListUserLLMModelsRequest
-	(*ListUserLLMModelsResponse)(nil),   // 21: arca.v1.ListUserLLMModelsResponse
-	(*CreateUserLLMModelRequest)(nil),   // 22: arca.v1.CreateUserLLMModelRequest
-	(*CreateUserLLMModelResponse)(nil),  // 23: arca.v1.CreateUserLLMModelResponse
-	(*UpdateUserLLMModelRequest)(nil),   // 24: arca.v1.UpdateUserLLMModelRequest
-	(*UpdateUserLLMModelResponse)(nil),  // 25: arca.v1.UpdateUserLLMModelResponse
-	(*DeleteUserLLMModelRequest)(nil),   // 26: arca.v1.DeleteUserLLMModelRequest
-	(*DeleteUserLLMModelResponse)(nil),  // 27: arca.v1.DeleteUserLLMModelResponse
-	(*User)(nil),                        // 28: arca.v1.User
+	(*ManagedUser)(nil),                   // 0: arca.v1.ManagedUser
+	(*ListUsersRequest)(nil),              // 1: arca.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),             // 2: arca.v1.ListUsersResponse
+	(*CreateUserRequest)(nil),             // 3: arca.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),            // 4: arca.v1.CreateUserResponse
+	(*IssueUserSetupTokenRequest)(nil),    // 5: arca.v1.IssueUserSetupTokenRequest
+	(*IssueUserSetupTokenResponse)(nil),   // 6: arca.v1.IssueUserSetupTokenResponse
+	(*CompleteUserSetupRequest)(nil),      // 7: arca.v1.CompleteUserSetupRequest
+	(*CompleteUserSetupResponse)(nil),     // 8: arca.v1.CompleteUserSetupResponse
+	(*UpdateUserRoleRequest)(nil),         // 9: arca.v1.UpdateUserRoleRequest
+	(*UpdateUserRoleResponse)(nil),        // 10: arca.v1.UpdateUserRoleResponse
+	(*UserSettings)(nil),                  // 11: arca.v1.UserSettings
+	(*GetUserSettingsRequest)(nil),        // 12: arca.v1.GetUserSettingsRequest
+	(*GetUserSettingsResponse)(nil),       // 13: arca.v1.GetUserSettingsResponse
+	(*UpdateUserSettingsRequest)(nil),     // 14: arca.v1.UpdateUserSettingsRequest
+	(*UpdateUserSettingsResponse)(nil),    // 15: arca.v1.UpdateUserSettingsResponse
+	(*SearchUsersRequest)(nil),            // 16: arca.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),           // 17: arca.v1.SearchUsersResponse
+	(*UserSearchResult)(nil),              // 18: arca.v1.UserSearchResult
+	(*LLMModel)(nil),                      // 19: arca.v1.LLMModel
+	(*ListUserLLMModelsRequest)(nil),      // 20: arca.v1.ListUserLLMModelsRequest
+	(*ListUserLLMModelsResponse)(nil),     // 21: arca.v1.ListUserLLMModelsResponse
+	(*CreateUserLLMModelRequest)(nil),     // 22: arca.v1.CreateUserLLMModelRequest
+	(*CreateUserLLMModelResponse)(nil),    // 23: arca.v1.CreateUserLLMModelResponse
+	(*UpdateUserLLMModelRequest)(nil),     // 24: arca.v1.UpdateUserLLMModelRequest
+	(*UpdateUserLLMModelResponse)(nil),    // 25: arca.v1.UpdateUserLLMModelResponse
+	(*DeleteUserLLMModelRequest)(nil),     // 26: arca.v1.DeleteUserLLMModelRequest
+	(*DeleteUserLLMModelResponse)(nil),    // 27: arca.v1.DeleteUserLLMModelResponse
+	(*DuplicateUserLLMModelRequest)(nil),  // 28: arca.v1.DuplicateUserLLMModelRequest
+	(*DuplicateUserLLMModelResponse)(nil), // 29: arca.v1.DuplicateUserLLMModelResponse
+	(*User)(nil),                          // 30: arca.v1.User
 }
 var file_arca_v1_user_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.ListUsersResponse.users:type_name -> arca.v1.ManagedUser
 	0,  // 1: arca.v1.CreateUserResponse.user:type_name -> arca.v1.ManagedUser
 	0,  // 2: arca.v1.IssueUserSetupTokenResponse.user:type_name -> arca.v1.ManagedUser
-	28, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
+	30, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
 	0,  // 4: arca.v1.UpdateUserRoleResponse.user:type_name -> arca.v1.ManagedUser
 	11, // 5: arca.v1.GetUserSettingsResponse.settings:type_name -> arca.v1.UserSettings
 	11, // 6: arca.v1.UpdateUserSettingsRequest.settings:type_name -> arca.v1.UserSettings
@@ -1651,35 +1746,38 @@ var file_arca_v1_user_proto_depIdxs = []int32{
 	19, // 9: arca.v1.ListUserLLMModelsResponse.models:type_name -> arca.v1.LLMModel
 	19, // 10: arca.v1.CreateUserLLMModelResponse.model:type_name -> arca.v1.LLMModel
 	19, // 11: arca.v1.UpdateUserLLMModelResponse.model:type_name -> arca.v1.LLMModel
-	1,  // 12: arca.v1.UserService.ListUsers:input_type -> arca.v1.ListUsersRequest
-	3,  // 13: arca.v1.UserService.CreateUser:input_type -> arca.v1.CreateUserRequest
-	5,  // 14: arca.v1.UserService.IssueUserSetupToken:input_type -> arca.v1.IssueUserSetupTokenRequest
-	7,  // 15: arca.v1.UserService.CompleteUserSetup:input_type -> arca.v1.CompleteUserSetupRequest
-	9,  // 16: arca.v1.UserService.UpdateUserRole:input_type -> arca.v1.UpdateUserRoleRequest
-	12, // 17: arca.v1.UserService.GetUserSettings:input_type -> arca.v1.GetUserSettingsRequest
-	14, // 18: arca.v1.UserService.UpdateUserSettings:input_type -> arca.v1.UpdateUserSettingsRequest
-	16, // 19: arca.v1.UserService.SearchUsers:input_type -> arca.v1.SearchUsersRequest
-	20, // 20: arca.v1.UserService.ListUserLLMModels:input_type -> arca.v1.ListUserLLMModelsRequest
-	22, // 21: arca.v1.UserService.CreateUserLLMModel:input_type -> arca.v1.CreateUserLLMModelRequest
-	24, // 22: arca.v1.UserService.UpdateUserLLMModel:input_type -> arca.v1.UpdateUserLLMModelRequest
-	26, // 23: arca.v1.UserService.DeleteUserLLMModel:input_type -> arca.v1.DeleteUserLLMModelRequest
-	2,  // 24: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
-	4,  // 25: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
-	6,  // 26: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
-	8,  // 27: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
-	10, // 28: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
-	13, // 29: arca.v1.UserService.GetUserSettings:output_type -> arca.v1.GetUserSettingsResponse
-	15, // 30: arca.v1.UserService.UpdateUserSettings:output_type -> arca.v1.UpdateUserSettingsResponse
-	17, // 31: arca.v1.UserService.SearchUsers:output_type -> arca.v1.SearchUsersResponse
-	21, // 32: arca.v1.UserService.ListUserLLMModels:output_type -> arca.v1.ListUserLLMModelsResponse
-	23, // 33: arca.v1.UserService.CreateUserLLMModel:output_type -> arca.v1.CreateUserLLMModelResponse
-	25, // 34: arca.v1.UserService.UpdateUserLLMModel:output_type -> arca.v1.UpdateUserLLMModelResponse
-	27, // 35: arca.v1.UserService.DeleteUserLLMModel:output_type -> arca.v1.DeleteUserLLMModelResponse
-	24, // [24:36] is the sub-list for method output_type
-	12, // [12:24] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	19, // 12: arca.v1.DuplicateUserLLMModelResponse.model:type_name -> arca.v1.LLMModel
+	1,  // 13: arca.v1.UserService.ListUsers:input_type -> arca.v1.ListUsersRequest
+	3,  // 14: arca.v1.UserService.CreateUser:input_type -> arca.v1.CreateUserRequest
+	5,  // 15: arca.v1.UserService.IssueUserSetupToken:input_type -> arca.v1.IssueUserSetupTokenRequest
+	7,  // 16: arca.v1.UserService.CompleteUserSetup:input_type -> arca.v1.CompleteUserSetupRequest
+	9,  // 17: arca.v1.UserService.UpdateUserRole:input_type -> arca.v1.UpdateUserRoleRequest
+	12, // 18: arca.v1.UserService.GetUserSettings:input_type -> arca.v1.GetUserSettingsRequest
+	14, // 19: arca.v1.UserService.UpdateUserSettings:input_type -> arca.v1.UpdateUserSettingsRequest
+	16, // 20: arca.v1.UserService.SearchUsers:input_type -> arca.v1.SearchUsersRequest
+	20, // 21: arca.v1.UserService.ListUserLLMModels:input_type -> arca.v1.ListUserLLMModelsRequest
+	22, // 22: arca.v1.UserService.CreateUserLLMModel:input_type -> arca.v1.CreateUserLLMModelRequest
+	24, // 23: arca.v1.UserService.UpdateUserLLMModel:input_type -> arca.v1.UpdateUserLLMModelRequest
+	26, // 24: arca.v1.UserService.DeleteUserLLMModel:input_type -> arca.v1.DeleteUserLLMModelRequest
+	28, // 25: arca.v1.UserService.DuplicateUserLLMModel:input_type -> arca.v1.DuplicateUserLLMModelRequest
+	2,  // 26: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
+	4,  // 27: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
+	6,  // 28: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
+	8,  // 29: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
+	10, // 30: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
+	13, // 31: arca.v1.UserService.GetUserSettings:output_type -> arca.v1.GetUserSettingsResponse
+	15, // 32: arca.v1.UserService.UpdateUserSettings:output_type -> arca.v1.UpdateUserSettingsResponse
+	17, // 33: arca.v1.UserService.SearchUsers:output_type -> arca.v1.SearchUsersResponse
+	21, // 34: arca.v1.UserService.ListUserLLMModels:output_type -> arca.v1.ListUserLLMModelsResponse
+	23, // 35: arca.v1.UserService.CreateUserLLMModel:output_type -> arca.v1.CreateUserLLMModelResponse
+	25, // 36: arca.v1.UserService.UpdateUserLLMModel:output_type -> arca.v1.UpdateUserLLMModelResponse
+	27, // 37: arca.v1.UserService.DeleteUserLLMModel:output_type -> arca.v1.DeleteUserLLMModelResponse
+	29, // 38: arca.v1.UserService.DuplicateUserLLMModel:output_type -> arca.v1.DuplicateUserLLMModelResponse
+	26, // [26:39] is the sub-list for method output_type
+	13, // [13:26] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_user_proto_init() }
@@ -1694,7 +1792,7 @@ func file_arca_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_user_proto_rawDesc), len(file_arca_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

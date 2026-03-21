@@ -19,6 +19,7 @@ service UserService {
   rpc CreateUserLLMModel(CreateUserLLMModelRequest) returns (CreateUserLLMModelResponse);
   rpc UpdateUserLLMModel(UpdateUserLLMModelRequest) returns (UpdateUserLLMModelResponse);
   rpc DeleteUserLLMModel(DeleteUserLLMModelRequest) returns (DeleteUserLLMModelResponse);
+  rpc DuplicateUserLLMModel(DuplicateUserLLMModelRequest) returns (DuplicateUserLLMModelResponse);
 }
 
 message ManagedUser {
@@ -156,3 +157,11 @@ message DeleteUserLLMModelRequest {
 }
 
 message DeleteUserLLMModelResponse {}
+
+message DuplicateUserLLMModelRequest {
+  string id = 1;
+}
+
+message DuplicateUserLLMModelResponse {
+  LLMModel model = 1;
+}

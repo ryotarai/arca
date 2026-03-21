@@ -15,6 +15,7 @@ import {
   createUserLLMModel,
   updateUserLLMModel,
   deleteUserLLMModel,
+  duplicateUserLLMModel,
 } from '@/lib/api'
 import type { LLMModel } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
@@ -262,6 +263,15 @@ function LLMModelsCard({ userId }: { userId: string }) {
     }
   }
 
+  const handleDuplicate = async (id: string) => {
+    try {
+      await duplicateUserLLMModel(id)
+      await loadModels()
+    } catch (e) {
+      setError(messageFromError(e))
+    }
+  }
+
   const handleDelete = async (id: string) => {
     try {
       await deleteUserLLMModel(id)
@@ -310,6 +320,9 @@ function LLMModelsCard({ userId }: { userId: string }) {
                   <div className="ml-3 flex items-center gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(model)}>
                       Edit
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => void handleDuplicate(model.id)}>
+                      Duplicate
                     </Button>
                     <Button
                       type="button"
