@@ -31,7 +31,7 @@ func NewLLMSyncer(client ControlPlaneClient, shelleyPort string, interval time.D
 	}
 	return &LLMSyncer{
 		client:     client,
-		shelleyURL: "http://127.0.0.1:" + shelleyPort,
+		shelleyURL: "http://127.0.0.1:" + shelleyPort + shelleyBasePath,
 		interval:   interval,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}

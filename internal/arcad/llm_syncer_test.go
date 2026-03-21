@@ -95,6 +95,14 @@ func (s *llmStubControlPlane) GetMachineLLMModels(_ context.Context) ([]MachineL
 }
 func (s *llmStubControlPlane) AuthorizeURL(_ string) string { return "" }
 
+func TestNewLLMSyncer_ShelleyURL(t *testing.T) {
+	syncer := NewLLMSyncer(nil, "21032", 0)
+	want := "http://127.0.0.1:21032/__arca/shelley"
+	if syncer.shelleyURL != want {
+		t.Errorf("shelleyURL = %q, want %q", syncer.shelleyURL, want)
+	}
+}
+
 func TestLLMSyncer_CreatesAndDeletesModels(t *testing.T) {
 	var mu sync.Mutex
 	var created []shelleyCreateRequest
