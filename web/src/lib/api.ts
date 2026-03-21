@@ -588,6 +588,7 @@ export async function listAvailableMachineTemplates(): Promise<MachineTemplateSu
     id: template.id,
     name: template.name,
     type: templateTypeFromProto(template.type),
+    allowedMachineTypes: template.allowedMachineTypes,
   }))
 }
 
