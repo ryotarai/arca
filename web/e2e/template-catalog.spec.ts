@@ -41,8 +41,8 @@ test.describe('template catalog', () => {
     await expect(page.getByText(templateName)).toBeVisible()
 
     // cleanup via detail page delete
-    page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('link', { name: 'Delete' }).or(page.getByRole('button', { name: 'Delete' })).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
     await expect(page).toHaveURL('/machine-templates')
   })
 
@@ -66,8 +66,8 @@ test.describe('template catalog', () => {
     await expect(page.getByText(templateName)).toBeVisible()
 
     // cleanup via detail page delete
-    page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Delete' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
     await expect(page).toHaveURL('/machine-templates')
   })
 
@@ -103,8 +103,8 @@ test.describe('template catalog', () => {
     await expect(page.getByText('gce')).toBeVisible()
 
     // cleanup
-    page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Delete' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
     await expect(page).toHaveURL('/machine-templates')
   })
 
@@ -120,8 +120,8 @@ test.describe('template catalog', () => {
 
     // Redirected to detail page; delete from there
     await expect(page.getByRole('heading', { name: 'Template detail' })).toBeVisible()
-    page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Delete' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
     await expect(page).toHaveURL('/machine-templates')
     await expect(page.getByText(templateName)).toHaveCount(0)
   })
@@ -161,8 +161,8 @@ test.describe('template catalog', () => {
     await expect(page.getByText(templateName)).toBeVisible()
 
     // cleanup
-    page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Delete' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
     await expect(page).toHaveURL('/machine-templates')
   })
 

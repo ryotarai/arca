@@ -1,16 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -239,7 +229,7 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
   const initialFormRef = useRef<string>(JSON.stringify(emptyTemplateForm()))
   const isDirty = JSON.stringify(form) !== initialFormRef.current
 
-  const blocker = useUnsavedChanges(isDirty)
+  useUnsavedChanges(isDirty)
 
   const validationError = useMemo(() => validateTemplateForm(form), [form])
 
@@ -537,20 +527,6 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
         )}
       </section>
 
-      <AlertDialog open={blocker.state === 'blocked'}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => blocker.reset?.()}>Stay on page</AlertDialogCancel>
-            <AlertDialogAction onClick={() => blocker.proceed?.()}>Leave page</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </main>
   )
 }
