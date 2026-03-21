@@ -26,7 +26,7 @@ Additionally, the `service` field (`http://localhost:21030`) is always the hardc
 3. **`machineSubdomain()` / `sanitizeSubdomainPart()`** — remove sanitization logic from `worker.go`. Machine names must be validated at creation time instead.
 4. **`exposure.proto` unused fields** — remove `public`, `visibility`, `selected_user_ids` from `MachineExposure` message. Remove `EndpointVisibility` enum. These were never implemented in the DB or server.
 5. **`db.MachineExposure` struct** — remove from `setup_ticket_tunnel_store.go`.
-6. **`machines.endpoint` hostname writes** — stop writing hostname to `machines.endpoint` in worker. This field must not contain prefix/base_domain-derived values.
+6. **`machines.endpoint` column** — remove the DB column, the `UpdateMachineEndpointByID` query, the proto field (`machine.proto` field 6), and the legacy IP fallback in `machine_proxy.go`. The hostname is computed dynamically from setup_state; no need to store it.
 
 ### What Changes
 
@@ -73,14 +73,14 @@ Host header → strip base_domain suffix → strip prefix → GetMachineByName(n
 
 #### Machine API Response (endpoint field)
 
-The `machines.endpoint` DB column is no longer written by the worker. Instead, the API layer (`machine_connect.go`) computes the hostname dynamically when building the response:
+The `machines.endpoint` DB column and proto field are removed. The API layer (`machine_connect.go`) computes the hostname dynamically when building the response:
 
 ```go
 // In toMachineProto() or equivalent
 endpoint := MachineHostname(setupState.DomainPrefix, machine.Name, setupState.BaseDomain)
 ```
 
-The UI continues to work without changes — it receives the computed hostname in the API response.
+The proto `Machine.endpoint` field number (6) is reserved to prevent reuse. The UI continues to work without changes — it receives the computed hostname in the API response.
 
 #### arcad `GetMachineExposureByHostname` RPC
 
@@ -114,10 +114,10 @@ The arcad listen port (21030) becomes a constant in the proxy resolution logic, 
 ### Migration
 
 - Add a migration to drop the `machine_exposures` table and its index.
-- No data migration needed — all exposure data is derivable.
+- Add a migration to drop the `endpoint` column from the `machines` table.
+- No data migration needed — all values are derivable.
 
 ## Out of Scope
 
 - Per-exposure visibility/access control (not yet implemented, can be added later on machines table or a new table if needed)
 - Multiple exposures per machine (currently always "default"; can revisit if needed)
-- Removing `machines.endpoint` column itself (may still be useful for other purposes; just stop writing hostname to it)
