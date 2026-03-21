@@ -257,29 +257,14 @@ func (s *imageConnectService) authenticateAdmin(ctx context.Context, header http
 	if s.authenticator == nil || s.store == nil {
 		return "", connect.NewError(connect.CodeUnavailable, errors.New("image management unavailable"))
 	}
-
-	sessionToken, _ := sessionTokenFromHeader(header)
-	if sessionToken != "" {
-		userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
-		if err == nil {
-			if role != db.UserRoleAdmin {
-				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage images"))
-			}
-			return userID, nil
-		}
+	result, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, header)
+	if err != nil {
+		return "", err
 	}
-
-	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
-		userID, _, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
-		if err == nil {
-			if role != db.UserRoleAdmin {
-				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage images"))
-			}
-			return userID, nil
-		}
+	if result.Role != db.UserRoleAdmin {
+		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can manage images"))
 	}
-
-	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	return result.UserID, nil
 }
 
 func (s *imageConnectService) validateTemplateTypeMatch(ctx context.Context, templateID, expectedType string) error {

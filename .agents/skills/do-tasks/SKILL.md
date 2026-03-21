@@ -85,7 +85,7 @@ Execute task markdown files in `tmp/tasks/` with dependency-aware, aggressively 
 ## Verification Hygiene Rules
 
 - For repos embedding frontend assets in Go binaries (for example `internal/server/ui/dist`), rebuild frontend assets before Go test runs that compile server packages.
-- After frontend code changes used by server/E2E, run `make build-frontend` before `make test` to avoid stale UI artifacts.
+- After frontend code changes used by server/E2E, run `make build-frontend` before `make test/backend` or `make test/e2e` to avoid stale UI artifacts.
 - If E2E failures look inconsistent with latest source, assume stale built assets first, rebuild, then rerun.
 
 ## Conflict Hotspot Rules

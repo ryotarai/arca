@@ -853,27 +853,13 @@ UPDATE user_llm_models
 SET api_key_encrypted = sqlc.arg(api_key_encrypted)
 WHERE id = sqlc.arg(id);
 
--- name: SetSessionImpersonation :execrows
-UPDATE sessions
-SET impersonated_user_id = sqlc.arg(impersonated_user_id),
-    impersonated_by_user_id = sqlc.arg(impersonated_by_user_id)
-WHERE token_hash = sqlc.arg(token_hash)
-  AND revoked_at IS NULL;
+-- name: UpsertAdminViewMode :exec
+INSERT INTO admin_view_mode (user_id, mode, updated_at)
+VALUES (sqlc.arg(user_id), sqlc.arg(mode), sqlc.arg(updated_at))
+ON CONFLICT(user_id) DO UPDATE SET mode = excluded.mode, updated_at = excluded.updated_at;
 
--- name: ClearSessionImpersonation :execrows
-UPDATE sessions
-SET impersonated_user_id = NULL,
-    impersonated_by_user_id = NULL
-WHERE token_hash = sqlc.arg(token_hash)
-  AND revoked_at IS NULL;
-
--- name: GetSessionImpersonation :one
-SELECT impersonated_user_id, impersonated_by_user_id
-FROM sessions
-WHERE token_hash = sqlc.arg(token_hash)
-  AND revoked_at IS NULL
-  AND expires_at > sqlc.arg(now_unix)
-LIMIT 1;
+-- name: GetAdminViewMode :one
+SELECT mode FROM admin_view_mode WHERE user_id = sqlc.arg(user_id);
 
 -- name: CreateAuditLog :exec
 INSERT INTO audit_logs (id, actor_user_id, acting_as_user_id, action, resource_type, resource_id, details_json, created_at)

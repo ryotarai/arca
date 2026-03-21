@@ -28,8 +28,9 @@ Setup prerequisites: Go `1.22`, Node.js/npm, and `sqlc`.
 - `make build-server`: run frontend build + sqlc, then build `./cmd/server` to `bin/server`.
 - `make proto`: regenerate protobuf/Connect generated code via `buf generate`.
 - `make sqlc`: regenerate SQL access code.
-- `make test`: run Go tests and fast E2E tests.
-- `make test-all`: run all tests including slow E2E tests.
+- `make test/backend`: run Go vet and Go tests.
+- `make test/e2e`: run fast E2E tests.
+- `make test/e2e-all`: run all E2E tests including slow tests.
 - `make run`: build server and run `./bin/server`.
 - `make watch`: start hot-reload development server using `air`.
 - `./bin/server`: run the already built server binary.
@@ -54,7 +55,7 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Always consider UX from the end-user's perspective. Design flows that are intuitive and user-friendly; avoid patterns that frustrate or confuse users.
 
 ## Testing Guidelines
-- Run `make test` before pushing. For full coverage including slow E2E tests, use `make test-all`.
+- Run `make test/backend` and `make test/e2e` before pushing. For full E2E coverage including slow tests, use `make test/e2e-all`.
 - Keep tests near code as `*_test.go`; prefer table-driven tests for handlers and DB logic.
 - Add/update E2E or browser checks for UI/routing behavior; prefer `chrome-headless-shell` for browser verification.
 - During debugging or investigation, proactively use the `sqlite3` command to inspect database data, verify state, and isolate issues quickly.
@@ -148,7 +149,7 @@ Regenerate from sources instead:
 - Before creating a commit, run relevant verification for the changed scope (at minimum build/run checks for runtime changes, and tests when applicable).
 - After completing a clear, self-contained requested change, **always** create a commit proactively without requiring an extra user prompt.
 - If the user explicitly asks not to commit, skip the auto-commit workflow.
-- In PRs, include purpose, key changes, test results (`make test`), linked issues, and screenshots for UI changes.
+- In PRs, include purpose, key changes, test results (`make test/backend`, `make test/e2e`), linked issues, and screenshots for UI changes.
 - Confirm regenerated artifacts and docs updates when behavior or operations change.
 - After creating a PR from a feature branch, always switch back to `main` (`git checkout main`) so subsequent work starts from the correct base.
 

@@ -5,9 +5,8 @@ package arca.v1;
 option go_package = "github.com/ryotarai/arca/internal/gen/arca/v1;arcav1";
 
 service AdminService {
-  rpc StartImpersonation(StartImpersonationRequest) returns (StartImpersonationResponse);
-  rpc StopImpersonation(StopImpersonationRequest) returns (StopImpersonationResponse);
-  rpc GetImpersonationStatus(GetImpersonationStatusRequest) returns (GetImpersonationStatusResponse);
+  rpc SetAdminViewMode(SetAdminViewModeRequest) returns (SetAdminViewModeResponse);
+  rpc GetAdminViewMode(GetAdminViewModeRequest) returns (GetAdminViewModeResponse);
   rpc ListAuditLogs(ListAuditLogsRequest) returns (ListAuditLogsResponse);
   rpc ListServerLLMModels(ListServerLLMModelsRequest) returns (ListServerLLMModelsResponse);
   rpc CreateServerLLMModel(CreateServerLLMModelRequest) returns (CreateServerLLMModelResponse);
@@ -15,22 +14,15 @@ service AdminService {
   rpc DeleteServerLLMModel(DeleteServerLLMModelRequest) returns (DeleteServerLLMModelResponse);
 }
 
-message StartImpersonationRequest {
-  string user_id = 1;
+message SetAdminViewModeRequest {
+  string mode = 1;
 }
+message SetAdminViewModeResponse {}
 
-message StartImpersonationResponse {}
-
-message StopImpersonationRequest {}
-
-message StopImpersonationResponse {}
-
-message GetImpersonationStatusRequest {}
-
-message GetImpersonationStatusResponse {
-  bool is_impersonating = 1;
-  string impersonated_user_email = 2;
-  string original_user_email = 3;
+message GetAdminViewModeRequest {}
+message GetAdminViewModeResponse {
+  string mode = 1;
+  bool is_admin = 2;
 }
 
 message ListAuditLogsRequest {

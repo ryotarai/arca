@@ -20,10 +20,9 @@ export type UserSettings = {
   sshPublicKeys: string[]
 }
 
-export type ImpersonationStatus = {
-  isImpersonating: boolean
-  impersonatedUserEmail: string
-  originalUserEmail: string
+export type AdminViewMode = {
+  mode: string
+  isAdmin: boolean
 }
 
 export type Machine = MachineMessage

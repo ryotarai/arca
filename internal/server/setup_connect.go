@@ -374,28 +374,14 @@ func (s *setupConnectService) authenticate(ctx context.Context, header http.Head
 }
 
 func (s *setupConnectService) authenticateAdmin(ctx context.Context, header http.Header) (string, error) {
-	sessionToken, _ := sessionTokenFromHeader(header)
-	if sessionToken != "" {
-		userID, _, role, err := s.authenticator.Authenticate(ctx, sessionToken)
-		if err == nil {
-			if role != db.UserRoleAdmin {
-				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
-			}
-			return userID, nil
-		}
+	result, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, header)
+	if err != nil {
+		return "", err
 	}
-
-	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
-		userID, _, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
-		if err == nil {
-			if role != db.UserRoleAdmin {
-				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
-			}
-			return userID, nil
-		}
+	if result.Role != db.UserRoleAdmin {
+		return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can update setup settings"))
 	}
-
-	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	return result.UserID, nil
 }
 
 func shouldSkipSetup() bool {

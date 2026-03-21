@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	postgresqlsqlc "github.com/ryotarai/arca/internal/db/sqlc/postgresql"
@@ -22,85 +24,47 @@ type AuditLogEntry struct {
 	ActingAsEmail  string
 }
 
-type SessionImpersonation struct {
-	ImpersonatedUserID   string
-	ImpersonatedByUserID string
-}
-
-func (s *Store) SetSessionImpersonation(ctx context.Context, tokenHash, impersonatedUserID, impersonatedByUserID string) (bool, error) {
+func (s *Store) SetAdminViewMode(ctx context.Context, userID, mode string, nowUnix int64) error {
 	switch s.driver {
 	case DriverSQLite:
-		n, err := s.sqliteQueries.SetSessionImpersonation(ctx, sqlitesqlc.SetSessionImpersonationParams{
-			ImpersonatedUserID:   sql.NullString{String: impersonatedUserID, Valid: true},
-			ImpersonatedByUserID: sql.NullString{String: impersonatedByUserID, Valid: true},
-			TokenHash:            tokenHash,
+		return s.sqliteQueries.UpsertAdminViewMode(ctx, sqlitesqlc.UpsertAdminViewModeParams{
+			UserID:    userID,
+			Mode:      mode,
+			UpdatedAt: nowUnix,
 		})
-		if err != nil {
-			return false, err
-		}
-		return n > 0, nil
 	case DriverPostgres:
-		n, err := s.pgQueries.SetSessionImpersonation(ctx, postgresqlsqlc.SetSessionImpersonationParams{
-			ImpersonatedUserID:   sql.NullString{String: impersonatedUserID, Valid: true},
-			ImpersonatedByUserID: sql.NullString{String: impersonatedByUserID, Valid: true},
-			TokenHash:            tokenHash,
+		return s.pgQueries.UpsertAdminViewMode(ctx, postgresqlsqlc.UpsertAdminViewModeParams{
+			UserID:    userID,
+			Mode:      mode,
+			UpdatedAt: nowUnix,
 		})
-		if err != nil {
-			return false, err
-		}
-		return n > 0, nil
 	default:
-		return false, unsupportedDriverError(s.driver)
+		return fmt.Errorf("unsupported driver: %s", s.driver)
 	}
 }
 
-func (s *Store) ClearSessionImpersonation(ctx context.Context, tokenHash string) (bool, error) {
+func (s *Store) GetAdminViewMode(ctx context.Context, userID string) (string, error) {
 	switch s.driver {
 	case DriverSQLite:
-		n, err := s.sqliteQueries.ClearSessionImpersonation(ctx, tokenHash)
+		mode, err := s.sqliteQueries.GetAdminViewMode(ctx, userID)
 		if err != nil {
-			return false, err
+			if errors.Is(err, sql.ErrNoRows) {
+				return "admin", nil
+			}
+			return "", err
 		}
-		return n > 0, nil
+		return mode, nil
 	case DriverPostgres:
-		n, err := s.pgQueries.ClearSessionImpersonation(ctx, tokenHash)
+		mode, err := s.pgQueries.GetAdminViewMode(ctx, userID)
 		if err != nil {
-			return false, err
+			if errors.Is(err, sql.ErrNoRows) {
+				return "admin", nil
+			}
+			return "", err
 		}
-		return n > 0, nil
+		return mode, nil
 	default:
-		return false, unsupportedDriverError(s.driver)
-	}
-}
-
-func (s *Store) GetSessionImpersonation(ctx context.Context, tokenHash string, nowUnix int64) (SessionImpersonation, error) {
-	switch s.driver {
-	case DriverSQLite:
-		row, err := s.sqliteQueries.GetSessionImpersonation(ctx, sqlitesqlc.GetSessionImpersonationParams{
-			TokenHash: tokenHash,
-			NowUnix:   nowUnix,
-		})
-		if err != nil {
-			return SessionImpersonation{}, err
-		}
-		return SessionImpersonation{
-			ImpersonatedUserID:   row.ImpersonatedUserID.String,
-			ImpersonatedByUserID: row.ImpersonatedByUserID.String,
-		}, nil
-	case DriverPostgres:
-		row, err := s.pgQueries.GetSessionImpersonation(ctx, postgresqlsqlc.GetSessionImpersonationParams{
-			TokenHash: tokenHash,
-			NowUnix:   nowUnix,
-		})
-		if err != nil {
-			return SessionImpersonation{}, err
-		}
-		return SessionImpersonation{
-			ImpersonatedUserID:   row.ImpersonatedUserID.String,
-			ImpersonatedByUserID: row.ImpersonatedByUserID.String,
-		}, nil
-	default:
-		return SessionImpersonation{}, unsupportedDriverError(s.driver)
+		return "", fmt.Errorf("unsupported driver: %s", s.driver)
 	}
 }
 

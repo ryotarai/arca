@@ -453,22 +453,7 @@ func (s *machineConnectService) authenticateWithResult(ctx context.Context, head
 		return auth.AuthResult{}, connect.NewError(connect.CodeUnavailable, errors.New("machine store unavailable"))
 	}
 
-	sessionToken, _ := sessionTokenFromHeader(header)
-	if sessionToken != "" {
-		result, err := s.authenticator.AuthenticateFull(ctx, sessionToken)
-		if err == nil {
-			return result, nil
-		}
-	}
-
-	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
-		userID, email, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
-		if err == nil {
-			return auth.AuthResult{UserID: userID, Email: email, Role: role}, nil
-		}
-	}
-
-	return auth.AuthResult{}, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	return authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.dbStore, header)
 }
 
 func (s *machineConnectService) resolveMachineRole(ctx context.Context, userID, machineID string) string {

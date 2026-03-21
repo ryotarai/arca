@@ -10,103 +10,72 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/admin.proto.
  */
 export const file_arca_v1_admin: GenFile = /*@__PURE__*/
-  fileDesc("ChNhcmNhL3YxL2FkbWluLnByb3RvEgdhcmNhLnYxIiwKGVN0YXJ0SW1wZXJzb25hdGlvblJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCSIcChpTdGFydEltcGVyc29uYXRpb25SZXNwb25zZSIaChhTdG9wSW1wZXJzb25hdGlvblJlcXVlc3QiGwoZU3RvcEltcGVyc29uYXRpb25SZXNwb25zZSIfCh1HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVxdWVzdCJ4Ch5HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVzcG9uc2USGAoQaXNfaW1wZXJzb25hdGluZxgBIAEoCBIfChdpbXBlcnNvbmF0ZWRfdXNlcl9lbWFpbBgCIAEoCRIbChNvcmlnaW5hbF91c2VyX2VtYWlsGAMgASgJImEKFExpc3RBdWRpdExvZ3NSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFEhUKDWFjdGlvbl9wcmVmaXgYAiABKAkSEwoLYWN0b3JfZW1haWwYAyABKAkSDgoGb2Zmc2V0GAQgASgFIlMKFUxpc3RBdWRpdExvZ3NSZXNwb25zZRIlCgphdWRpdF9sb2dzGAEgAygLMhEuYXJjYS52MS5BdWRpdExvZxITCgt0b3RhbF9jb3VudBgCIAEoBSKlAQoIQXVkaXRMb2cSCgoCaWQYASABKAkSEwoLYWN0b3JfZW1haWwYAiABKAkSFwoPYWN0aW5nX2FzX2VtYWlsGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIVCg1yZXNvdXJjZV90eXBlGAUgASgJEhMKC3Jlc291cmNlX2lkGAYgASgJEg8KB2RldGFpbHMYByABKAkSEgoKY3JlYXRlZF9hdBgIIAEoCSLQAQoOU2VydmVyTExNTW9kZWwSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIVCg10b2tlbl9jb21tYW5kGAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBRISCgpjcmVhdGVkX2F0GAggASgJEhIKCnVwZGF0ZWRfYXQYCSABKAkiHAoaTGlzdFNlcnZlckxMTU1vZGVsc1JlcXVlc3QiRgobTGlzdFNlcnZlckxMTU1vZGVsc1Jlc3BvbnNlEicKBm1vZGVscxgBIAMoCzIXLmFyY2EudjEuU2VydmVyTExNTW9kZWwiqQEKG0NyZWF0ZVNlcnZlckxMTU1vZGVsUmVxdWVzdBITCgtjb25maWdfbmFtZRgBIAEoCRIVCg1lbmRwb2ludF90eXBlGAIgASgJEhcKD2N1c3RvbV9lbmRwb2ludBgDIAEoCRISCgptb2RlbF9uYW1lGAQgASgJEhUKDXRva2VuX2NvbW1hbmQYBSABKAkSGgoSbWF4X2NvbnRleHRfdG9rZW5zGAYgASgFIkYKHENyZWF0ZVNlcnZlckxMTU1vZGVsUmVzcG9uc2USJgoFbW9kZWwYASABKAsyFy5hcmNhLnYxLlNlcnZlckxMTU1vZGVsIrUBChtVcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIVCg10b2tlbl9jb21tYW5kGAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBSJGChxVcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlc3BvbnNlEiYKBW1vZGVsGAEgASgLMhcuYXJjYS52MS5TZXJ2ZXJMTE1Nb2RlbCIpChtEZWxldGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkiHgocRGVsZXRlU2VydmVyTExNTW9kZWxSZXNwb25zZTKVBgoMQWRtaW5TZXJ2aWNlEl0KElN0YXJ0SW1wZXJzb25hdGlvbhIiLmFyY2EudjEuU3RhcnRJbXBlcnNvbmF0aW9uUmVxdWVzdBojLmFyY2EudjEuU3RhcnRJbXBlcnNvbmF0aW9uUmVzcG9uc2USWgoRU3RvcEltcGVyc29uYXRpb24SIS5hcmNhLnYxLlN0b3BJbXBlcnNvbmF0aW9uUmVxdWVzdBoiLmFyY2EudjEuU3RvcEltcGVyc29uYXRpb25SZXNwb25zZRJpChZHZXRJbXBlcnNvbmF0aW9uU3RhdHVzEiYuYXJjYS52MS5HZXRJbXBlcnNvbmF0aW9uU3RhdHVzUmVxdWVzdBonLmFyY2EudjEuR2V0SW1wZXJzb25hdGlvblN0YXR1c1Jlc3BvbnNlEk4KDUxpc3RBdWRpdExvZ3MSHS5hcmNhLnYxLkxpc3RBdWRpdExvZ3NSZXF1ZXN0Gh4uYXJjYS52MS5MaXN0QXVkaXRMb2dzUmVzcG9uc2USYAoTTGlzdFNlcnZlckxMTU1vZGVscxIjLmFyY2EudjEuTGlzdFNlcnZlckxMTU1vZGVsc1JlcXVlc3QaJC5hcmNhLnYxLkxpc3RTZXJ2ZXJMTE1Nb2RlbHNSZXNwb25zZRJjChRDcmVhdGVTZXJ2ZXJMTE1Nb2RlbBIkLmFyY2EudjEuQ3JlYXRlU2VydmVyTExNTW9kZWxSZXF1ZXN0GiUuYXJjYS52MS5DcmVhdGVTZXJ2ZXJMTE1Nb2RlbFJlc3BvbnNlEmMKFFVwZGF0ZVNlcnZlckxMTU1vZGVsEiQuYXJjYS52MS5VcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QaJS5hcmNhLnYxLlVwZGF0ZVNlcnZlckxMTU1vZGVsUmVzcG9uc2USYwoURGVsZXRlU2VydmVyTExNTW9kZWwSJC5hcmNhLnYxLkRlbGV0ZVNlcnZlckxMTU1vZGVsUmVxdWVzdBolLmFyY2EudjEuRGVsZXRlU2VydmVyTExNTW9kZWxSZXNwb25zZUKMAQoLY29tLmFyY2EudjFCCkFkbWluUHJvdG9QAVo0Z2l0aHViLmNvbS9yeW90YXJhaS9hcmNhL2ludGVybmFsL2dlbi9hcmNhL3YxO2FyY2F2MaICA0FYWKoCB0FyY2EuVjHKAgdBcmNhXFYx4gITQXJjYVxWMVxHUEJNZXRhZGF0YeoCCEFyY2E6OlYxYgZwcm90bzM");
+  fileDesc("ChNhcmNhL3YxL2FkbWluLnByb3RvEgdhcmNhLnYxIicKF1NldEFkbWluVmlld01vZGVSZXF1ZXN0EgwKBG1vZGUYASABKAkiGgoYU2V0QWRtaW5WaWV3TW9kZVJlc3BvbnNlIhkKF0dldEFkbWluVmlld01vZGVSZXF1ZXN0IjoKGEdldEFkbWluVmlld01vZGVSZXNwb25zZRIMCgRtb2RlGAEgASgJEhAKCGlzX2FkbWluGAIgASgIImEKFExpc3RBdWRpdExvZ3NSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFEhUKDWFjdGlvbl9wcmVmaXgYAiABKAkSEwoLYWN0b3JfZW1haWwYAyABKAkSDgoGb2Zmc2V0GAQgASgFIlMKFUxpc3RBdWRpdExvZ3NSZXNwb25zZRIlCgphdWRpdF9sb2dzGAEgAygLMhEuYXJjYS52MS5BdWRpdExvZxITCgt0b3RhbF9jb3VudBgCIAEoBSKlAQoIQXVkaXRMb2cSCgoCaWQYASABKAkSEwoLYWN0b3JfZW1haWwYAiABKAkSFwoPYWN0aW5nX2FzX2VtYWlsGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIVCg1yZXNvdXJjZV90eXBlGAUgASgJEhMKC3Jlc291cmNlX2lkGAYgASgJEg8KB2RldGFpbHMYByABKAkSEgoKY3JlYXRlZF9hdBgIIAEoCSLQAQoOU2VydmVyTExNTW9kZWwSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIVCg10b2tlbl9jb21tYW5kGAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBRISCgpjcmVhdGVkX2F0GAggASgJEhIKCnVwZGF0ZWRfYXQYCSABKAkiHAoaTGlzdFNlcnZlckxMTU1vZGVsc1JlcXVlc3QiRgobTGlzdFNlcnZlckxMTU1vZGVsc1Jlc3BvbnNlEicKBm1vZGVscxgBIAMoCzIXLmFyY2EudjEuU2VydmVyTExNTW9kZWwiqQEKG0NyZWF0ZVNlcnZlckxMTU1vZGVsUmVxdWVzdBITCgtjb25maWdfbmFtZRgBIAEoCRIVCg1lbmRwb2ludF90eXBlGAIgASgJEhcKD2N1c3RvbV9lbmRwb2ludBgDIAEoCRISCgptb2RlbF9uYW1lGAQgASgJEhUKDXRva2VuX2NvbW1hbmQYBSABKAkSGgoSbWF4X2NvbnRleHRfdG9rZW5zGAYgASgFIkYKHENyZWF0ZVNlcnZlckxMTU1vZGVsUmVzcG9uc2USJgoFbW9kZWwYASABKAsyFy5hcmNhLnYxLlNlcnZlckxMTU1vZGVsIrUBChtVcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIVCg10b2tlbl9jb21tYW5kGAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBSJGChxVcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlc3BvbnNlEiYKBW1vZGVsGAEgASgLMhcuYXJjYS52MS5TZXJ2ZXJMTE1Nb2RlbCIpChtEZWxldGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkiHgocRGVsZXRlU2VydmVyTExNTW9kZWxSZXNwb25zZTKhBQoMQWRtaW5TZXJ2aWNlElcKEFNldEFkbWluVmlld01vZGUSIC5hcmNhLnYxLlNldEFkbWluVmlld01vZGVSZXF1ZXN0GiEuYXJjYS52MS5TZXRBZG1pblZpZXdNb2RlUmVzcG9uc2USVwoQR2V0QWRtaW5WaWV3TW9kZRIgLmFyY2EudjEuR2V0QWRtaW5WaWV3TW9kZVJlcXVlc3QaIS5hcmNhLnYxLkdldEFkbWluVmlld01vZGVSZXNwb25zZRJOCg1MaXN0QXVkaXRMb2dzEh0uYXJjYS52MS5MaXN0QXVkaXRMb2dzUmVxdWVzdBoeLmFyY2EudjEuTGlzdEF1ZGl0TG9nc1Jlc3BvbnNlEmAKE0xpc3RTZXJ2ZXJMTE1Nb2RlbHMSIy5hcmNhLnYxLkxpc3RTZXJ2ZXJMTE1Nb2RlbHNSZXF1ZXN0GiQuYXJjYS52MS5MaXN0U2VydmVyTExNTW9kZWxzUmVzcG9uc2USYwoUQ3JlYXRlU2VydmVyTExNTW9kZWwSJC5hcmNhLnYxLkNyZWF0ZVNlcnZlckxMTU1vZGVsUmVxdWVzdBolLmFyY2EudjEuQ3JlYXRlU2VydmVyTExNTW9kZWxSZXNwb25zZRJjChRVcGRhdGVTZXJ2ZXJMTE1Nb2RlbBIkLmFyY2EudjEuVXBkYXRlU2VydmVyTExNTW9kZWxSZXF1ZXN0GiUuYXJjYS52MS5VcGRhdGVTZXJ2ZXJMTE1Nb2RlbFJlc3BvbnNlEmMKFERlbGV0ZVNlcnZlckxMTU1vZGVsEiQuYXJjYS52MS5EZWxldGVTZXJ2ZXJMTE1Nb2RlbFJlcXVlc3QaJS5hcmNhLnYxLkRlbGV0ZVNlcnZlckxMTU1vZGVsUmVzcG9uc2VCjAEKC2NvbS5hcmNhLnYxQgpBZG1pblByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z");
 
 /**
- * @generated from message arca.v1.StartImpersonationRequest
+ * @generated from message arca.v1.SetAdminViewModeRequest
  */
-export type StartImpersonationRequest = Message<"arca.v1.StartImpersonationRequest"> & {
+export type SetAdminViewModeRequest = Message<"arca.v1.SetAdminViewModeRequest"> & {
   /**
-   * @generated from field: string user_id = 1;
+   * @generated from field: string mode = 1;
    */
-  userId: string;
+  mode: string;
 };
 
 /**
- * Describes the message arca.v1.StartImpersonationRequest.
- * Use `create(StartImpersonationRequestSchema)` to create a new message.
+ * Describes the message arca.v1.SetAdminViewModeRequest.
+ * Use `create(SetAdminViewModeRequestSchema)` to create a new message.
  */
-export const StartImpersonationRequestSchema: GenMessage<StartImpersonationRequest> = /*@__PURE__*/
+export const SetAdminViewModeRequestSchema: GenMessage<SetAdminViewModeRequest> = /*@__PURE__*/
   messageDesc(file_arca_v1_admin, 0);
 
 /**
- * @generated from message arca.v1.StartImpersonationResponse
+ * @generated from message arca.v1.SetAdminViewModeResponse
  */
-export type StartImpersonationResponse = Message<"arca.v1.StartImpersonationResponse"> & {
+export type SetAdminViewModeResponse = Message<"arca.v1.SetAdminViewModeResponse"> & {
 };
 
 /**
- * Describes the message arca.v1.StartImpersonationResponse.
- * Use `create(StartImpersonationResponseSchema)` to create a new message.
+ * Describes the message arca.v1.SetAdminViewModeResponse.
+ * Use `create(SetAdminViewModeResponseSchema)` to create a new message.
  */
-export const StartImpersonationResponseSchema: GenMessage<StartImpersonationResponse> = /*@__PURE__*/
+export const SetAdminViewModeResponseSchema: GenMessage<SetAdminViewModeResponse> = /*@__PURE__*/
   messageDesc(file_arca_v1_admin, 1);
 
 /**
- * @generated from message arca.v1.StopImpersonationRequest
+ * @generated from message arca.v1.GetAdminViewModeRequest
  */
-export type StopImpersonationRequest = Message<"arca.v1.StopImpersonationRequest"> & {
+export type GetAdminViewModeRequest = Message<"arca.v1.GetAdminViewModeRequest"> & {
 };
 
 /**
- * Describes the message arca.v1.StopImpersonationRequest.
- * Use `create(StopImpersonationRequestSchema)` to create a new message.
+ * Describes the message arca.v1.GetAdminViewModeRequest.
+ * Use `create(GetAdminViewModeRequestSchema)` to create a new message.
  */
-export const StopImpersonationRequestSchema: GenMessage<StopImpersonationRequest> = /*@__PURE__*/
+export const GetAdminViewModeRequestSchema: GenMessage<GetAdminViewModeRequest> = /*@__PURE__*/
   messageDesc(file_arca_v1_admin, 2);
 
 /**
- * @generated from message arca.v1.StopImpersonationResponse
+ * @generated from message arca.v1.GetAdminViewModeResponse
  */
-export type StopImpersonationResponse = Message<"arca.v1.StopImpersonationResponse"> & {
+export type GetAdminViewModeResponse = Message<"arca.v1.GetAdminViewModeResponse"> & {
+  /**
+   * @generated from field: string mode = 1;
+   */
+  mode: string;
+
+  /**
+   * @generated from field: bool is_admin = 2;
+   */
+  isAdmin: boolean;
 };
 
 /**
- * Describes the message arca.v1.StopImpersonationResponse.
- * Use `create(StopImpersonationResponseSchema)` to create a new message.
+ * Describes the message arca.v1.GetAdminViewModeResponse.
+ * Use `create(GetAdminViewModeResponseSchema)` to create a new message.
  */
-export const StopImpersonationResponseSchema: GenMessage<StopImpersonationResponse> = /*@__PURE__*/
+export const GetAdminViewModeResponseSchema: GenMessage<GetAdminViewModeResponse> = /*@__PURE__*/
   messageDesc(file_arca_v1_admin, 3);
-
-/**
- * @generated from message arca.v1.GetImpersonationStatusRequest
- */
-export type GetImpersonationStatusRequest = Message<"arca.v1.GetImpersonationStatusRequest"> & {
-};
-
-/**
- * Describes the message arca.v1.GetImpersonationStatusRequest.
- * Use `create(GetImpersonationStatusRequestSchema)` to create a new message.
- */
-export const GetImpersonationStatusRequestSchema: GenMessage<GetImpersonationStatusRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 4);
-
-/**
- * @generated from message arca.v1.GetImpersonationStatusResponse
- */
-export type GetImpersonationStatusResponse = Message<"arca.v1.GetImpersonationStatusResponse"> & {
-  /**
-   * @generated from field: bool is_impersonating = 1;
-   */
-  isImpersonating: boolean;
-
-  /**
-   * @generated from field: string impersonated_user_email = 2;
-   */
-  impersonatedUserEmail: string;
-
-  /**
-   * @generated from field: string original_user_email = 3;
-   */
-  originalUserEmail: string;
-};
-
-/**
- * Describes the message arca.v1.GetImpersonationStatusResponse.
- * Use `create(GetImpersonationStatusResponseSchema)` to create a new message.
- */
-export const GetImpersonationStatusResponseSchema: GenMessage<GetImpersonationStatusResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 5);
 
 /**
  * @generated from message arca.v1.ListAuditLogsRequest
@@ -138,7 +107,7 @@ export type ListAuditLogsRequest = Message<"arca.v1.ListAuditLogsRequest"> & {
  * Use `create(ListAuditLogsRequestSchema)` to create a new message.
  */
 export const ListAuditLogsRequestSchema: GenMessage<ListAuditLogsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 6);
+  messageDesc(file_arca_v1_admin, 4);
 
 /**
  * @generated from message arca.v1.ListAuditLogsResponse
@@ -160,7 +129,7 @@ export type ListAuditLogsResponse = Message<"arca.v1.ListAuditLogsResponse"> & {
  * Use `create(ListAuditLogsResponseSchema)` to create a new message.
  */
 export const ListAuditLogsResponseSchema: GenMessage<ListAuditLogsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 7);
+  messageDesc(file_arca_v1_admin, 5);
 
 /**
  * @generated from message arca.v1.AuditLog
@@ -212,7 +181,7 @@ export type AuditLog = Message<"arca.v1.AuditLog"> & {
  * Use `create(AuditLogSchema)` to create a new message.
  */
 export const AuditLogSchema: GenMessage<AuditLog> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 8);
+  messageDesc(file_arca_v1_admin, 6);
 
 /**
  * @generated from message arca.v1.ServerLLMModel
@@ -269,7 +238,7 @@ export type ServerLLMModel = Message<"arca.v1.ServerLLMModel"> & {
  * Use `create(ServerLLMModelSchema)` to create a new message.
  */
 export const ServerLLMModelSchema: GenMessage<ServerLLMModel> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 9);
+  messageDesc(file_arca_v1_admin, 7);
 
 /**
  * @generated from message arca.v1.ListServerLLMModelsRequest
@@ -282,7 +251,7 @@ export type ListServerLLMModelsRequest = Message<"arca.v1.ListServerLLMModelsReq
  * Use `create(ListServerLLMModelsRequestSchema)` to create a new message.
  */
 export const ListServerLLMModelsRequestSchema: GenMessage<ListServerLLMModelsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 10);
+  messageDesc(file_arca_v1_admin, 8);
 
 /**
  * @generated from message arca.v1.ListServerLLMModelsResponse
@@ -299,7 +268,7 @@ export type ListServerLLMModelsResponse = Message<"arca.v1.ListServerLLMModelsRe
  * Use `create(ListServerLLMModelsResponseSchema)` to create a new message.
  */
 export const ListServerLLMModelsResponseSchema: GenMessage<ListServerLLMModelsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 11);
+  messageDesc(file_arca_v1_admin, 9);
 
 /**
  * @generated from message arca.v1.CreateServerLLMModelRequest
@@ -341,7 +310,7 @@ export type CreateServerLLMModelRequest = Message<"arca.v1.CreateServerLLMModelR
  * Use `create(CreateServerLLMModelRequestSchema)` to create a new message.
  */
 export const CreateServerLLMModelRequestSchema: GenMessage<CreateServerLLMModelRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 12);
+  messageDesc(file_arca_v1_admin, 10);
 
 /**
  * @generated from message arca.v1.CreateServerLLMModelResponse
@@ -358,7 +327,7 @@ export type CreateServerLLMModelResponse = Message<"arca.v1.CreateServerLLMModel
  * Use `create(CreateServerLLMModelResponseSchema)` to create a new message.
  */
 export const CreateServerLLMModelResponseSchema: GenMessage<CreateServerLLMModelResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 13);
+  messageDesc(file_arca_v1_admin, 11);
 
 /**
  * @generated from message arca.v1.UpdateServerLLMModelRequest
@@ -405,7 +374,7 @@ export type UpdateServerLLMModelRequest = Message<"arca.v1.UpdateServerLLMModelR
  * Use `create(UpdateServerLLMModelRequestSchema)` to create a new message.
  */
 export const UpdateServerLLMModelRequestSchema: GenMessage<UpdateServerLLMModelRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 14);
+  messageDesc(file_arca_v1_admin, 12);
 
 /**
  * @generated from message arca.v1.UpdateServerLLMModelResponse
@@ -422,7 +391,7 @@ export type UpdateServerLLMModelResponse = Message<"arca.v1.UpdateServerLLMModel
  * Use `create(UpdateServerLLMModelResponseSchema)` to create a new message.
  */
 export const UpdateServerLLMModelResponseSchema: GenMessage<UpdateServerLLMModelResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 15);
+  messageDesc(file_arca_v1_admin, 13);
 
 /**
  * @generated from message arca.v1.DeleteServerLLMModelRequest
@@ -439,7 +408,7 @@ export type DeleteServerLLMModelRequest = Message<"arca.v1.DeleteServerLLMModelR
  * Use `create(DeleteServerLLMModelRequestSchema)` to create a new message.
  */
 export const DeleteServerLLMModelRequestSchema: GenMessage<DeleteServerLLMModelRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 16);
+  messageDesc(file_arca_v1_admin, 14);
 
 /**
  * @generated from message arca.v1.DeleteServerLLMModelResponse
@@ -452,35 +421,27 @@ export type DeleteServerLLMModelResponse = Message<"arca.v1.DeleteServerLLMModel
  * Use `create(DeleteServerLLMModelResponseSchema)` to create a new message.
  */
 export const DeleteServerLLMModelResponseSchema: GenMessage<DeleteServerLLMModelResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_admin, 17);
+  messageDesc(file_arca_v1_admin, 15);
 
 /**
  * @generated from service arca.v1.AdminService
  */
 export const AdminService: GenService<{
   /**
-   * @generated from rpc arca.v1.AdminService.StartImpersonation
+   * @generated from rpc arca.v1.AdminService.SetAdminViewMode
    */
-  startImpersonation: {
+  setAdminViewMode: {
     methodKind: "unary";
-    input: typeof StartImpersonationRequestSchema;
-    output: typeof StartImpersonationResponseSchema;
+    input: typeof SetAdminViewModeRequestSchema;
+    output: typeof SetAdminViewModeResponseSchema;
   },
   /**
-   * @generated from rpc arca.v1.AdminService.StopImpersonation
+   * @generated from rpc arca.v1.AdminService.GetAdminViewMode
    */
-  stopImpersonation: {
+  getAdminViewMode: {
     methodKind: "unary";
-    input: typeof StopImpersonationRequestSchema;
-    output: typeof StopImpersonationResponseSchema;
-  },
-  /**
-   * @generated from rpc arca.v1.AdminService.GetImpersonationStatus
-   */
-  getImpersonationStatus: {
-    methodKind: "unary";
-    input: typeof GetImpersonationStatusRequestSchema;
-    output: typeof GetImpersonationStatusResponseSchema;
+    input: typeof GetAdminViewModeRequestSchema;
+    output: typeof GetAdminViewModeResponseSchema;
   },
   /**
    * @generated from rpc arca.v1.AdminService.ListAuditLogs

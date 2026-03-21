@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { updateDomainSettings, getSlackConfig, updateSlackConfig, testSlackNotification } from '@/lib/api'
+import { updateDomainSettings, getSlackConfig, updateSlackConfig, testSlackNotification, setAdminViewMode } from '@/lib/api'
 import type { SlackConfigData } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { SetupStatus, User } from '@/lib/types'
@@ -310,8 +310,46 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         </Card>
 
         <SlackSettingsCard />
+
+        <NonAdminModeCard />
       </section>
     </main>
+  )
+}
+
+function NonAdminModeCard() {
+  const [loading, setLoading] = useState(false)
+
+  const handleEnterNonAdminMode = async () => {
+    setLoading(true)
+    try {
+      await setAdminViewMode('user')
+      window.location.reload()
+    } catch {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card className="py-0 shadow-sm">
+      <CardHeader className="space-y-2 p-6 pb-3">
+        <CardTitle className="text-xl">View mode</CardTitle>
+        <CardDescription>
+          Switch to non-admin mode to view the application as a regular user. Admin features will be hidden.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-6 pt-3">
+        <Button
+          type="button"
+          variant="secondary"
+          className="h-10"
+          disabled={loading}
+          onClick={handleEnterNonAdminMode}
+        >
+          {loading ? 'Switching...' : 'Enter non-admin mode'}
+        </Button>
+      </CardContent>
+    </Card>
   )
 }
 

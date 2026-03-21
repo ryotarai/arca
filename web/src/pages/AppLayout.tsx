@@ -18,13 +18,12 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { ImpersonationMenu } from '@/components/ImpersonationMenu'
-import type { ImpersonationStatus, User } from '@/lib/types'
+import type { AdminViewMode, User } from '@/lib/types'
 
 type AppLayoutProps = {
   user: User | null
   onLogout: () => Promise<void>
-  impersonation?: ImpersonationStatus | null
+  adminViewMode?: AdminViewMode | null
 }
 
 const navItems = [
@@ -42,7 +41,7 @@ const adminNavItems = [
   { to: '/admin/settings', label: 'Admin settings', icon: Settings },
 ]
 
-export function AppLayout({ user, onLogout, impersonation }: AppLayoutProps) {
+export function AppLayout({ user, onLogout, adminViewMode }: AppLayoutProps) {
   const location = useLocation()
 
   if (user == null) {
@@ -76,7 +75,7 @@ export function AppLayout({ user, onLogout, impersonation }: AppLayoutProps) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          {(user.role === 'admin' || impersonation?.isImpersonating) && (
+          {user.role === 'admin' && (
             <SidebarGroup>
               <SidebarGroupLabel>Admin</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -109,9 +108,6 @@ export function AppLayout({ user, onLogout, impersonation }: AppLayoutProps) {
           <SidebarTrigger />
           <p className="text-sm text-muted-foreground">Arca workspace</p>
           <div className="ml-auto">
-            {user?.role === 'admin' && !impersonation?.isImpersonating && (
-              <ImpersonationMenu />
-            )}
           </div>
         </header>
         <Outlet />
