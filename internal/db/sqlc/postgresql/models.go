@@ -81,7 +81,6 @@ type Machine struct {
 	TemplateType       string
 	TemplateConfigJson string
 	SetupVersion       string
-	Endpoint           string
 	OptionsJson        string
 	CustomImageID      string
 	CreatedAt          time.Time
@@ -108,16 +107,6 @@ type MachineEvent struct {
 	EventType string
 	Message   string
 	CreatedAt int64
-}
-
-type MachineExposure struct {
-	ID        string
-	MachineID string
-	Name      string
-	Hostname  string
-	Service   string
-	CreatedAt int64
-	UpdatedAt int64
 }
 
 type MachineGroupAccess struct {

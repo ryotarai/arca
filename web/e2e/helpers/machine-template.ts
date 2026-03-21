@@ -83,8 +83,6 @@ export async function ensureLxdTemplate(
         lxd: { endpoint: 'https://localhost:8443' },
         exposure: {
           method: 2, // PROXY_VIA_SERVER
-          domainPrefix: 'arca-',
-          baseDomain: 'localhost',
           connectivity: 1, // PRIVATE_IP
         },
         serverApiUrl: `http://10.200.0.1:${serverPort}`,
@@ -113,11 +111,9 @@ export async function ensureLxdTemplate(
 
 export async function ensureLxdTemplateWithProxyExposure(
   page: Page,
-  opts?: { name?: string; domainPrefix?: string; baseDomain?: string },
+  opts?: { name?: string },
 ): Promise<TemplateRecord> {
   const name = opts?.name ?? 'lxd-proxy-e2e'
-  const domainPrefix = opts?.domainPrefix ?? 'arca-'
-  const baseDomain = opts?.baseDomain ?? 'localhost'
   const serverPort = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080',
   ).port
@@ -130,8 +126,6 @@ export async function ensureLxdTemplateWithProxyExposure(
         lxd: { endpoint: 'https://localhost:8443' },
         exposure: {
           method: 2, // PROXY_VIA_SERVER
-          domainPrefix,
-          baseDomain,
           connectivity: 1, // PRIVATE_IP
         },
         serverApiUrl: `http://10.200.0.1:${serverPort}`,

@@ -14,10 +14,10 @@ import (
 )
 
 type exposureConnectService struct {
-	store             *db.Store
-	authenticator     Authenticator
-	encryptor         *crypto.Encryptor
-	llmTokenExecutor  *LLMTokenExecutor
+	store            *db.Store
+	authenticator    Authenticator
+	encryptor        *crypto.Encryptor
+	llmTokenExecutor *LLMTokenExecutor
 }
 
 func newExposureConnectService(store *db.Store, authenticator Authenticator, encryptor *crypto.Encryptor, llmTokenExecutor *LLMTokenExecutor) *exposureConnectService {
@@ -44,28 +44,33 @@ func (s *exposureConnectService) UpsertMachineExposure(ctx context.Context, req 
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
 	}
 
-	existing, err := s.store.GetMachineExposureByMachineIDAndName(ctx, machineID, name)
+	// Validate machine exists
+	m, err := s.store.GetMachineByID(ctx, machineID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("exposure is not provisioned yet"))
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("load machine exposure failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load exposure"))
+		log.Printf("load machine failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
 	}
 
-	exposure, err := s.store.UpsertMachineExposure(
-		ctx,
-		existing.MachineID,
-		existing.Name,
-		existing.Hostname,
-		existing.Service,
-	)
+	// Dynamically construct the exposure from setup_state
+	setup, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("upsert machine exposure failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist exposure settings"))
+		log.Printf("get setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
+	hostname := db.MachineHostname(setup.DomainPrefix, m.Name, setup.BaseDomain)
 
-	return connect.NewResponse(&arcav1.UpsertMachineExposureResponse{Exposure: toMachineExposureMessage(exposure)}), nil
+	return connect.NewResponse(&arcav1.UpsertMachineExposureResponse{
+		Exposure: &arcav1.MachineExposure{
+			Id:        m.ID + "/default",
+			MachineId: m.ID,
+			Name:      "default",
+			Hostname:  hostname,
+			Service:   "http://localhost:21030",
+		},
+	}), nil
 }
 
 func (s *exposureConnectService) ListMachineExposures(ctx context.Context, req *connect.Request[arcav1.ListMachineExposuresRequest]) (*connect.Response[arcav1.ListMachineExposuresResponse], error) {
@@ -87,15 +92,30 @@ func (s *exposureConnectService) ListMachineExposures(ctx context.Context, req *
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 	}
 
-	exposures, err := s.store.ListMachineExposuresByMachineID(ctx, machineID)
+	m, err := s.store.GetMachineByID(ctx, machineID)
 	if err != nil {
-		log.Printf("list machine exposures failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list exposures"))
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		log.Printf("load machine failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
 	}
 
-	items := make([]*arcav1.MachineExposure, 0, len(exposures))
-	for _, exposure := range exposures {
-		items = append(items, toMachineExposureMessage(exposure))
+	setup, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		log.Printf("get setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
+	}
+	hostname := db.MachineHostname(setup.DomainPrefix, m.Name, setup.BaseDomain)
+
+	items := []*arcav1.MachineExposure{
+		{
+			Id:        m.ID + "/default",
+			MachineId: m.ID,
+			Name:      "default",
+			Hostname:  hostname,
+			Service:   "http://localhost:21030",
+		},
 	}
 	return connect.NewResponse(&arcav1.ListMachineExposuresResponse{Exposures: items}), nil
 }
@@ -130,19 +150,38 @@ func (s *exposureConnectService) GetMachineExposureByHostname(ctx context.Contex
 	if hostname == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("hostname is required"))
 	}
-	exposure, err := s.store.GetMachineExposureByHostname(ctx, hostname)
+
+	// Resolve machine name from hostname via setup_state
+	setup, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		log.Printf("get setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
+	}
+	name, ok := db.ExtractMachineNameFromHostname(hostname, setup.DomainPrefix, setup.BaseDomain)
+	if !ok {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("exposure not found"))
+	}
+	m, err := s.store.GetMachineByName(ctx, name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("exposure not found"))
 		}
-		log.Printf("get exposure by hostname failed: %v", err)
+		log.Printf("get machine by name failed: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve exposure"))
 	}
-	if exposure.MachineID != machineID {
+	if m.ID != machineID {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("exposure not found"))
 	}
 
-	return connect.NewResponse(&arcav1.GetMachineExposureByHostnameResponse{Exposure: toMachineExposureMessage(exposure)}), nil
+	return connect.NewResponse(&arcav1.GetMachineExposureByHostnameResponse{
+		Exposure: &arcav1.MachineExposure{
+			Id:        m.ID + "/default",
+			MachineId: m.ID,
+			Name:      "default",
+			Hostname:  hostname,
+			Service:   "http://localhost:21030",
+		},
+	}), nil
 }
 
 func (s *exposureConnectService) ReportMachineReadiness(ctx context.Context, req *connect.Request[arcav1.ReportMachineReadinessRequest]) (*connect.Response[arcav1.ReportMachineReadinessResponse], error) {
@@ -280,14 +319,4 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 	}
 
 	return connect.NewResponse(&arcav1.GetMachineLLMModelsResponse{Models: items}), nil
-}
-
-func toMachineExposureMessage(exposure db.MachineExposure) *arcav1.MachineExposure {
-	return &arcav1.MachineExposure{
-		Id:        exposure.ID,
-		MachineId: exposure.MachineID,
-		Name:      exposure.Name,
-		Hostname:  exposure.Hostname,
-		Service:   exposure.Service,
-	}
 }

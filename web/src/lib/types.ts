@@ -54,8 +54,6 @@ export type MachineExposureMethodType = 'proxy_via_server'
 
 export type MachineExposureConfig = {
   method: MachineExposureMethodType
-  domainPrefix: string
-  baseDomain: string
   connectivity: 'private_ip' | 'public_ip' | ''
 }
 

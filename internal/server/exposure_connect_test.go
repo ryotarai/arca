@@ -9,23 +9,6 @@ import (
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
 
-func TestToMachineExposureMessage(t *testing.T) {
-	msg := toMachineExposureMessage(db.MachineExposure{
-		ID:        "exp-1",
-		MachineID: "mach-1",
-		Name:      "default",
-		Hostname:  "app.example.com",
-		Service:   "http://localhost:8080",
-	})
-
-	if msg.GetName() != "default" {
-		t.Fatalf("name = %q, want %q", msg.GetName(), "default")
-	}
-	if msg.GetHostname() != "app.example.com" {
-		t.Fatalf("hostname = %q, want %q", msg.GetHostname(), "app.example.com")
-	}
-}
-
 func TestReportMachineReadiness_AcceptsWhenDesiredRunning(t *testing.T) {
 	ctx := context.Background()
 	store, authenticator := newUserServiceForTest(t)

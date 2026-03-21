@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { loginAsAdmin } from './helpers/auth'
+import { loginAsAdmin, defaultSetupConfig } from './helpers/auth'
 import {
   bestEffortDeleteMachine,
   createMachineViaAPI,
@@ -19,8 +19,6 @@ test.describe('LXD provisioning (proxy via server)', () => {
       await loginAsAdmin(page)
       const runtime = await ensureLxdTemplateWithProxyExposure(page, {
         name: 'lxd-provisioning-e2e',
-        domainPrefix: 'arca-',
-        baseDomain: 'localhost',
       })
       templateId = runtime.id
     } finally {
@@ -45,11 +43,8 @@ test.describe('LXD provisioning (proxy via server)', () => {
         intervalMs: 5_000,
       })
 
-      // Verify endpoint is set
-      expect(runningMachine.endpoint?.trim() ?? '').not.toEqual('')
-
-      // Verify ttyd is accessible through proxy-via-server with full auth flow.
-      const machineEndpoint = runningMachine.endpoint!.trim()
+      // Compute machine endpoint from setup state (baseDomain + domainPrefix + machineName)
+      const machineEndpoint = `${defaultSetupConfig.domainPrefix}${machineName}.${defaultSetupConfig.baseDomain}`
       const serverBaseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080'
       const ttydStatus = await accessTtydViaProxy(page, serverBaseURL, machineEndpoint)
       expect(ttydStatus).toBe(200)

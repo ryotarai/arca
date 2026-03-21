@@ -152,8 +152,6 @@ test.describe('template catalog', () => {
     await page.locator('#template-name').fill(templateName)
     await page.locator('#template-type').selectOption('lxd')
     await page.locator('#template-lxd-endpoint').fill('https://localhost:8443')
-    await page.locator('#template-exposure-domain-prefix').fill('arca-')
-    await page.locator('#template-exposure-base-domain').fill('localhost')
     await page.locator('#template-exposure-connectivity').selectOption('private_ip')
 
     await page.getByRole('button', { name: 'Create template' }).click()

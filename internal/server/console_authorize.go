@@ -46,28 +46,41 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 		}
 
 		exposureHost := stripPort(targetURL.Host)
-		exposure, err := store.GetMachineExposureByHostname(r.Context(), exposureHost)
+
+		// Resolve machine from hostname via setup_state
+		setup, err := store.GetSetupState(r.Context())
+		if err != nil {
+			log.Printf("console authorize setup state lookup failed: %v", err)
+			http.Error(w, "failed to resolve exposure", http.StatusInternalServerError)
+			return
+		}
+		machineName, ok := db.ExtractMachineNameFromHostname(exposureHost, setup.DomainPrefix, setup.BaseDomain)
+		if !ok {
+			http.NotFound(w, r)
+			return
+		}
+		m, err := store.GetMachineByName(r.Context(), machineName)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.NotFound(w, r)
 				return
 			}
-			log.Printf("console authorize exposure lookup failed: %v", err)
+			log.Printf("console authorize machine lookup failed: %v", err)
 			http.Error(w, "failed to resolve exposure", http.StatusInternalServerError)
 			return
 		}
 
-		if !canUserAccessExposure(r.Context(), store, exposure, userID, targetURL.Path) {
+		if !canUserAccessMachine(r.Context(), store, m.ID, userID, targetURL.Path) {
 			accessDeniedURL := url.URL{Path: "/access-denied"}
 			q := accessDeniedURL.Query()
-			q.Set("machine_id", exposure.MachineID)
+			q.Set("machine_id", m.ID)
 			accessDeniedURL.RawQuery = q.Encode()
 			http.Redirect(w, r, accessDeniedURL.String(), http.StatusFound)
 			return
 		}
 
 		expiresAt := time.Now().Add(authTicketTTL)
-		token, err := store.CreateArcadExchangeToken(r.Context(), userID, exposure.MachineID, exposure.ID, expiresAt.Unix())
+		token, err := store.CreateArcadExchangeToken(r.Context(), userID, m.ID, "", expiresAt.Unix())
 		if err != nil {
 			log.Printf("console authorize arcad token issue failed: %v", err)
 			http.Error(w, "failed to issue token", http.StatusInternalServerError)

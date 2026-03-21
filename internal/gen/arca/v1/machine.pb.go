@@ -28,7 +28,6 @@ type Machine struct {
 	Status             string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	DesiredStatus      string                 `protobuf:"bytes,4,opt,name=desired_status,json=desiredStatus,proto3" json:"desired_status,omitempty"`
 	LastError          string                 `protobuf:"bytes,5,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
-	Endpoint           string                 `protobuf:"bytes,6,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	TemplateId         string                 `protobuf:"bytes,7,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	UpdateRequired     bool                   `protobuf:"varint,8,opt,name=update_required,json=updateRequired,proto3" json:"update_required,omitempty"`
 	Ready              bool                   `protobuf:"varint,9,opt,name=ready,proto3" json:"ready,omitempty"`
@@ -103,13 +102,6 @@ func (x *Machine) GetDesiredStatus() string {
 func (x *Machine) GetLastError() string {
 	if x != nil {
 		return x.LastError
-	}
-	return ""
-}
-
-func (x *Machine) GetEndpoint() string {
-	if x != nil {
-		return x.Endpoint
 	}
 	return ""
 }
@@ -1017,15 +1009,14 @@ var File_arca_v1_machine_proto protoreflect.FileDescriptor
 
 const file_arca_v1_machine_proto_rawDesc = "" +
 	"\n" +
-	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xc1\x04\n" +
+	"\x15arca/v1/machine.proto\x12\aarca.v1\"\xab\x04\n" +
 	"\aMachine\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12%\n" +
 	"\x0edesired_status\x18\x04 \x01(\tR\rdesiredStatus\x12\x1d\n" +
 	"\n" +
-	"last_error\x18\x05 \x01(\tR\tlastError\x12\x1a\n" +
-	"\bendpoint\x18\x06 \x01(\tR\bendpoint\x12\x1f\n" +
+	"last_error\x18\x05 \x01(\tR\tlastError\x12\x1f\n" +
 	"\vtemplate_id\x18\a \x01(\tR\n" +
 	"templateId\x12'\n" +
 	"\x0fupdate_required\x18\b \x01(\bR\x0eupdateRequired\x12\x14\n" +
@@ -1039,7 +1030,7 @@ const file_arca_v1_machine_proto_rawDesc = "" +
 	"\x14template_config_json\x18\x0f \x01(\tR\x12templateConfigJson\x1a:\n" +
 	"\fOptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x15\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x06\x10\a\"\x15\n" +
 	"\x13ListMachinesRequest\"D\n" +
 	"\x14ListMachinesResponse\x12,\n" +
 	"\bmachines\x18\x01 \x03(\v2\x10.arca.v1.MachineR\bmachines\"2\n" +

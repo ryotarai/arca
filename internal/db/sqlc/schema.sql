@@ -75,7 +75,6 @@ CREATE TABLE IF NOT EXISTS machines (
   template_type TEXT NOT NULL DEFAULT '',
   template_config_json TEXT NOT NULL DEFAULT '{}',
   setup_version TEXT NOT NULL DEFAULT '',
-  endpoint TEXT NOT NULL DEFAULT '',
   options_json TEXT NOT NULL DEFAULT '{}',
   custom_image_id TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -182,19 +181,6 @@ CREATE TABLE IF NOT EXISTS auth_tickets (
 
 CREATE INDEX IF NOT EXISTS idx_auth_tickets_machine_id ON auth_tickets(machine_id);
 CREATE INDEX IF NOT EXISTS idx_auth_tickets_expires_at ON auth_tickets(expires_at);
-
-CREATE TABLE IF NOT EXISTS machine_exposures (
-  id TEXT PRIMARY KEY,
-  machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  hostname TEXT NOT NULL UNIQUE,
-  service TEXT NOT NULL,
-  created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL,
-  UNIQUE(machine_id, name)
-);
-
-CREATE INDEX IF NOT EXISTS idx_machine_exposures_machine_id ON machine_exposures(machine_id);
 
 CREATE TABLE IF NOT EXISTS machine_sharing (
   machine_id TEXT PRIMARY KEY REFERENCES machines(id) ON DELETE CASCADE,

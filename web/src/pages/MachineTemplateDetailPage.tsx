@@ -149,8 +149,6 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
                 <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-sm text-muted-foreground">Machine exposure</p>
                   <p className="text-sm text-foreground">Method: Proxy via Server</p>
-                  {template.exposure.domainPrefix !== '' && <p className="text-sm text-foreground">Domain prefix: {template.exposure.domainPrefix}</p>}
-                  {template.exposure.baseDomain !== '' && <p className="text-sm text-foreground">Base domain: {template.exposure.baseDomain}</p>}
                   {template.exposure.connectivity !== '' && <p className="text-sm text-foreground">Connectivity: {template.exposure.connectivity}</p>}
                 </div>
                 {template.config.type === 'libvirt' ? (

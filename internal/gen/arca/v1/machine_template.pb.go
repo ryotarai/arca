@@ -171,8 +171,6 @@ func (MachineConnectivity) EnumDescriptor() ([]byte, []int) {
 type MachineExposureConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Method        MachineExposureMethod  `protobuf:"varint,1,opt,name=method,proto3,enum=arca.v1.MachineExposureMethod" json:"method,omitempty"`
-	DomainPrefix  string                 `protobuf:"bytes,2,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
-	BaseDomain    string                 `protobuf:"bytes,3,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
 	Connectivity  MachineConnectivity    `protobuf:"varint,7,opt,name=connectivity,proto3,enum=arca.v1.MachineConnectivity" json:"connectivity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -213,20 +211,6 @@ func (x *MachineExposureConfig) GetMethod() MachineExposureMethod {
 		return x.Method
 	}
 	return MachineExposureMethod_MACHINE_EXPOSURE_METHOD_UNSPECIFIED
-}
-
-func (x *MachineExposureConfig) GetDomainPrefix() string {
-	if x != nil {
-		return x.DomainPrefix
-	}
-	return ""
-}
-
-func (x *MachineExposureConfig) GetBaseDomain() string {
-	if x != nil {
-		return x.BaseDomain
-	}
-	return ""
 }
 
 func (x *MachineExposureConfig) GetConnectivity() MachineConnectivity {
@@ -1190,13 +1174,10 @@ var File_arca_v1_machine_template_proto protoreflect.FileDescriptor
 
 const file_arca_v1_machine_template_proto_rawDesc = "" +
 	"\n" +
-	"\x1earca/v1/machine_template.proto\x12\aarca.v1\"\xe9\x01\n" +
+	"\x1earca/v1/machine_template.proto\x12\aarca.v1\"\xaf\x01\n" +
 	"\x15MachineExposureConfig\x126\n" +
-	"\x06method\x18\x01 \x01(\x0e2\x1e.arca.v1.MachineExposureMethodR\x06method\x12#\n" +
-	"\rdomain_prefix\x18\x02 \x01(\tR\fdomainPrefix\x12\x1f\n" +
-	"\vbase_domain\x18\x03 \x01(\tR\n" +
-	"baseDomain\x12@\n" +
-	"\fconnectivity\x18\a \x01(\x0e2\x1c.arca.v1.MachineConnectivityR\fconnectivityJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\a\"\x8d\x01\n" +
+	"\x06method\x18\x01 \x01(\x0e2\x1e.arca.v1.MachineExposureMethodR\x06method\x12@\n" +
+	"\fconnectivity\x18\a \x01(\x0e2\x1c.arca.v1.MachineConnectivityR\fconnectivityJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\a\"\x8d\x01\n" +
 	"\x15LibvirtTemplateConfig\x12\x10\n" +
 	"\x03uri\x18\x01 \x01(\tR\x03uri\x12\x18\n" +
 	"\anetwork\x18\x02 \x01(\tR\anetwork\x12!\n" +

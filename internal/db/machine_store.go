@@ -42,7 +42,6 @@ type Machine struct {
 	TemplateType      string
 	TemplateConfigJSON string
 	SetupVersion     string
-	Endpoint         string
 	OptionsJSON      string
 	CustomImageID    string
 	Status           string
@@ -323,7 +322,6 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, te
 		TemplateType:      templateType,
 		TemplateConfigJSON: templateConfigJSON,
 		SetupVersion:     setupVersion,
-		Endpoint:         "",
 		OptionsJSON:      optionsJSON,
 		CustomImageID:    customImageID,
 		Status:           MachineStatusPending,
@@ -352,7 +350,6 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				TemplateType:      row.TemplateType,
 				TemplateConfigJSON: row.TemplateConfigJson,
 				SetupVersion:     strings.TrimSpace(row.SetupVersion),
-				Endpoint:         strings.TrimSpace(row.Endpoint),
 				OptionsJSON:      row.OptionsJson,
 				CustomImageID:    row.CustomImageID,
 				Status:           row.Status,
@@ -385,7 +382,6 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				TemplateType:      row.TemplateType,
 				TemplateConfigJSON: row.TemplateConfigJson,
 				SetupVersion:     strings.TrimSpace(row.SetupVersion),
-				Endpoint:         strings.TrimSpace(row.Endpoint),
 				OptionsJSON:      row.OptionsJson,
 				CustomImageID:    row.CustomImageID,
 				Status:           row.Status,
@@ -588,7 +584,6 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			TemplateType:      row.TemplateType,
 			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			Endpoint:         strings.TrimSpace(row.Endpoint),
 			OptionsJSON:      row.OptionsJson,
 			CustomImageID:    row.CustomImageID,
 			Status:           row.Status,
@@ -613,7 +608,6 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			TemplateType:      row.TemplateType,
 			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			Endpoint:         strings.TrimSpace(row.Endpoint),
 			OptionsJSON:      row.OptionsJson,
 			CustomImageID:    row.CustomImageID,
 			Status:           row.Status,
@@ -648,7 +642,6 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			TemplateType:      row.TemplateType,
 			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			Endpoint:         strings.TrimSpace(row.Endpoint),
 			OptionsJSON:      row.OptionsJson,
 			CustomImageID:    row.CustomImageID,
 			Status:           row.Status,
@@ -675,7 +668,59 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			TemplateType:      row.TemplateType,
 			TemplateConfigJSON: row.TemplateConfigJson,
 			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			Endpoint:         strings.TrimSpace(row.Endpoint),
+			OptionsJSON:      row.OptionsJson,
+			CustomImageID:    row.CustomImageID,
+			Status:           row.Status,
+			DesiredStatus:    row.DesiredStatus,
+			ContainerID:      row.ContainerID,
+			LastError:        row.LastError,
+			Ready:            row.Ready,
+			ReadyReportedAt:  row.ReadyReportedAt,
+			ReadyReason:      row.ReadyReason,
+			ArcadVersion:     row.ArcadVersion,
+		}, nil
+	default:
+		return Machine{}, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) GetMachineByName(ctx context.Context, name string) (Machine, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetMachineByName(ctx, name)
+		if err != nil {
+			return Machine{}, err
+		}
+		return Machine{
+			ID:               row.ID,
+			Name:             row.Name,
+			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+			TemplateType:      row.TemplateType,
+			TemplateConfigJSON: row.TemplateConfigJson,
+			SetupVersion:     strings.TrimSpace(row.SetupVersion),
+			OptionsJSON:      row.OptionsJson,
+			CustomImageID:    row.CustomImageID,
+			Status:           row.Status,
+			DesiredStatus:    row.DesiredStatus,
+			ContainerID:      row.ContainerID,
+			LastError:        row.LastError,
+			Ready:            row.Ready,
+			ReadyReportedAt:  row.ReadyReportedAt,
+			ReadyReason:      row.ReadyReason,
+			ArcadVersion:     row.ArcadVersion,
+		}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetMachineByName(ctx, name)
+		if err != nil {
+			return Machine{}, err
+		}
+		return Machine{
+			ID:               row.ID,
+			Name:             row.Name,
+			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
+			TemplateType:      row.TemplateType,
+			TemplateConfigJSON: row.TemplateConfigJson,
+			SetupVersion:     strings.TrimSpace(row.SetupVersion),
 			OptionsJSON:      row.OptionsJson,
 			CustomImageID:    row.CustomImageID,
 			Status:           row.Status,
@@ -723,24 +768,6 @@ func (s *Store) UpdateMachineRuntimeStateByMachineID(ctx context.Context, machin
 			LastError:     lastError,
 			UpdatedAt:     nowUnix,
 			MachineID:     machineID,
-		})
-	default:
-		return unsupportedDriverError(s.driver)
-	}
-}
-
-func (s *Store) UpdateMachineEndpointByID(ctx context.Context, machineID, endpoint string) error {
-	endpoint = strings.TrimSpace(endpoint)
-	switch s.driver {
-	case DriverSQLite:
-		return s.sqliteQueries.UpdateMachineEndpointByID(ctx, sqlitesqlc.UpdateMachineEndpointByIDParams{
-			Endpoint:  endpoint,
-			MachineID: machineID,
-		})
-	case DriverPostgres:
-		return s.pgQueries.UpdateMachineEndpointByID(ctx, postgresqlsqlc.UpdateMachineEndpointByIDParams{
-			Endpoint:  endpoint,
-			MachineID: machineID,
 		})
 	default:
 		return unsupportedDriverError(s.driver)

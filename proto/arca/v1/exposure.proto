@@ -12,32 +12,20 @@ service ExposureService {
   rpc GetMachineLLMModels(GetMachineLLMModelsRequest) returns (GetMachineLLMModelsResponse);
 }
 
-enum EndpointVisibility {
-  ENDPOINT_VISIBILITY_UNSPECIFIED = 0;
-  ENDPOINT_VISIBILITY_OWNER_ONLY = 1;
-  ENDPOINT_VISIBILITY_SELECTED_USERS = 2;
-  ENDPOINT_VISIBILITY_ALL_ARCA_USERS = 3;
-  ENDPOINT_VISIBILITY_INTERNET_PUBLIC = 4;
-}
-
 message MachineExposure {
   string id = 1;
   string machine_id = 2;
   string name = 3;
   string hostname = 4;
   string service = 5;
-  bool public = 6;
-  EndpointVisibility visibility = 7;
-  repeated string selected_user_ids = 8;
+  reserved 6, 7, 8; // was public, visibility, selected_user_ids
 }
 
 message UpsertMachineExposureRequest {
   string machine_id = 1;
   reserved 2;
   string name = 3;
-  bool public = 4;
-  EndpointVisibility visibility = 5;
-  repeated string selected_user_ids = 6;
+  reserved 4, 5, 6; // was public, visibility, selected_user_ids
 }
 
 message UpsertMachineExposureResponse {

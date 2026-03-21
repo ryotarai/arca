@@ -21,8 +21,6 @@ test.describe('machine options', () => {
         },
         exposure: {
           method: 2,
-          domainPrefix: 'arca-',
-          baseDomain: 'localhost',
           connectivity: 1,
         },
       },
@@ -72,8 +70,6 @@ test.describe('machine options', () => {
         },
         exposure: {
           method: 2,
-          domainPrefix: 'arca-',
-          baseDomain: 'localhost',
           connectivity: 1,
         },
       },
@@ -123,8 +119,6 @@ test.describe('machine options', () => {
         },
         exposure: {
           method: 2,
-          domainPrefix: 'arca-',
-          baseDomain: 'localhost',
           connectivity: 1,
         },
       },
@@ -168,8 +162,6 @@ test.describe('machine options', () => {
           },
           exposure: {
             method: 2,
-            domainPrefix: 'arca-',
-            baseDomain: 'localhost',
             connectivity: 1,
           },
         },
@@ -198,8 +190,6 @@ test.describe('machine options', () => {
         },
         exposure: {
           method: 2,
-          domainPrefix: 'arca-',
-          baseDomain: 'localhost',
           connectivity: 1,
         },
       },
