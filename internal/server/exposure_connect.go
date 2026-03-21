@@ -271,7 +271,7 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 			apiKey = decrypted
 		}
 		items = append(items, &arcav1.MachineLLMModel{
-			ConfigName:       m.ConfigName,
+			ConfigName:       m.ConfigName + " (Arca)",
 			EndpointType:     m.EndpointType,
 			CustomEndpoint:   m.CustomEndpoint,
 			ModelName:        m.ModelName,
@@ -307,7 +307,7 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 					continue
 				}
 				items = append(items, &arcav1.MachineLLMModel{
-					ConfigName:       sm.ConfigName,
+					ConfigName:       sm.ConfigName + " (Arca Server)",
 					EndpointType:     sm.EndpointType,
 					CustomEndpoint:   sm.CustomEndpoint,
 					ModelName:        sm.ModelName,
