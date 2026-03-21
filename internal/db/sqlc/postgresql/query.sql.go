@@ -1526,7 +1526,7 @@ func (q *Queries) GetSetupState(ctx context.Context) (GetSetupStateRow, error) {
 }
 
 const getUserByActiveSessionTokenHash = `-- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.startup_script, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1
@@ -1549,13 +1549,14 @@ func (q *Queries) GetUserByActiveSessionTokenHash(ctx context.Context, arg GetUs
 		&i.PasswordHash,
 		&i.PasswordSetupRequired,
 		&i.Role,
+		&i.StartupScript,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, password_setup_required, role, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
 FROM users
 WHERE email = $1
 LIMIT 1
@@ -1570,13 +1571,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordHash,
 		&i.PasswordSetupRequired,
 		&i.Role,
+		&i.StartupScript,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, password_setup_required, role, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
 FROM users
 WHERE id = $1
 LIMIT 1
@@ -1591,6 +1593,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.PasswordHash,
 		&i.PasswordSetupRequired,
 		&i.Role,
+		&i.StartupScript,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -1679,6 +1682,19 @@ func (q *Queries) GetUserNotificationSettings(ctx context.Context, userID string
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getUserStartupScript = `-- name: GetUserStartupScript :one
+SELECT startup_script
+FROM users
+WHERE id = $1
+`
+
+func (q *Queries) GetUserStartupScript(ctx context.Context, userID string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserStartupScript, userID)
+	var startup_script string
+	err := row.Scan(&startup_script)
+	return startup_script, err
 }
 
 const getValidArcadExchangeTokenByHashAndMachine = `-- name: GetValidArcadExchangeTokenByHashAndMachine :one
@@ -2976,7 +2992,7 @@ func (q *Queries) ListUserMachinesByMachineID(ctx context.Context, machineID str
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, password_hash, password_setup_required, role, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
 FROM users
 ORDER BY created_at DESC
 `
@@ -2996,6 +3012,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PasswordHash,
 			&i.PasswordSetupRequired,
 			&i.Role,
+			&i.StartupScript,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -3767,6 +3784,22 @@ func (q *Queries) UpdateUserRoleByID(ctx context.Context, arg UpdateUserRoleByID
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const updateUserStartupScript = `-- name: UpdateUserStartupScript :exec
+UPDATE users
+SET startup_script = $1
+WHERE id = $2
+`
+
+type UpdateUserStartupScriptParams struct {
+	StartupScript string
+	UserID        string
+}
+
+func (q *Queries) UpdateUserStartupScript(ctx context.Context, arg UpdateUserStartupScriptParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserStartupScript, arg.StartupScript, arg.UserID)
+	return err
 }
 
 const upsertAdminViewMode = `-- name: UpsertAdminViewMode :exec

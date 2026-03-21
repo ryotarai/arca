@@ -7,4 +7,19 @@ test.describe('user settings', () => {
     await page.goto('/settings')
     await expect(page.getByRole('heading', { name: 'User settings' })).toBeVisible()
   })
+
+  test('startup script card is visible and saves script', async ({ page }) => {
+    await loginAsAdmin(page)
+    await page.goto('/settings')
+    await expect(page.getByText('Startup script', { exact: true })).toBeVisible()
+
+    const textarea = page.locator('textarea')
+    await textarea.fill('echo hello')
+    await page.getByRole('button', { name: 'Save startup script' }).click()
+    await expect(page.getByText('Startup script updated.')).toBeVisible()
+
+    // Reload and verify persistence
+    await page.reload()
+    await expect(textarea).toHaveValue('echo hello')
+  })
 })

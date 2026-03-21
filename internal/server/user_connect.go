@@ -535,6 +535,36 @@ func (s *userConnectService) DuplicateUserLLMModel(ctx context.Context, req *con
 	}), nil
 }
 
+func (s *userConnectService) GetUserStartupScript(ctx context.Context, req *connect.Request[arcav1.GetUserStartupScriptRequest]) (*connect.Response[arcav1.GetUserStartupScriptResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	script, err := s.store.GetUserStartupScript(ctx, userID)
+	if err != nil {
+		slog.ErrorContext(ctx, "get user startup script failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get startup script"))
+	}
+
+	return connect.NewResponse(&arcav1.GetUserStartupScriptResponse{StartupScript: script}), nil
+}
+
+func (s *userConnectService) UpdateUserStartupScript(ctx context.Context, req *connect.Request[arcav1.UpdateUserStartupScriptRequest]) (*connect.Response[arcav1.UpdateUserStartupScriptResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	script := req.Msg.GetStartupScript()
+	if err := s.store.UpdateUserStartupScript(ctx, userID, script); err != nil {
+		slog.ErrorContext(ctx, "update user startup script failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update startup script"))
+	}
+
+	return connect.NewResponse(&arcav1.UpdateUserStartupScriptResponse{StartupScript: script}), nil
+}
+
 func toLLMModelMessage(m db.UserLLMModelSummary) *arcav1.LLMModel {
 	return &arcav1.LLMModel{
 		Id:               m.ID,

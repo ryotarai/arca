@@ -63,6 +63,12 @@ const (
 	// UserServiceDuplicateUserLLMModelProcedure is the fully-qualified name of the UserService's
 	// DuplicateUserLLMModel RPC.
 	UserServiceDuplicateUserLLMModelProcedure = "/arca.v1.UserService/DuplicateUserLLMModel"
+	// UserServiceGetUserStartupScriptProcedure is the fully-qualified name of the UserService's
+	// GetUserStartupScript RPC.
+	UserServiceGetUserStartupScriptProcedure = "/arca.v1.UserService/GetUserStartupScript"
+	// UserServiceUpdateUserStartupScriptProcedure is the fully-qualified name of the UserService's
+	// UpdateUserStartupScript RPC.
+	UserServiceUpdateUserStartupScriptProcedure = "/arca.v1.UserService/UpdateUserStartupScript"
 )
 
 // UserServiceClient is a client for the arca.v1.UserService service.
@@ -78,6 +84,8 @@ type UserServiceClient interface {
 	UpdateUserLLMModel(context.Context, *connect.Request[v1.UpdateUserLLMModelRequest]) (*connect.Response[v1.UpdateUserLLMModelResponse], error)
 	DeleteUserLLMModel(context.Context, *connect.Request[v1.DeleteUserLLMModelRequest]) (*connect.Response[v1.DeleteUserLLMModelResponse], error)
 	DuplicateUserLLMModel(context.Context, *connect.Request[v1.DuplicateUserLLMModelRequest]) (*connect.Response[v1.DuplicateUserLLMModelResponse], error)
+	GetUserStartupScript(context.Context, *connect.Request[v1.GetUserStartupScriptRequest]) (*connect.Response[v1.GetUserStartupScriptResponse], error)
+	UpdateUserStartupScript(context.Context, *connect.Request[v1.UpdateUserStartupScriptRequest]) (*connect.Response[v1.UpdateUserStartupScriptResponse], error)
 }
 
 // NewUserServiceClient constructs a client for the arca.v1.UserService service. By default, it uses
@@ -157,22 +165,36 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("DuplicateUserLLMModel")),
 			connect.WithClientOptions(opts...),
 		),
+		getUserStartupScript: connect.NewClient[v1.GetUserStartupScriptRequest, v1.GetUserStartupScriptResponse](
+			httpClient,
+			baseURL+UserServiceGetUserStartupScriptProcedure,
+			connect.WithSchema(userServiceMethods.ByName("GetUserStartupScript")),
+			connect.WithClientOptions(opts...),
+		),
+		updateUserStartupScript: connect.NewClient[v1.UpdateUserStartupScriptRequest, v1.UpdateUserStartupScriptResponse](
+			httpClient,
+			baseURL+UserServiceUpdateUserStartupScriptProcedure,
+			connect.WithSchema(userServiceMethods.ByName("UpdateUserStartupScript")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // userServiceClient implements UserServiceClient.
 type userServiceClient struct {
-	listUsers             *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
-	createUser            *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
-	issueUserSetupToken   *connect.Client[v1.IssueUserSetupTokenRequest, v1.IssueUserSetupTokenResponse]
-	completeUserSetup     *connect.Client[v1.CompleteUserSetupRequest, v1.CompleteUserSetupResponse]
-	updateUserRole        *connect.Client[v1.UpdateUserRoleRequest, v1.UpdateUserRoleResponse]
-	searchUsers           *connect.Client[v1.SearchUsersRequest, v1.SearchUsersResponse]
-	listUserLLMModels     *connect.Client[v1.ListUserLLMModelsRequest, v1.ListUserLLMModelsResponse]
-	createUserLLMModel    *connect.Client[v1.CreateUserLLMModelRequest, v1.CreateUserLLMModelResponse]
-	updateUserLLMModel    *connect.Client[v1.UpdateUserLLMModelRequest, v1.UpdateUserLLMModelResponse]
-	deleteUserLLMModel    *connect.Client[v1.DeleteUserLLMModelRequest, v1.DeleteUserLLMModelResponse]
-	duplicateUserLLMModel *connect.Client[v1.DuplicateUserLLMModelRequest, v1.DuplicateUserLLMModelResponse]
+	listUsers               *connect.Client[v1.ListUsersRequest, v1.ListUsersResponse]
+	createUser              *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
+	issueUserSetupToken     *connect.Client[v1.IssueUserSetupTokenRequest, v1.IssueUserSetupTokenResponse]
+	completeUserSetup       *connect.Client[v1.CompleteUserSetupRequest, v1.CompleteUserSetupResponse]
+	updateUserRole          *connect.Client[v1.UpdateUserRoleRequest, v1.UpdateUserRoleResponse]
+	searchUsers             *connect.Client[v1.SearchUsersRequest, v1.SearchUsersResponse]
+	listUserLLMModels       *connect.Client[v1.ListUserLLMModelsRequest, v1.ListUserLLMModelsResponse]
+	createUserLLMModel      *connect.Client[v1.CreateUserLLMModelRequest, v1.CreateUserLLMModelResponse]
+	updateUserLLMModel      *connect.Client[v1.UpdateUserLLMModelRequest, v1.UpdateUserLLMModelResponse]
+	deleteUserLLMModel      *connect.Client[v1.DeleteUserLLMModelRequest, v1.DeleteUserLLMModelResponse]
+	duplicateUserLLMModel   *connect.Client[v1.DuplicateUserLLMModelRequest, v1.DuplicateUserLLMModelResponse]
+	getUserStartupScript    *connect.Client[v1.GetUserStartupScriptRequest, v1.GetUserStartupScriptResponse]
+	updateUserStartupScript *connect.Client[v1.UpdateUserStartupScriptRequest, v1.UpdateUserStartupScriptResponse]
 }
 
 // ListUsers calls arca.v1.UserService.ListUsers.
@@ -230,6 +252,16 @@ func (c *userServiceClient) DuplicateUserLLMModel(ctx context.Context, req *conn
 	return c.duplicateUserLLMModel.CallUnary(ctx, req)
 }
 
+// GetUserStartupScript calls arca.v1.UserService.GetUserStartupScript.
+func (c *userServiceClient) GetUserStartupScript(ctx context.Context, req *connect.Request[v1.GetUserStartupScriptRequest]) (*connect.Response[v1.GetUserStartupScriptResponse], error) {
+	return c.getUserStartupScript.CallUnary(ctx, req)
+}
+
+// UpdateUserStartupScript calls arca.v1.UserService.UpdateUserStartupScript.
+func (c *userServiceClient) UpdateUserStartupScript(ctx context.Context, req *connect.Request[v1.UpdateUserStartupScriptRequest]) (*connect.Response[v1.UpdateUserStartupScriptResponse], error) {
+	return c.updateUserStartupScript.CallUnary(ctx, req)
+}
+
 // UserServiceHandler is an implementation of the arca.v1.UserService service.
 type UserServiceHandler interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
@@ -243,6 +275,8 @@ type UserServiceHandler interface {
 	UpdateUserLLMModel(context.Context, *connect.Request[v1.UpdateUserLLMModelRequest]) (*connect.Response[v1.UpdateUserLLMModelResponse], error)
 	DeleteUserLLMModel(context.Context, *connect.Request[v1.DeleteUserLLMModelRequest]) (*connect.Response[v1.DeleteUserLLMModelResponse], error)
 	DuplicateUserLLMModel(context.Context, *connect.Request[v1.DuplicateUserLLMModelRequest]) (*connect.Response[v1.DuplicateUserLLMModelResponse], error)
+	GetUserStartupScript(context.Context, *connect.Request[v1.GetUserStartupScriptRequest]) (*connect.Response[v1.GetUserStartupScriptResponse], error)
+	UpdateUserStartupScript(context.Context, *connect.Request[v1.UpdateUserStartupScriptRequest]) (*connect.Response[v1.UpdateUserStartupScriptResponse], error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -318,6 +352,18 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("DuplicateUserLLMModel")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceGetUserStartupScriptHandler := connect.NewUnaryHandler(
+		UserServiceGetUserStartupScriptProcedure,
+		svc.GetUserStartupScript,
+		connect.WithSchema(userServiceMethods.ByName("GetUserStartupScript")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceUpdateUserStartupScriptHandler := connect.NewUnaryHandler(
+		UserServiceUpdateUserStartupScriptProcedure,
+		svc.UpdateUserStartupScript,
+		connect.WithSchema(userServiceMethods.ByName("UpdateUserStartupScript")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceListUsersProcedure:
@@ -342,6 +388,10 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceDeleteUserLLMModelHandler.ServeHTTP(w, r)
 		case UserServiceDuplicateUserLLMModelProcedure:
 			userServiceDuplicateUserLLMModelHandler.ServeHTTP(w, r)
+		case UserServiceGetUserStartupScriptProcedure:
+			userServiceGetUserStartupScriptHandler.ServeHTTP(w, r)
+		case UserServiceUpdateUserStartupScriptProcedure:
+			userServiceUpdateUserStartupScriptHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -393,4 +443,12 @@ func (UnimplementedUserServiceHandler) DeleteUserLLMModel(context.Context, *conn
 
 func (UnimplementedUserServiceHandler) DuplicateUserLLMModel(context.Context, *connect.Request[v1.DuplicateUserLLMModelRequest]) (*connect.Response[v1.DuplicateUserLLMModelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.DuplicateUserLLMModel is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) GetUserStartupScript(context.Context, *connect.Request[v1.GetUserStartupScriptRequest]) (*connect.Response[v1.GetUserStartupScriptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.GetUserStartupScript is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) UpdateUserStartupScript(context.Context, *connect.Request[v1.UpdateUserStartupScriptRequest]) (*connect.Response[v1.UpdateUserStartupScriptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.UpdateUserStartupScript is not implemented"))
 }
