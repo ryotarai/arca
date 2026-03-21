@@ -19,22 +19,20 @@ func NewRateLimiter(store *db.Store, limit int, window time.Duration) *RateLimit
 	return &RateLimiter{store: store, limit: limit, window: window}
 }
 
-// Allow returns true if the request identified by key is within the rate limit.
-// It records the attempt when allowed.
-func (rl *RateLimiter) Allow(ctx context.Context, key string) (bool, error) {
+// Check returns true if the key is within the rate limit (read-only, does not record).
+func (rl *RateLimiter) Check(ctx context.Context, key string) (bool, error) {
 	now := time.Now().Unix()
 	windowStart := now - int64(rl.window.Seconds())
 	count, err := rl.store.CountRateLimitEntries(ctx, key, windowStart)
 	if err != nil {
 		return false, err
 	}
-	if count >= int64(rl.limit) {
-		return false, nil
-	}
-	if err := rl.store.InsertRateLimitEntry(ctx, key, now); err != nil {
-		return false, err
-	}
-	return true, nil
+	return count < int64(rl.limit), nil
+}
+
+// Record records an attempt for the given key.
+func (rl *RateLimiter) Record(ctx context.Context, key string) error {
+	return rl.store.InsertRateLimitEntry(ctx, key, time.Now().Unix())
 }
 
 // StartCleanup runs periodic cleanup of expired rate limit entries.

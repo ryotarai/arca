@@ -37,9 +37,10 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("password login is disabled"))
 	}
 
+	var rateLimitKey string
 	if s.rateLimiter != nil {
-		ip := peerIPFromConnect(req)
-		allowed, err := s.rateLimiter.Allow(ctx, "login:"+ip)
+		rateLimitKey = "login:" + peerIPFromConnect(req)
+		allowed, err := s.rateLimiter.Check(ctx, rateLimitKey)
 		if err != nil {
 			slog.ErrorContext(ctx, "rate limiter error", "error", err)
 		} else if !allowed {
@@ -49,6 +50,12 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 
 	userID, email, role, token, expiresAt, err := s.authenticator.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
 	if err != nil {
+		// Record failed attempt for rate limiting
+		if s.rateLimiter != nil && rateLimitKey != "" {
+			if rlErr := s.rateLimiter.Record(ctx, rateLimitKey); rlErr != nil {
+				slog.ErrorContext(ctx, "rate limiter record error", "error", rlErr)
+			}
+		}
 		switch {
 		case errors.Is(err, auth.ErrInvalidCredentials):
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid credentials"))
