@@ -19,6 +19,7 @@ import {
   StartMachineRequestSchema,
   StopMachineRequestSchema,
   UpdateMachineRequestSchema,
+  UpdateMachineTagsRequestSchema,
 } from '@/gen/arca/v1/machine_pb'
 import {
   CreateMachineTemplateRequestSchema,
@@ -327,8 +328,8 @@ export async function listMachines(options: PollingOptions = {}): Promise<Machin
   return response.machines
 }
 
-export async function createMachine(name: string, templateID: string, options?: Record<string, string>, customImageId?: string): Promise<Machine> {
-  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, templateId: templateID, options: options ?? {}, customImageId: customImageId ?? '' }))
+export async function createMachine(name: string, templateID: string, options?: Record<string, string>, customImageId?: string, tags?: string[]): Promise<Machine> {
+  const response = await machineClient.createMachine(create(CreateMachineRequestSchema, { name, templateId: templateID, options: options ?? {}, customImageId: customImageId ?? '', tags: tags ?? [] }))
   if (response.machine == null) {
     throw new Error('request failed')
   }
@@ -360,6 +361,16 @@ export async function updateMachine(id: string, name: string, options?: Record<s
 
 export async function updateMachineOptions(id: string, options: Record<string, string>): Promise<Machine> {
   return updateMachine(id, '', options)
+}
+
+export async function updateMachineTags(id: string, tags: string[]): Promise<Machine> {
+  const response = await machineClient.updateMachineTags(
+    create(UpdateMachineTagsRequestSchema, { machineId: id, tags }),
+  )
+  if (response.machine == null) {
+    throw new Error('request failed')
+  }
+  return response.machine
 }
 
 export async function startMachine(id: string): Promise<Machine> {

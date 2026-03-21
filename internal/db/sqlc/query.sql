@@ -428,6 +428,15 @@ SET status = 'succeeded',
     updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id);
 
+-- name: MarkMachineJobFailed :exec
+UPDATE machine_jobs
+SET status = 'failed',
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = sqlc.arg(last_error),
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id);
+
 -- name: RequeueMachineJob :exec
 UPDATE machine_jobs
 SET status = 'queued',
@@ -991,3 +1000,32 @@ WHERE id = sqlc.arg(id);
 -- name: DeleteServerLLMModel :execrows
 DELETE FROM server_llm_models
 WHERE id = sqlc.arg(id);
+
+-- name: InsertRateLimitEntry :exec
+INSERT INTO rate_limit_entries (key, timestamp_unix) VALUES (sqlc.arg(key), sqlc.arg(timestamp_unix));
+
+-- name: CountRateLimitEntries :one
+SELECT COUNT(*) FROM rate_limit_entries WHERE key = sqlc.arg(key) AND timestamp_unix > sqlc.arg(window_start);
+
+-- name: CleanupRateLimitEntries :exec
+DELETE FROM rate_limit_entries WHERE timestamp_unix < sqlc.arg(cutoff);
+
+-- name: ListMachineTagsByMachineID :many
+SELECT tag FROM machine_tags WHERE machine_id = sqlc.arg(machine_id) ORDER BY tag;
+
+-- name: DeleteMachineTagsByMachineID :exec
+DELETE FROM machine_tags WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: InsertMachineTag :exec
+INSERT INTO machine_tags (machine_id, tag) VALUES (sqlc.arg(machine_id), sqlc.arg(tag))
+ON CONFLICT (machine_id, tag) DO NOTHING;
+
+-- name: ListAllMachineTags :many
+SELECT machine_id, tag FROM machine_tags ORDER BY machine_id, tag;
+
+-- name: CountRecentJobsByStatus :one
+SELECT
+    COALESCE(SUM(CASE WHEN status = 'succeeded' AND updated_at > sqlc.arg(since) THEN 1 ELSE 0 END), 0) as succeeded,
+    COALESCE(SUM(CASE WHEN status = 'failed' AND updated_at > sqlc.arg(since) THEN 1 ELSE 0 END), 0) as failed,
+    COALESCE(SUM(CASE WHEN status = 'running' AND lease_until < sqlc.arg(now) THEN 1 ELSE 0 END), 0) as stuck
+FROM machine_jobs;

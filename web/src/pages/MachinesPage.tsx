@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,9 @@ import {
   stopMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { usePolling } from '@/hooks/use-polling'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { ListSkeleton } from '@/components/ListSkeleton'
 import type { Machine, MachineTemplateSummary, User } from '@/lib/types'
 
 type MachinesPageProps = {
@@ -60,87 +63,58 @@ function StatusBadge({ status }: { status: string }) {
 export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '' }: MachinesPageProps) {
   const [machines, setMachines] = useState<Machine[]>([])
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (user == null) {
-      return
-    }
+  const [actionError, setActionError] = useState('')
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
 
-    let cancelled = false
-    let timer: number | null = null
-    let running = false
+  const { loading, error: pollingError } = usePolling(
+    useCallback(async () => {
+      const [items, templateItems] = await Promise.all([
+        listMachines({ timeoutMs: pollingRequestTimeoutMs }),
+        listAvailableMachineTemplates(),
+      ])
+      setMachines(items)
+      setTemplates(templateItems)
+    }, []),
+    { intervalMs: pollingIntervalMs, enabled: user != null },
+  )
 
-    const run = async () => {
-      if (cancelled || running) {
-        return
-      }
-      running = true
-      try {
-        const [items, templateItems] = await Promise.all([
-          listMachines({ timeoutMs: pollingRequestTimeoutMs }),
-          listAvailableMachineTemplates(),
-        ])
-        if (!cancelled) {
-          setMachines(items)
-          setTemplates(templateItems)
-          setError('')
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(messageFromError(e))
-        }
-      } finally {
-        running = false
-        if (!cancelled) {
-          setLoading(false)
-          timer = window.setTimeout(() => {
-            void run()
-          }, pollingIntervalMs)
-        }
-      }
-    }
-
-    void run()
-
-    return () => {
-      cancelled = true
-      if (timer != null) {
-        window.clearTimeout(timer)
-      }
-    }
-  }, [user])
+  const error = actionError || pollingError
 
   if (user == null) {
     return <Navigate to="/login" replace />
   }
 
-  const submitRestart = async (machineID: string) => {
-    if (!window.confirm('Restart this machine?')) {
-      return
-    }
+  const submitRestart = (machineID: string) => {
+    setConfirmAction({
+      title: 'Restart machine',
+      description: 'Are you sure you want to restart this machine?',
+      confirmLabel: 'Restart',
+      variant: 'default',
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        try {
+          await stopMachine(machineID)
 
-    setError('')
-    try {
-      await stopMachine(machineID)
+          const startedAt = Date.now()
+          while (Date.now() < startedAt + restartWaitTimeoutMs) {
+            const machine = await getMachine(machineID)
+            if (machine.status === 'stopped') {
+              break
+            }
+            await new Promise<void>((resolve) => {
+              window.setTimeout(resolve, restartWaitIntervalMs)
+            })
+          }
 
-      const startedAt = Date.now()
-      while (Date.now() < startedAt + restartWaitTimeoutMs) {
-        const machine = await getMachine(machineID)
-        if (machine.status === 'stopped') {
-          break
+          const updated = await startMachine(machineID)
+          setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
+        } catch (e) {
+          setActionError(messageFromError(e))
         }
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, restartWaitIntervalMs)
-        })
-      }
-
-      const updated = await startMachine(machineID)
-      setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
-    } catch (e) {
-      setError(messageFromError(e))
-    }
+      },
+    })
   }
 
   return (
@@ -168,7 +142,7 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
+              <ListSkeleton />
             ) : machines.length === 0 ? (
               <p className="text-sm text-muted-foreground">No machines yet.</p>
             ) : (
@@ -178,13 +152,21 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
                     <li key={machine.id} className="rounded-lg border border-border bg-muted/30 p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium text-foreground">{machine.name}</p>
                             {machine.userRole !== '' && machine.userRole !== 'admin' && (
                               <span className="inline-flex items-center rounded-full border border-violet-400/40 bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-violet-200">
                                 {machine.userRole}
                               </span>
                             )}
+                            {machine.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium text-cyan-200"
+                              >
+                                {tag}
+                              </span>
+                            ))}
                           </div>
                           <p className="text-xs text-muted-foreground">template: {templates.find((r) => r.id === machine.templateId)?.name ?? machine.templateId}</p>
                           <div className="mt-1 flex items-center gap-2">
@@ -234,6 +216,16 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
           </CardContent>
         </Card>
       </section>
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
+        title={confirmAction?.title ?? ''}
+        description={confirmAction?.description ?? ''}
+        confirmLabel={confirmAction?.confirmLabel}
+        variant={confirmAction?.variant}
+        onConfirm={() => { if (confirmAction) void confirmAction.onConfirm() }}
+      />
     </main>
   )
 }

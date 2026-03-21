@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -77,6 +79,8 @@ func (h *arcadBinaryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h256 := sha256.Sum256(data)
+	w.Header().Set("X-Checksum-SHA256", hex.EncodeToString(h256[:]))
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment; filename=arcad")
 	w.Write(data)

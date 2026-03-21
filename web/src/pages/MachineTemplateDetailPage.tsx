@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { deleteMachineTemplate, listAvailableMachineTemplates, listMachineTemplates } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { MachineTemplateItem, MachineTemplateSummary, User } from '@/lib/types'
@@ -28,6 +29,7 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
 
   useEffect(() => {
     if (user == null || templateID == null || templateID === '') {
@@ -74,20 +76,27 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
     return <Navigate to={isAdmin ? '/machine-templates' : '/machines'} replace />
   }
 
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this template?')) {
-      return
-    }
-    setDeleting(true)
-    setError('')
-    try {
-      await deleteMachineTemplate(templateID)
-      navigate('/machine-templates')
-    } catch (err) {
-      setError(messageFromError(err))
-    } finally {
-      setDeleting(false)
-    }
+  const handleDelete = () => {
+    setConfirmAction({
+      title: 'Delete template',
+      description: 'Are you sure you want to delete this template?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      onConfirm: () => {
+        void (async () => {
+          setDeleting(true)
+          setError('')
+          try {
+            await deleteMachineTemplate(templateID)
+            navigate('/machine-templates')
+          } catch (err) {
+            setError(messageFromError(err))
+          } finally {
+            setDeleting(false)
+          }
+        })()
+      },
+    })
   }
 
   return (
@@ -108,7 +117,7 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
                     Edit
                   </Link>
                 </Button>
-                <Button variant="destructive" onClick={() => void handleDelete()} disabled={deleting}>
+                <Button variant="destructive" onClick={() => handleDelete()} disabled={deleting}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   {deleting ? 'Deleting...' : 'Delete'}
                 </Button>
@@ -197,6 +206,19 @@ export function MachineTemplateDetailPage({ user, onLogout }: MachineTemplateDet
           </CardContent>
         </Card>
       </section>
+
+      <ConfirmDialog
+        open={confirmAction != null}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
+        title={confirmAction?.title ?? ''}
+        description={confirmAction?.description ?? ''}
+        confirmLabel={confirmAction?.confirmLabel ?? 'Confirm'}
+        variant={confirmAction?.variant ?? 'default'}
+        onConfirm={() => {
+          confirmAction?.onConfirm()
+          setConfirmAction(null)
+        }}
+      />
     </main>
   )
 }

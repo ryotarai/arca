@@ -150,6 +150,11 @@ type MachineState struct {
 	ArcadVersion    string
 }
 
+type MachineTag struct {
+	MachineID string
+	Tag       string
+}
+
 type MachineTemplate struct {
 	ID         string
 	Name       string
@@ -166,6 +171,11 @@ type MachineToken struct {
 	Token     string
 	CreatedAt int64
 	RevokedAt sql.NullInt64
+}
+
+type RateLimitEntry struct {
+	Key           string
+	TimestampUnix int64
 }
 
 type ServerLlmModel struct {

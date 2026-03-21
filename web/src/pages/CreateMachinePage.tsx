@@ -14,15 +14,40 @@ type CreateMachinePageProps = {
   onLogout: () => Promise<void>
 }
 
+const machineNamePattern = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+
+function validateMachineName(value: string): string {
+  const trimmed = value.trim()
+  if (trimmed === '') {
+    return 'Name is required.'
+  }
+  if (trimmed.length < 3) {
+    return 'Name must be at least 3 characters.'
+  }
+  if (trimmed.length > 63) {
+    return 'Name must be 63 characters or less.'
+  }
+  if (trimmed.startsWith('arca-')) {
+    return 'Name cannot start with arca-.'
+  }
+  if (!machineNamePattern.test(trimmed)) {
+    return 'Name must use lowercase letters, digits, and hyphens only, and cannot start or end with a hyphen.'
+  }
+  return ''
+}
+
 export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  const [nameError, setNameError] = useState('')
+  const [nameTouched, setNameTouched] = useState(false)
   const [selectedTemplateID, setSelectedTemplateID] = useState('')
   const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
   const [machineType, setMachineType] = useState('')
   const [customImageId, setCustomImageId] = useState('')
   const [availableImages, setAvailableImages] = useState<CustomImage[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [tagsInput, setTagsInput] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
 
@@ -98,8 +123,10 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmedName = name.trim()
-    if (trimmedName === '') {
-      setError('Name is required.')
+    const nameValidationError = validateMachineName(trimmedName)
+    if (nameValidationError !== '') {
+      setNameTouched(true)
+      setNameError(nameValidationError)
       return
     }
     if (selectedTemplateID.trim() === '') {
@@ -119,11 +146,13 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       if (effectiveMachineType !== '') {
         options.machine_type = effectiveMachineType
       }
+      const tags = tagsInput.split(',').map((t) => t.trim()).filter((t) => t !== '')
       const created = await createMachine(
         trimmedName,
         selectedTemplateID,
         Object.keys(options).length > 0 ? options : undefined,
         customImageId || undefined,
+        tags.length > 0 ? tags : undefined,
       )
       await navigate(`/machines/${created.id}`)
     } catch (e) {
@@ -166,11 +195,23 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                 <Input
                   id="create-machine-name"
                   value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  className="h-10"
+                  onChange={(event) => {
+                    setName(event.target.value)
+                    if (nameTouched) {
+                      setNameError(validateMachineName(event.target.value))
+                    }
+                  }}
+                  onBlur={() => {
+                    setNameTouched(true)
+                    setNameError(validateMachineName(name))
+                  }}
+                  className={`h-10${nameError !== '' ? ' border-red-400' : ''}`}
                   placeholder="my-machine"
                   required
                 />
+                {nameError !== '' && (
+                  <p className="text-xs text-red-300">{nameError}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -241,6 +282,20 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                   </p>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor="create-machine-tags">Tags</Label>
+                <Input
+                  id="create-machine-tags"
+                  value={tagsInput}
+                  onChange={(event) => setTagsInput(event.target.value)}
+                  className="h-10"
+                  placeholder="web, production, team-a"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Comma-separated. Lowercase alphanumeric and hyphens only. Max 10 tags.
+                </p>
+              </div>
 
               {templates.length === 0 && !loadingTemplates && (
                 <p className="text-sm text-amber-300">Create at least one template before creating machines.</p>

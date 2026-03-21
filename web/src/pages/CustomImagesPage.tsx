@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -45,6 +46,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ImageFormData>(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
 
   const refresh = async () => {
     try {
@@ -102,15 +104,24 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this custom image?')) return
-    setError('')
-    try {
-      await deleteCustomImage(id)
-      await refresh()
-    } catch (e) {
-      setError(messageFromError(e))
-    }
+  const handleDelete = (id: string) => {
+    setConfirmAction({
+      title: 'Delete custom image',
+      description: 'Are you sure you want to delete this custom image?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      onConfirm: () => {
+        void (async () => {
+          setError('')
+          try {
+            await deleteCustomImage(id)
+            await refresh()
+          } catch (e) {
+            setError(messageFromError(e))
+          }
+        })()
+      },
+    })
   }
 
   const handleEdit = (img: CustomImage) => {
@@ -307,6 +318,19 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        open={confirmAction != null}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
+        title={confirmAction?.title ?? ''}
+        description={confirmAction?.description ?? ''}
+        confirmLabel={confirmAction?.confirmLabel ?? 'Confirm'}
+        variant={confirmAction?.variant ?? 'default'}
+        onConfirm={() => {
+          confirmAction?.onConfirm()
+          setConfirmAction(null)
+        }}
+      />
     </main>
   )
 }

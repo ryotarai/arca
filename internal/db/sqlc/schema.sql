@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   password_setup_required BOOLEAN NOT NULL DEFAULT FALSE,
-  role TEXT NOT NULL DEFAULT 'user',
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   revoked_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 
 CREATE TABLE IF NOT EXISTS arcad_exchange_tokens (
   id TEXT PRIMARY KEY,
@@ -60,6 +62,7 @@ CREATE TABLE IF NOT EXISTS arcad_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_arcad_sessions_machine_id ON arcad_sessions(machine_id);
 CREATE INDEX IF NOT EXISTS idx_arcad_sessions_user_id ON arcad_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_arcad_sessions_expires_at ON arcad_sessions(expires_at);
 
 CREATE TABLE IF NOT EXISTS machines (
   id TEXT PRIMARY KEY,
@@ -85,7 +88,7 @@ CREATE TABLE IF NOT EXISTS machine_templates (
 CREATE TABLE IF NOT EXISTS user_machines (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'admin',
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'editor', 'viewer')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id, machine_id)
 );
@@ -94,8 +97,8 @@ CREATE INDEX IF NOT EXISTS idx_user_machines_machine_id ON user_machines(machine
 
 CREATE TABLE IF NOT EXISTS machine_states (
   machine_id TEXT PRIMARY KEY REFERENCES machines(id) ON DELETE CASCADE,
-  status TEXT NOT NULL,
-  desired_status TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'starting', 'running', 'stopping', 'stopped', 'failed', 'deleting')),
+  desired_status TEXT NOT NULL CHECK (desired_status IN ('running', 'stopped', 'deleted')),
   container_id TEXT NOT NULL DEFAULT '',
   last_error TEXT NOT NULL DEFAULT '',
   ready BOOLEAN NOT NULL DEFAULT FALSE,
@@ -109,8 +112,8 @@ CREATE TABLE IF NOT EXISTS machine_states (
 CREATE TABLE IF NOT EXISTS machine_jobs (
   id TEXT PRIMARY KEY,
   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
-  kind TEXT NOT NULL,
-  status TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('start', 'stop', 'delete', 'reconcile')),
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
   attempt INTEGER NOT NULL DEFAULT 0,
   next_run_at BIGINT NOT NULL,
   lease_owner TEXT,
@@ -177,8 +180,8 @@ CREATE INDEX IF NOT EXISTS idx_auth_tickets_expires_at ON auth_tickets(expires_a
 
 CREATE TABLE IF NOT EXISTS machine_sharing (
   machine_id TEXT PRIMARY KEY REFERENCES machines(id) ON DELETE CASCADE,
-  general_access_scope TEXT NOT NULL DEFAULT 'none',
-  general_access_role TEXT NOT NULL DEFAULT 'none',
+  general_access_scope TEXT NOT NULL DEFAULT 'none' CHECK (general_access_scope IN ('none', 'arca_users', 'anonymous')),
+  general_access_role TEXT NOT NULL DEFAULT 'none' CHECK (general_access_role IN ('none', 'viewer')),
   updated_at BIGINT NOT NULL DEFAULT 0
 );
 
@@ -186,7 +189,7 @@ CREATE TABLE IF NOT EXISTS machine_access_requests (
   id TEXT PRIMARY KEY,
   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'pending',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'denied')),
   requested_role TEXT NOT NULL DEFAULT 'viewer',
   resolved_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   resolved_role TEXT NOT NULL DEFAULT '',
@@ -287,6 +290,19 @@ CREATE TABLE IF NOT EXISTS server_llm_models (
 
 CREATE TABLE IF NOT EXISTS admin_view_mode (
   user_id TEXT PRIMARY KEY NOT NULL,
-  mode TEXT NOT NULL DEFAULT 'admin',
+  mode TEXT NOT NULL DEFAULT 'admin' CHECK (mode IN ('admin', 'user')),
   updated_at BIGINT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS rate_limit_entries (
+    key TEXT NOT NULL,
+    timestamp_unix BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_entries_key_ts ON rate_limit_entries(key, timestamp_unix);
+
+CREATE TABLE IF NOT EXISTS machine_tags (
+  machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  PRIMARY KEY (machine_id, tag)
+);
+CREATE INDEX IF NOT EXISTS idx_machine_tags_tag ON machine_tags(tag);

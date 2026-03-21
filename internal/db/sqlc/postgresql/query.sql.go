@@ -73,6 +73,15 @@ func (q *Queries) ClaimMachineJob(ctx context.Context, arg ClaimMachineJobParams
 	return result.RowsAffected()
 }
 
+const cleanupRateLimitEntries = `-- name: CleanupRateLimitEntries :exec
+DELETE FROM rate_limit_entries WHERE timestamp_unix < $1
+`
+
+func (q *Queries) CleanupRateLimitEntries(ctx context.Context, cutoff int64) error {
+	_, err := q.db.ExecContext(ctx, cleanupRateLimitEntries, cutoff)
+	return err
+}
+
 const countActiveStartOrReconcileJobsByMachineID = `-- name: CountActiveStartOrReconcileJobsByMachineID :one
 SELECT COUNT(1)
 FROM machine_jobs
@@ -106,6 +115,48 @@ func (q *Queries) CountAuditLogsFiltered(ctx context.Context, arg CountAuditLogs
 	var total_count int64
 	err := row.Scan(&total_count)
 	return total_count, err
+}
+
+const countRateLimitEntries = `-- name: CountRateLimitEntries :one
+SELECT COUNT(*) FROM rate_limit_entries WHERE key = $1 AND timestamp_unix > $2
+`
+
+type CountRateLimitEntriesParams struct {
+	Key         string
+	WindowStart int64
+}
+
+func (q *Queries) CountRateLimitEntries(ctx context.Context, arg CountRateLimitEntriesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRateLimitEntries, arg.Key, arg.WindowStart)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRecentJobsByStatus = `-- name: CountRecentJobsByStatus :one
+SELECT
+    COALESCE(SUM(CASE WHEN status = 'succeeded' AND updated_at > $1 THEN 1 ELSE 0 END), 0) as succeeded,
+    COALESCE(SUM(CASE WHEN status = 'failed' AND updated_at > $1 THEN 1 ELSE 0 END), 0) as failed,
+    COALESCE(SUM(CASE WHEN status = 'running' AND lease_until < $2 THEN 1 ELSE 0 END), 0) as stuck
+FROM machine_jobs
+`
+
+type CountRecentJobsByStatusParams struct {
+	Since int64
+	Now   sql.NullInt64
+}
+
+type CountRecentJobsByStatusRow struct {
+	Succeeded interface{}
+	Failed    interface{}
+	Stuck     interface{}
+}
+
+func (q *Queries) CountRecentJobsByStatus(ctx context.Context, arg CountRecentJobsByStatusParams) (CountRecentJobsByStatusRow, error) {
+	row := q.db.QueryRowContext(ctx, countRecentJobsByStatus, arg.Since, arg.Now)
+	var i CountRecentJobsByStatusRow
+	err := row.Scan(&i.Succeeded, &i.Failed, &i.Stuck)
+	return i, err
 }
 
 const createArcadExchangeToken = `-- name: CreateArcadExchangeToken :exec
@@ -734,6 +785,15 @@ WHERE id = $1
 
 func (q *Queries) DeleteMachineIfNoUsers(ctx context.Context, machineID string) error {
 	_, err := q.db.ExecContext(ctx, deleteMachineIfNoUsers, machineID)
+	return err
+}
+
+const deleteMachineTagsByMachineID = `-- name: DeleteMachineTagsByMachineID :exec
+DELETE FROM machine_tags WHERE machine_id = $1
+`
+
+func (q *Queries) DeleteMachineTagsByMachineID(ctx context.Context, machineID string) error {
+	_, err := q.db.ExecContext(ctx, deleteMachineTagsByMachineID, machineID)
 	return err
 }
 
@@ -1753,6 +1813,35 @@ func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
 	return column_1, err
 }
 
+const insertMachineTag = `-- name: InsertMachineTag :exec
+INSERT INTO machine_tags (machine_id, tag) VALUES ($1, $2)
+ON CONFLICT (machine_id, tag) DO NOTHING
+`
+
+type InsertMachineTagParams struct {
+	MachineID string
+	Tag       string
+}
+
+func (q *Queries) InsertMachineTag(ctx context.Context, arg InsertMachineTagParams) error {
+	_, err := q.db.ExecContext(ctx, insertMachineTag, arg.MachineID, arg.Tag)
+	return err
+}
+
+const insertRateLimitEntry = `-- name: InsertRateLimitEntry :exec
+INSERT INTO rate_limit_entries (key, timestamp_unix) VALUES ($1, $2)
+`
+
+type InsertRateLimitEntryParams struct {
+	Key           string
+	TimestampUnix int64
+}
+
+func (q *Queries) InsertRateLimitEntry(ctx context.Context, arg InsertRateLimitEntryParams) error {
+	_, err := q.db.ExecContext(ctx, insertRateLimitEntry, arg.Key, arg.TimestampUnix)
+	return err
+}
+
 const invalidateUserSetupTokensByUserID = `-- name: InvalidateUserSetupTokensByUserID :exec
 UPDATE user_setup_tokens
 SET used_at = $1
@@ -1768,6 +1857,33 @@ type InvalidateUserSetupTokensByUserIDParams struct {
 func (q *Queries) InvalidateUserSetupTokensByUserID(ctx context.Context, arg InvalidateUserSetupTokensByUserIDParams) error {
 	_, err := q.db.ExecContext(ctx, invalidateUserSetupTokensByUserID, arg.UsedAt, arg.UserID)
 	return err
+}
+
+const listAllMachineTags = `-- name: ListAllMachineTags :many
+SELECT machine_id, tag FROM machine_tags ORDER BY machine_id, tag
+`
+
+func (q *Queries) ListAllMachineTags(ctx context.Context) ([]MachineTag, error) {
+	rows, err := q.db.QueryContext(ctx, listAllMachineTags)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MachineTag
+	for rows.Next() {
+		var i MachineTag
+		if err := rows.Scan(&i.MachineID, &i.Tag); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAllUserLLMModelsEncryptedKeys = `-- name: ListAllUserLLMModelsEncryptedKeys :many
@@ -2173,6 +2289,33 @@ func (q *Queries) ListMachineGroupAccess(ctx context.Context, machineID string) 
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMachineTagsByMachineID = `-- name: ListMachineTagsByMachineID :many
+SELECT tag FROM machine_tags WHERE machine_id = $1 ORDER BY tag
+`
+
+func (q *Queries) ListMachineTagsByMachineID(ctx context.Context, machineID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineTagsByMachineID, machineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		items = append(items, tag)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -2906,6 +3049,27 @@ func (q *Queries) MarkAuthTicketUsed(ctx context.Context, arg MarkAuthTicketUsed
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const markMachineJobFailed = `-- name: MarkMachineJobFailed :exec
+UPDATE machine_jobs
+SET status = 'failed',
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = $1,
+    updated_at = $2
+WHERE id = $3
+`
+
+type MarkMachineJobFailedParams struct {
+	LastError sql.NullString
+	UpdatedAt int64
+	ID        string
+}
+
+func (q *Queries) MarkMachineJobFailed(ctx context.Context, arg MarkMachineJobFailedParams) error {
+	_, err := q.db.ExecContext(ctx, markMachineJobFailed, arg.LastError, arg.UpdatedAt, arg.ID)
+	return err
 }
 
 const markMachineJobSucceeded = `-- name: MarkMachineJobSucceeded :exec

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"slices"
@@ -63,12 +63,26 @@ func (s *machineConnectService) ListMachines(ctx context.Context, req *connect.R
 
 	machines, err := s.store.ListMachinesByUser(ctx, authResult.UserID)
 	if err != nil {
-		log.Printf("list machines failed: %v", err)
+		slog.ErrorContext(ctx, "list machines failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list machines"))
+	}
+
+	// Batch-load tags for all machines
+	var allTags map[string][]string
+	if s.dbStore != nil {
+		allTags, err = s.dbStore.ListAllMachineTags(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "list machine tags failed", "error", err)
+			// Non-fatal: continue without tags
+			allTags = nil
+		}
 	}
 
 	items := make([]*arcav1.Machine, 0, len(machines))
 	for _, machine := range machines {
+		if allTags != nil {
+			machine.Tags = allTags[machine.ID]
+		}
 		items = append(items, toMachineMessageWithAdmin(machine, isAdmin))
 	}
 
@@ -101,15 +115,17 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 				m, mErr := s.dbStore.GetMachineByID(ctx, machineID)
 				if mErr == nil {
 					m.UserRole = role
+					s.populateMachineTags(ctx, &m)
 					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(m, isAdmin)}), nil
 				}
 			}
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("get machine failed: %v", err)
+		slog.ErrorContext(ctx, "get machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
 	}
 	machine.UserRole = role
+	s.populateMachineTags(ctx, &machine)
 
 	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(machine, isAdmin)}), nil
 }
@@ -134,7 +150,7 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 	// Snapshot template config at creation time
 	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
 	if err != nil {
-		log.Printf("get template for snapshot failed: %v", err)
+		slog.ErrorContext(ctx, "get template for snapshot failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 	}
 
@@ -165,13 +181,38 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		}
 	}
 
+	// Validate and normalize tags
+	tags := req.Msg.GetTags()
+	var normalizedTags []string
+	if len(tags) > 0 {
+		normalizedTags = make([]string, 0, len(tags))
+		for _, t := range tags {
+			normalizedTags = append(normalizedTags, strings.TrimSpace(t))
+		}
+		slices.Sort(normalizedTags)
+		normalizedTags = slices.Compact(normalizedTags)
+		if err := validateMachineTags(normalizedTags); err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+	}
+
 	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, templateID, currentSetupVersion(), optionsJSON, customImageID, tmpl.Type, tmpl.ConfigJSON)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
 		}
-		log.Printf("create machine failed: %v", err)
+		slog.ErrorContext(ctx, "create machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create machine"))
+	}
+
+	// Store tags after machine creation
+	if len(normalizedTags) > 0 && s.dbStore != nil {
+		if err := s.dbStore.SetMachineTags(ctx, machine.ID, normalizedTags); err != nil {
+			slog.ErrorContext(ctx, "set machine tags on create failed", "error", err)
+			// Non-fatal: machine was created successfully
+		} else {
+			machine.Tags = normalizedTags
+		}
 	}
 
 	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.create", "machine", machine.ID, fmt.Sprintf(`{"name":%q}`, name))
@@ -207,7 +248,7 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("get machine failed: %v", err)
+		slog.ErrorContext(ctx, "get machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
 	}
 
@@ -237,13 +278,13 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
 	}
 	if _, err := s.dbStore.UpdateMachineOptionsByID(ctx, machineID, string(data)); err != nil {
-		log.Printf("update machine options failed: %v", err)
+		slog.ErrorContext(ctx, "update machine options failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update machine options"))
 	}
 
 	updated, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
 	if err != nil {
-		log.Printf("fetch updated machine failed: %v", err)
+		slog.ErrorContext(ctx, "fetch updated machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
 	}
 	updated.UserRole = db.MachineRoleAdmin
@@ -274,13 +315,13 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("get machine failed: %v", err)
+		slog.ErrorContext(ctx, "get machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
 	}
 
 	updated, err := s.store.RequestStartMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
-		log.Printf("start machine failed: %v", err)
+		slog.ErrorContext(ctx, "start machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to start machine"))
 	}
 	if !updated {
@@ -292,7 +333,7 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("fetch started machine failed: %v", err)
+		slog.ErrorContext(ctx, "fetch started machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
 	}
 
@@ -328,7 +369,7 @@ func (s *machineConnectService) validateTemplateExists(ctx context.Context, temp
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found"))
 	}
 
-	log.Printf("get template failed: %v", err)
+	slog.ErrorContext(ctx, "get template failed", "error", err)
 	return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 }
 
@@ -350,7 +391,7 @@ func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Re
 
 	updated, err := s.store.RequestStopMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
-		log.Printf("stop machine failed: %v", err)
+		slog.ErrorContext(ctx, "stop machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to stop machine"))
 	}
 	if !updated {
@@ -362,7 +403,7 @@ func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Re
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("fetch stopped machine failed: %v", err)
+		slog.ErrorContext(ctx, "fetch stopped machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
 	}
 
@@ -389,7 +430,7 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 
 	requested, err := s.store.RequestDeleteMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
-		log.Printf("request machine delete failed: %v", err)
+		slog.ErrorContext(ctx, "request machine delete failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to request machine deletion"))
 	}
 	if !requested {
@@ -425,7 +466,7 @@ func (s *machineConnectService) ListMachineEvents(ctx context.Context, req *conn
 	limit := int64(req.Msg.GetLimit())
 	events, err := s.dbStore.ListMachineEventsByMachineID(ctx, machineID, limit)
 	if err != nil {
-		log.Printf("list machine events failed: %v", err)
+		slog.ErrorContext(ctx, "list machine events failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list machine events"))
 	}
 
@@ -467,6 +508,104 @@ func (s *machineConnectService) resolveMachineRole(ctx context.Context, userID, 
 	return db.MachineRoleNone
 }
 
+func (s *machineConnectService) populateMachineTags(ctx context.Context, machine *db.Machine) {
+	if s.dbStore == nil {
+		return
+	}
+	tags, err := s.dbStore.ListMachineTagsByMachineID(ctx, machine.ID)
+	if err != nil {
+		slog.ErrorContext(ctx, "list machine tags failed", "error", err)
+		return
+	}
+	machine.Tags = tags
+}
+
+var machineTagPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
+
+func validateMachineTags(tags []string) error {
+	if len(tags) > 10 {
+		return fmt.Errorf("too many tags (max 10)")
+	}
+	seen := make(map[string]bool, len(tags))
+	for _, tag := range tags {
+		if len(tag) == 0 {
+			return fmt.Errorf("tag must not be empty")
+		}
+		if len(tag) > 50 {
+			return fmt.Errorf("tag %q is too long (max 50 characters)", tag)
+		}
+		if !machineTagPattern.MatchString(tag) {
+			return fmt.Errorf("tag %q is invalid (must be lowercase alphanumeric with hyphens)", tag)
+		}
+		if seen[tag] {
+			return fmt.Errorf("duplicate tag %q", tag)
+		}
+		seen[tag] = true
+	}
+	return nil
+}
+
+func (s *machineConnectService) UpdateMachineTags(ctx context.Context, req *connect.Request[arcav1.UpdateMachineTagsRequest]) (*connect.Response[arcav1.UpdateMachineTagsResponse], error) {
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+	userID := authResult.UserID
+	isAdmin := authResult.Role == "admin"
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	if role := s.resolveMachineRole(ctx, userID, machineID); role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
+	tags := req.Msg.GetTags()
+	// Normalize: deduplicate and sort
+	normalized := make([]string, 0, len(tags))
+	for _, t := range tags {
+		normalized = append(normalized, strings.TrimSpace(t))
+	}
+	slices.Sort(normalized)
+	normalized = slices.Compact(normalized)
+
+	if err := validateMachineTags(normalized); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if s.dbStore == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
+	}
+
+	if err := s.dbStore.SetMachineTags(ctx, machineID, normalized); err != nil {
+		slog.ErrorContext(ctx, "set machine tags failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update tags"))
+	}
+
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			if s.dbStore != nil {
+				m, mErr := s.dbStore.GetMachineByID(ctx, machineID)
+				if mErr == nil {
+					m.Tags = normalized
+					return connect.NewResponse(&arcav1.UpdateMachineTagsResponse{Machine: toMachineMessageWithAdmin(m, isAdmin)}), nil
+				}
+			}
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		slog.ErrorContext(ctx, "fetch machine after tag update failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
+	}
+	machine.Tags = normalized
+
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.update_tags", "machine", machineID, "{}")
+
+	return connect.NewResponse(&arcav1.UpdateMachineTagsResponse{Machine: toMachineMessageWithAdmin(machine, isAdmin)}), nil
+}
+
 func toMachineMessage(machine db.Machine) *arcav1.Machine {
 	return toMachineMessageWithAdmin(machine, false)
 }
@@ -486,6 +625,7 @@ func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.M
 		ArcadVersion:    machine.ArcadVersion,
 		Options:         parseMachineOptions(machine.OptionsJSON),
 		TemplateType:    machine.TemplateType,
+		Tags:            machine.Tags,
 	}
 	if includeConfig {
 		msg.TemplateConfigJson = machine.TemplateConfigJSON
@@ -511,7 +651,7 @@ func parseMachineOptions(optionsJSON string) map[string]string {
 func (s *machineConnectService) injectCustomImageOptions(ctx context.Context, customImageID, optionsJSON string) (string, error) {
 	img, err := s.dbStore.GetCustomImage(ctx, customImageID)
 	if err != nil {
-		log.Printf("get custom image for options injection failed: %v", err)
+		slog.ErrorContext(ctx, "get custom image for options injection failed", "error", err)
 		return "", connect.NewError(connect.CodeInternal, errors.New("failed to resolve custom image"))
 	}
 
@@ -547,14 +687,14 @@ func (s *machineConnectService) validateCustomImage(ctx context.Context, templat
 		if errors.Is(err, sql.ErrNoRows) {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image not found"))
 		}
-		log.Printf("get custom image failed: %v", err)
+		slog.ErrorContext(ctx, "get custom image failed", "error", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve custom image"))
 	}
 
 	// Verify image is associated with the specified template
 	templateIDs, err := s.dbStore.ListTemplateIDsByCustomImageID(ctx, customImageID)
 	if err != nil {
-		log.Printf("list template IDs for image failed: %v", err)
+		slog.ErrorContext(ctx, "list template IDs for image failed", "error", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to verify image association"))
 	}
 	found := false
@@ -586,14 +726,14 @@ func (s *machineConnectService) validateMachineType(ctx context.Context, templat
 		if errors.Is(err, sql.ErrNoRows) {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found"))
 		}
-		log.Printf("get template failed: %v", err)
+		slog.ErrorContext(ctx, "get template failed", "error", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 	}
 
 	config := &arcav1.MachineTemplateConfig{}
 	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
 	if err := unmarshaler.Unmarshal([]byte(tmpl.ConfigJSON), config); err != nil {
-		log.Printf("decode template config failed: %v", err)
+		slog.ErrorContext(ctx, "decode template config failed", "error", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to decode template config"))
 	}
 

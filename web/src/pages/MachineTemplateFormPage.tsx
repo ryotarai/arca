@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
 import { createMachineTemplate, listMachineTemplates, updateMachineTemplate } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { MachineExposureConfig, MachineExposureMethodType, MachineTemplateConfig, MachineTemplateItem, MachineTemplateType, User } from '@/lib/types'
@@ -225,6 +226,10 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const initialFormRef = useRef<string>(JSON.stringify(emptyTemplateForm()))
+  const isDirty = JSON.stringify(form) !== initialFormRef.current
+
+  useUnsavedChanges(isDirty)
 
   const validationError = useMemo(() => validateTemplateForm(form), [form])
 
@@ -241,7 +246,9 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
         if (cancelled) return
         const found = items.find((item) => item.id === templateID)
         if (found != null) {
-          setForm(fillFormFromTemplate(found))
+          const filled = fillFormFromTemplate(found)
+          setForm(filled)
+          initialFormRef.current = JSON.stringify(filled)
         } else {
           setError('Template not found.')
         }
@@ -519,6 +526,7 @@ export function MachineTemplateFormPage({ user }: MachineTemplateFormPageProps) 
           </Card>
         )}
       </section>
+
     </main>
   )
 }

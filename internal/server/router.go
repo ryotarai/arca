@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -27,6 +28,7 @@ type Dependencies struct {
 	Slack            *notification.SlackService
 	Encryptor        *crypto.Encryptor
 	LLMTokenExecutor *LLMTokenExecutor
+	RateLimiter      *RateLimiter
 }
 
 type HealthChecker interface {
@@ -69,15 +71,17 @@ func NewRouter(deps Dependencies) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
+	r.Use(RequestIDToContext)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	// Apply a 30-second timeout to API requests but skip it for machine
 	// proxy requests which carry long-lived WebSocket connections (e.g. ttyd).
 	r.Use(timeoutUnlessMachineProxy(deps.MachineProxy, 30*time.Second))
+	r.Use(securityHeaders)
 
 	if deps.Authenticator != nil {
-		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator, deps.Store))
+		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator, deps.Store, deps.RateLimiter))
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {
@@ -145,6 +149,30 @@ func NewRouter(deps Dependencies) http.Handler {
 		_, _ = io.WriteString(w, "ok")
 	})
 
+	// Readiness check endpoint — reports DB connectivity and job health metrics.
+	r.Get("/readyz", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := deps.HealthChecker.Ping(req.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = io.WriteString(w, `{"status":"unhealthy","db":"down"}`)
+			return
+		}
+
+		nowUnix := time.Now().Unix()
+		fiveMinAgo := nowUnix - 300
+		stats, err := deps.Store.CountRecentJobsByStatus(req.Context(), fiveMinAgo, nowUnix)
+		if err != nil {
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"status":"healthy","db":"up","jobs":"unknown"}`)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintf(w, `{"status":"healthy","db":"up","jobs":{"succeeded":%d,"failed":%d,"stuck":%d}}`,
+			stats.Succeeded, stats.Failed, stats.Stuck)
+	})
+
 	// Machine proxy middleware: intercept requests with Host headers matching
 	// machine exposures in proxy-via-server mode before the SPA handler.
 	spa := spaHandler()
@@ -190,6 +218,15 @@ func spaHandler() http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = io.Copy(w, indexFile)
 	}
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // timeoutUnlessMachineProxy returns a middleware that applies the given timeout

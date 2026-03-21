@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -55,7 +55,7 @@ func (s *setupConnectService) GetSetupStatus(ctx context.Context, _ *connect.Req
 
 	state, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("get setup status failed: %v", err)
+		slog.ErrorContext(ctx, "get setup status failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup status"))
 	}
 
@@ -73,7 +73,7 @@ func (s *setupConnectService) VerifySetupPassword(ctx context.Context, req *conn
 
 	state, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("get setup state failed: %v", err)
+		slog.ErrorContext(ctx, "get setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
 	if state.Completed {
@@ -82,7 +82,7 @@ func (s *setupConnectService) VerifySetupPassword(ctx context.Context, req *conn
 
 	storedPassword, err := s.store.GetSetupPassword(ctx)
 	if err != nil {
-		log.Printf("get setup password failed: %v", err)
+		slog.ErrorContext(ctx, "get setup password failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to verify setup password"))
 	}
 
@@ -111,7 +111,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 
 	current, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("load setup state failed: %v", err)
+		slog.ErrorContext(ctx, "load setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
 	if current.Completed {
@@ -121,7 +121,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	if !shouldSkipSetup() {
 		storedPassword, pwErr := s.store.GetSetupPassword(ctx)
 		if pwErr != nil {
-			log.Printf("get setup password failed: %v", pwErr)
+			slog.ErrorContext(ctx, "get setup password failed", "error", pwErr)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to verify setup password"))
 		}
 		if storedPassword != "" && req.Msg.GetSetupPassword() != storedPassword {
@@ -148,13 +148,13 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 		case errors.Is(err, auth.ErrEmailAlreadyUsed):
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("admin email already used"))
 		default:
-			log.Printf("create admin failed: %v", err)
+			slog.ErrorContext(ctx, "create admin failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create admin"))
 		}
 	}
 
 	if _, err := s.store.UpdateUserRoleByID(ctx, adminUserID, db.UserRoleAdmin); err != nil {
-		log.Printf("set admin role failed: %v", err)
+		slog.ErrorContext(ctx, "set admin role failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to set admin role"))
 	}
 
@@ -175,7 +175,7 @@ func (s *setupConnectService) CompleteSetup(ctx context.Context, req *connect.Re
 	}
 
 	if err := s.store.UpsertSetupState(ctx, state); err != nil {
-		log.Printf("persist setup state failed: %v", err)
+		slog.ErrorContext(ctx, "persist setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
 	return connect.NewResponse(&arcav1.CompleteSetupResponse{Status: setupStatusMessage(state)}), nil
@@ -191,7 +191,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 
 	current, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("load setup state failed: %v", err)
+		slog.ErrorContext(ctx, "load setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
 	if !current.Completed {
@@ -271,7 +271,7 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one authentication method must be enabled"))
 	}
 	if err := s.store.UpsertSetupState(ctx, current); err != nil {
-		log.Printf("persist setup state failed: %v", err)
+		slog.ErrorContext(ctx, "persist setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to persist setup state"))
 	}
 	return connect.NewResponse(&arcav1.UpdateDomainSettingsResponse{Status: setupStatusMessage(current)}), nil

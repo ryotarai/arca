@@ -5,7 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"log"
+	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -20,10 +21,11 @@ import (
 type authConnectService struct {
 	authenticator Authenticator
 	store         *db.Store
+	rateLimiter   *RateLimiter
 }
 
-func newAuthConnectService(authenticator Authenticator, store *db.Store) *authConnectService {
-	return &authConnectService{authenticator: authenticator, store: store}
+func newAuthConnectService(authenticator Authenticator, store *db.Store, rateLimiter *RateLimiter) *authConnectService {
+	return &authConnectService{authenticator: authenticator, store: store, rateLimiter: rateLimiter}
 }
 
 func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arcav1.LoginRequest]) (*connect.Response[arcav1.LoginResponse], error) {
@@ -35,13 +37,30 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("password login is disabled"))
 	}
 
+	var rateLimitKey string
+	if s.rateLimiter != nil {
+		rateLimitKey = "login:" + peerIPFromConnect(req)
+		allowed, err := s.rateLimiter.Check(ctx, rateLimitKey)
+		if err != nil {
+			slog.ErrorContext(ctx, "rate limiter error", "error", err)
+		} else if !allowed {
+			return nil, connect.NewError(connect.CodeResourceExhausted, errors.New("too many login attempts, please try again later"))
+		}
+	}
+
 	userID, email, role, token, expiresAt, err := s.authenticator.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
 	if err != nil {
+		// Record failed attempt for rate limiting
+		if s.rateLimiter != nil && rateLimitKey != "" {
+			if rlErr := s.rateLimiter.Record(ctx, rateLimitKey); rlErr != nil {
+				slog.ErrorContext(ctx, "rate limiter record error", "error", rlErr)
+			}
+		}
 		switch {
 		case errors.Is(err, auth.ErrInvalidCredentials):
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid credentials"))
 		default:
-			log.Printf("login failed: %v", err)
+			slog.ErrorContext(ctx, "login failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to login"))
 		}
 	}
@@ -59,7 +78,7 @@ func (s *authConnectService) StartOidcLogin(ctx context.Context, req *connect.Re
 	}
 	state, err := randomCookieToken(24)
 	if err != nil {
-		log.Printf("generate oidc state failed: %v", err)
+		slog.ErrorContext(ctx, "generate oidc state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to prepare oidc login"))
 	}
 	authURL, err := s.authenticator.StartOIDCLogin(ctx, req.Msg.GetRedirectUri(), state)
@@ -70,7 +89,7 @@ func (s *authConnectService) StartOidcLogin(ctx context.Context, req *connect.Re
 		case errors.Is(err, auth.ErrInvalidInput):
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid oidc login request"))
 		default:
-			log.Printf("start oidc login failed: %v", err)
+			slog.ErrorContext(ctx, "start oidc login failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to start oidc login"))
 		}
 	}
@@ -95,7 +114,7 @@ func (s *authConnectService) CompleteOidcLogin(ctx context.Context, req *connect
 		case errors.Is(err, auth.ErrOIDCRejected):
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("oidc login rejected"))
 		default:
-			log.Printf("complete oidc login failed: %v", err)
+			slog.ErrorContext(ctx, "complete oidc login failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to complete oidc login"))
 		}
 	}
@@ -247,6 +266,21 @@ func (s *authConnectService) isPasswordLoginDisabled(ctx context.Context) bool {
 		return false
 	}
 	return state.PasswordLoginDisabled
+}
+
+// peerIPFromConnect extracts the client IP from a ConnectRPC request.
+// chi's RealIP middleware has already set the peer address from
+// X-Real-IP / X-Forwarded-For on the underlying http.Request.
+func peerIPFromConnect[T any](req *connect.Request[T]) string {
+	addr := req.Peer().Addr
+	if addr == "" {
+		return "unknown"
+	}
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	return host
 }
 
 func isSecureRequest(header http.Header) bool {

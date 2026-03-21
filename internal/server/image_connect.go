@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -32,7 +32,7 @@ func (s *imageConnectService) ListCustomImages(ctx context.Context, req *connect
 
 	images, err := s.store.ListCustomImages(ctx)
 	if err != nil {
-		log.Printf("list custom images failed: %v", err)
+		slog.ErrorContext(ctx, "list custom images failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list custom images"))
 	}
 
@@ -78,7 +78,7 @@ func (s *imageConnectService) CreateCustomImage(ctx context.Context, req *connec
 		if errors.Is(err, db.ErrCustomImageNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("image with this name and runtime type already exists"))
 		}
-		log.Printf("create custom image failed: %v", err)
+		slog.ErrorContext(ctx, "create custom image failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create custom image"))
 	}
 
@@ -93,7 +93,7 @@ func (s *imageConnectService) CreateCustomImage(ctx context.Context, req *connec
 			return nil, err
 		}
 		if err := s.store.AssociateTemplateCustomImage(ctx, rid, img.ID); err != nil {
-			log.Printf("associate runtime custom image failed: %v", err)
+			slog.ErrorContext(ctx, "associate runtime custom image failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to associate runtime"))
 		}
 	}
@@ -142,7 +142,7 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 		if errors.Is(err, db.ErrCustomImageNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("image with this name and runtime type already exists"))
 		}
-		log.Printf("update custom image failed: %v", err)
+		slog.ErrorContext(ctx, "update custom image failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update custom image"))
 	}
 	if !updated {
@@ -151,7 +151,7 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 
 	// Re-sync runtime associations
 	if err := s.store.DisassociateAllTemplatesFromCustomImage(ctx, id); err != nil {
-		log.Printf("disassociate runtimes failed: %v", err)
+		slog.ErrorContext(ctx, "disassociate runtimes failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update runtime associations"))
 	}
 	for _, rid := range req.Msg.GetTemplateIds() {
@@ -163,7 +163,7 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 			return nil, err
 		}
 		if err := s.store.AssociateTemplateCustomImage(ctx, rid, id); err != nil {
-			log.Printf("associate runtime custom image failed: %v", err)
+			slog.ErrorContext(ctx, "associate runtime custom image failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to associate runtime"))
 		}
 	}
@@ -194,7 +194,7 @@ func (s *imageConnectService) DeleteCustomImage(ctx context.Context, req *connec
 
 	deleted, err := s.store.DeleteCustomImage(ctx, id)
 	if err != nil {
-		log.Printf("delete custom image failed: %v", err)
+		slog.ErrorContext(ctx, "delete custom image failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete custom image"))
 	}
 	if !deleted {
@@ -218,7 +218,7 @@ func (s *imageConnectService) ListAvailableImages(ctx context.Context, req *conn
 
 	images, err := s.store.ListCustomImagesByTemplateID(ctx, runtimeID)
 	if err != nil {
-		log.Printf("list available images failed: %v", err)
+		slog.ErrorContext(ctx, "list available images failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list available images"))
 	}
 

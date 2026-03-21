@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Copy, Check, ExternalLink, Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,9 +15,14 @@ import {
   startMachine,
   stopMachine,
   updateMachineOptions,
+  updateMachineTags,
 } from '@/lib/api'
 import type { MachineAccessRequest } from '@/gen/arca/v1/sharing_pb'
 import { messageFromError } from '@/lib/errors'
+import { usePolling } from '@/hooks/use-polling'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ListSkeleton } from '@/components/ListSkeleton'
 import type { Machine, MachineEvent, MachineTemplateSummary, User } from '@/lib/types'
 
 type MachineDetailPageProps = {
@@ -213,11 +218,14 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const [editingMachineType, setEditingMachineType] = useState(false)
   const [editMachineType, setEditMachineType] = useState('')
   const [savingMachineType, setSavingMachineType] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
   const [sharingOpen, setSharingOpen] = useState(false)
   const [accessRequests, setAccessRequests] = useState<MachineAccessRequest[]>([])
+  const [editingTags, setEditingTags] = useState(false)
+  const [editTagsInput, setEditTagsInput] = useState('')
+  const [savingTags, setSavingTags] = useState(false)
   const endpointURL = machine == null || machine.name === '' || baseDomain === '' ? null : `https://${machineHostname(domainPrefix, machine.name, baseDomain)}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const shelleyURL = endpointURL != null ? `${endpointURL}/__arca/shelley` : null
@@ -230,66 +238,34 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
   }, [events])
 
-  useEffect(() => {
-    if (user == null || machineID == null || machineID === '') {
-      return
-    }
+  const pollingEnabled = user != null && machineID != null && machineID !== ''
 
-    let cancelled = false
-    let timer: number | null = null
-    let running = false
-
-    const run = async () => {
-      if (cancelled || running) {
-        return
-      }
-      running = true
-      try {
-        const [item, eventItems, exposureItems, templateItems] = await Promise.all([
-          getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
-          listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
-          listMachineExposures(machineID),
-          listAvailableMachineTemplates(),
-        ])
-        if (!cancelled) {
-          setMachine(item)
-          setEvents(eventItems)
-          setTemplates(templateItems)
-          setError('')
-          // Fetch access requests for admins
-          if (item.userRole === 'admin') {
-            try {
-              const reqs = await listMachineAccessRequests(machineID)
-              if (!cancelled) setAccessRequests(reqs)
-            } catch {
-              // ignore errors for access requests polling
-            }
-          }
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(messageFromError(e))
-        }
-      } finally {
-        running = false
-        if (!cancelled) {
-          setLoading(false)
-          timer = window.setTimeout(() => {
-            void run()
-          }, pollingIntervalMs)
+  const { loading, error: pollingError } = usePolling(
+    useCallback(async () => {
+      if (machineID == null || machineID === '') return
+      const [item, eventItems, , templateItems] = await Promise.all([
+        getMachine(machineID, { timeoutMs: pollingRequestTimeoutMs }),
+        listMachineEvents(machineID, eventLimit, { timeoutMs: pollingRequestTimeoutMs }),
+        listMachineExposures(machineID),
+        listAvailableMachineTemplates(),
+      ])
+      setMachine(item)
+      setEvents(eventItems)
+      setTemplates(templateItems)
+      // Fetch access requests for admins
+      if (item.userRole === 'admin') {
+        try {
+          const reqs = await listMachineAccessRequests(machineID)
+          setAccessRequests(reqs)
+        } catch {
+          // ignore errors for access requests polling
         }
       }
-    }
+    }, [machineID]),
+    { intervalMs: pollingIntervalMs, enabled: pollingEnabled },
+  )
 
-    void run()
-
-    return () => {
-      cancelled = true
-      if (timer != null) {
-        window.clearTimeout(timer)
-      }
-    }
-  }, [user, machineID])
+  const error = actionError || pollingError
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -299,69 +275,84 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   }
 
   const handleStart = async () => {
-    setError('')
+    setActionError('')
     try {
       const updated = await startMachine(machineID)
       setMachine(updated)
     } catch (e) {
-      setError(messageFromError(e))
+      setActionError(messageFromError(e))
     }
   }
 
-  const handleStop = async () => {
-    if (!window.confirm('Stop this machine?')) {
-      return
-    }
-
-    setError('')
-    try {
-      const updated = await stopMachine(machineID)
-      setMachine(updated)
-    } catch (e) {
-      setError(messageFromError(e))
-    }
-  }
-
-  const handleRestart = async () => {
-    if (!window.confirm('Restart this machine?')) {
-      return
-    }
-
-    setError('')
-    try {
-      await stopMachine(machineID)
-      const startedAt = Date.now()
-      while (Date.now() < startedAt + restartWaitTimeoutMs) {
-        const current = await getMachine(machineID)
-        setMachine(current)
-        if (current.status === 'stopped') {
-          break
+  const handleStop = () => {
+    setConfirmAction({
+      title: 'Stop machine',
+      description: 'Are you sure you want to stop this machine?',
+      confirmLabel: 'Stop',
+      variant: 'default',
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        try {
+          const updated = await stopMachine(machineID)
+          setMachine(updated)
+        } catch (e) {
+          setActionError(messageFromError(e))
         }
-        await new Promise<void>((resolve) => {
-          window.setTimeout(resolve, restartWaitIntervalMs)
-        })
-      }
-      const updated = await startMachine(machineID)
-      setMachine(updated)
-    } catch (e) {
-      setError(messageFromError(e))
-    }
+      },
+    })
   }
 
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this machine? This action cannot be undone.')) {
-      return
-    }
+  const handleRestart = () => {
+    setConfirmAction({
+      title: 'Restart machine',
+      description: 'Are you sure you want to restart this machine?',
+      confirmLabel: 'Restart',
+      variant: 'default',
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        try {
+          await stopMachine(machineID)
+          const startedAt = Date.now()
+          while (Date.now() < startedAt + restartWaitTimeoutMs) {
+            const current = await getMachine(machineID)
+            setMachine(current)
+            if (current.status === 'stopped') {
+              break
+            }
+            await new Promise<void>((resolve) => {
+              window.setTimeout(resolve, restartWaitIntervalMs)
+            })
+          }
+          const updated = await startMachine(machineID)
+          setMachine(updated)
+        } catch (e) {
+          setActionError(messageFromError(e))
+        }
+      },
+    })
+  }
 
-    setError('')
-    setDeleting(true)
-    try {
-      await deleteMachine(machineID)
-      await navigate('/machines')
-    } catch (e) {
-      setError(messageFromError(e))
-      setDeleting(false)
-    }
+  const handleDelete = () => {
+    setConfirmAction({
+      title: 'Delete machine',
+      description: 'Delete this machine? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      onConfirm: async () => {
+        setConfirmAction(null)
+        setActionError('')
+        setDeleting(true)
+        try {
+          await deleteMachine(machineID)
+          await navigate('/machines')
+        } catch (e) {
+          setActionError(messageFromError(e))
+          setDeleting(false)
+        }
+      },
+    })
   }
 
   return (
@@ -444,6 +435,66 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                     )}
                   </div>
                 )}
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Tags</p>
+                  {editingTags ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editTagsInput}
+                        onChange={(e) => setEditTagsInput(e.target.value)}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                        disabled={savingTags}
+                        placeholder="tag1, tag2, tag3"
+                      />
+                      <p className="text-xs text-muted-foreground">Comma-separated. Lowercase alphanumeric and hyphens only. Max 10 tags.</p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={savingTags}
+                          onClick={() => {
+                            const doSave = async () => {
+                              setSavingTags(true)
+                              setActionError('')
+                              try {
+                                const tags = editTagsInput.split(',').map((t) => t.trim()).filter((t) => t !== '')
+                                const updated = await updateMachineTags(machineID, tags)
+                                setMachine(updated)
+                                setEditingTags(false)
+                              } catch (e) {
+                                setActionError(messageFromError(e))
+                              } finally {
+                                setSavingTags(false)
+                              }
+                            }
+                            void doSave()
+                          }}
+                        >
+                          {savingTags ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button type="button" variant="secondary" size="sm" disabled={savingTags} onClick={() => setEditingTags(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {machine.tags.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No tags</p>
+                      ) : (
+                        machine.tags.map((tag) => (
+                          <span key={tag} className="inline-flex items-center rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-200">{tag}</span>
+                        ))
+                      )}
+                      {isAdmin && (
+                        <Button type="button" variant="secondary" size="sm" className="h-7 px-2 text-xs" onClick={() => { setEditTagsInput(machine.tags.join(', ')); setEditingTags(true) }}>
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {(() => {
                   const rt = templates.find((r) => r.id === machine.templateId)
                   if (rt == null || rt.type !== 'gce') return null
@@ -453,13 +504,13 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
 
                   const handleSaveMachineType = async () => {
                     setSavingMachineType(true)
-                    setError('')
+                    setActionError('')
                     try {
                       const updated = await updateMachineOptions(machineID, { machine_type: editMachineType.trim() })
                       setMachine(updated)
                       setEditingMachineType(false)
                     } catch (e) {
-                      setError(messageFromError(e))
+                      setActionError(messageFromError(e))
                     } finally {
                       setSavingMachineType(false)
                     }
@@ -638,7 +689,10 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
         )}
 
         {loading && (
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-48" />
+            <ListSkeleton count={2} />
+          </div>
         )}
 
         {!loading && machine == null && (
@@ -653,6 +707,16 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
           onOpenChange={setSharingOpen}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
+        title={confirmAction?.title ?? ''}
+        description={confirmAction?.description ?? ''}
+        confirmLabel={confirmAction?.confirmLabel}
+        variant={confirmAction?.variant}
+        onConfirm={() => { if (confirmAction) void confirmAction.onConfirm() }}
+      />
     </main>
   )
 }

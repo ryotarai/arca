@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -40,7 +40,7 @@ func (s *sharingConnectService) GetMachineSharing(ctx context.Context, req *conn
 
 	members, err := s.store.ListUserMachinesByMachineID(ctx, machineID)
 	if err != nil {
-		log.Printf("list machine members failed: %v", err)
+		slog.ErrorContext(ctx, "list machine members failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list members"))
 	}
 
@@ -65,7 +65,7 @@ func (s *sharingConnectService) GetMachineSharing(ctx context.Context, req *conn
 	// Load group access
 	groupAccess, err := s.store.ListMachineGroupAccess(ctx, machineID)
 	if err != nil {
-		log.Printf("list machine group access failed: %v", err)
+		slog.ErrorContext(ctx, "list machine group access failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list group access"))
 	}
 
@@ -120,7 +120,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 			GeneralAccessScope: scope,
 			GeneralAccessRole:  gaRole,
 		}); err != nil {
-			log.Printf("update machine sharing failed: %v", err)
+			slog.ErrorContext(ctx, "update machine sharing failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update sharing"))
 		}
 	}
@@ -130,7 +130,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	// Get current members to detect removals
 	currentMembers, err := s.store.ListUserMachinesByMachineID(ctx, machineID)
 	if err != nil {
-		log.Printf("list machine members for sync failed: %v", err)
+		slog.ErrorContext(ctx, "list machine members for sync failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to sync members"))
 	}
 
@@ -166,7 +166,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	for _, current := range currentMembers {
 		if _, ok := requestedSet[current.UserID]; !ok {
 			if err := s.store.DeleteUserMachine(ctx, current.UserID, machineID); err != nil {
-				log.Printf("remove machine member failed: %v", err)
+				slog.ErrorContext(ctx, "remove machine member failed", "error", err)
 			}
 		}
 	}
@@ -174,7 +174,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	// Upsert requested members
 	for uid, r := range requestedSet {
 		if err := s.store.UpsertUserMachine(ctx, uid, machineID, r); err != nil {
-			log.Printf("upsert machine member failed: %v", err)
+			slog.ErrorContext(ctx, "upsert machine member failed", "error", err)
 		}
 	}
 
@@ -182,7 +182,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	requestedGroups := req.Msg.GetGroups()
 	currentGroupAccess, err := s.store.ListMachineGroupAccess(ctx, machineID)
 	if err != nil {
-		log.Printf("list machine group access for sync failed: %v", err)
+		slog.ErrorContext(ctx, "list machine group access for sync failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to sync groups"))
 	}
 
@@ -200,7 +200,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	for _, current := range currentGroupAccess {
 		if _, ok := requestedGroupSet[current.GroupID]; !ok {
 			if err := s.store.DeleteMachineGroupAccess(ctx, machineID, current.GroupID); err != nil {
-				log.Printf("remove machine group access failed: %v", err)
+				slog.ErrorContext(ctx, "remove machine group access failed", "error", err)
 			}
 		}
 	}
@@ -208,14 +208,14 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	// Upsert requested groups
 	for gid, r := range requestedGroupSet {
 		if err := s.store.UpsertMachineGroupAccess(ctx, machineID, gid, r); err != nil {
-			log.Printf("upsert machine group access failed: %v", err)
+			slog.ErrorContext(ctx, "upsert machine group access failed", "error", err)
 		}
 	}
 
 	// Read back
 	updatedMembers, err := s.store.ListUserMachinesByMachineID(ctx, machineID)
 	if err != nil {
-		log.Printf("list updated machine members failed: %v", err)
+		slog.ErrorContext(ctx, "list updated machine members failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list updated members"))
 	}
 
@@ -239,7 +239,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	// Read back groups
 	updatedGroupAccess, err := s.store.ListMachineGroupAccess(ctx, machineID)
 	if err != nil {
-		log.Printf("list updated machine group access failed: %v", err)
+		slog.ErrorContext(ctx, "list updated machine group access failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list updated group access"))
 	}
 
@@ -281,7 +281,7 @@ func (s *sharingConnectService) RequestMachineAccess(ctx context.Context, req *c
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("request machine access: get machine failed: %v", err)
+		slog.ErrorContext(ctx, "request machine access: get machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to check machine"))
 	}
 
@@ -298,7 +298,7 @@ func (s *sharingConnectService) RequestMachineAccess(ctx context.Context, req *c
 
 	message := strings.TrimSpace(req.Msg.GetMessage())
 	if err := s.store.CreateMachineAccessRequest(ctx, machineID, userID, db.MachineRoleViewer, message); err != nil {
-		log.Printf("create access request failed: %v", err)
+		slog.ErrorContext(ctx, "create access request failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create access request"))
 	}
 
@@ -325,7 +325,7 @@ func (s *sharingConnectService) ListMachineAccessRequests(ctx context.Context, r
 
 	requests, err := s.store.ListPendingMachineAccessRequests(ctx, machineID)
 	if err != nil {
-		log.Printf("list access requests failed: %v", err)
+		slog.ErrorContext(ctx, "list access requests failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list access requests"))
 	}
 
@@ -371,7 +371,7 @@ func (s *sharingConnectService) ResolveMachineAccessRequest(ctx context.Context,
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("access request not found"))
 		}
-		log.Printf("get access request failed: %v", err)
+		slog.ErrorContext(ctx, "get access request failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get access request"))
 	}
 
@@ -392,7 +392,7 @@ func (s *sharingConnectService) ResolveMachineAccessRequest(ctx context.Context,
 
 		// Grant access
 		if err := s.store.UpsertUserMachine(ctx, accessReq.UserID, accessReq.MachineID, resolvedRole); err != nil {
-			log.Printf("grant machine access failed: %v", err)
+			slog.ErrorContext(ctx, "grant machine access failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to grant access"))
 		}
 	}
@@ -405,7 +405,7 @@ func (s *sharingConnectService) ResolveMachineAccessRequest(ctx context.Context,
 
 	updated, err := s.store.ResolveMachineAccessRequest(ctx, requestID, status, userID, resolvedRole)
 	if err != nil {
-		log.Printf("resolve access request failed: %v", err)
+		slog.ErrorContext(ctx, "resolve access request failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve access request"))
 	}
 	if updated == 0 {

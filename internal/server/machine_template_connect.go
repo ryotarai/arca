@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -36,7 +36,7 @@ func (s *machineTemplateConnectService) ListMachineTemplates(ctx context.Context
 
 	templates, err := s.store.ListMachineTemplates(ctx)
 	if err != nil {
-		log.Printf("list templates failed: %v", err)
+		slog.ErrorContext(ctx, "list templates failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list templates"))
 	}
 
@@ -44,7 +44,7 @@ func (s *machineTemplateConnectService) ListMachineTemplates(ctx context.Context
 	for _, template := range templates {
 		message, convErr := toTemplateMessage(template)
 		if convErr != nil {
-			log.Printf("invalid template row id=%s: %v", template.ID, convErr)
+			slog.ErrorContext(ctx, "invalid template row", "template_id", template.ID, "error", convErr)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to decode template config"))
 		}
 		items = append(items, message)
@@ -66,7 +66,7 @@ func (s *machineTemplateConnectService) CreateMachineTemplate(ctx context.Contex
 
 	configJSON, err := marshalTemplateConfigJSON(validated.config)
 	if err != nil {
-		log.Printf("marshal template config failed: %v", err)
+		slog.ErrorContext(ctx, "marshal template config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to save template"))
 	}
 
@@ -75,13 +75,13 @@ func (s *machineTemplateConnectService) CreateMachineTemplate(ctx context.Contex
 		if errors.Is(err, db.ErrTemplateNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("template name already exists"))
 		}
-		log.Printf("create template failed: %v", err)
+		slog.ErrorContext(ctx, "create template failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create template"))
 	}
 
 	message, err := toTemplateMessage(template)
 	if err != nil {
-		log.Printf("decode created template config failed: %v", err)
+		slog.ErrorContext(ctx, "decode created template config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to decode template config"))
 	}
 
@@ -108,7 +108,7 @@ func (s *machineTemplateConnectService) UpdateMachineTemplate(ctx context.Contex
 
 	configJSON, err := marshalTemplateConfigJSON(validated.config)
 	if err != nil {
-		log.Printf("marshal template config failed: %v", err)
+		slog.ErrorContext(ctx, "marshal template config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update template"))
 	}
 
@@ -117,7 +117,7 @@ func (s *machineTemplateConnectService) UpdateMachineTemplate(ctx context.Contex
 		if errors.Is(err, db.ErrTemplateNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("template name already exists"))
 		}
-		log.Printf("update template failed: %v", err)
+		slog.ErrorContext(ctx, "update template failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update template"))
 	}
 	if !updated {
@@ -126,7 +126,7 @@ func (s *machineTemplateConnectService) UpdateMachineTemplate(ctx context.Contex
 
 	message, err := toTemplateMessage(template)
 	if err != nil {
-		log.Printf("decode updated template config failed: %v", err)
+		slog.ErrorContext(ctx, "decode updated template config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to decode template config"))
 	}
 
@@ -157,7 +157,7 @@ func (s *machineTemplateConnectService) DeleteMachineTemplate(ctx context.Contex
 		if errors.Is(err, db.ErrTemplateInUse) {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("template is used by existing machines"))
 		}
-		log.Printf("delete template failed: %v", err)
+		slog.ErrorContext(ctx, "delete template failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete template"))
 	}
 	if !deleted {
@@ -176,7 +176,7 @@ func (s *machineTemplateConnectService) ListAvailableMachineTemplates(ctx contex
 
 	templates, err := s.store.ListMachineTemplates(ctx)
 	if err != nil {
-		log.Printf("list available templates failed: %v", err)
+		slog.ErrorContext(ctx, "list available templates failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list templates"))
 	}
 
@@ -184,7 +184,7 @@ func (s *machineTemplateConnectService) ListAvailableMachineTemplates(ctx contex
 	for _, template := range templates {
 		templateType, err := templateTypeFromDB(template.Type)
 		if err != nil {
-			log.Printf("invalid template row id=%s: %v", template.ID, err)
+			slog.ErrorContext(ctx, "invalid template row", "template_id", template.ID, "error", err)
 			continue
 		}
 		summary := &arcav1.MachineTemplateSummary{

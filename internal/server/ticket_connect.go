@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -49,7 +48,7 @@ func (s *ticketConnectService) IssueTicket(ctx context.Context, req *connect.Req
 	expiresAt := time.Now().Add(authTicketTTL)
 	ticket, err := s.store.CreateAuthTicket(ctx, userID, machineID, strings.TrimSpace(req.Msg.GetExposureId()), expiresAt.Unix())
 	if err != nil {
-		log.Printf("issue ticket failed: %v", err)
+		slog.ErrorContext(ctx, "issue ticket failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to issue ticket"))
 	}
 
@@ -76,7 +75,7 @@ func (s *ticketConnectService) VerifyTicket(ctx context.Context, req *connect.Re
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid ticket"))
 		}
-		log.Printf("verify ticket failed: %v", err)
+		slog.ErrorContext(ctx, "verify ticket failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to verify ticket"))
 	}
 
@@ -107,7 +106,7 @@ func (s *ticketConnectService) ExchangeArcadSession(ctx context.Context, req *co
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid ticket"))
 		}
-		log.Printf("exchange arcad session failed: %v", err)
+		slog.ErrorContext(ctx, "exchange arcad session failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to exchange arcad session"))
 	}
 
@@ -148,14 +147,14 @@ func (s *ticketConnectService) ValidateArcadSession(ctx context.Context, req *co
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid session"))
 		}
-		log.Printf("validate arcad session lookup failed: %v", err)
+		slog.ErrorContext(ctx, "validate arcad session lookup failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to validate session"))
 	}
 
 	// Resolve machine from hostname via setup_state
 	setup, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("validate arcad session setup state lookup failed: %v", err)
+		slog.ErrorContext(ctx, "validate arcad session setup state lookup failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve exposure"))
 	}
 	machineName, ok := db.ExtractMachineNameFromHostname(hostname, setup.DomainPrefix, setup.BaseDomain)
@@ -167,7 +166,7 @@ func (s *ticketConnectService) ValidateArcadSession(ctx context.Context, req *co
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid session"))
 		}
-		log.Printf("validate arcad session machine lookup failed: %v", err)
+		slog.ErrorContext(ctx, "validate arcad session machine lookup failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve exposure"))
 	}
 	if m.ID != machineID {

@@ -3,7 +3,7 @@ package server
 import (
 	"database/sql"
 	"errors"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -50,7 +50,7 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 		// Resolve machine from hostname via setup_state
 		setup, err := store.GetSetupState(r.Context())
 		if err != nil {
-			log.Printf("console authorize setup state lookup failed: %v", err)
+			slog.ErrorContext(r.Context(), "console authorize setup state lookup failed", "error", err)
 			http.Error(w, "failed to resolve exposure", http.StatusInternalServerError)
 			return
 		}
@@ -65,7 +65,7 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 				http.NotFound(w, r)
 				return
 			}
-			log.Printf("console authorize machine lookup failed: %v", err)
+			slog.ErrorContext(r.Context(), "console authorize machine lookup failed", "error", err)
 			http.Error(w, "failed to resolve exposure", http.StatusInternalServerError)
 			return
 		}
@@ -82,7 +82,7 @@ func newConsoleAuthorizeHandler(store *db.Store, authenticator Authenticator) ht
 		expiresAt := time.Now().Add(authTicketTTL)
 		token, err := store.CreateArcadExchangeToken(r.Context(), userID, m.ID, "", expiresAt.Unix())
 		if err != nil {
-			log.Printf("console authorize arcad token issue failed: %v", err)
+			slog.ErrorContext(r.Context(), "console authorize arcad token issue failed", "error", err)
 			http.Error(w, "failed to issue token", http.StatusInternalServerError)
 			return
 		}

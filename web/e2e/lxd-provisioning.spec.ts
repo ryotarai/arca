@@ -55,8 +55,8 @@ test.describe('LXD provisioning (proxy via server)', () => {
       await expect(page.getByText('running')).toBeVisible()
 
       // Stop the machine
-      page.once('dialog', (dialog) => dialog.accept())
       await page.getByRole('button', { name: 'Stop' }).click()
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Stop' }).click()
 
       await waitForMachineStatus(page, machineID, ['stopped'], {
         timeoutMs: 3 * 60 * 1000,
@@ -74,8 +74,8 @@ test.describe('LXD provisioning (proxy via server)', () => {
 
       // Delete the machine
       await page.goto(`/machines/${machineID}`)
-      page.once('dialog', (dialog) => dialog.accept())
       await page.getByRole('button', { name: 'Delete machine' }).click()
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
       await expect(page).toHaveURL('/machines')
 
       // Verify machine is gone from list (deletion is async, poll until removed)

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -34,7 +34,7 @@ func (s *userConnectService) ListUsers(ctx context.Context, req *connect.Request
 
 	users, err := s.authenticator.ListUsers(ctx)
 	if err != nil {
-		log.Printf("list users failed: %v", err)
+		slog.ErrorContext(ctx, "list users failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list users"))
 	}
 
@@ -64,7 +64,7 @@ func (s *userConnectService) CreateUser(ctx context.Context, req *connect.Reques
 		case errors.Is(err, auth.ErrEmailAlreadyUsed):
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("email already used"))
 		default:
-			log.Printf("create user failed: %v", err)
+			slog.ErrorContext(ctx, "create user failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create user"))
 		}
 	}
@@ -102,7 +102,7 @@ func (s *userConnectService) IssueUserSetupToken(ctx context.Context, req *conne
 		case errors.Is(err, auth.ErrUserNotFound):
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
 		default:
-			log.Printf("issue user setup token failed: %v", err)
+			slog.ErrorContext(ctx, "issue user setup token failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to issue setup token"))
 		}
 	}
@@ -112,7 +112,7 @@ func (s *userConnectService) IssueUserSetupToken(ctx context.Context, req *conne
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
 		}
-		log.Printf("get user failed: %v", err)
+		slog.ErrorContext(ctx, "get user failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user"))
 	}
 
@@ -139,7 +139,7 @@ func (s *userConnectService) CompleteUserSetup(ctx context.Context, req *connect
 		case errors.Is(err, auth.ErrInvalidSetupToken):
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("setup token is invalid or expired"))
 		default:
-			log.Printf("complete user setup failed: %v", err)
+			slog.ErrorContext(ctx, "complete user setup failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to complete user setup"))
 		}
 	}
@@ -183,7 +183,7 @@ func (s *userConnectService) UpdateUserRole(ctx context.Context, req *connect.Re
 
 	updated, err := s.store.UpdateUserRoleByID(ctx, userID, role)
 	if err != nil {
-		log.Printf("update user role failed: %v", err)
+		slog.ErrorContext(ctx, "update user role failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update user role"))
 	}
 	if !updated {
@@ -195,7 +195,7 @@ func (s *userConnectService) UpdateUserRole(ctx context.Context, req *connect.Re
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
 		}
-		log.Printf("get user failed: %v", err)
+		slog.ErrorContext(ctx, "get user failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user"))
 	}
 
@@ -203,7 +203,7 @@ func (s *userConnectService) UpdateUserRole(ctx context.Context, req *connect.Re
 
 	users, err := s.authenticator.ListUsers(ctx)
 	if err != nil {
-		log.Printf("list users failed: %v", err)
+		slog.ErrorContext(ctx, "list users failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user"))
 	}
 	for _, u := range users {
@@ -231,7 +231,7 @@ func (s *userConnectService) SearchUsers(ctx context.Context, req *connect.Reque
 
 	results, err := s.store.SearchUsersByEmail(ctx, query, limit)
 	if err != nil {
-		log.Printf("search users failed: %v", err)
+		slog.ErrorContext(ctx, "search users failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to search users"))
 	}
 
@@ -290,7 +290,7 @@ func (s *userConnectService) ListUserLLMModels(ctx context.Context, req *connect
 
 	models, err := s.store.ListUserLLMModels(ctx, userID)
 	if err != nil {
-		log.Printf("list user llm models failed: %v", err)
+		slog.ErrorContext(ctx, "list user llm models failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list LLM models"))
 	}
 
@@ -329,7 +329,7 @@ func (s *userConnectService) CreateUserLLMModel(ctx context.Context, req *connec
 	if apiKey != "" {
 		encryptedKey, err = s.encryptor.Encrypt(apiKey)
 		if err != nil {
-			log.Printf("encrypt api key failed: %v", err)
+			slog.ErrorContext(ctx, "encrypt api key failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encrypt API key"))
 		}
 	}
@@ -350,13 +350,13 @@ func (s *userConnectService) CreateUserLLMModel(ctx context.Context, req *connec
 		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("config_name already exists"))
 		}
-		log.Printf("create user llm model failed: %v", err)
+		slog.ErrorContext(ctx, "create user llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create LLM model"))
 	}
 
 	created, err := s.store.GetUserLLMModel(ctx, id, userID)
 	if err != nil {
-		log.Printf("get created llm model failed: %v", err)
+		slog.ErrorContext(ctx, "get created llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load created LLM model"))
 	}
 
@@ -387,7 +387,7 @@ func (s *userConnectService) UpdateUserLLMModel(ctx context.Context, req *connec
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
 		}
-		log.Printf("get user llm model failed: %v", err)
+		slog.ErrorContext(ctx, "get user llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load LLM model"))
 	}
 
@@ -409,7 +409,7 @@ func (s *userConnectService) UpdateUserLLMModel(ctx context.Context, req *connec
 	if apiKey != "" {
 		encryptedKey, err = s.encryptor.Encrypt(apiKey)
 		if err != nil {
-			log.Printf("encrypt api key failed: %v", err)
+			slog.ErrorContext(ctx, "encrypt api key failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encrypt API key"))
 		}
 	}
@@ -430,7 +430,7 @@ func (s *userConnectService) UpdateUserLLMModel(ctx context.Context, req *connec
 		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("config_name already exists"))
 		}
-		log.Printf("update user llm model failed: %v", err)
+		slog.ErrorContext(ctx, "update user llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update LLM model"))
 	}
 	if !updated {
@@ -439,7 +439,7 @@ func (s *userConnectService) UpdateUserLLMModel(ctx context.Context, req *connec
 
 	result, err := s.store.GetUserLLMModel(ctx, id, userID)
 	if err != nil {
-		log.Printf("get updated llm model failed: %v", err)
+		slog.ErrorContext(ctx, "get updated llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load updated LLM model"))
 	}
 
@@ -469,7 +469,7 @@ func (s *userConnectService) DeleteUserLLMModel(ctx context.Context, req *connec
 
 	deleted, err := s.store.DeleteUserLLMModel(ctx, id, userID)
 	if err != nil {
-		log.Printf("delete user llm model failed: %v", err)
+		slog.ErrorContext(ctx, "delete user llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete LLM model"))
 	}
 	if !deleted {
@@ -497,7 +497,7 @@ func (s *userConnectService) DuplicateUserLLMModel(ctx context.Context, req *con
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
 		}
-		log.Printf("get user llm model for duplicate failed: %v", err)
+		slog.ErrorContext(ctx, "get user llm model for duplicate failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load LLM model"))
 	}
 
@@ -518,13 +518,13 @@ func (s *userConnectService) DuplicateUserLLMModel(ctx context.Context, req *con
 		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
 			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("config_name %q already exists", newConfigName))
 		}
-		log.Printf("create duplicate user llm model failed: %v", err)
+		slog.ErrorContext(ctx, "create duplicate user llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to duplicate LLM model"))
 	}
 
 	created, err := s.store.GetUserLLMModel(ctx, newID, userID)
 	if err != nil {
-		log.Printf("get duplicated llm model failed: %v", err)
+		slog.ErrorContext(ctx, "get duplicated llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load duplicated LLM model"))
 	}
 

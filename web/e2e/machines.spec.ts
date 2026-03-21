@@ -181,8 +181,9 @@ test.describe('machine detail', () => {
       await page.goto(`/machines/${machineID}`)
       await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
 
-      page.once('dialog', (dialog) => dialog.accept())
       await page.getByRole('button', { name: 'Stop' }).click()
+      // Confirm in the AlertDialog
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Stop' }).click()
       await expect(page.getByText(/stopping|stopped|failed/).first()).toBeVisible()
     } finally {
       await bestEffortDeleteMachine(page, machineID)
@@ -199,8 +200,9 @@ test.describe('machine detail', () => {
       await page.goto(`/machines/${machineID}`)
       await expect(page.getByRole('heading', { name: machineName })).toBeVisible()
 
-      page.once('dialog', (dialog) => dialog.accept())
       await page.getByRole('button', { name: 'Delete machine' }).click()
+      // Confirm in the AlertDialog
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
       await expect(page).toHaveURL('/machines')
       await expect(page.getByRole('heading', { name: 'Machines' })).toBeVisible()
     } finally {
