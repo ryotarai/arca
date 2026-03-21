@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS machine_jobs (
   id TEXT PRIMARY KEY,
   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
   kind TEXT NOT NULL CHECK (kind IN ('start', 'stop', 'delete', 'reconcile')),
-  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded')),
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
   attempt INTEGER NOT NULL DEFAULT 0,
   next_run_at BIGINT NOT NULL,
   lease_owner TEXT,

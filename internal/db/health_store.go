@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	postgresqlsqlc "github.com/ryotarai/arca/internal/db/sqlc/postgresql"
 	sqlitesqlc "github.com/ryotarai/arca/internal/db/sqlc/sqlite"
@@ -66,6 +65,6 @@ func toInt64(v interface{}) int64 {
 	case int32:
 		return int64(n)
 	default:
-		panic(fmt.Sprintf("unexpected type %T for int64 conversion", v))
+		return 0
 	}
 }

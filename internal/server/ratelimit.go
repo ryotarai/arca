@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/ryotarai/arca/internal/db"
@@ -46,7 +47,9 @@ func (rl *RateLimiter) StartCleanup(ctx context.Context, interval time.Duration)
 				return
 			case <-ticker.C:
 				cutoff := time.Now().Unix() - int64(rl.window.Seconds()) - 60
-				_ = rl.store.CleanupRateLimitEntries(ctx, cutoff)
+				if err := rl.store.CleanupRateLimitEntries(ctx, cutoff); err != nil {
+					slog.Warn("rate limit cleanup failed", "error", err)
+				}
 			}
 		}
 	}()

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"math"
 	"runtime/debug"
@@ -114,7 +113,7 @@ func (w *Worker) Run(ctx context.Context) {
 		nowUnix := time.Now().Unix()
 		w.maybeSweep(ctx, nowUnix)
 		if err := w.store.RecoverExpiredMachineJobs(ctx, nowUnix); err != nil {
-			log.Printf("machine worker recover failed: %v", err)
+			slog.Error("machine worker recover failed", "error", err)
 		}
 
 		// Check if we have capacity for more jobs
@@ -135,7 +134,7 @@ func (w *Worker) Run(ctx context.Context) {
 		job, ok, err := w.store.ClaimNextMachineJob(ctx, w.workerID, nowUnix+int64(w.leaseTTL.Seconds()), nowUnix)
 		if err != nil {
 			<-w.sem // release slot
-			log.Printf("machine worker claim failed: %v", err)
+			slog.Error("machine worker claim failed", "error", err)
 			select {
 			case <-ctx.Done():
 				w.wg.Wait()
@@ -304,7 +303,7 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			message := fmt.Sprintf("panic: %v", recovered)
-			log.Printf("machine worker panic: %s\n%s", message, string(debug.Stack()))
+			slog.Error("machine worker panic", "message", message, "stack", string(debug.Stack()))
 			w.emitEvent(ctx, job.MachineID, job.ID, "error", "job_panic", message)
 			if job.Attempt >= maxJobAttempts {
 				w.emitEvent(ctx, job.MachineID, job.ID, "error", "max_retries_exceeded", fmt.Sprintf("job exceeded maximum attempts (%d)", maxJobAttempts))
@@ -363,7 +362,7 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 
 	w.emitEvent(ctx, machine.ID, job.ID, "info", "job_succeeded", "job completed")
 	if err := w.store.MarkMachineJobSucceeded(ctx, job.ID, nowUnix); err != nil {
-		log.Printf("machine worker mark success failed: %v", err)
+		slog.Error("machine worker mark success failed", "error", err)
 	}
 }
 
