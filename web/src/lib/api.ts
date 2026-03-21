@@ -66,6 +66,7 @@ import {
   CreateUserRequestSchema,
   CreateUserLLMModelRequestSchema,
   DeleteUserLLMModelRequestSchema,
+  DuplicateUserLLMModelRequestSchema,
   GetUserSettingsRequestSchema,
   IssueUserSetupTokenRequestSchema,
   ListUserLLMModelsRequestSchema,
@@ -1085,6 +1086,14 @@ export async function updateUserLLMModel(params: {
 
 export async function deleteUserLLMModel(id: string): Promise<void> {
   await userClient.deleteUserLLMModel(create(DeleteUserLLMModelRequestSchema, { id }))
+}
+
+export async function duplicateUserLLMModel(id: string): Promise<LLMModel> {
+  const response = await userClient.duplicateUserLLMModel(create(DuplicateUserLLMModelRequestSchema, { id }))
+  if (!response.model) {
+    throw new Error('request failed')
+  }
+  return response.model
 }
 
 // Custom Image API

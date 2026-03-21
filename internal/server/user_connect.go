@@ -533,6 +533,60 @@ func (s *userConnectService) DeleteUserLLMModel(ctx context.Context, req *connec
 	return connect.NewResponse(&arcav1.DeleteUserLLMModelResponse{}), nil
 }
 
+func (s *userConnectService) DuplicateUserLLMModel(ctx context.Context, req *connect.Request[arcav1.DuplicateUserLLMModelRequest]) (*connect.Response[arcav1.DuplicateUserLLMModelResponse], error) {
+	userID, err := s.authenticateUser(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	srcID := strings.TrimSpace(req.Msg.GetId())
+	if srcID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id is required"))
+	}
+
+	src, err := s.store.GetUserLLMModel(ctx, srcID, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
+		}
+		log.Printf("get user llm model for duplicate failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load LLM model"))
+	}
+
+	newID := uuid.New().String()
+	newConfigName := src.ConfigName + " (Copy)"
+	model := db.UserLLMModel{
+		ID:               newID,
+		UserID:           userID,
+		ConfigName:       newConfigName,
+		EndpointType:     src.EndpointType,
+		CustomEndpoint:   src.CustomEndpoint,
+		ModelName:        src.ModelName,
+		APIKeyEncrypted:  src.APIKeyEncrypted,
+		MaxContextTokens: src.MaxContextTokens,
+	}
+
+	if err := s.store.CreateUserLLMModel(ctx, model); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
+			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("config_name %q already exists", newConfigName))
+		}
+		log.Printf("create duplicate user llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to duplicate LLM model"))
+	}
+
+	created, err := s.store.GetUserLLMModel(ctx, newID, userID)
+	if err != nil {
+		log.Printf("get duplicated llm model failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load duplicated LLM model"))
+	}
+
+	writeAuditLog(ctx, s.store, userID, "", "user.duplicate_llm_model", "user_llm_model", newID, fmt.Sprintf(`{"source_id":%q,"config_name":%q}`, srcID, newConfigName))
+
+	return connect.NewResponse(&arcav1.DuplicateUserLLMModelResponse{
+		Model: toLLMModelMessageFromFull(created),
+	}), nil
+}
+
 func toLLMModelMessage(m db.UserLLMModelSummary) *arcav1.LLMModel {
 	return &arcav1.LLMModel{
 		Id:               m.ID,
