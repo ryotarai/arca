@@ -873,9 +873,11 @@ func (s *machineConnectService) ChangeMachineProfile(ctx context.Context, req *c
 	return connect.NewResponse(&arcav1.ChangeMachineProfileResponse{Machine: toMachineMessageWithAdmin(updated, isAdmin)}), nil
 }
 
-// extractInfrastructureConfig removes dynamic settings (startup_script,
-// server_api_url, auto_stop_timeout_seconds) from a profile config JSON,
-// returning only the infrastructure-specific configuration.
+// extractInfrastructureConfig removes top-level dynamic settings
+// (server_api_url, auto_stop_timeout_seconds) from a profile config JSON.
+// These are read live from the profile at runtime. Provider-specific fields
+// (including startup_script) are preserved because the runtime factories
+// need them to construct runtime instances.
 func extractInfrastructureConfig(configJSON string) (string, error) {
 	if configJSON == "" || configJSON == "{}" {
 		return configJSON, nil
@@ -891,25 +893,6 @@ func extractInfrastructureConfig(configJSON string) (string, error) {
 	delete(raw, "server_api_url")
 	delete(raw, "autoStopTimeoutSeconds")
 	delete(raw, "auto_stop_timeout_seconds")
-
-	// Remove startup_script from provider configs
-	for _, provider := range []string{"libvirt", "gce", "lxd"} {
-		providerRaw, ok := raw[provider]
-		if !ok {
-			continue
-		}
-		var providerConfig map[string]json.RawMessage
-		if err := json.Unmarshal(providerRaw, &providerConfig); err != nil {
-			continue
-		}
-		delete(providerConfig, "startupScript")
-		delete(providerConfig, "startup_script")
-		updated, err := json.Marshal(providerConfig)
-		if err != nil {
-			continue
-		}
-		raw[provider] = json.RawMessage(updated)
-	}
 
 	result, err := json.Marshal(raw)
 	if err != nil {
