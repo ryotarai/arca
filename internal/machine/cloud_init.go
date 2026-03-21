@@ -19,12 +19,6 @@ func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions) string {
 		startupScript = "exit 0\n"
 	}
 	startupScript = "#!/usr/bin/env bash\nset -euo pipefail\n" + startupScript
-	authorizedKeys := strings.TrimSpace(strings.Join(opts.InteractiveSSHPubKeys, "\n"))
-	if authorizedKeys != "" {
-		authorizedKeys += "\n"
-	}
-	authorizedKeysBase64 := base64.StdEncoding.EncodeToString([]byte(authorizedKeys))
-
 	envFile := fmt.Sprintf(`ARCAD_CONTROL_PLANE_URL=%s
 ARCAD_AUTHORIZE_URL=%s
 ARCAD_MACHINE_ID=%s
@@ -34,7 +28,6 @@ ARCAD_TTYD_SOCKET=/run/arca/ttyd.sock
 ARCAD_READY_TCP_ENDPOINTS=127.0.0.1:21032
 ARCA_DAEMON_USER=%s
 ARCA_INTERACTIVE_USER=%s
-ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64=%s
 ARCA_AGENT_ENDPOINT_URL=%s
 TTYD_SOCKET=/run/arca/ttyd.sock
 TTYD_BASE_PATH=/__arca/ttyd
@@ -42,7 +35,7 @@ SHELLEY_BINARY_URL_BASE=https://github.com/ryotarai/shelley/releases/download/v0
 SHELLEY_BASE_PATH=/__arca/shelley
 SHELLEY_PORT=21032
 SHELLEY_DB_PATH=/var/lib/arca/shelley/shelley.db
-`, shellEscape(opts.ControlPlaneURL), shellEscape(opts.AuthorizeURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken), daemonUser, interactiveUser, shellEscape(authorizedKeysBase64), shellEscape(agentEndpoint))
+`, shellEscape(opts.ControlPlaneURL), shellEscape(opts.AuthorizeURL), shellEscape(opts.MachineID), shellEscape(opts.MachineToken), daemonUser, interactiveUser, shellEscape(agentEndpoint))
 
 	// Minimal install script: download arcad binary and start the root service.
 	// All other provisioning (packages, users, tools) is handled by arcad's

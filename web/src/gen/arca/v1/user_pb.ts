@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/user.proto.
  */
 export const file_arca_v1_user: GenFile = /*@__PURE__*/
-  fileDesc("ChJhcmNhL3YxL3VzZXIucHJvdG8SB2FyY2EudjEiggEKC01hbmFnZWRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJEhYKDnNldHVwX3JlcXVpcmVkGAMgASgIEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYBCABKAMSEgoKY3JlYXRlZF9hdBgFIAEoAxIMCgRyb2xlGAYgASgJIhIKEExpc3RVc2Vyc1JlcXVlc3QiOAoRTGlzdFVzZXJzUmVzcG9uc2USIwoFdXNlcnMYASADKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyIiIKEUNyZWF0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIm0KEkNyZWF0ZVVzZXJSZXNwb25zZRIiCgR1c2VyGAEgASgLMhQuYXJjYS52MS5NYW5hZ2VkVXNlchITCgtzZXR1cF90b2tlbhgCIAEoCRIeChZzZXR1cF90b2tlbl9leHBpcmVzX2F0GAMgASgDIi0KGklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkidgobSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEiIKBHVzZXIYASABKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyEhMKC3NldHVwX3Rva2VuGAIgASgJEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMiQQoYQ29tcGxldGVVc2VyU2V0dXBSZXF1ZXN0EhMKC3NldHVwX3Rva2VuGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjgKGUNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLmFyY2EudjEuVXNlciI2ChVVcGRhdGVVc2VyUm9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjwKFlVwZGF0ZVVzZXJSb2xlUmVzcG9uc2USIgoEdXNlchgBIAEoCzIULmFyY2EudjEuTWFuYWdlZFVzZXIiJwoMVXNlclNldHRpbmdzEhcKD3NzaF9wdWJsaWNfa2V5cxgBIAMoCSIYChZHZXRVc2VyU2V0dGluZ3NSZXF1ZXN0IkIKF0dldFVzZXJTZXR0aW5nc1Jlc3BvbnNlEicKCHNldHRpbmdzGAEgASgLMhUuYXJjYS52MS5Vc2VyU2V0dGluZ3MiRAoZVXBkYXRlVXNlclNldHRpbmdzUmVxdWVzdBInCghzZXR0aW5ncxgBIAEoCzIVLmFyY2EudjEuVXNlclNldHRpbmdzIkUKGlVwZGF0ZVVzZXJTZXR0aW5nc1Jlc3BvbnNlEicKCHNldHRpbmdzGAEgASgLMhUuYXJjYS52MS5Vc2VyU2V0dGluZ3MiMgoSU2VhcmNoVXNlcnNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEg0KBWxpbWl0GAIgASgFIj8KE1NlYXJjaFVzZXJzUmVzcG9uc2USKAoFdXNlcnMYASADKAsyGS5hcmNhLnYxLlVzZXJTZWFyY2hSZXN1bHQiLQoQVXNlclNlYXJjaFJlc3VsdBIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCSLIAQoITExNTW9kZWwSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRITCgtoYXNfYXBpX2tleRgGIAEoCBIaChJtYXhfY29udGV4dF90b2tlbnMYByABKAUSEgoKY3JlYXRlZF9hdBgIIAEoCRISCgp1cGRhdGVkX2F0GAkgASgJIhoKGExpc3RVc2VyTExNTW9kZWxzUmVxdWVzdCI+ChlMaXN0VXNlckxMTU1vZGVsc1Jlc3BvbnNlEiEKBm1vZGVscxgBIAMoCzIRLmFyY2EudjEuTExNTW9kZWwioQEKGUNyZWF0ZVVzZXJMTE1Nb2RlbFJlcXVlc3QSEwoLY29uZmlnX25hbWUYASABKAkSFQoNZW5kcG9pbnRfdHlwZRgCIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYAyABKAkSEgoKbW9kZWxfbmFtZRgEIAEoCRIPCgdhcGlfa2V5GAUgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgGIAEoBSI+ChpDcmVhdGVVc2VyTExNTW9kZWxSZXNwb25zZRIgCgVtb2RlbBgBIAEoCzIRLmFyY2EudjEuTExNTW9kZWwirQEKGVVwZGF0ZVVzZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIPCgdhcGlfa2V5GAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBSI+ChpVcGRhdGVVc2VyTExNTW9kZWxSZXNwb25zZRIgCgVtb2RlbBgBIAEoCzIRLmFyY2EudjEuTExNTW9kZWwiJwoZRGVsZXRlVXNlckxMTU1vZGVsUmVxdWVzdBIKCgJpZBgBIAEoCSIcChpEZWxldGVVc2VyTExNTW9kZWxSZXNwb25zZSIqChxEdXBsaWNhdGVVc2VyTExNTW9kZWxSZXF1ZXN0EgoKAmlkGAEgASgJIkEKHUR1cGxpY2F0ZVVzZXJMTE1Nb2RlbFJlc3BvbnNlEiAKBW1vZGVsGAEgASgLMhEuYXJjYS52MS5MTE1Nb2RlbDKJCQoLVXNlclNlcnZpY2USQgoJTGlzdFVzZXJzEhkuYXJjYS52MS5MaXN0VXNlcnNSZXF1ZXN0GhouYXJjYS52MS5MaXN0VXNlcnNSZXNwb25zZRJFCgpDcmVhdGVVc2VyEhouYXJjYS52MS5DcmVhdGVVc2VyUmVxdWVzdBobLmFyY2EudjEuQ3JlYXRlVXNlclJlc3BvbnNlEmAKE0lzc3VlVXNlclNldHVwVG9rZW4SIy5hcmNhLnYxLklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0GiQuYXJjYS52MS5Jc3N1ZVVzZXJTZXR1cFRva2VuUmVzcG9uc2USWgoRQ29tcGxldGVVc2VyU2V0dXASIS5hcmNhLnYxLkNvbXBsZXRlVXNlclNldHVwUmVxdWVzdBoiLmFyY2EudjEuQ29tcGxldGVVc2VyU2V0dXBSZXNwb25zZRJRCg5VcGRhdGVVc2VyUm9sZRIeLmFyY2EudjEuVXBkYXRlVXNlclJvbGVSZXF1ZXN0Gh8uYXJjYS52MS5VcGRhdGVVc2VyUm9sZVJlc3BvbnNlElQKD0dldFVzZXJTZXR0aW5ncxIfLmFyY2EudjEuR2V0VXNlclNldHRpbmdzUmVxdWVzdBogLmFyY2EudjEuR2V0VXNlclNldHRpbmdzUmVzcG9uc2USXQoSVXBkYXRlVXNlclNldHRpbmdzEiIuYXJjYS52MS5VcGRhdGVVc2VyU2V0dGluZ3NSZXF1ZXN0GiMuYXJjYS52MS5VcGRhdGVVc2VyU2V0dGluZ3NSZXNwb25zZRJICgtTZWFyY2hVc2VycxIbLmFyY2EudjEuU2VhcmNoVXNlcnNSZXF1ZXN0GhwuYXJjYS52MS5TZWFyY2hVc2Vyc1Jlc3BvbnNlEloKEUxpc3RVc2VyTExNTW9kZWxzEiEuYXJjYS52MS5MaXN0VXNlckxMTU1vZGVsc1JlcXVlc3QaIi5hcmNhLnYxLkxpc3RVc2VyTExNTW9kZWxzUmVzcG9uc2USXQoSQ3JlYXRlVXNlckxMTU1vZGVsEiIuYXJjYS52MS5DcmVhdGVVc2VyTExNTW9kZWxSZXF1ZXN0GiMuYXJjYS52MS5DcmVhdGVVc2VyTExNTW9kZWxSZXNwb25zZRJdChJVcGRhdGVVc2VyTExNTW9kZWwSIi5hcmNhLnYxLlVwZGF0ZVVzZXJMTE1Nb2RlbFJlcXVlc3QaIy5hcmNhLnYxLlVwZGF0ZVVzZXJMTE1Nb2RlbFJlc3BvbnNlEl0KEkRlbGV0ZVVzZXJMTE1Nb2RlbBIiLmFyY2EudjEuRGVsZXRlVXNlckxMTU1vZGVsUmVxdWVzdBojLmFyY2EudjEuRGVsZXRlVXNlckxMTU1vZGVsUmVzcG9uc2USZgoVRHVwbGljYXRlVXNlckxMTU1vZGVsEiUuYXJjYS52MS5EdXBsaWNhdGVVc2VyTExNTW9kZWxSZXF1ZXN0GiYuYXJjYS52MS5EdXBsaWNhdGVVc2VyTExNTW9kZWxSZXNwb25zZUKLAQoLY29tLmFyY2EudjFCCVVzZXJQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw", [file_arca_v1_auth]);
+  fileDesc("ChJhcmNhL3YxL3VzZXIucHJvdG8SB2FyY2EudjEiggEKC01hbmFnZWRVc2VyEgoKAmlkGAEgASgJEg0KBWVtYWlsGAIgASgJEhYKDnNldHVwX3JlcXVpcmVkGAMgASgIEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYBCABKAMSEgoKY3JlYXRlZF9hdBgFIAEoAxIMCgRyb2xlGAYgASgJIhIKEExpc3RVc2Vyc1JlcXVlc3QiOAoRTGlzdFVzZXJzUmVzcG9uc2USIwoFdXNlcnMYASADKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyIiIKEUNyZWF0ZVVzZXJSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIm0KEkNyZWF0ZVVzZXJSZXNwb25zZRIiCgR1c2VyGAEgASgLMhQuYXJjYS52MS5NYW5hZ2VkVXNlchITCgtzZXR1cF90b2tlbhgCIAEoCRIeChZzZXR1cF90b2tlbl9leHBpcmVzX2F0GAMgASgDIi0KGklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkidgobSXNzdWVVc2VyU2V0dXBUb2tlblJlc3BvbnNlEiIKBHVzZXIYASABKAsyFC5hcmNhLnYxLk1hbmFnZWRVc2VyEhMKC3NldHVwX3Rva2VuGAIgASgJEh4KFnNldHVwX3Rva2VuX2V4cGlyZXNfYXQYAyABKAMiQQoYQ29tcGxldGVVc2VyU2V0dXBSZXF1ZXN0EhMKC3NldHVwX3Rva2VuGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIjgKGUNvbXBsZXRlVXNlclNldHVwUmVzcG9uc2USGwoEdXNlchgBIAEoCzINLmFyY2EudjEuVXNlciI2ChVVcGRhdGVVc2VyUm9sZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIMCgRyb2xlGAIgASgJIjwKFlVwZGF0ZVVzZXJSb2xlUmVzcG9uc2USIgoEdXNlchgBIAEoCzIULmFyY2EudjEuTWFuYWdlZFVzZXIiMgoSU2VhcmNoVXNlcnNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEg0KBWxpbWl0GAIgASgFIj8KE1NlYXJjaFVzZXJzUmVzcG9uc2USKAoFdXNlcnMYASADKAsyGS5hcmNhLnYxLlVzZXJTZWFyY2hSZXN1bHQiLQoQVXNlclNlYXJjaFJlc3VsdBIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCSLIAQoITExNTW9kZWwSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRITCgtoYXNfYXBpX2tleRgGIAEoCBIaChJtYXhfY29udGV4dF90b2tlbnMYByABKAUSEgoKY3JlYXRlZF9hdBgIIAEoCRISCgp1cGRhdGVkX2F0GAkgASgJIhoKGExpc3RVc2VyTExNTW9kZWxzUmVxdWVzdCI+ChlMaXN0VXNlckxMTU1vZGVsc1Jlc3BvbnNlEiEKBm1vZGVscxgBIAMoCzIRLmFyY2EudjEuTExNTW9kZWwioQEKGUNyZWF0ZVVzZXJMTE1Nb2RlbFJlcXVlc3QSEwoLY29uZmlnX25hbWUYASABKAkSFQoNZW5kcG9pbnRfdHlwZRgCIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYAyABKAkSEgoKbW9kZWxfbmFtZRgEIAEoCRIPCgdhcGlfa2V5GAUgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgGIAEoBSI+ChpDcmVhdGVVc2VyTExNTW9kZWxSZXNwb25zZRIgCgVtb2RlbBgBIAEoCzIRLmFyY2EudjEuTExNTW9kZWwirQEKGVVwZGF0ZVVzZXJMTE1Nb2RlbFJlcXVlc3QSCgoCaWQYASABKAkSEwoLY29uZmlnX25hbWUYAiABKAkSFQoNZW5kcG9pbnRfdHlwZRgDIAEoCRIXCg9jdXN0b21fZW5kcG9pbnQYBCABKAkSEgoKbW9kZWxfbmFtZRgFIAEoCRIPCgdhcGlfa2V5GAYgASgJEhoKEm1heF9jb250ZXh0X3Rva2VucxgHIAEoBSI+ChpVcGRhdGVVc2VyTExNTW9kZWxSZXNwb25zZRIgCgVtb2RlbBgBIAEoCzIRLmFyY2EudjEuTExNTW9kZWwiJwoZRGVsZXRlVXNlckxMTU1vZGVsUmVxdWVzdBIKCgJpZBgBIAEoCSIcChpEZWxldGVVc2VyTExNTW9kZWxSZXNwb25zZSIqChxEdXBsaWNhdGVVc2VyTExNTW9kZWxSZXF1ZXN0EgoKAmlkGAEgASgJIkEKHUR1cGxpY2F0ZVVzZXJMTE1Nb2RlbFJlc3BvbnNlEiAKBW1vZGVsGAEgASgLMhEuYXJjYS52MS5MTE1Nb2RlbDLUBwoLVXNlclNlcnZpY2USQgoJTGlzdFVzZXJzEhkuYXJjYS52MS5MaXN0VXNlcnNSZXF1ZXN0GhouYXJjYS52MS5MaXN0VXNlcnNSZXNwb25zZRJFCgpDcmVhdGVVc2VyEhouYXJjYS52MS5DcmVhdGVVc2VyUmVxdWVzdBobLmFyY2EudjEuQ3JlYXRlVXNlclJlc3BvbnNlEmAKE0lzc3VlVXNlclNldHVwVG9rZW4SIy5hcmNhLnYxLklzc3VlVXNlclNldHVwVG9rZW5SZXF1ZXN0GiQuYXJjYS52MS5Jc3N1ZVVzZXJTZXR1cFRva2VuUmVzcG9uc2USWgoRQ29tcGxldGVVc2VyU2V0dXASIS5hcmNhLnYxLkNvbXBsZXRlVXNlclNldHVwUmVxdWVzdBoiLmFyY2EudjEuQ29tcGxldGVVc2VyU2V0dXBSZXNwb25zZRJRCg5VcGRhdGVVc2VyUm9sZRIeLmFyY2EudjEuVXBkYXRlVXNlclJvbGVSZXF1ZXN0Gh8uYXJjYS52MS5VcGRhdGVVc2VyUm9sZVJlc3BvbnNlEkgKC1NlYXJjaFVzZXJzEhsuYXJjYS52MS5TZWFyY2hVc2Vyc1JlcXVlc3QaHC5hcmNhLnYxLlNlYXJjaFVzZXJzUmVzcG9uc2USWgoRTGlzdFVzZXJMTE1Nb2RlbHMSIS5hcmNhLnYxLkxpc3RVc2VyTExNTW9kZWxzUmVxdWVzdBoiLmFyY2EudjEuTGlzdFVzZXJMTE1Nb2RlbHNSZXNwb25zZRJdChJDcmVhdGVVc2VyTExNTW9kZWwSIi5hcmNhLnYxLkNyZWF0ZVVzZXJMTE1Nb2RlbFJlcXVlc3QaIy5hcmNhLnYxLkNyZWF0ZVVzZXJMTE1Nb2RlbFJlc3BvbnNlEl0KElVwZGF0ZVVzZXJMTE1Nb2RlbBIiLmFyY2EudjEuVXBkYXRlVXNlckxMTU1vZGVsUmVxdWVzdBojLmFyY2EudjEuVXBkYXRlVXNlckxMTU1vZGVsUmVzcG9uc2USXQoSRGVsZXRlVXNlckxMTU1vZGVsEiIuYXJjYS52MS5EZWxldGVVc2VyTExNTW9kZWxSZXF1ZXN0GiMuYXJjYS52MS5EZWxldGVVc2VyTExNTW9kZWxSZXNwb25zZRJmChVEdXBsaWNhdGVVc2VyTExNTW9kZWwSJS5hcmNhLnYxLkR1cGxpY2F0ZVVzZXJMTE1Nb2RlbFJlcXVlc3QaJi5hcmNhLnYxLkR1cGxpY2F0ZVVzZXJMTE1Nb2RlbFJlc3BvbnNlQosBCgtjb20uYXJjYS52MUIJVXNlclByb3RvUAFaNGdpdGh1Yi5jb20vcnlvdGFyYWkvYXJjYS9pbnRlcm5hbC9nZW4vYXJjYS92MTthcmNhdjGiAgNBWFiqAgdBcmNhLlYxygIHQXJjYVxWMeICE0FyY2FcVjFcR1BCTWV0YWRhdGHqAghBcmNhOjpWMWIGcHJvdG8z", [file_arca_v1_auth]);
 
 /**
  * @generated from message arca.v1.ManagedUser
@@ -253,87 +253,6 @@ export const UpdateUserRoleResponseSchema: GenMessage<UpdateUserRoleResponse> = 
   messageDesc(file_arca_v1_user, 10);
 
 /**
- * @generated from message arca.v1.UserSettings
- */
-export type UserSettings = Message<"arca.v1.UserSettings"> & {
-  /**
-   * @generated from field: repeated string ssh_public_keys = 1;
-   */
-  sshPublicKeys: string[];
-};
-
-/**
- * Describes the message arca.v1.UserSettings.
- * Use `create(UserSettingsSchema)` to create a new message.
- */
-export const UserSettingsSchema: GenMessage<UserSettings> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 11);
-
-/**
- * @generated from message arca.v1.GetUserSettingsRequest
- */
-export type GetUserSettingsRequest = Message<"arca.v1.GetUserSettingsRequest"> & {
-};
-
-/**
- * Describes the message arca.v1.GetUserSettingsRequest.
- * Use `create(GetUserSettingsRequestSchema)` to create a new message.
- */
-export const GetUserSettingsRequestSchema: GenMessage<GetUserSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 12);
-
-/**
- * @generated from message arca.v1.GetUserSettingsResponse
- */
-export type GetUserSettingsResponse = Message<"arca.v1.GetUserSettingsResponse"> & {
-  /**
-   * @generated from field: arca.v1.UserSettings settings = 1;
-   */
-  settings?: UserSettings;
-};
-
-/**
- * Describes the message arca.v1.GetUserSettingsResponse.
- * Use `create(GetUserSettingsResponseSchema)` to create a new message.
- */
-export const GetUserSettingsResponseSchema: GenMessage<GetUserSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 13);
-
-/**
- * @generated from message arca.v1.UpdateUserSettingsRequest
- */
-export type UpdateUserSettingsRequest = Message<"arca.v1.UpdateUserSettingsRequest"> & {
-  /**
-   * @generated from field: arca.v1.UserSettings settings = 1;
-   */
-  settings?: UserSettings;
-};
-
-/**
- * Describes the message arca.v1.UpdateUserSettingsRequest.
- * Use `create(UpdateUserSettingsRequestSchema)` to create a new message.
- */
-export const UpdateUserSettingsRequestSchema: GenMessage<UpdateUserSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 14);
-
-/**
- * @generated from message arca.v1.UpdateUserSettingsResponse
- */
-export type UpdateUserSettingsResponse = Message<"arca.v1.UpdateUserSettingsResponse"> & {
-  /**
-   * @generated from field: arca.v1.UserSettings settings = 1;
-   */
-  settings?: UserSettings;
-};
-
-/**
- * Describes the message arca.v1.UpdateUserSettingsResponse.
- * Use `create(UpdateUserSettingsResponseSchema)` to create a new message.
- */
-export const UpdateUserSettingsResponseSchema: GenMessage<UpdateUserSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 15);
-
-/**
  * @generated from message arca.v1.SearchUsersRequest
  */
 export type SearchUsersRequest = Message<"arca.v1.SearchUsersRequest"> & {
@@ -353,7 +272,7 @@ export type SearchUsersRequest = Message<"arca.v1.SearchUsersRequest"> & {
  * Use `create(SearchUsersRequestSchema)` to create a new message.
  */
 export const SearchUsersRequestSchema: GenMessage<SearchUsersRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 16);
+  messageDesc(file_arca_v1_user, 11);
 
 /**
  * @generated from message arca.v1.SearchUsersResponse
@@ -370,7 +289,7 @@ export type SearchUsersResponse = Message<"arca.v1.SearchUsersResponse"> & {
  * Use `create(SearchUsersResponseSchema)` to create a new message.
  */
 export const SearchUsersResponseSchema: GenMessage<SearchUsersResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 17);
+  messageDesc(file_arca_v1_user, 12);
 
 /**
  * @generated from message arca.v1.UserSearchResult
@@ -392,7 +311,7 @@ export type UserSearchResult = Message<"arca.v1.UserSearchResult"> & {
  * Use `create(UserSearchResultSchema)` to create a new message.
  */
 export const UserSearchResultSchema: GenMessage<UserSearchResult> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 18);
+  messageDesc(file_arca_v1_user, 13);
 
 /**
  * @generated from message arca.v1.LLMModel
@@ -449,7 +368,7 @@ export type LLMModel = Message<"arca.v1.LLMModel"> & {
  * Use `create(LLMModelSchema)` to create a new message.
  */
 export const LLMModelSchema: GenMessage<LLMModel> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 19);
+  messageDesc(file_arca_v1_user, 14);
 
 /**
  * @generated from message arca.v1.ListUserLLMModelsRequest
@@ -462,7 +381,7 @@ export type ListUserLLMModelsRequest = Message<"arca.v1.ListUserLLMModelsRequest
  * Use `create(ListUserLLMModelsRequestSchema)` to create a new message.
  */
 export const ListUserLLMModelsRequestSchema: GenMessage<ListUserLLMModelsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 20);
+  messageDesc(file_arca_v1_user, 15);
 
 /**
  * @generated from message arca.v1.ListUserLLMModelsResponse
@@ -479,7 +398,7 @@ export type ListUserLLMModelsResponse = Message<"arca.v1.ListUserLLMModelsRespon
  * Use `create(ListUserLLMModelsResponseSchema)` to create a new message.
  */
 export const ListUserLLMModelsResponseSchema: GenMessage<ListUserLLMModelsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 21);
+  messageDesc(file_arca_v1_user, 16);
 
 /**
  * @generated from message arca.v1.CreateUserLLMModelRequest
@@ -521,7 +440,7 @@ export type CreateUserLLMModelRequest = Message<"arca.v1.CreateUserLLMModelReque
  * Use `create(CreateUserLLMModelRequestSchema)` to create a new message.
  */
 export const CreateUserLLMModelRequestSchema: GenMessage<CreateUserLLMModelRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 22);
+  messageDesc(file_arca_v1_user, 17);
 
 /**
  * @generated from message arca.v1.CreateUserLLMModelResponse
@@ -538,7 +457,7 @@ export type CreateUserLLMModelResponse = Message<"arca.v1.CreateUserLLMModelResp
  * Use `create(CreateUserLLMModelResponseSchema)` to create a new message.
  */
 export const CreateUserLLMModelResponseSchema: GenMessage<CreateUserLLMModelResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 23);
+  messageDesc(file_arca_v1_user, 18);
 
 /**
  * @generated from message arca.v1.UpdateUserLLMModelRequest
@@ -585,7 +504,7 @@ export type UpdateUserLLMModelRequest = Message<"arca.v1.UpdateUserLLMModelReque
  * Use `create(UpdateUserLLMModelRequestSchema)` to create a new message.
  */
 export const UpdateUserLLMModelRequestSchema: GenMessage<UpdateUserLLMModelRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 24);
+  messageDesc(file_arca_v1_user, 19);
 
 /**
  * @generated from message arca.v1.UpdateUserLLMModelResponse
@@ -602,7 +521,7 @@ export type UpdateUserLLMModelResponse = Message<"arca.v1.UpdateUserLLMModelResp
  * Use `create(UpdateUserLLMModelResponseSchema)` to create a new message.
  */
 export const UpdateUserLLMModelResponseSchema: GenMessage<UpdateUserLLMModelResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 25);
+  messageDesc(file_arca_v1_user, 20);
 
 /**
  * @generated from message arca.v1.DeleteUserLLMModelRequest
@@ -619,7 +538,7 @@ export type DeleteUserLLMModelRequest = Message<"arca.v1.DeleteUserLLMModelReque
  * Use `create(DeleteUserLLMModelRequestSchema)` to create a new message.
  */
 export const DeleteUserLLMModelRequestSchema: GenMessage<DeleteUserLLMModelRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 26);
+  messageDesc(file_arca_v1_user, 21);
 
 /**
  * @generated from message arca.v1.DeleteUserLLMModelResponse
@@ -632,7 +551,7 @@ export type DeleteUserLLMModelResponse = Message<"arca.v1.DeleteUserLLMModelResp
  * Use `create(DeleteUserLLMModelResponseSchema)` to create a new message.
  */
 export const DeleteUserLLMModelResponseSchema: GenMessage<DeleteUserLLMModelResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 27);
+  messageDesc(file_arca_v1_user, 22);
 
 /**
  * @generated from message arca.v1.DuplicateUserLLMModelRequest
@@ -649,7 +568,7 @@ export type DuplicateUserLLMModelRequest = Message<"arca.v1.DuplicateUserLLMMode
  * Use `create(DuplicateUserLLMModelRequestSchema)` to create a new message.
  */
 export const DuplicateUserLLMModelRequestSchema: GenMessage<DuplicateUserLLMModelRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 28);
+  messageDesc(file_arca_v1_user, 23);
 
 /**
  * @generated from message arca.v1.DuplicateUserLLMModelResponse
@@ -666,7 +585,7 @@ export type DuplicateUserLLMModelResponse = Message<"arca.v1.DuplicateUserLLMMod
  * Use `create(DuplicateUserLLMModelResponseSchema)` to create a new message.
  */
 export const DuplicateUserLLMModelResponseSchema: GenMessage<DuplicateUserLLMModelResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_user, 29);
+  messageDesc(file_arca_v1_user, 24);
 
 /**
  * @generated from service arca.v1.UserService
@@ -711,22 +630,6 @@ export const UserService: GenService<{
     methodKind: "unary";
     input: typeof UpdateUserRoleRequestSchema;
     output: typeof UpdateUserRoleResponseSchema;
-  },
-  /**
-   * @generated from rpc arca.v1.UserService.GetUserSettings
-   */
-  getUserSettings: {
-    methodKind: "unary";
-    input: typeof GetUserSettingsRequestSchema;
-    output: typeof GetUserSettingsResponseSchema;
-  },
-  /**
-   * @generated from rpc arca.v1.UserService.UpdateUserSettings
-   */
-  updateUserSettings: {
-    methodKind: "unary";
-    input: typeof UpdateUserSettingsRequestSchema;
-    output: typeof UpdateUserSettingsResponseSchema;
   },
   /**
    * @generated from rpc arca.v1.UserService.SearchUsers

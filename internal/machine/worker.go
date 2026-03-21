@@ -37,7 +37,6 @@ type RuntimeStartOptions struct {
 	MachineID             string
 	MachineToken          string
 	StartupScript         string
-	InteractiveSSHPubKeys []string
 }
 
 // Notifier sends notifications for machine lifecycle events.
@@ -389,15 +388,6 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	if controlPlaneURL == "" {
 		return fmt.Errorf("server domain is not configured")
 	}
-	ownerUserID, err := w.store.GetMachineOwnerUserID(ctx, machine.ID)
-	if err != nil {
-		return fmt.Errorf("load machine owner: %w", err)
-	}
-	userSettings, err := w.store.GetUserSettingsByUserID(ctx, ownerUserID)
-	if err != nil {
-		return fmt.Errorf("load user settings: %w", err)
-	}
-
 	// Compute the authorize URL from the public server domain so that arcad
 	// can redirect browsers even when the control-plane URL is an internal IP.
 	var authorizeURL string
@@ -410,7 +400,6 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		AuthorizeURL:          authorizeURL,
 		MachineID:             machine.ID,
 		MachineToken:          machine.MachineToken,
-		InteractiveSSHPubKeys: userSettings.SSHPublicKeys,
 	})
 	if err != nil {
 		return err

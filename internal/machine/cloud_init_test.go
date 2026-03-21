@@ -13,10 +13,9 @@ func TestCloudInitUserData_MinimalStructure(t *testing.T) {
 	t.Parallel()
 
 	cloudInit := cloudInitUserData(db.Machine{ID: "machine-123456789abc"}, RuntimeStartOptions{
-		StartupScript:         "echo hello startup",
-		InteractiveSSHPubKeys: []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJ9vZxA2v4n5hF8B07A2fkYg6P5mK2xOb3d9HfNQh8S test@example.com"},
-		ControlPlaneURL:       "https://arca.example.com",
-		MachineToken:          "test-token-123",
+		StartupScript:   "echo hello startup",
+		ControlPlaneURL: "https://arca.example.com",
+		MachineToken:    "test-token-123",
 	})
 
 	// User startup script is included.
@@ -58,7 +57,6 @@ func TestCloudInitUserData_MinimalStructure(t *testing.T) {
 		"ARCAD_MACHINE_TOKEN=",
 		"ARCA_DAEMON_USER=",
 		"ARCA_INTERACTIVE_USER=",
-		"ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64=",
 	} {
 		if !strings.Contains(envFile, key) {
 			t.Fatalf("env file missing %s", key)

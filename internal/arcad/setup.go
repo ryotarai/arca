@@ -11,8 +11,7 @@ import (
 type SetupConfig struct {
 	DaemonUser           string
 	InteractiveUser      string
-	AuthorizedKeysB64    string
-	AgentEndpointURL     string
+AgentEndpointURL     string
 	ShelleyBinaryURLBase string
 	ShelleyBasePath      string
 	ShelleyPort          string
@@ -28,8 +27,7 @@ func SetupConfigFromEnv() SetupConfig {
 	return SetupConfig{
 		DaemonUser:           envOrDefault("ARCA_DAEMON_USER", "arcad"),
 		InteractiveUser:      envOrDefault("ARCA_INTERACTIVE_USER", "arcauser"),
-		AuthorizedKeysB64:    os.Getenv("ARCA_INTERACTIVE_AUTHORIZED_KEYS_B64"),
-		AgentEndpointURL:     envOrDefault("ARCA_AGENT_ENDPOINT_URL", "http://localhost:11030"),
+AgentEndpointURL:     envOrDefault("ARCA_AGENT_ENDPOINT_URL", "http://localhost:11030"),
 		ShelleyBinaryURLBase: os.Getenv("SHELLEY_BINARY_URL_BASE"),
 		ShelleyBasePath:      envOrDefault("SHELLEY_BASE_PATH", "/__arca/shelley"),
 		ShelleyPort:          envOrDefault("SHELLEY_PORT", "21032"),

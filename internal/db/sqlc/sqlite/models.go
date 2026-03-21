@@ -250,13 +250,6 @@ type UserNotificationSetting struct {
 	UpdatedAt    int64
 }
 
-type UserSetting struct {
-	UserID            string
-	SshPublicKeysJson string
-	CreatedAt         int64
-	UpdatedAt         int64
-}
-
 type UserSetupToken struct {
 	ID              string
 	TokenHash       string

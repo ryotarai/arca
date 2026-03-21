@@ -1621,27 +1621,6 @@ func (q *Queries) GetUserNotificationSettings(ctx context.Context, userID string
 	return i, err
 }
 
-const getUserSettingsByUserID = `-- name: GetUserSettingsByUserID :one
-SELECT u.id AS user_id,
-       COALESCE(s.ssh_public_keys_json, '[]') AS ssh_public_keys_json
-FROM users u
-LEFT JOIN user_settings s ON s.user_id = u.id
-WHERE u.id = $1
-LIMIT 1
-`
-
-type GetUserSettingsByUserIDRow struct {
-	UserID            string
-	SshPublicKeysJson string
-}
-
-func (q *Queries) GetUserSettingsByUserID(ctx context.Context, userID string) (GetUserSettingsByUserIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserSettingsByUserID, userID)
-	var i GetUserSettingsByUserIDRow
-	err := row.Scan(&i.UserID, &i.SshPublicKeysJson)
-	return i, err
-}
-
 const getValidArcadExchangeTokenByHashAndMachine = `-- name: GetValidArcadExchangeTokenByHashAndMachine :one
 SELECT t.id, t.user_id, u.email, t.machine_id, t.exposure_id
 FROM arcad_exchange_tokens t
@@ -3788,36 +3767,6 @@ func (q *Queries) UpsertUserNotificationSettings(ctx context.Context, arg Upsert
 		arg.UserID,
 		arg.SlackEnabled,
 		arg.SlackUserID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	return err
-}
-
-const upsertUserSettingsByUserID = `-- name: UpsertUserSettingsByUserID :exec
-INSERT INTO user_settings (user_id, ssh_public_keys_json, created_at, updated_at)
-VALUES (
-  $1,
-  $2,
-  $3,
-  $4
-)
-ON CONFLICT (user_id) DO UPDATE
-SET ssh_public_keys_json = excluded.ssh_public_keys_json,
-    updated_at = excluded.updated_at
-`
-
-type UpsertUserSettingsByUserIDParams struct {
-	UserID            string
-	SshPublicKeysJson string
-	CreatedAt         int64
-	UpdatedAt         int64
-}
-
-func (q *Queries) UpsertUserSettingsByUserID(ctx context.Context, arg UpsertUserSettingsByUserIDParams) error {
-	_, err := q.db.ExecContext(ctx, upsertUserSettingsByUserID,
-		arg.UserID,
-		arg.SshPublicKeysJson,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
