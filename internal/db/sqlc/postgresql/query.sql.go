@@ -788,6 +788,15 @@ func (q *Queries) DeleteMachineIfNoUsers(ctx context.Context, machineID string) 
 	return err
 }
 
+const deleteMachineTagsByMachineID = `-- name: DeleteMachineTagsByMachineID :exec
+DELETE FROM machine_tags WHERE machine_id = $1
+`
+
+func (q *Queries) DeleteMachineTagsByMachineID(ctx context.Context, machineID string) error {
+	_, err := q.db.ExecContext(ctx, deleteMachineTagsByMachineID, machineID)
+	return err
+}
+
 const deleteMachineTemplateByID = `-- name: DeleteMachineTemplateByID :execrows
 DELETE FROM machine_templates
 WHERE id = $1
@@ -1804,6 +1813,21 @@ func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
 	return column_1, err
 }
 
+const insertMachineTag = `-- name: InsertMachineTag :exec
+INSERT INTO machine_tags (machine_id, tag) VALUES ($1, $2)
+ON CONFLICT (machine_id, tag) DO NOTHING
+`
+
+type InsertMachineTagParams struct {
+	MachineID string
+	Tag       string
+}
+
+func (q *Queries) InsertMachineTag(ctx context.Context, arg InsertMachineTagParams) error {
+	_, err := q.db.ExecContext(ctx, insertMachineTag, arg.MachineID, arg.Tag)
+	return err
+}
+
 const insertRateLimitEntry = `-- name: InsertRateLimitEntry :exec
 INSERT INTO rate_limit_entries (key, timestamp_unix) VALUES ($1, $2)
 `
@@ -1833,6 +1857,33 @@ type InvalidateUserSetupTokensByUserIDParams struct {
 func (q *Queries) InvalidateUserSetupTokensByUserID(ctx context.Context, arg InvalidateUserSetupTokensByUserIDParams) error {
 	_, err := q.db.ExecContext(ctx, invalidateUserSetupTokensByUserID, arg.UsedAt, arg.UserID)
 	return err
+}
+
+const listAllMachineTags = `-- name: ListAllMachineTags :many
+SELECT machine_id, tag FROM machine_tags ORDER BY machine_id, tag
+`
+
+func (q *Queries) ListAllMachineTags(ctx context.Context) ([]MachineTag, error) {
+	rows, err := q.db.QueryContext(ctx, listAllMachineTags)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MachineTag
+	for rows.Next() {
+		var i MachineTag
+		if err := rows.Scan(&i.MachineID, &i.Tag); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAllUserLLMModelsEncryptedKeys = `-- name: ListAllUserLLMModelsEncryptedKeys :many
@@ -2238,6 +2289,33 @@ func (q *Queries) ListMachineGroupAccess(ctx context.Context, machineID string) 
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMachineTagsByMachineID = `-- name: ListMachineTagsByMachineID :many
+SELECT tag FROM machine_tags WHERE machine_id = $1 ORDER BY tag
+`
+
+func (q *Queries) ListMachineTagsByMachineID(ctx context.Context, machineID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineTagsByMachineID, machineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		items = append(items, tag)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

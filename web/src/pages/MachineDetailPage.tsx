@@ -15,6 +15,7 @@ import {
   startMachine,
   stopMachine,
   updateMachineOptions,
+  updateMachineTags,
 } from '@/lib/api'
 import type { MachineAccessRequest } from '@/gen/arca/v1/sharing_pb'
 import { messageFromError } from '@/lib/errors'
@@ -222,6 +223,9 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
   const [sharingOpen, setSharingOpen] = useState(false)
   const [accessRequests, setAccessRequests] = useState<MachineAccessRequest[]>([])
+  const [editingTags, setEditingTags] = useState(false)
+  const [editTagsInput, setEditTagsInput] = useState('')
+  const [savingTags, setSavingTags] = useState(false)
   const endpointURL = machine == null || machine.name === '' || baseDomain === '' ? null : `https://${machineHostname(domainPrefix, machine.name, baseDomain)}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const shelleyURL = endpointURL != null ? `${endpointURL}/__arca/shelley` : null
@@ -431,6 +435,66 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                     )}
                   </div>
                 )}
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="text-sm text-muted-foreground">Tags</p>
+                  {editingTags ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editTagsInput}
+                        onChange={(e) => setEditTagsInput(e.target.value)}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                        disabled={savingTags}
+                        placeholder="tag1, tag2, tag3"
+                      />
+                      <p className="text-xs text-muted-foreground">Comma-separated. Lowercase alphanumeric and hyphens only. Max 10 tags.</p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={savingTags}
+                          onClick={() => {
+                            const doSave = async () => {
+                              setSavingTags(true)
+                              setActionError('')
+                              try {
+                                const tags = editTagsInput.split(',').map((t) => t.trim()).filter((t) => t !== '')
+                                const updated = await updateMachineTags(machineID, tags)
+                                setMachine(updated)
+                                setEditingTags(false)
+                              } catch (e) {
+                                setActionError(messageFromError(e))
+                              } finally {
+                                setSavingTags(false)
+                              }
+                            }
+                            void doSave()
+                          }}
+                        >
+                          {savingTags ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button type="button" variant="secondary" size="sm" disabled={savingTags} onClick={() => setEditingTags(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {machine.tags.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No tags</p>
+                      ) : (
+                        machine.tags.map((tag) => (
+                          <span key={tag} className="inline-flex items-center rounded-full border border-cyan-400/30 bg-cyan-500/10 px-2 py-0.5 text-xs font-medium text-cyan-200">{tag}</span>
+                        ))
+                      )}
+                      {isAdmin && (
+                        <Button type="button" variant="secondary" size="sm" className="h-7 px-2 text-xs" onClick={() => { setEditTagsInput(machine.tags.join(', ')); setEditingTags(true) }}>
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {(() => {
                   const rt = templates.find((r) => r.id === machine.templateId)
                   if (rt == null || rt.type !== 'gce') return null

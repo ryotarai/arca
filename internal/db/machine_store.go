@@ -55,6 +55,7 @@ type Machine struct {
 	MachineToken     string
 	UserRole         string
 	LastActivityAt   int64
+	Tags             []string
 }
 
 const (
@@ -1839,4 +1840,87 @@ func isMachineNameUniqueConstraintError(err error) bool {
 		return true
 	}
 	return strings.Contains(msg, "duplicate key value") && strings.Contains(msg, "name")
+}
+
+func (s *Store) ListMachineTagsByMachineID(ctx context.Context, machineID string) ([]string, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.ListMachineTagsByMachineID(ctx, machineID)
+	case DriverPostgres:
+		return s.pgQueries.ListMachineTagsByMachineID(ctx, machineID)
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+// ListAllMachineTags returns all machine tags grouped by machine ID.
+func (s *Store) ListAllMachineTags(ctx context.Context) (map[string][]string, error) {
+	result := make(map[string][]string)
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListAllMachineTags(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			result[row.MachineID] = append(result[row.MachineID], row.Tag)
+		}
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListAllMachineTags(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			result[row.MachineID] = append(result[row.MachineID], row.Tag)
+		}
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+	return result, nil
+}
+
+// SetMachineTags replaces all tags for a machine within a transaction.
+func (s *Store) SetMachineTags(ctx context.Context, machineID string, tags []string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	switch s.driver {
+	case DriverSQLite:
+		q := s.sqliteQueries.WithTx(tx)
+		if err = q.DeleteMachineTagsByMachineID(ctx, machineID); err != nil {
+			return err
+		}
+		for _, tag := range tags {
+			if err = q.InsertMachineTag(ctx, sqlitesqlc.InsertMachineTagParams{
+				MachineID: machineID,
+				Tag:       tag,
+			}); err != nil {
+				return err
+			}
+		}
+	case DriverPostgres:
+		q := s.pgQueries.WithTx(tx)
+		if err = q.DeleteMachineTagsByMachineID(ctx, machineID); err != nil {
+			return err
+		}
+		for _, tag := range tags {
+			if err = q.InsertMachineTag(ctx, postgresqlsqlc.InsertMachineTagParams{
+				MachineID: machineID,
+				Tag:       tag,
+			}); err != nil {
+				return err
+			}
+		}
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+
+	return tx.Commit()
 }

@@ -150,6 +150,11 @@ type MachineState struct {
 	ArcadVersion    string
 }
 
+type MachineTag struct {
+	MachineID string
+	Tag       string
+}
+
 type MachineTemplate struct {
 	ID         string
 	Name       string

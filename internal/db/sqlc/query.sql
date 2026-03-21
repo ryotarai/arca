@@ -1010,6 +1010,19 @@ SELECT COUNT(*) FROM rate_limit_entries WHERE key = sqlc.arg(key) AND timestamp_
 -- name: CleanupRateLimitEntries :exec
 DELETE FROM rate_limit_entries WHERE timestamp_unix < sqlc.arg(cutoff);
 
+-- name: ListMachineTagsByMachineID :many
+SELECT tag FROM machine_tags WHERE machine_id = sqlc.arg(machine_id) ORDER BY tag;
+
+-- name: DeleteMachineTagsByMachineID :exec
+DELETE FROM machine_tags WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: InsertMachineTag :exec
+INSERT INTO machine_tags (machine_id, tag) VALUES (sqlc.arg(machine_id), sqlc.arg(tag))
+ON CONFLICT (machine_id, tag) DO NOTHING;
+
+-- name: ListAllMachineTags :many
+SELECT machine_id, tag FROM machine_tags ORDER BY machine_id, tag;
+
 -- name: CountRecentJobsByStatus :one
 SELECT
     COALESCE(SUM(CASE WHEN status = 'succeeded' AND updated_at > sqlc.arg(since) THEN 1 ELSE 0 END), 0) as succeeded,

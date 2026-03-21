@@ -47,6 +47,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const [customImageId, setCustomImageId] = useState('')
   const [availableImages, setAvailableImages] = useState<CustomImage[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [tagsInput, setTagsInput] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
 
@@ -145,11 +146,13 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       if (effectiveMachineType !== '') {
         options.machine_type = effectiveMachineType
       }
+      const tags = tagsInput.split(',').map((t) => t.trim()).filter((t) => t !== '')
       const created = await createMachine(
         trimmedName,
         selectedTemplateID,
         Object.keys(options).length > 0 ? options : undefined,
         customImageId || undefined,
+        tags.length > 0 ? tags : undefined,
       )
       await navigate(`/machines/${created.id}`)
     } catch (e) {
@@ -279,6 +282,20 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                   </p>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor="create-machine-tags">Tags</Label>
+                <Input
+                  id="create-machine-tags"
+                  value={tagsInput}
+                  onChange={(event) => setTagsInput(event.target.value)}
+                  className="h-10"
+                  placeholder="web, production, team-a"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Comma-separated. Lowercase alphanumeric and hyphens only. Max 10 tags.
+                </p>
+              </div>
 
               {templates.length === 0 && !loadingTemplates && (
                 <p className="text-sm text-amber-300">Create at least one template before creating machines.</p>
