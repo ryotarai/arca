@@ -21,27 +21,27 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type StartImpersonationRequest struct {
+type SetAdminViewModeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Mode          string                 `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StartImpersonationRequest) Reset() {
-	*x = StartImpersonationRequest{}
+func (x *SetAdminViewModeRequest) Reset() {
+	*x = SetAdminViewModeRequest{}
 	mi := &file_arca_v1_admin_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StartImpersonationRequest) String() string {
+func (x *SetAdminViewModeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StartImpersonationRequest) ProtoMessage() {}
+func (*SetAdminViewModeRequest) ProtoMessage() {}
 
-func (x *StartImpersonationRequest) ProtoReflect() protoreflect.Message {
+func (x *SetAdminViewModeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_arca_v1_admin_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -53,38 +53,38 @@ func (x *StartImpersonationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StartImpersonationRequest.ProtoReflect.Descriptor instead.
-func (*StartImpersonationRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetAdminViewModeRequest.ProtoReflect.Descriptor instead.
+func (*SetAdminViewModeRequest) Descriptor() ([]byte, []int) {
 	return file_arca_v1_admin_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *StartImpersonationRequest) GetUserId() string {
+func (x *SetAdminViewModeRequest) GetMode() string {
 	if x != nil {
-		return x.UserId
+		return x.Mode
 	}
 	return ""
 }
 
-type StartImpersonationResponse struct {
+type SetAdminViewModeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StartImpersonationResponse) Reset() {
-	*x = StartImpersonationResponse{}
+func (x *SetAdminViewModeResponse) Reset() {
+	*x = SetAdminViewModeResponse{}
 	mi := &file_arca_v1_admin_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StartImpersonationResponse) String() string {
+func (x *SetAdminViewModeResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StartImpersonationResponse) ProtoMessage() {}
+func (*SetAdminViewModeResponse) ProtoMessage() {}
 
-func (x *StartImpersonationResponse) ProtoReflect() protoreflect.Message {
+func (x *SetAdminViewModeResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_arca_v1_admin_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -96,31 +96,31 @@ func (x *StartImpersonationResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StartImpersonationResponse.ProtoReflect.Descriptor instead.
-func (*StartImpersonationResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use SetAdminViewModeResponse.ProtoReflect.Descriptor instead.
+func (*SetAdminViewModeResponse) Descriptor() ([]byte, []int) {
 	return file_arca_v1_admin_proto_rawDescGZIP(), []int{1}
 }
 
-type StopImpersonationRequest struct {
+type GetAdminViewModeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StopImpersonationRequest) Reset() {
-	*x = StopImpersonationRequest{}
+func (x *GetAdminViewModeRequest) Reset() {
+	*x = GetAdminViewModeRequest{}
 	mi := &file_arca_v1_admin_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StopImpersonationRequest) String() string {
+func (x *GetAdminViewModeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StopImpersonationRequest) ProtoMessage() {}
+func (*GetAdminViewModeRequest) ProtoMessage() {}
 
-func (x *StopImpersonationRequest) ProtoReflect() protoreflect.Message {
+func (x *GetAdminViewModeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_arca_v1_admin_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -132,31 +132,33 @@ func (x *StopImpersonationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StopImpersonationRequest.ProtoReflect.Descriptor instead.
-func (*StopImpersonationRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetAdminViewModeRequest.ProtoReflect.Descriptor instead.
+func (*GetAdminViewModeRequest) Descriptor() ([]byte, []int) {
 	return file_arca_v1_admin_proto_rawDescGZIP(), []int{2}
 }
 
-type StopImpersonationResponse struct {
+type GetAdminViewModeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mode          string                 `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`
+	IsAdmin       bool                   `protobuf:"varint,2,opt,name=is_admin,json=isAdmin,proto3" json:"is_admin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StopImpersonationResponse) Reset() {
-	*x = StopImpersonationResponse{}
+func (x *GetAdminViewModeResponse) Reset() {
+	*x = GetAdminViewModeResponse{}
 	mi := &file_arca_v1_admin_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StopImpersonationResponse) String() string {
+func (x *GetAdminViewModeResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StopImpersonationResponse) ProtoMessage() {}
+func (*GetAdminViewModeResponse) ProtoMessage() {}
 
-func (x *StopImpersonationResponse) ProtoReflect() protoreflect.Message {
+func (x *GetAdminViewModeResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_arca_v1_admin_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -168,105 +170,23 @@ func (x *StopImpersonationResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StopImpersonationResponse.ProtoReflect.Descriptor instead.
-func (*StopImpersonationResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetAdminViewModeResponse.ProtoReflect.Descriptor instead.
+func (*GetAdminViewModeResponse) Descriptor() ([]byte, []int) {
 	return file_arca_v1_admin_proto_rawDescGZIP(), []int{3}
 }
 
-type GetImpersonationStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetImpersonationStatusRequest) Reset() {
-	*x = GetImpersonationStatusRequest{}
-	mi := &file_arca_v1_admin_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetImpersonationStatusRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetImpersonationStatusRequest) ProtoMessage() {}
-
-func (x *GetImpersonationStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[4]
+func (x *GetAdminViewModeResponse) GetMode() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.Mode
 	}
-	return mi.MessageOf(x)
+	return ""
 }
 
-// Deprecated: Use GetImpersonationStatusRequest.ProtoReflect.Descriptor instead.
-func (*GetImpersonationStatusRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{4}
-}
-
-type GetImpersonationStatusResponse struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	IsImpersonating       bool                   `protobuf:"varint,1,opt,name=is_impersonating,json=isImpersonating,proto3" json:"is_impersonating,omitempty"`
-	ImpersonatedUserEmail string                 `protobuf:"bytes,2,opt,name=impersonated_user_email,json=impersonatedUserEmail,proto3" json:"impersonated_user_email,omitempty"`
-	OriginalUserEmail     string                 `protobuf:"bytes,3,opt,name=original_user_email,json=originalUserEmail,proto3" json:"original_user_email,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *GetImpersonationStatusResponse) Reset() {
-	*x = GetImpersonationStatusResponse{}
-	mi := &file_arca_v1_admin_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetImpersonationStatusResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetImpersonationStatusResponse) ProtoMessage() {}
-
-func (x *GetImpersonationStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[5]
+func (x *GetAdminViewModeResponse) GetIsAdmin() bool {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetImpersonationStatusResponse.ProtoReflect.Descriptor instead.
-func (*GetImpersonationStatusResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *GetImpersonationStatusResponse) GetIsImpersonating() bool {
-	if x != nil {
-		return x.IsImpersonating
+		return x.IsAdmin
 	}
 	return false
-}
-
-func (x *GetImpersonationStatusResponse) GetImpersonatedUserEmail() string {
-	if x != nil {
-		return x.ImpersonatedUserEmail
-	}
-	return ""
-}
-
-func (x *GetImpersonationStatusResponse) GetOriginalUserEmail() string {
-	if x != nil {
-		return x.OriginalUserEmail
-	}
-	return ""
 }
 
 type ListAuditLogsRequest struct {
@@ -281,7 +201,7 @@ type ListAuditLogsRequest struct {
 
 func (x *ListAuditLogsRequest) Reset() {
 	*x = ListAuditLogsRequest{}
-	mi := &file_arca_v1_admin_proto_msgTypes[6]
+	mi := &file_arca_v1_admin_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -293,7 +213,7 @@ func (x *ListAuditLogsRequest) String() string {
 func (*ListAuditLogsRequest) ProtoMessage() {}
 
 func (x *ListAuditLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[6]
+	mi := &file_arca_v1_admin_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -306,7 +226,7 @@ func (x *ListAuditLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditLogsRequest.ProtoReflect.Descriptor instead.
 func (*ListAuditLogsRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{6}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListAuditLogsRequest) GetLimit() int32 {
@@ -347,7 +267,7 @@ type ListAuditLogsResponse struct {
 
 func (x *ListAuditLogsResponse) Reset() {
 	*x = ListAuditLogsResponse{}
-	mi := &file_arca_v1_admin_proto_msgTypes[7]
+	mi := &file_arca_v1_admin_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -359,7 +279,7 @@ func (x *ListAuditLogsResponse) String() string {
 func (*ListAuditLogsResponse) ProtoMessage() {}
 
 func (x *ListAuditLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[7]
+	mi := &file_arca_v1_admin_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -372,7 +292,7 @@ func (x *ListAuditLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditLogsResponse.ProtoReflect.Descriptor instead.
 func (*ListAuditLogsResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListAuditLogsResponse) GetAuditLogs() []*AuditLog {
@@ -405,7 +325,7 @@ type AuditLog struct {
 
 func (x *AuditLog) Reset() {
 	*x = AuditLog{}
-	mi := &file_arca_v1_admin_proto_msgTypes[8]
+	mi := &file_arca_v1_admin_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -417,7 +337,7 @@ func (x *AuditLog) String() string {
 func (*AuditLog) ProtoMessage() {}
 
 func (x *AuditLog) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[8]
+	mi := &file_arca_v1_admin_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -430,7 +350,7 @@ func (x *AuditLog) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditLog.ProtoReflect.Descriptor instead.
 func (*AuditLog) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AuditLog) GetId() string {
@@ -506,7 +426,7 @@ type ServerLLMModel struct {
 
 func (x *ServerLLMModel) Reset() {
 	*x = ServerLLMModel{}
-	mi := &file_arca_v1_admin_proto_msgTypes[9]
+	mi := &file_arca_v1_admin_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -518,7 +438,7 @@ func (x *ServerLLMModel) String() string {
 func (*ServerLLMModel) ProtoMessage() {}
 
 func (x *ServerLLMModel) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[9]
+	mi := &file_arca_v1_admin_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -531,7 +451,7 @@ func (x *ServerLLMModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerLLMModel.ProtoReflect.Descriptor instead.
 func (*ServerLLMModel) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{9}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ServerLLMModel) GetId() string {
@@ -605,7 +525,7 @@ type ListServerLLMModelsRequest struct {
 
 func (x *ListServerLLMModelsRequest) Reset() {
 	*x = ListServerLLMModelsRequest{}
-	mi := &file_arca_v1_admin_proto_msgTypes[10]
+	mi := &file_arca_v1_admin_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -617,7 +537,7 @@ func (x *ListServerLLMModelsRequest) String() string {
 func (*ListServerLLMModelsRequest) ProtoMessage() {}
 
 func (x *ListServerLLMModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[10]
+	mi := &file_arca_v1_admin_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -630,7 +550,7 @@ func (x *ListServerLLMModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServerLLMModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListServerLLMModelsRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{10}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{8}
 }
 
 type ListServerLLMModelsResponse struct {
@@ -642,7 +562,7 @@ type ListServerLLMModelsResponse struct {
 
 func (x *ListServerLLMModelsResponse) Reset() {
 	*x = ListServerLLMModelsResponse{}
-	mi := &file_arca_v1_admin_proto_msgTypes[11]
+	mi := &file_arca_v1_admin_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -654,7 +574,7 @@ func (x *ListServerLLMModelsResponse) String() string {
 func (*ListServerLLMModelsResponse) ProtoMessage() {}
 
 func (x *ListServerLLMModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[11]
+	mi := &file_arca_v1_admin_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -667,7 +587,7 @@ func (x *ListServerLLMModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServerLLMModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListServerLLMModelsResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{11}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListServerLLMModelsResponse) GetModels() []*ServerLLMModel {
@@ -691,7 +611,7 @@ type CreateServerLLMModelRequest struct {
 
 func (x *CreateServerLLMModelRequest) Reset() {
 	*x = CreateServerLLMModelRequest{}
-	mi := &file_arca_v1_admin_proto_msgTypes[12]
+	mi := &file_arca_v1_admin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +623,7 @@ func (x *CreateServerLLMModelRequest) String() string {
 func (*CreateServerLLMModelRequest) ProtoMessage() {}
 
 func (x *CreateServerLLMModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[12]
+	mi := &file_arca_v1_admin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +636,7 @@ func (x *CreateServerLLMModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateServerLLMModelRequest.ProtoReflect.Descriptor instead.
 func (*CreateServerLLMModelRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{12}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateServerLLMModelRequest) GetConfigName() string {
@@ -770,7 +690,7 @@ type CreateServerLLMModelResponse struct {
 
 func (x *CreateServerLLMModelResponse) Reset() {
 	*x = CreateServerLLMModelResponse{}
-	mi := &file_arca_v1_admin_proto_msgTypes[13]
+	mi := &file_arca_v1_admin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +702,7 @@ func (x *CreateServerLLMModelResponse) String() string {
 func (*CreateServerLLMModelResponse) ProtoMessage() {}
 
 func (x *CreateServerLLMModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[13]
+	mi := &file_arca_v1_admin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +715,7 @@ func (x *CreateServerLLMModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateServerLLMModelResponse.ProtoReflect.Descriptor instead.
 func (*CreateServerLLMModelResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{13}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CreateServerLLMModelResponse) GetModel() *ServerLLMModel {
@@ -820,7 +740,7 @@ type UpdateServerLLMModelRequest struct {
 
 func (x *UpdateServerLLMModelRequest) Reset() {
 	*x = UpdateServerLLMModelRequest{}
-	mi := &file_arca_v1_admin_proto_msgTypes[14]
+	mi := &file_arca_v1_admin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -832,7 +752,7 @@ func (x *UpdateServerLLMModelRequest) String() string {
 func (*UpdateServerLLMModelRequest) ProtoMessage() {}
 
 func (x *UpdateServerLLMModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[14]
+	mi := &file_arca_v1_admin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -845,7 +765,7 @@ func (x *UpdateServerLLMModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateServerLLMModelRequest.ProtoReflect.Descriptor instead.
 func (*UpdateServerLLMModelRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{14}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateServerLLMModelRequest) GetId() string {
@@ -906,7 +826,7 @@ type UpdateServerLLMModelResponse struct {
 
 func (x *UpdateServerLLMModelResponse) Reset() {
 	*x = UpdateServerLLMModelResponse{}
-	mi := &file_arca_v1_admin_proto_msgTypes[15]
+	mi := &file_arca_v1_admin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -918,7 +838,7 @@ func (x *UpdateServerLLMModelResponse) String() string {
 func (*UpdateServerLLMModelResponse) ProtoMessage() {}
 
 func (x *UpdateServerLLMModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[15]
+	mi := &file_arca_v1_admin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -931,7 +851,7 @@ func (x *UpdateServerLLMModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateServerLLMModelResponse.ProtoReflect.Descriptor instead.
 func (*UpdateServerLLMModelResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{15}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpdateServerLLMModelResponse) GetModel() *ServerLLMModel {
@@ -950,7 +870,7 @@ type DeleteServerLLMModelRequest struct {
 
 func (x *DeleteServerLLMModelRequest) Reset() {
 	*x = DeleteServerLLMModelRequest{}
-	mi := &file_arca_v1_admin_proto_msgTypes[16]
+	mi := &file_arca_v1_admin_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -962,7 +882,7 @@ func (x *DeleteServerLLMModelRequest) String() string {
 func (*DeleteServerLLMModelRequest) ProtoMessage() {}
 
 func (x *DeleteServerLLMModelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[16]
+	mi := &file_arca_v1_admin_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -975,7 +895,7 @@ func (x *DeleteServerLLMModelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteServerLLMModelRequest.ProtoReflect.Descriptor instead.
 func (*DeleteServerLLMModelRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{16}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteServerLLMModelRequest) GetId() string {
@@ -993,7 +913,7 @@ type DeleteServerLLMModelResponse struct {
 
 func (x *DeleteServerLLMModelResponse) Reset() {
 	*x = DeleteServerLLMModelResponse{}
-	mi := &file_arca_v1_admin_proto_msgTypes[17]
+	mi := &file_arca_v1_admin_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1005,7 +925,7 @@ func (x *DeleteServerLLMModelResponse) String() string {
 func (*DeleteServerLLMModelResponse) ProtoMessage() {}
 
 func (x *DeleteServerLLMModelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_admin_proto_msgTypes[17]
+	mi := &file_arca_v1_admin_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1018,24 +938,21 @@ func (x *DeleteServerLLMModelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteServerLLMModelResponse.ProtoReflect.Descriptor instead.
 func (*DeleteServerLLMModelResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_admin_proto_rawDescGZIP(), []int{17}
+	return file_arca_v1_admin_proto_rawDescGZIP(), []int{15}
 }
 
 var File_arca_v1_admin_proto protoreflect.FileDescriptor
 
 const file_arca_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/admin.proto\x12\aarca.v1\"4\n" +
-	"\x19StartImpersonationRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x1c\n" +
-	"\x1aStartImpersonationResponse\"\x1a\n" +
-	"\x18StopImpersonationRequest\"\x1b\n" +
-	"\x19StopImpersonationResponse\"\x1f\n" +
-	"\x1dGetImpersonationStatusRequest\"\xb3\x01\n" +
-	"\x1eGetImpersonationStatusResponse\x12)\n" +
-	"\x10is_impersonating\x18\x01 \x01(\bR\x0fisImpersonating\x126\n" +
-	"\x17impersonated_user_email\x18\x02 \x01(\tR\x15impersonatedUserEmail\x12.\n" +
-	"\x13original_user_email\x18\x03 \x01(\tR\x11originalUserEmail\"\x8a\x01\n" +
+	"\x13arca/v1/admin.proto\x12\aarca.v1\"-\n" +
+	"\x17SetAdminViewModeRequest\x12\x12\n" +
+	"\x04mode\x18\x01 \x01(\tR\x04mode\"\x1a\n" +
+	"\x18SetAdminViewModeResponse\"\x19\n" +
+	"\x17GetAdminViewModeRequest\"I\n" +
+	"\x18GetAdminViewModeResponse\x12\x12\n" +
+	"\x04mode\x18\x01 \x01(\tR\x04mode\x12\x19\n" +
+	"\bis_admin\x18\x02 \x01(\bR\aisAdmin\"\x8a\x01\n" +
 	"\x14ListAuditLogsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12#\n" +
 	"\raction_prefix\x18\x02 \x01(\tR\factionPrefix\x12\x1f\n" +
@@ -1101,11 +1018,10 @@ const file_arca_v1_admin_proto_rawDesc = "" +
 	"\x05model\x18\x01 \x01(\v2\x17.arca.v1.ServerLLMModelR\x05model\"-\n" +
 	"\x1bDeleteServerLLMModelRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1e\n" +
-	"\x1cDeleteServerLLMModelResponse2\x95\x06\n" +
-	"\fAdminService\x12]\n" +
-	"\x12StartImpersonation\x12\".arca.v1.StartImpersonationRequest\x1a#.arca.v1.StartImpersonationResponse\x12Z\n" +
-	"\x11StopImpersonation\x12!.arca.v1.StopImpersonationRequest\x1a\".arca.v1.StopImpersonationResponse\x12i\n" +
-	"\x16GetImpersonationStatus\x12&.arca.v1.GetImpersonationStatusRequest\x1a'.arca.v1.GetImpersonationStatusResponse\x12N\n" +
+	"\x1cDeleteServerLLMModelResponse2\xa1\x05\n" +
+	"\fAdminService\x12W\n" +
+	"\x10SetAdminViewMode\x12 .arca.v1.SetAdminViewModeRequest\x1a!.arca.v1.SetAdminViewModeResponse\x12W\n" +
+	"\x10GetAdminViewMode\x12 .arca.v1.GetAdminViewModeRequest\x1a!.arca.v1.GetAdminViewModeResponse\x12N\n" +
 	"\rListAuditLogs\x12\x1d.arca.v1.ListAuditLogsRequest\x1a\x1e.arca.v1.ListAuditLogsResponse\x12`\n" +
 	"\x13ListServerLLMModels\x12#.arca.v1.ListServerLLMModelsRequest\x1a$.arca.v1.ListServerLLMModelsResponse\x12c\n" +
 	"\x14CreateServerLLMModel\x12$.arca.v1.CreateServerLLMModelRequest\x1a%.arca.v1.CreateServerLLMModelResponse\x12c\n" +
@@ -1126,50 +1042,46 @@ func file_arca_v1_admin_proto_rawDescGZIP() []byte {
 	return file_arca_v1_admin_proto_rawDescData
 }
 
-var file_arca_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_arca_v1_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_arca_v1_admin_proto_goTypes = []any{
-	(*StartImpersonationRequest)(nil),      // 0: arca.v1.StartImpersonationRequest
-	(*StartImpersonationResponse)(nil),     // 1: arca.v1.StartImpersonationResponse
-	(*StopImpersonationRequest)(nil),       // 2: arca.v1.StopImpersonationRequest
-	(*StopImpersonationResponse)(nil),      // 3: arca.v1.StopImpersonationResponse
-	(*GetImpersonationStatusRequest)(nil),  // 4: arca.v1.GetImpersonationStatusRequest
-	(*GetImpersonationStatusResponse)(nil), // 5: arca.v1.GetImpersonationStatusResponse
-	(*ListAuditLogsRequest)(nil),           // 6: arca.v1.ListAuditLogsRequest
-	(*ListAuditLogsResponse)(nil),          // 7: arca.v1.ListAuditLogsResponse
-	(*AuditLog)(nil),                       // 8: arca.v1.AuditLog
-	(*ServerLLMModel)(nil),                 // 9: arca.v1.ServerLLMModel
-	(*ListServerLLMModelsRequest)(nil),     // 10: arca.v1.ListServerLLMModelsRequest
-	(*ListServerLLMModelsResponse)(nil),    // 11: arca.v1.ListServerLLMModelsResponse
-	(*CreateServerLLMModelRequest)(nil),    // 12: arca.v1.CreateServerLLMModelRequest
-	(*CreateServerLLMModelResponse)(nil),   // 13: arca.v1.CreateServerLLMModelResponse
-	(*UpdateServerLLMModelRequest)(nil),    // 14: arca.v1.UpdateServerLLMModelRequest
-	(*UpdateServerLLMModelResponse)(nil),   // 15: arca.v1.UpdateServerLLMModelResponse
-	(*DeleteServerLLMModelRequest)(nil),    // 16: arca.v1.DeleteServerLLMModelRequest
-	(*DeleteServerLLMModelResponse)(nil),   // 17: arca.v1.DeleteServerLLMModelResponse
+	(*SetAdminViewModeRequest)(nil),      // 0: arca.v1.SetAdminViewModeRequest
+	(*SetAdminViewModeResponse)(nil),     // 1: arca.v1.SetAdminViewModeResponse
+	(*GetAdminViewModeRequest)(nil),      // 2: arca.v1.GetAdminViewModeRequest
+	(*GetAdminViewModeResponse)(nil),     // 3: arca.v1.GetAdminViewModeResponse
+	(*ListAuditLogsRequest)(nil),         // 4: arca.v1.ListAuditLogsRequest
+	(*ListAuditLogsResponse)(nil),        // 5: arca.v1.ListAuditLogsResponse
+	(*AuditLog)(nil),                     // 6: arca.v1.AuditLog
+	(*ServerLLMModel)(nil),               // 7: arca.v1.ServerLLMModel
+	(*ListServerLLMModelsRequest)(nil),   // 8: arca.v1.ListServerLLMModelsRequest
+	(*ListServerLLMModelsResponse)(nil),  // 9: arca.v1.ListServerLLMModelsResponse
+	(*CreateServerLLMModelRequest)(nil),  // 10: arca.v1.CreateServerLLMModelRequest
+	(*CreateServerLLMModelResponse)(nil), // 11: arca.v1.CreateServerLLMModelResponse
+	(*UpdateServerLLMModelRequest)(nil),  // 12: arca.v1.UpdateServerLLMModelRequest
+	(*UpdateServerLLMModelResponse)(nil), // 13: arca.v1.UpdateServerLLMModelResponse
+	(*DeleteServerLLMModelRequest)(nil),  // 14: arca.v1.DeleteServerLLMModelRequest
+	(*DeleteServerLLMModelResponse)(nil), // 15: arca.v1.DeleteServerLLMModelResponse
 }
 var file_arca_v1_admin_proto_depIdxs = []int32{
-	8,  // 0: arca.v1.ListAuditLogsResponse.audit_logs:type_name -> arca.v1.AuditLog
-	9,  // 1: arca.v1.ListServerLLMModelsResponse.models:type_name -> arca.v1.ServerLLMModel
-	9,  // 2: arca.v1.CreateServerLLMModelResponse.model:type_name -> arca.v1.ServerLLMModel
-	9,  // 3: arca.v1.UpdateServerLLMModelResponse.model:type_name -> arca.v1.ServerLLMModel
-	0,  // 4: arca.v1.AdminService.StartImpersonation:input_type -> arca.v1.StartImpersonationRequest
-	2,  // 5: arca.v1.AdminService.StopImpersonation:input_type -> arca.v1.StopImpersonationRequest
-	4,  // 6: arca.v1.AdminService.GetImpersonationStatus:input_type -> arca.v1.GetImpersonationStatusRequest
-	6,  // 7: arca.v1.AdminService.ListAuditLogs:input_type -> arca.v1.ListAuditLogsRequest
-	10, // 8: arca.v1.AdminService.ListServerLLMModels:input_type -> arca.v1.ListServerLLMModelsRequest
-	12, // 9: arca.v1.AdminService.CreateServerLLMModel:input_type -> arca.v1.CreateServerLLMModelRequest
-	14, // 10: arca.v1.AdminService.UpdateServerLLMModel:input_type -> arca.v1.UpdateServerLLMModelRequest
-	16, // 11: arca.v1.AdminService.DeleteServerLLMModel:input_type -> arca.v1.DeleteServerLLMModelRequest
-	1,  // 12: arca.v1.AdminService.StartImpersonation:output_type -> arca.v1.StartImpersonationResponse
-	3,  // 13: arca.v1.AdminService.StopImpersonation:output_type -> arca.v1.StopImpersonationResponse
-	5,  // 14: arca.v1.AdminService.GetImpersonationStatus:output_type -> arca.v1.GetImpersonationStatusResponse
-	7,  // 15: arca.v1.AdminService.ListAuditLogs:output_type -> arca.v1.ListAuditLogsResponse
-	11, // 16: arca.v1.AdminService.ListServerLLMModels:output_type -> arca.v1.ListServerLLMModelsResponse
-	13, // 17: arca.v1.AdminService.CreateServerLLMModel:output_type -> arca.v1.CreateServerLLMModelResponse
-	15, // 18: arca.v1.AdminService.UpdateServerLLMModel:output_type -> arca.v1.UpdateServerLLMModelResponse
-	17, // 19: arca.v1.AdminService.DeleteServerLLMModel:output_type -> arca.v1.DeleteServerLLMModelResponse
-	12, // [12:20] is the sub-list for method output_type
-	4,  // [4:12] is the sub-list for method input_type
+	6,  // 0: arca.v1.ListAuditLogsResponse.audit_logs:type_name -> arca.v1.AuditLog
+	7,  // 1: arca.v1.ListServerLLMModelsResponse.models:type_name -> arca.v1.ServerLLMModel
+	7,  // 2: arca.v1.CreateServerLLMModelResponse.model:type_name -> arca.v1.ServerLLMModel
+	7,  // 3: arca.v1.UpdateServerLLMModelResponse.model:type_name -> arca.v1.ServerLLMModel
+	0,  // 4: arca.v1.AdminService.SetAdminViewMode:input_type -> arca.v1.SetAdminViewModeRequest
+	2,  // 5: arca.v1.AdminService.GetAdminViewMode:input_type -> arca.v1.GetAdminViewModeRequest
+	4,  // 6: arca.v1.AdminService.ListAuditLogs:input_type -> arca.v1.ListAuditLogsRequest
+	8,  // 7: arca.v1.AdminService.ListServerLLMModels:input_type -> arca.v1.ListServerLLMModelsRequest
+	10, // 8: arca.v1.AdminService.CreateServerLLMModel:input_type -> arca.v1.CreateServerLLMModelRequest
+	12, // 9: arca.v1.AdminService.UpdateServerLLMModel:input_type -> arca.v1.UpdateServerLLMModelRequest
+	14, // 10: arca.v1.AdminService.DeleteServerLLMModel:input_type -> arca.v1.DeleteServerLLMModelRequest
+	1,  // 11: arca.v1.AdminService.SetAdminViewMode:output_type -> arca.v1.SetAdminViewModeResponse
+	3,  // 12: arca.v1.AdminService.GetAdminViewMode:output_type -> arca.v1.GetAdminViewModeResponse
+	5,  // 13: arca.v1.AdminService.ListAuditLogs:output_type -> arca.v1.ListAuditLogsResponse
+	9,  // 14: arca.v1.AdminService.ListServerLLMModels:output_type -> arca.v1.ListServerLLMModelsResponse
+	11, // 15: arca.v1.AdminService.CreateServerLLMModel:output_type -> arca.v1.CreateServerLLMModelResponse
+	13, // 16: arca.v1.AdminService.UpdateServerLLMModel:output_type -> arca.v1.UpdateServerLLMModelResponse
+	15, // 17: arca.v1.AdminService.DeleteServerLLMModel:output_type -> arca.v1.DeleteServerLLMModelResponse
+	11, // [11:18] is the sub-list for method output_type
+	4,  // [4:11] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -1186,7 +1098,7 @@ func file_arca_v1_admin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_admin_proto_rawDesc), len(file_arca_v1_admin_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

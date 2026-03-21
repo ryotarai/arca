@@ -33,15 +33,12 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AdminServiceStartImpersonationProcedure is the fully-qualified name of the AdminService's
-	// StartImpersonation RPC.
-	AdminServiceStartImpersonationProcedure = "/arca.v1.AdminService/StartImpersonation"
-	// AdminServiceStopImpersonationProcedure is the fully-qualified name of the AdminService's
-	// StopImpersonation RPC.
-	AdminServiceStopImpersonationProcedure = "/arca.v1.AdminService/StopImpersonation"
-	// AdminServiceGetImpersonationStatusProcedure is the fully-qualified name of the AdminService's
-	// GetImpersonationStatus RPC.
-	AdminServiceGetImpersonationStatusProcedure = "/arca.v1.AdminService/GetImpersonationStatus"
+	// AdminServiceSetAdminViewModeProcedure is the fully-qualified name of the AdminService's
+	// SetAdminViewMode RPC.
+	AdminServiceSetAdminViewModeProcedure = "/arca.v1.AdminService/SetAdminViewMode"
+	// AdminServiceGetAdminViewModeProcedure is the fully-qualified name of the AdminService's
+	// GetAdminViewMode RPC.
+	AdminServiceGetAdminViewModeProcedure = "/arca.v1.AdminService/GetAdminViewMode"
 	// AdminServiceListAuditLogsProcedure is the fully-qualified name of the AdminService's
 	// ListAuditLogs RPC.
 	AdminServiceListAuditLogsProcedure = "/arca.v1.AdminService/ListAuditLogs"
@@ -61,9 +58,8 @@ const (
 
 // AdminServiceClient is a client for the arca.v1.AdminService service.
 type AdminServiceClient interface {
-	StartImpersonation(context.Context, *connect.Request[v1.StartImpersonationRequest]) (*connect.Response[v1.StartImpersonationResponse], error)
-	StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error)
-	GetImpersonationStatus(context.Context, *connect.Request[v1.GetImpersonationStatusRequest]) (*connect.Response[v1.GetImpersonationStatusResponse], error)
+	SetAdminViewMode(context.Context, *connect.Request[v1.SetAdminViewModeRequest]) (*connect.Response[v1.SetAdminViewModeResponse], error)
+	GetAdminViewMode(context.Context, *connect.Request[v1.GetAdminViewModeRequest]) (*connect.Response[v1.GetAdminViewModeResponse], error)
 	ListAuditLogs(context.Context, *connect.Request[v1.ListAuditLogsRequest]) (*connect.Response[v1.ListAuditLogsResponse], error)
 	ListServerLLMModels(context.Context, *connect.Request[v1.ListServerLLMModelsRequest]) (*connect.Response[v1.ListServerLLMModelsResponse], error)
 	CreateServerLLMModel(context.Context, *connect.Request[v1.CreateServerLLMModelRequest]) (*connect.Response[v1.CreateServerLLMModelResponse], error)
@@ -82,22 +78,16 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 	baseURL = strings.TrimRight(baseURL, "/")
 	adminServiceMethods := v1.File_arca_v1_admin_proto.Services().ByName("AdminService").Methods()
 	return &adminServiceClient{
-		startImpersonation: connect.NewClient[v1.StartImpersonationRequest, v1.StartImpersonationResponse](
+		setAdminViewMode: connect.NewClient[v1.SetAdminViewModeRequest, v1.SetAdminViewModeResponse](
 			httpClient,
-			baseURL+AdminServiceStartImpersonationProcedure,
-			connect.WithSchema(adminServiceMethods.ByName("StartImpersonation")),
+			baseURL+AdminServiceSetAdminViewModeProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("SetAdminViewMode")),
 			connect.WithClientOptions(opts...),
 		),
-		stopImpersonation: connect.NewClient[v1.StopImpersonationRequest, v1.StopImpersonationResponse](
+		getAdminViewMode: connect.NewClient[v1.GetAdminViewModeRequest, v1.GetAdminViewModeResponse](
 			httpClient,
-			baseURL+AdminServiceStopImpersonationProcedure,
-			connect.WithSchema(adminServiceMethods.ByName("StopImpersonation")),
-			connect.WithClientOptions(opts...),
-		),
-		getImpersonationStatus: connect.NewClient[v1.GetImpersonationStatusRequest, v1.GetImpersonationStatusResponse](
-			httpClient,
-			baseURL+AdminServiceGetImpersonationStatusProcedure,
-			connect.WithSchema(adminServiceMethods.ByName("GetImpersonationStatus")),
+			baseURL+AdminServiceGetAdminViewModeProcedure,
+			connect.WithSchema(adminServiceMethods.ByName("GetAdminViewMode")),
 			connect.WithClientOptions(opts...),
 		),
 		listAuditLogs: connect.NewClient[v1.ListAuditLogsRequest, v1.ListAuditLogsResponse](
@@ -135,29 +125,23 @@ func NewAdminServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // adminServiceClient implements AdminServiceClient.
 type adminServiceClient struct {
-	startImpersonation     *connect.Client[v1.StartImpersonationRequest, v1.StartImpersonationResponse]
-	stopImpersonation      *connect.Client[v1.StopImpersonationRequest, v1.StopImpersonationResponse]
-	getImpersonationStatus *connect.Client[v1.GetImpersonationStatusRequest, v1.GetImpersonationStatusResponse]
-	listAuditLogs          *connect.Client[v1.ListAuditLogsRequest, v1.ListAuditLogsResponse]
-	listServerLLMModels    *connect.Client[v1.ListServerLLMModelsRequest, v1.ListServerLLMModelsResponse]
-	createServerLLMModel   *connect.Client[v1.CreateServerLLMModelRequest, v1.CreateServerLLMModelResponse]
-	updateServerLLMModel   *connect.Client[v1.UpdateServerLLMModelRequest, v1.UpdateServerLLMModelResponse]
-	deleteServerLLMModel   *connect.Client[v1.DeleteServerLLMModelRequest, v1.DeleteServerLLMModelResponse]
+	setAdminViewMode     *connect.Client[v1.SetAdminViewModeRequest, v1.SetAdminViewModeResponse]
+	getAdminViewMode     *connect.Client[v1.GetAdminViewModeRequest, v1.GetAdminViewModeResponse]
+	listAuditLogs        *connect.Client[v1.ListAuditLogsRequest, v1.ListAuditLogsResponse]
+	listServerLLMModels  *connect.Client[v1.ListServerLLMModelsRequest, v1.ListServerLLMModelsResponse]
+	createServerLLMModel *connect.Client[v1.CreateServerLLMModelRequest, v1.CreateServerLLMModelResponse]
+	updateServerLLMModel *connect.Client[v1.UpdateServerLLMModelRequest, v1.UpdateServerLLMModelResponse]
+	deleteServerLLMModel *connect.Client[v1.DeleteServerLLMModelRequest, v1.DeleteServerLLMModelResponse]
 }
 
-// StartImpersonation calls arca.v1.AdminService.StartImpersonation.
-func (c *adminServiceClient) StartImpersonation(ctx context.Context, req *connect.Request[v1.StartImpersonationRequest]) (*connect.Response[v1.StartImpersonationResponse], error) {
-	return c.startImpersonation.CallUnary(ctx, req)
+// SetAdminViewMode calls arca.v1.AdminService.SetAdminViewMode.
+func (c *adminServiceClient) SetAdminViewMode(ctx context.Context, req *connect.Request[v1.SetAdminViewModeRequest]) (*connect.Response[v1.SetAdminViewModeResponse], error) {
+	return c.setAdminViewMode.CallUnary(ctx, req)
 }
 
-// StopImpersonation calls arca.v1.AdminService.StopImpersonation.
-func (c *adminServiceClient) StopImpersonation(ctx context.Context, req *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error) {
-	return c.stopImpersonation.CallUnary(ctx, req)
-}
-
-// GetImpersonationStatus calls arca.v1.AdminService.GetImpersonationStatus.
-func (c *adminServiceClient) GetImpersonationStatus(ctx context.Context, req *connect.Request[v1.GetImpersonationStatusRequest]) (*connect.Response[v1.GetImpersonationStatusResponse], error) {
-	return c.getImpersonationStatus.CallUnary(ctx, req)
+// GetAdminViewMode calls arca.v1.AdminService.GetAdminViewMode.
+func (c *adminServiceClient) GetAdminViewMode(ctx context.Context, req *connect.Request[v1.GetAdminViewModeRequest]) (*connect.Response[v1.GetAdminViewModeResponse], error) {
+	return c.getAdminViewMode.CallUnary(ctx, req)
 }
 
 // ListAuditLogs calls arca.v1.AdminService.ListAuditLogs.
@@ -187,9 +171,8 @@ func (c *adminServiceClient) DeleteServerLLMModel(ctx context.Context, req *conn
 
 // AdminServiceHandler is an implementation of the arca.v1.AdminService service.
 type AdminServiceHandler interface {
-	StartImpersonation(context.Context, *connect.Request[v1.StartImpersonationRequest]) (*connect.Response[v1.StartImpersonationResponse], error)
-	StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error)
-	GetImpersonationStatus(context.Context, *connect.Request[v1.GetImpersonationStatusRequest]) (*connect.Response[v1.GetImpersonationStatusResponse], error)
+	SetAdminViewMode(context.Context, *connect.Request[v1.SetAdminViewModeRequest]) (*connect.Response[v1.SetAdminViewModeResponse], error)
+	GetAdminViewMode(context.Context, *connect.Request[v1.GetAdminViewModeRequest]) (*connect.Response[v1.GetAdminViewModeResponse], error)
 	ListAuditLogs(context.Context, *connect.Request[v1.ListAuditLogsRequest]) (*connect.Response[v1.ListAuditLogsResponse], error)
 	ListServerLLMModels(context.Context, *connect.Request[v1.ListServerLLMModelsRequest]) (*connect.Response[v1.ListServerLLMModelsResponse], error)
 	CreateServerLLMModel(context.Context, *connect.Request[v1.CreateServerLLMModelRequest]) (*connect.Response[v1.CreateServerLLMModelResponse], error)
@@ -204,22 +187,16 @@ type AdminServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	adminServiceMethods := v1.File_arca_v1_admin_proto.Services().ByName("AdminService").Methods()
-	adminServiceStartImpersonationHandler := connect.NewUnaryHandler(
-		AdminServiceStartImpersonationProcedure,
-		svc.StartImpersonation,
-		connect.WithSchema(adminServiceMethods.ByName("StartImpersonation")),
+	adminServiceSetAdminViewModeHandler := connect.NewUnaryHandler(
+		AdminServiceSetAdminViewModeProcedure,
+		svc.SetAdminViewMode,
+		connect.WithSchema(adminServiceMethods.ByName("SetAdminViewMode")),
 		connect.WithHandlerOptions(opts...),
 	)
-	adminServiceStopImpersonationHandler := connect.NewUnaryHandler(
-		AdminServiceStopImpersonationProcedure,
-		svc.StopImpersonation,
-		connect.WithSchema(adminServiceMethods.ByName("StopImpersonation")),
-		connect.WithHandlerOptions(opts...),
-	)
-	adminServiceGetImpersonationStatusHandler := connect.NewUnaryHandler(
-		AdminServiceGetImpersonationStatusProcedure,
-		svc.GetImpersonationStatus,
-		connect.WithSchema(adminServiceMethods.ByName("GetImpersonationStatus")),
+	adminServiceGetAdminViewModeHandler := connect.NewUnaryHandler(
+		AdminServiceGetAdminViewModeProcedure,
+		svc.GetAdminViewMode,
+		connect.WithSchema(adminServiceMethods.ByName("GetAdminViewMode")),
 		connect.WithHandlerOptions(opts...),
 	)
 	adminServiceListAuditLogsHandler := connect.NewUnaryHandler(
@@ -254,12 +231,10 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 	)
 	return "/arca.v1.AdminService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AdminServiceStartImpersonationProcedure:
-			adminServiceStartImpersonationHandler.ServeHTTP(w, r)
-		case AdminServiceStopImpersonationProcedure:
-			adminServiceStopImpersonationHandler.ServeHTTP(w, r)
-		case AdminServiceGetImpersonationStatusProcedure:
-			adminServiceGetImpersonationStatusHandler.ServeHTTP(w, r)
+		case AdminServiceSetAdminViewModeProcedure:
+			adminServiceSetAdminViewModeHandler.ServeHTTP(w, r)
+		case AdminServiceGetAdminViewModeProcedure:
+			adminServiceGetAdminViewModeHandler.ServeHTTP(w, r)
 		case AdminServiceListAuditLogsProcedure:
 			adminServiceListAuditLogsHandler.ServeHTTP(w, r)
 		case AdminServiceListServerLLMModelsProcedure:
@@ -279,16 +254,12 @@ func NewAdminServiceHandler(svc AdminServiceHandler, opts ...connect.HandlerOpti
 // UnimplementedAdminServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAdminServiceHandler struct{}
 
-func (UnimplementedAdminServiceHandler) StartImpersonation(context.Context, *connect.Request[v1.StartImpersonationRequest]) (*connect.Response[v1.StartImpersonationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.StartImpersonation is not implemented"))
+func (UnimplementedAdminServiceHandler) SetAdminViewMode(context.Context, *connect.Request[v1.SetAdminViewModeRequest]) (*connect.Response[v1.SetAdminViewModeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.SetAdminViewMode is not implemented"))
 }
 
-func (UnimplementedAdminServiceHandler) StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.StopImpersonation is not implemented"))
-}
-
-func (UnimplementedAdminServiceHandler) GetImpersonationStatus(context.Context, *connect.Request[v1.GetImpersonationStatusRequest]) (*connect.Response[v1.GetImpersonationStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.GetImpersonationStatus is not implemented"))
+func (UnimplementedAdminServiceHandler) GetAdminViewMode(context.Context, *connect.Request[v1.GetAdminViewModeRequest]) (*connect.Response[v1.GetAdminViewModeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.AdminService.GetAdminViewMode is not implemented"))
 }
 
 func (UnimplementedAdminServiceHandler) ListAuditLogs(context.Context, *connect.Request[v1.ListAuditLogsRequest]) (*connect.Response[v1.ListAuditLogsResponse], error) {
