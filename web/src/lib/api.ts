@@ -68,11 +68,13 @@ import {
   CreateUserLLMModelRequestSchema,
   DeleteUserLLMModelRequestSchema,
   DuplicateUserLLMModelRequestSchema,
+  GetUserAgentPromptRequestSchema,
   GetUserStartupScriptRequestSchema,
   IssueUserSetupTokenRequestSchema,
   ListUserLLMModelsRequestSchema,
   ListUsersRequestSchema as ListManagedUsersRequestSchema,
   SearchUsersRequestSchema,
+  UpdateUserAgentPromptRequestSchema,
   UpdateUserLLMModelRequestSchema,
   UpdateUserRoleRequestSchema,
   UpdateUserStartupScriptRequestSchema,
@@ -444,6 +446,7 @@ function toMachineTemplateItem(input: {
     }
     serverApiUrl?: string
     autoStopTimeoutSeconds?: bigint
+    agentPrompt?: string
   }
   createdAt: bigint
   updatedAt: bigint
@@ -496,12 +499,13 @@ function toMachineTemplateItem(input: {
     exposure,
     serverApiUrl: input.config?.serverApiUrl ?? '',
     autoStopTimeoutSeconds: Number(input.config?.autoStopTimeoutSeconds ?? 0),
+    agentPrompt: input.config?.agentPrompt ?? '',
     createdAt: Number(input.createdAt),
     updatedAt: Number(input.updatedAt),
   }
 }
 
-function templateConfigPayload(type: MachineTemplateTypeLocal, config: MachineTemplateConfig, exposure?: MachineExposureConfig, serverApiUrl?: string, autoStopTimeoutSeconds?: number) {
+function templateConfigPayload(type: MachineTemplateTypeLocal, config: MachineTemplateConfig, exposure?: MachineExposureConfig, serverApiUrl?: string, autoStopTimeoutSeconds?: number, agentPrompt?: string) {
   let provider
   if (type === 'gce') {
     if (config.type !== 'gce') {
@@ -559,6 +563,9 @@ function templateConfigPayload(type: MachineTemplateTypeLocal, config: MachineTe
   if (autoStopTimeoutSeconds != null && autoStopTimeoutSeconds > 0) {
     result.autoStopTimeoutSeconds = BigInt(autoStopTimeoutSeconds)
   }
+  if (agentPrompt != null) {
+    result.agentPrompt = agentPrompt
+  }
   return result
 }
 
@@ -584,12 +591,13 @@ export async function createMachineTemplate(
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
   autoStopTimeoutSeconds?: number,
+  agentPrompt?: string,
 ): Promise<MachineTemplateItem> {
   const response = await templateClient.createMachineTemplate(
     create(CreateMachineTemplateRequestSchema, {
       name,
       type: templateTypeToProto(type),
-      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
+      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds, agentPrompt),
     }),
   )
   if (response.template == null) {
@@ -606,13 +614,14 @@ export async function updateMachineTemplate(
   exposure?: MachineExposureConfig,
   serverApiUrl?: string,
   autoStopTimeoutSeconds?: number,
+  agentPrompt?: string,
 ): Promise<MachineTemplateItem> {
   const response = await templateClient.updateMachineTemplate(
     create(UpdateMachineTemplateRequestSchema, {
       templateId: templateID,
       name,
       type: templateTypeToProto(type),
-      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds),
+      config: templateConfigPayload(type, config, exposure, serverApiUrl, autoStopTimeoutSeconds, agentPrompt),
     }),
   )
   if (response.template == null) {
@@ -646,6 +655,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         iapAudience?: string
         iapAutoProvisioning?: boolean
         oidcAutoProvisioning?: boolean
+        agentPrompt?: string
       }
       isConfigured?: boolean
       configured?: boolean
@@ -667,6 +677,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       iapAudience?: string
       iapAutoProvisioning?: boolean
       oidcAutoProvisioning?: boolean
+      agentPrompt?: string
     }>(
       ['/arca.v1.SetupService/GetSetupStatus', '/arca.v1.SetupService/GetStatus'],
       {},
@@ -693,6 +704,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const iapAudience = response.status?.iapAudience ?? response.iapAudience ?? ''
     const iapAutoProvisioning = response.status?.iapAutoProvisioning ?? response.iapAutoProvisioning ?? false
     const oidcAutoProvisioning = response.status?.oidcAutoProvisioning ?? response.oidcAutoProvisioning ?? false
+    const agentPrompt = response.status?.agentPrompt ?? response.agentPrompt ?? ''
 
     return {
       isConfigured,
@@ -711,6 +723,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       iapAutoProvisioning,
       oidcAutoProvisioning,
       serverDomain,
+      agentPrompt,
     }
   } catch (error) {
     if (error instanceof ApiError && (error.status === 404 || error.code.toLowerCase().includes('unimplemented'))) {
@@ -731,6 +744,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         iapAutoProvisioning: false,
         oidcAutoProvisioning: false,
         serverDomain: '',
+        agentPrompt: '',
       }
     }
     throw error
@@ -798,6 +812,7 @@ export async function updateDomainSettings(
   oidcAutoProvisioning: boolean = false,
   baseDomain: string = '',
   domainPrefix: string = '',
+  agentPrompt: string = '',
 ): Promise<void> {
   const response = await callConnectJSONCandidates<{
     status?: {
@@ -822,6 +837,7 @@ export async function updateDomainSettings(
     oidcAutoProvisioning,
     baseDomain,
     domainPrefix,
+    agentPrompt,
   })
   if (response.status?.completed !== true) {
     throw new Error(response.message ?? 'failed to update domain settings')
@@ -1098,6 +1114,20 @@ export async function getUserStartupScript(): Promise<string> {
 export async function updateUserStartupScript(script: string): Promise<string> {
   const response = await userClient.updateUserStartupScript(create(UpdateUserStartupScriptRequestSchema, { startupScript: script }))
   return response.startupScript
+}
+
+// User Agent Prompt API
+
+export async function getUserAgentPrompt(): Promise<string> {
+  const response = await userClient.getUserAgentPrompt(create(GetUserAgentPromptRequestSchema, {}))
+  return response.agentPrompt ?? ''
+}
+
+export async function updateUserAgentPrompt(agentPrompt: string): Promise<string> {
+  const response = await userClient.updateUserAgentPrompt(
+    create(UpdateUserAgentPromptRequestSchema, { agentPrompt }),
+  )
+  return response.agentPrompt ?? ''
 }
 
 // Custom Image API

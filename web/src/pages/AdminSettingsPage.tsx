@@ -31,6 +31,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [oidcClientID, setOidcClientID] = useState(setupStatus.oidcClientID)
   const [oidcClientSecret, setOidcClientSecret] = useState('')
   const [oidcAllowedEmailDomainsText, setOidcAllowedEmailDomainsText] = useState(setupStatus.oidcAllowedEmailDomains.join('\n'))
+  const [agentPrompt, setAgentPrompt] = useState(setupStatus.agentPrompt ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -48,6 +49,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
     setOidcIssuerURL(setupStatus.oidcIssuerURL)
     setOidcClientID(setupStatus.oidcClientID)
     setOidcAllowedEmailDomainsText(setupStatus.oidcAllowedEmailDomains.join('\n'))
+    setAgentPrompt(setupStatus.agentPrompt ?? '')
   }, [setupStatus])
 
   if (user == null) {
@@ -83,6 +85,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         oidcAutoProvisioning,
         baseDomain.trim(),
         domainPrefix.trim(),
+        agentPrompt,
       )
       const normalizedOidcAllowedEmailDomains = oidcAllowedEmailDomainsText
         .split(/\r?\n/)
@@ -104,6 +107,7 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         serverDomain: serverDomain.trim(),
         baseDomain: baseDomain.trim(),
         domainPrefix: domainPrefix.trim(),
+        agentPrompt,
       })
       setOidcClientSecret('')
       setSaved(true)
@@ -330,6 +334,22 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                 </label>
                 <p className="text-xs text-muted-foreground">
                   When enabled, users who pass IAP authentication are automatically created if they don't exist.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="settings-agent-prompt">
+                  Agent prompt
+                </Label>
+                <textarea
+                  id="settings-agent-prompt"
+                  value={agentPrompt}
+                  onChange={(event) => setAgentPrompt(event.target.value)}
+                  rows={6}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Enter instructions for the coding agent..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Custom instructions appended to the coding agent's system prompt on every machine.
                 </p>
               </div>
               <Button
