@@ -14,8 +14,6 @@ const (
 // inside a machine template's config_json.
 type TemplateExposureConfig struct {
 	Method       string `json:"method,omitempty"`
-	DomainPrefix string `json:"domainPrefix,omitempty"`
-	BaseDomain   string `json:"baseDomain,omitempty"`
 	Connectivity string `json:"connectivity,omitempty"`
 }
 

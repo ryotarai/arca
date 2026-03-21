@@ -21,73 +21,15 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type EndpointVisibility int32
-
-const (
-	EndpointVisibility_ENDPOINT_VISIBILITY_UNSPECIFIED     EndpointVisibility = 0
-	EndpointVisibility_ENDPOINT_VISIBILITY_OWNER_ONLY      EndpointVisibility = 1
-	EndpointVisibility_ENDPOINT_VISIBILITY_SELECTED_USERS  EndpointVisibility = 2
-	EndpointVisibility_ENDPOINT_VISIBILITY_ALL_ARCA_USERS  EndpointVisibility = 3
-	EndpointVisibility_ENDPOINT_VISIBILITY_INTERNET_PUBLIC EndpointVisibility = 4
-)
-
-// Enum value maps for EndpointVisibility.
-var (
-	EndpointVisibility_name = map[int32]string{
-		0: "ENDPOINT_VISIBILITY_UNSPECIFIED",
-		1: "ENDPOINT_VISIBILITY_OWNER_ONLY",
-		2: "ENDPOINT_VISIBILITY_SELECTED_USERS",
-		3: "ENDPOINT_VISIBILITY_ALL_ARCA_USERS",
-		4: "ENDPOINT_VISIBILITY_INTERNET_PUBLIC",
-	}
-	EndpointVisibility_value = map[string]int32{
-		"ENDPOINT_VISIBILITY_UNSPECIFIED":     0,
-		"ENDPOINT_VISIBILITY_OWNER_ONLY":      1,
-		"ENDPOINT_VISIBILITY_SELECTED_USERS":  2,
-		"ENDPOINT_VISIBILITY_ALL_ARCA_USERS":  3,
-		"ENDPOINT_VISIBILITY_INTERNET_PUBLIC": 4,
-	}
-)
-
-func (x EndpointVisibility) Enum() *EndpointVisibility {
-	p := new(EndpointVisibility)
-	*p = x
-	return p
-}
-
-func (x EndpointVisibility) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EndpointVisibility) Descriptor() protoreflect.EnumDescriptor {
-	return file_arca_v1_exposure_proto_enumTypes[0].Descriptor()
-}
-
-func (EndpointVisibility) Type() protoreflect.EnumType {
-	return &file_arca_v1_exposure_proto_enumTypes[0]
-}
-
-func (x EndpointVisibility) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EndpointVisibility.Descriptor instead.
-func (EndpointVisibility) EnumDescriptor() ([]byte, []int) {
-	return file_arca_v1_exposure_proto_rawDescGZIP(), []int{0}
-}
-
 type MachineExposure struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	MachineId       string                 `protobuf:"bytes,2,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	Name            string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Hostname        string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	Service         string                 `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
-	Public          bool                   `protobuf:"varint,6,opt,name=public,proto3" json:"public,omitempty"`
-	Visibility      EndpointVisibility     `protobuf:"varint,7,opt,name=visibility,proto3,enum=arca.v1.EndpointVisibility" json:"visibility,omitempty"`
-	SelectedUserIds []string               `protobuf:"bytes,8,rep,name=selected_user_ids,json=selectedUserIds,proto3" json:"selected_user_ids,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	MachineId     string                 `protobuf:"bytes,2,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Hostname      string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Service       string                 `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MachineExposure) Reset() {
@@ -155,36 +97,12 @@ func (x *MachineExposure) GetService() string {
 	return ""
 }
 
-func (x *MachineExposure) GetPublic() bool {
-	if x != nil {
-		return x.Public
-	}
-	return false
-}
-
-func (x *MachineExposure) GetVisibility() EndpointVisibility {
-	if x != nil {
-		return x.Visibility
-	}
-	return EndpointVisibility_ENDPOINT_VISIBILITY_UNSPECIFIED
-}
-
-func (x *MachineExposure) GetSelectedUserIds() []string {
-	if x != nil {
-		return x.SelectedUserIds
-	}
-	return nil
-}
-
 type UpsertMachineExposureRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	MachineId       string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
-	Name            string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Public          bool                   `protobuf:"varint,4,opt,name=public,proto3" json:"public,omitempty"`
-	Visibility      EndpointVisibility     `protobuf:"varint,5,opt,name=visibility,proto3,enum=arca.v1.EndpointVisibility" json:"visibility,omitempty"`
-	SelectedUserIds []string               `protobuf:"bytes,6,rep,name=selected_user_ids,json=selectedUserIds,proto3" json:"selected_user_ids,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MachineId     string                 `protobuf:"bytes,1,opt,name=machine_id,json=machineId,proto3" json:"machine_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpsertMachineExposureRequest) Reset() {
@@ -229,27 +147,6 @@ func (x *UpsertMachineExposureRequest) GetName() string {
 		return x.Name
 	}
 	return ""
-}
-
-func (x *UpsertMachineExposureRequest) GetPublic() bool {
-	if x != nil {
-		return x.Public
-	}
-	return false
-}
-
-func (x *UpsertMachineExposureRequest) GetVisibility() EndpointVisibility {
-	if x != nil {
-		return x.Visibility
-	}
-	return EndpointVisibility_ENDPOINT_VISIBILITY_UNSPECIFIED
-}
-
-func (x *UpsertMachineExposureRequest) GetSelectedUserIds() []string {
-	if x != nil {
-		return x.SelectedUserIds
-	}
-	return nil
 }
 
 type UpsertMachineExposureResponse struct {
@@ -760,28 +657,18 @@ var File_arca_v1_exposure_proto protoreflect.FileDescriptor
 
 const file_arca_v1_exposure_proto_rawDesc = "" +
 	"\n" +
-	"\x16arca/v1/exposure.proto\x12\aarca.v1\"\x8b\x02\n" +
+	"\x16arca/v1/exposure.proto\x12\aarca.v1\"\x9c\x01\n" +
 	"\x0fMachineExposure\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x02 \x01(\tR\tmachineId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
 	"\bhostname\x18\x04 \x01(\tR\bhostname\x12\x18\n" +
-	"\aservice\x18\x05 \x01(\tR\aservice\x12\x16\n" +
-	"\x06public\x18\x06 \x01(\bR\x06public\x12;\n" +
-	"\n" +
-	"visibility\x18\a \x01(\x0e2\x1b.arca.v1.EndpointVisibilityR\n" +
-	"visibility\x12*\n" +
-	"\x11selected_user_ids\x18\b \x03(\tR\x0fselectedUserIds\"\xd8\x01\n" +
+	"\aservice\x18\x05 \x01(\tR\aserviceJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\t\"i\n" +
 	"\x1cUpsertMachineExposureRequest\x12\x1d\n" +
 	"\n" +
 	"machine_id\x18\x01 \x01(\tR\tmachineId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x16\n" +
-	"\x06public\x18\x04 \x01(\bR\x06public\x12;\n" +
-	"\n" +
-	"visibility\x18\x05 \x01(\x0e2\x1b.arca.v1.EndpointVisibilityR\n" +
-	"visibility\x12*\n" +
-	"\x11selected_user_ids\x18\x06 \x03(\tR\x0fselectedUserIdsJ\x04\b\x02\x10\x03\"U\n" +
+	"\x04name\x18\x03 \x01(\tR\x04nameJ\x04\b\x02\x10\x03J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\a\"U\n" +
 	"\x1dUpsertMachineExposureResponse\x124\n" +
 	"\bexposure\x18\x01 \x01(\v2\x18.arca.v1.MachineExposureR\bexposure\"<\n" +
 	"\x1bListMachineExposuresRequest\x12\x1d\n" +
@@ -813,13 +700,7 @@ const file_arca_v1_exposure_proto_rawDesc = "" +
 	"\n" +
 	"model_name\x18\x04 \x01(\tR\tmodelName\x12\x17\n" +
 	"\aapi_key\x18\x05 \x01(\tR\x06apiKey\x12,\n" +
-	"\x12max_context_tokens\x18\x06 \x01(\x05R\x10maxContextTokens*\xd6\x01\n" +
-	"\x12EndpointVisibility\x12#\n" +
-	"\x1fENDPOINT_VISIBILITY_UNSPECIFIED\x10\x00\x12\"\n" +
-	"\x1eENDPOINT_VISIBILITY_OWNER_ONLY\x10\x01\x12&\n" +
-	"\"ENDPOINT_VISIBILITY_SELECTED_USERS\x10\x02\x12&\n" +
-	"\"ENDPOINT_VISIBILITY_ALL_ARCA_USERS\x10\x03\x12'\n" +
-	"#ENDPOINT_VISIBILITY_INTERNET_PUBLIC\x10\x042\xa8\x04\n" +
+	"\x12max_context_tokens\x18\x06 \x01(\x05R\x10maxContextTokens2\xa8\x04\n" +
 	"\x0fExposureService\x12f\n" +
 	"\x15UpsertMachineExposure\x12%.arca.v1.UpsertMachineExposureRequest\x1a&.arca.v1.UpsertMachineExposureResponse\x12c\n" +
 	"\x14ListMachineExposures\x12$.arca.v1.ListMachineExposuresRequest\x1a%.arca.v1.ListMachineExposuresResponse\x12{\n" +
@@ -840,45 +721,41 @@ func file_arca_v1_exposure_proto_rawDescGZIP() []byte {
 	return file_arca_v1_exposure_proto_rawDescData
 }
 
-var file_arca_v1_exposure_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_arca_v1_exposure_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_arca_v1_exposure_proto_goTypes = []any{
-	(EndpointVisibility)(0),                      // 0: arca.v1.EndpointVisibility
-	(*MachineExposure)(nil),                      // 1: arca.v1.MachineExposure
-	(*UpsertMachineExposureRequest)(nil),         // 2: arca.v1.UpsertMachineExposureRequest
-	(*UpsertMachineExposureResponse)(nil),        // 3: arca.v1.UpsertMachineExposureResponse
-	(*ListMachineExposuresRequest)(nil),          // 4: arca.v1.ListMachineExposuresRequest
-	(*ListMachineExposuresResponse)(nil),         // 5: arca.v1.ListMachineExposuresResponse
-	(*GetMachineExposureByHostnameRequest)(nil),  // 6: arca.v1.GetMachineExposureByHostnameRequest
-	(*GetMachineExposureByHostnameResponse)(nil), // 7: arca.v1.GetMachineExposureByHostnameResponse
-	(*ReportMachineReadinessRequest)(nil),        // 8: arca.v1.ReportMachineReadinessRequest
-	(*ReportMachineReadinessResponse)(nil),       // 9: arca.v1.ReportMachineReadinessResponse
-	(*GetMachineLLMModelsRequest)(nil),           // 10: arca.v1.GetMachineLLMModelsRequest
-	(*GetMachineLLMModelsResponse)(nil),          // 11: arca.v1.GetMachineLLMModelsResponse
-	(*MachineLLMModel)(nil),                      // 12: arca.v1.MachineLLMModel
+	(*MachineExposure)(nil),                      // 0: arca.v1.MachineExposure
+	(*UpsertMachineExposureRequest)(nil),         // 1: arca.v1.UpsertMachineExposureRequest
+	(*UpsertMachineExposureResponse)(nil),        // 2: arca.v1.UpsertMachineExposureResponse
+	(*ListMachineExposuresRequest)(nil),          // 3: arca.v1.ListMachineExposuresRequest
+	(*ListMachineExposuresResponse)(nil),         // 4: arca.v1.ListMachineExposuresResponse
+	(*GetMachineExposureByHostnameRequest)(nil),  // 5: arca.v1.GetMachineExposureByHostnameRequest
+	(*GetMachineExposureByHostnameResponse)(nil), // 6: arca.v1.GetMachineExposureByHostnameResponse
+	(*ReportMachineReadinessRequest)(nil),        // 7: arca.v1.ReportMachineReadinessRequest
+	(*ReportMachineReadinessResponse)(nil),       // 8: arca.v1.ReportMachineReadinessResponse
+	(*GetMachineLLMModelsRequest)(nil),           // 9: arca.v1.GetMachineLLMModelsRequest
+	(*GetMachineLLMModelsResponse)(nil),          // 10: arca.v1.GetMachineLLMModelsResponse
+	(*MachineLLMModel)(nil),                      // 11: arca.v1.MachineLLMModel
 }
 var file_arca_v1_exposure_proto_depIdxs = []int32{
-	0,  // 0: arca.v1.MachineExposure.visibility:type_name -> arca.v1.EndpointVisibility
-	0,  // 1: arca.v1.UpsertMachineExposureRequest.visibility:type_name -> arca.v1.EndpointVisibility
-	1,  // 2: arca.v1.UpsertMachineExposureResponse.exposure:type_name -> arca.v1.MachineExposure
-	1,  // 3: arca.v1.ListMachineExposuresResponse.exposures:type_name -> arca.v1.MachineExposure
-	1,  // 4: arca.v1.GetMachineExposureByHostnameResponse.exposure:type_name -> arca.v1.MachineExposure
-	12, // 5: arca.v1.GetMachineLLMModelsResponse.models:type_name -> arca.v1.MachineLLMModel
-	2,  // 6: arca.v1.ExposureService.UpsertMachineExposure:input_type -> arca.v1.UpsertMachineExposureRequest
-	4,  // 7: arca.v1.ExposureService.ListMachineExposures:input_type -> arca.v1.ListMachineExposuresRequest
-	6,  // 8: arca.v1.ExposureService.GetMachineExposureByHostname:input_type -> arca.v1.GetMachineExposureByHostnameRequest
-	8,  // 9: arca.v1.ExposureService.ReportMachineReadiness:input_type -> arca.v1.ReportMachineReadinessRequest
-	10, // 10: arca.v1.ExposureService.GetMachineLLMModels:input_type -> arca.v1.GetMachineLLMModelsRequest
-	3,  // 11: arca.v1.ExposureService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
-	5,  // 12: arca.v1.ExposureService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
-	7,  // 13: arca.v1.ExposureService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
-	9,  // 14: arca.v1.ExposureService.ReportMachineReadiness:output_type -> arca.v1.ReportMachineReadinessResponse
-	11, // 15: arca.v1.ExposureService.GetMachineLLMModels:output_type -> arca.v1.GetMachineLLMModelsResponse
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	0,  // 0: arca.v1.UpsertMachineExposureResponse.exposure:type_name -> arca.v1.MachineExposure
+	0,  // 1: arca.v1.ListMachineExposuresResponse.exposures:type_name -> arca.v1.MachineExposure
+	0,  // 2: arca.v1.GetMachineExposureByHostnameResponse.exposure:type_name -> arca.v1.MachineExposure
+	11, // 3: arca.v1.GetMachineLLMModelsResponse.models:type_name -> arca.v1.MachineLLMModel
+	1,  // 4: arca.v1.ExposureService.UpsertMachineExposure:input_type -> arca.v1.UpsertMachineExposureRequest
+	3,  // 5: arca.v1.ExposureService.ListMachineExposures:input_type -> arca.v1.ListMachineExposuresRequest
+	5,  // 6: arca.v1.ExposureService.GetMachineExposureByHostname:input_type -> arca.v1.GetMachineExposureByHostnameRequest
+	7,  // 7: arca.v1.ExposureService.ReportMachineReadiness:input_type -> arca.v1.ReportMachineReadinessRequest
+	9,  // 8: arca.v1.ExposureService.GetMachineLLMModels:input_type -> arca.v1.GetMachineLLMModelsRequest
+	2,  // 9: arca.v1.ExposureService.UpsertMachineExposure:output_type -> arca.v1.UpsertMachineExposureResponse
+	4,  // 10: arca.v1.ExposureService.ListMachineExposures:output_type -> arca.v1.ListMachineExposuresResponse
+	6,  // 11: arca.v1.ExposureService.GetMachineExposureByHostname:output_type -> arca.v1.GetMachineExposureByHostnameResponse
+	8,  // 12: arca.v1.ExposureService.ReportMachineReadiness:output_type -> arca.v1.ReportMachineReadinessResponse
+	10, // 13: arca.v1.ExposureService.GetMachineLLMModels:output_type -> arca.v1.GetMachineLLMModelsResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_exposure_proto_init() }
@@ -891,14 +768,13 @@ func file_arca_v1_exposure_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_exposure_proto_rawDesc), len(file_arca_v1_exposure_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_arca_v1_exposure_proto_goTypes,
 		DependencyIndexes: file_arca_v1_exposure_proto_depIdxs,
-		EnumInfos:         file_arca_v1_exposure_proto_enumTypes,
 		MessageInfos:      file_arca_v1_exposure_proto_msgTypes,
 	}.Build()
 	File_arca_v1_exposure_proto = out.File

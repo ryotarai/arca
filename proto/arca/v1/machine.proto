@@ -21,7 +21,7 @@ message Machine {
   string status = 3;
   string desired_status = 4;
   string last_error = 5;
-  string endpoint = 6;
+  reserved 6; // was endpoint
   string template_id = 7;
   bool update_required = 8;
   bool ready = 9;

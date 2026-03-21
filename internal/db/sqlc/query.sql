@@ -231,11 +231,6 @@ WHERE id = sqlc.arg(id);
 DELETE FROM machine_templates
 WHERE id = sqlc.arg(id);
 
--- name: UpdateMachineEndpointByID :exec
-UPDATE machines
-SET endpoint = sqlc.arg(endpoint)
-WHERE id = sqlc.arg(machine_id);
-
 -- name: CreateUserMachine :exec
 INSERT INTO user_machines (user_id, machine_id, role)
 VALUES (sqlc.arg(user_id), sqlc.arg(machine_id), sqlc.arg(role));
@@ -284,7 +279,7 @@ VALUES (
 );
 
 -- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -298,7 +293,7 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -314,7 +309,7 @@ ORDER BY um.created_at ASC
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -480,7 +475,7 @@ SET lease_until = sqlc.arg(lease_until), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND status = 'running' AND lease_owner = sqlc.arg(lease_owner);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)
@@ -566,39 +561,11 @@ SET used_at = sqlc.arg(used_at)
 WHERE id = sqlc.arg(id)
   AND used_at IS NULL;
 
--- name: UpsertMachineExposure :exec
-INSERT INTO machine_exposures (id, machine_id, name, hostname, service, created_at, updated_at)
-VALUES (
-  sqlc.arg(id),
-  sqlc.arg(machine_id),
-  sqlc.arg(name),
-  sqlc.arg(hostname),
-  sqlc.arg(service),
-  sqlc.arg(created_at),
-  sqlc.arg(updated_at)
-)
-ON CONFLICT (machine_id, name) DO UPDATE
-SET hostname = excluded.hostname,
-    service = excluded.service,
-    updated_at = excluded.updated_at;
-
--- name: ListMachineExposuresByMachineID :many
-SELECT id, machine_id, name, hostname, service, created_at, updated_at
-FROM machine_exposures
-WHERE machine_id = sqlc.arg(machine_id)
-ORDER BY created_at ASC;
-
--- name: GetMachineExposureByHostname :one
-SELECT id, machine_id, name, hostname, service, created_at, updated_at
-FROM machine_exposures
-WHERE hostname = sqlc.arg(hostname)
-LIMIT 1;
-
--- name: GetMachineExposureByMachineIDAndName :one
-SELECT id, machine_id, name, hostname, service, created_at, updated_at
-FROM machine_exposures
-WHERE machine_id = sqlc.arg(machine_id)
-  AND name = sqlc.arg(name)
+-- name: GetMachineByName :one
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE m.name = sqlc.arg(name)
 LIMIT 1;
 
 -- name: GetMachineSharingByMachineID :one

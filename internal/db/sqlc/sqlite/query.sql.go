@@ -1087,7 +1087,7 @@ func (q *Queries) GetMachineAccessRequestByID(ctx context.Context, id string) (G
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -1102,7 +1102,6 @@ type GetMachineByIDRow struct {
 	TemplateType       string
 	TemplateConfigJson string
 	SetupVersion       string
-	Endpoint           string
 	OptionsJson        string
 	CustomImageID      string
 	Status             string
@@ -1126,7 +1125,6 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.TemplateType,
 		&i.TemplateConfigJson,
 		&i.SetupVersion,
-		&i.Endpoint,
 		&i.OptionsJson,
 		&i.CustomImageID,
 		&i.Status,
@@ -1143,7 +1141,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -1164,7 +1162,6 @@ type GetMachineByIDForUserRow struct {
 	TemplateType       string
 	TemplateConfigJson string
 	SetupVersion       string
-	Endpoint           string
 	OptionsJson        string
 	CustomImageID      string
 	Status             string
@@ -1187,7 +1184,6 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 		&i.TemplateType,
 		&i.TemplateConfigJson,
 		&i.SetupVersion,
-		&i.Endpoint,
 		&i.OptionsJson,
 		&i.CustomImageID,
 		&i.Status,
@@ -1202,52 +1198,53 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 	return i, err
 }
 
-const getMachineExposureByHostname = `-- name: GetMachineExposureByHostname :one
-SELECT id, machine_id, name, hostname, service, created_at, updated_at
-FROM machine_exposures
-WHERE hostname = ?1
+const getMachineByName = `-- name: GetMachineByName :one
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE m.name = ?1
 LIMIT 1
 `
 
-func (q *Queries) GetMachineExposureByHostname(ctx context.Context, hostname string) (MachineExposure, error) {
-	row := q.db.QueryRowContext(ctx, getMachineExposureByHostname, hostname)
-	var i MachineExposure
-	err := row.Scan(
-		&i.ID,
-		&i.MachineID,
-		&i.Name,
-		&i.Hostname,
-		&i.Service,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+type GetMachineByNameRow struct {
+	ID                 string
+	Name               string
+	TemplateID         string
+	TemplateType       string
+	TemplateConfigJson string
+	SetupVersion       string
+	OptionsJson        string
+	CustomImageID      string
+	Status             string
+	DesiredStatus      string
+	ContainerID        string
+	LastError          string
+	Ready              bool
+	ReadyReportedAt    int64
+	ReadyReason        string
+	ArcadVersion       string
 }
 
-const getMachineExposureByMachineIDAndName = `-- name: GetMachineExposureByMachineIDAndName :one
-SELECT id, machine_id, name, hostname, service, created_at, updated_at
-FROM machine_exposures
-WHERE machine_id = ?1
-  AND name = ?2
-LIMIT 1
-`
-
-type GetMachineExposureByMachineIDAndNameParams struct {
-	MachineID string
-	Name      string
-}
-
-func (q *Queries) GetMachineExposureByMachineIDAndName(ctx context.Context, arg GetMachineExposureByMachineIDAndNameParams) (MachineExposure, error) {
-	row := q.db.QueryRowContext(ctx, getMachineExposureByMachineIDAndName, arg.MachineID, arg.Name)
-	var i MachineExposure
+func (q *Queries) GetMachineByName(ctx context.Context, name string) (GetMachineByNameRow, error) {
+	row := q.db.QueryRowContext(ctx, getMachineByName, name)
+	var i GetMachineByNameRow
 	err := row.Scan(
 		&i.ID,
-		&i.MachineID,
 		&i.Name,
-		&i.Hostname,
-		&i.Service,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.TemplateID,
+		&i.TemplateType,
+		&i.TemplateConfigJson,
+		&i.SetupVersion,
+		&i.OptionsJson,
+		&i.CustomImageID,
+		&i.Status,
+		&i.DesiredStatus,
+		&i.ContainerID,
+		&i.LastError,
+		&i.Ready,
+		&i.ReadyReportedAt,
+		&i.ReadyReason,
+		&i.ArcadVersion,
 	)
 	return i, err
 }
@@ -2195,44 +2192,6 @@ func (q *Queries) ListMachineEventsByMachineIDForUser(ctx context.Context, arg L
 	return items, nil
 }
 
-const listMachineExposuresByMachineID = `-- name: ListMachineExposuresByMachineID :many
-SELECT id, machine_id, name, hostname, service, created_at, updated_at
-FROM machine_exposures
-WHERE machine_id = ?1
-ORDER BY created_at ASC
-`
-
-func (q *Queries) ListMachineExposuresByMachineID(ctx context.Context, machineID string) ([]MachineExposure, error) {
-	rows, err := q.db.QueryContext(ctx, listMachineExposuresByMachineID, machineID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []MachineExposure
-	for rows.Next() {
-		var i MachineExposure
-		if err := rows.Scan(
-			&i.ID,
-			&i.MachineID,
-			&i.Name,
-			&i.Hostname,
-			&i.Service,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listMachineGroupAccess = `-- name: ListMachineGroupAccess :many
 SELECT mga.machine_id, mga.group_id, mga.role, g.name AS group_name
 FROM machine_group_access mga
@@ -2313,7 +2272,7 @@ func (q *Queries) ListMachineTemplates(ctx context.Context) ([]MachineTemplate, 
 }
 
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -2334,7 +2293,6 @@ type ListMachinesAccessibleByUserRow struct {
 	TemplateType       string
 	TemplateConfigJson string
 	SetupVersion       string
-	Endpoint           string
 	OptionsJson        string
 	CustomImageID      string
 	Status             string
@@ -2365,7 +2323,6 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 			&i.TemplateType,
 			&i.TemplateConfigJson,
 			&i.SetupVersion,
-			&i.Endpoint,
 			&i.OptionsJson,
 			&i.CustomImageID,
 			&i.Status,
@@ -2393,7 +2350,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.endpoint, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = ?1
@@ -2413,7 +2370,6 @@ type ListMachinesByDesiredStatusRow struct {
 	TemplateType       string
 	TemplateConfigJson string
 	SetupVersion       string
-	Endpoint           string
 	OptionsJson        string
 	CustomImageID      string
 	Status             string
@@ -2443,7 +2399,6 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.TemplateType,
 			&i.TemplateConfigJson,
 			&i.SetupVersion,
-			&i.Endpoint,
 			&i.OptionsJson,
 			&i.CustomImageID,
 			&i.Status,
@@ -3399,22 +3354,6 @@ func (q *Queries) UpdateCustomImage(ctx context.Context, arg UpdateCustomImagePa
 	return result.RowsAffected()
 }
 
-const updateMachineEndpointByID = `-- name: UpdateMachineEndpointByID :exec
-UPDATE machines
-SET endpoint = ?1
-WHERE id = ?2
-`
-
-type UpdateMachineEndpointByIDParams struct {
-	Endpoint  string
-	MachineID string
-}
-
-func (q *Queries) UpdateMachineEndpointByID(ctx context.Context, arg UpdateMachineEndpointByIDParams) error {
-	_, err := q.db.ExecContext(ctx, updateMachineEndpointByID, arg.Endpoint, arg.MachineID)
-	return err
-}
-
 const updateMachineLastActivityAt = `-- name: UpdateMachineLastActivityAt :exec
 UPDATE machine_states
 SET last_activity_at = ?1
@@ -3738,46 +3677,6 @@ func (q *Queries) UpdateUserRoleByID(ctx context.Context, arg UpdateUserRoleByID
 		return 0, err
 	}
 	return result.RowsAffected()
-}
-
-const upsertMachineExposure = `-- name: UpsertMachineExposure :exec
-INSERT INTO machine_exposures (id, machine_id, name, hostname, service, created_at, updated_at)
-VALUES (
-  ?1,
-  ?2,
-  ?3,
-  ?4,
-  ?5,
-  ?6,
-  ?7
-)
-ON CONFLICT (machine_id, name) DO UPDATE
-SET hostname = excluded.hostname,
-    service = excluded.service,
-    updated_at = excluded.updated_at
-`
-
-type UpsertMachineExposureParams struct {
-	ID        string
-	MachineID string
-	Name      string
-	Hostname  string
-	Service   string
-	CreatedAt int64
-	UpdatedAt int64
-}
-
-func (q *Queries) UpsertMachineExposure(ctx context.Context, arg UpsertMachineExposureParams) error {
-	_, err := q.db.ExecContext(ctx, upsertMachineExposure,
-		arg.ID,
-		arg.MachineID,
-		arg.Name,
-		arg.Hostname,
-		arg.Service,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	return err
 }
 
 const upsertMachineGroupAccess = `-- name: UpsertMachineGroupAccess :exec
