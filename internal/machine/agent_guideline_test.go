@@ -8,7 +8,7 @@ import (
 func TestReplaceOrAppendMarkedSection_InitialGeneration(t *testing.T) {
 	t.Parallel()
 
-	managed := agentGuidelineSection("http://localhost:11030")
+	managed := AssembleAgentGuideline("http://localhost:11030", "", "", "")
 	got := ReplaceOrAppendMarkedSection("", managed)
 	if got != managed {
 		t.Fatalf("initial generation mismatch")
@@ -33,9 +33,9 @@ func TestReplaceOrAppendMarkedSection_InitialGeneration(t *testing.T) {
 func TestReplaceOrAppendMarkedSection_Regeneration(t *testing.T) {
 	t.Parallel()
 
-	old := agentGuidelineSection("http://localhost:11030")
+	old := AssembleAgentGuideline("http://localhost:11030", "", "", "")
 	existing := "prefix\n\n" + old + "\nuser notes\n"
-	newSection := agentGuidelineSection("http://localhost:8081")
+	newSection := AssembleAgentGuideline("http://localhost:8081", "", "", "")
 
 	got := ReplaceOrAppendMarkedSection(existing, newSection)
 
@@ -62,9 +62,9 @@ func TestReplaceOrAppendMarkedSection_Regeneration(t *testing.T) {
 func TestReplaceOrAppendMarkedSection_RegenerationAfterManualEditOutsideMarkers(t *testing.T) {
 	t.Parallel()
 
-	managed := agentGuidelineSection("http://localhost:11030")
+	managed := AssembleAgentGuideline("http://localhost:11030", "", "", "")
 	existing := "my custom intro\n" + managed + "my custom footer\n"
-	newSection := agentGuidelineSection("http://localhost:18080")
+	newSection := AssembleAgentGuideline("http://localhost:18080", "", "", "")
 
 	got := ReplaceOrAppendMarkedSection(existing, newSection)
 
@@ -82,7 +82,7 @@ func TestReplaceOrAppendMarkedSection_RegenerationAfterManualEditOutsideMarkers(
 func TestReplaceOrAppendMarkedSection_AppendsWhenMarkersMissing(t *testing.T) {
 	t.Parallel()
 
-	newSection := agentGuidelineSection("http://localhost:11030")
+	newSection := AssembleAgentGuideline("http://localhost:11030", "", "", "")
 	existing := "legacy content without markers"
 
 	got := ReplaceOrAppendMarkedSection(existing, newSection)
