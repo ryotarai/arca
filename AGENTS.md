@@ -54,8 +54,7 @@ Use Go 1.22 idioms and keep code `gofmt`-clean.
 - Always consider UX from the end-user's perspective. Design flows that are intuitive and user-friendly; avoid patterns that frustrate or confuse users.
 
 ## Testing Guidelines
-- Run tests with `make test` before pushing.
-- For full test coverage including slow E2E tests, use `make test-all` or `make web/test-slow`.
+- Run `make test` before pushing. For full coverage including slow E2E tests, use `make test-all`.
 - Keep tests near code as `*_test.go`; prefer table-driven tests for handlers and DB logic.
 - Add/update E2E or browser checks for UI/routing behavior; prefer `chrome-headless-shell` for browser verification.
 - During debugging or investigation, proactively use the `sqlite3` command to inspect database data, verify state, and isolate issues quickly.
@@ -140,37 +139,42 @@ Regenerate from sources instead:
 - UI: edit `web/src/*`, then run `make build-frontend`.
 - `internal/server/ui/dist/*` is build output and should not be committed.
 
-## Branch Strategy
+## Branch Strategy & Commit Guidelines
 - The `main` branch is protected — direct pushes are not allowed.
 - Always create a feature branch and open a pull request to merge changes into `main`.
-
-## Commit & Pull Request Guidelines
-Recent commits use concise, imperative subjects (for example, `Add ...`, `docs: ...`).
-- Keep subjects specific and action-oriented.
-- Split unrelated changes into separate commits.
+- Use concise, imperative commit subjects that describe the delivered outcome (for example, `Add ...`, `Fix ...`).
+- Keep subjects specific and action-oriented. Split unrelated changes into separate commits.
+- Keep each commit focused to the completed task only; do not include unrelated or generated local artifacts (for example `*.db`).
+- Before creating a commit, run relevant verification for the changed scope (at minimum build/run checks for runtime changes, and tests when applicable).
+- After completing a clear, self-contained requested change, **always** create a commit proactively without requiring an extra user prompt.
+- If the user explicitly asks not to commit, skip the auto-commit workflow.
 - In PRs, include purpose, key changes, test results (`make test`), linked issues, and screenshots for UI changes.
 - Confirm regenerated artifacts and docs updates when behavior or operations change.
+- After creating a PR from a feature branch, always switch back to `main` (`git checkout main`) so subsequent work starts from the correct base.
 
-## Machine Provisioning Design Principles
-- **All setup steps must be idempotent**: every provisioning step arcad executes must be safe to re-run. Steps check current state and skip if already satisfied. This guarantees correctness regardless of whether the machine started from a bare OS image, a platform image, or a user custom image.
+## Design Principles
+- **Prefer root-cause fixes** over workaround patches. Do not introduce server-side or temporary fallback behavior as a quick fix when the issue is in another layer unless the user explicitly asks for that tradeoff.
+- **Idempotent, reconcile-driven designs**: for state transitions and destructive operations (for example delete/teardown, machine provisioning), persist intent first (desired state), let workers/reconcile loops converge actual state, and make each step retry-safe so progress survives process crashes or restarts.
 - **Backward compatibility with older arcad**: when changing arca server APIs or behavior, maintain compatibility with older arcad versions. Older arcad instances must continue to function; new fields should be additive and optional.
 
 ## Agent Workflow
+
+### ⚠️ Worktree Requirement (MANDATORY — NO EXCEPTIONS)
+- **NEVER write to files or create commits in the main working directory.** The only exception is gitignored directories such as `tmp/`. All code changes, file edits, and commits MUST happen inside a git worktree.
+- **Always create a git worktree at `.worktrees/BRANCH_NAME`** before starting any work. Use `git worktree add .worktrees/<branch-name> -b <branch-name>` (or the `EnterWorktree` tool / `isolation: "worktree"` for agents) and perform all work inside that worktree directory.
+- After creating the worktree, `cd` into `.worktrees/<branch-name>/` and do ALL file reads, edits, builds, tests, and commits there.
+- **Subagent working directory**: When dispatching subagents, always set the working directory to the worktree path (`.worktrees/<branch-name>/`). Subagents must run all commands and file operations within the worktree, never in the main repository root. Include the absolute worktree path in the subagent prompt.
+
+### Git & Branch Hygiene
 - Always run `git fetch origin` before referencing or operating on `origin/main` (or any remote branch) to ensure you have the latest state.
 - Before creating a commit, verify the current branch (`git branch --show-current`) to ensure you are on the intended branch. If the branch has already been merged (check with `gh pr list --head <branch> --state merged`), switch to a new feature branch from `origin/main` instead of committing to the stale branch.
-- Proactively update CLAUDE.md when you discover new patterns, conventions, or project-specific knowledge that would help future sessions. Keep it accurate and current as the codebase evolves.
-- Prefer root-cause fixes over workaround patches. Do not introduce server-side or temporary fallback behavior as a quick fix when the issue is in another layer unless the user explicitly asks for that tradeoff.
-- For state transitions and destructive operations (for example delete/teardown), prefer idempotent, reconcile-driven designs: persist intent first (desired state), let workers/reconcile loops converge actual state, and make each step retry-safe so progress survives process crashes or restarts.
-- Before creating a commit, run relevant verification for the changed scope (at minimum build/run checks for runtime changes, and tests when applicable).
-- After completing a clear, self-contained requested change, **always** create a commit proactively without requiring an extra user prompt. Do not forget to commit.
-- Keep each proactive commit focused to the completed task only; do not include unrelated or generated local artifacts (for example `*.db`).
-- Use concise, imperative commit subjects that describe the delivered outcome.
-- If the user explicitly asks not to commit, skip this workflow.
+
+### Autonomy & Workflow
 - If environment setup is required to complete requested work and the setup is non-destructive (for example installing missing runtime or browser dependencies), proceed without asking for additional confirmation.
 - When asked to execute multiple defined tasks, continue autonomously until all tasks are completed.
 - When idle, proactively run `$do-tasks` against `tmp/tasks.md`; continue autonomously for all doable items and ask only one consolidated question set for remaining blockers.
-- After creating a PR from a feature branch, always switch back to `main` (`git checkout main`) so subsequent work starts from the correct base.
 - If a blocker cannot be resolved in a reasonable time, stop and ask the user a focused question before proceeding.
+- Proactively update CLAUDE.md when you discover new patterns, conventions, or project-specific knowledge that would help future sessions.
 
 ## Product-to-Tasks Flow
 - Read `tmp/product.md`.
