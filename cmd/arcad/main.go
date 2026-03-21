@@ -81,7 +81,7 @@ func runUserMode(cfg arcad.Config) {
 	}()
 
 	go arcad.NewReadinessReporter(readinessChecker, controlPlaneClient, cfg.ReadyReportInterval).Run(ctx)
-	go arcad.NewLLMSyncer(controlPlaneClient, cfg.ShelleyPort, 5*time.Minute).Run(ctx)
+	go arcad.NewLLMSyncer(controlPlaneClient, cfg.ShelleyPort, 1*time.Minute).Run(ctx)
 
 	select {
 	case <-ctx.Done():
