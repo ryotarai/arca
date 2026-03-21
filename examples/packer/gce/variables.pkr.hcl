@@ -32,3 +32,14 @@ variable "source_image_project" {
   default     = "ubuntu-os-cloud"
   description = "Source image project"
 }
+
+variable "arca_server_url" {
+  type        = string
+  description = "Base URL of the Arca server (e.g., http://arca.example.com:8080)"
+}
+
+variable "arca_api_token" {
+  type        = string
+  sensitive   = true
+  description = "API token for authenticating with the Arca server"
+}
