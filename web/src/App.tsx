@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getAdminViewMode, getSetupStatus, logout, me } from '@/lib/api'
 import type { AdminViewMode, SetupStatus, User } from '@/lib/types'
 import { LoginPage } from '@/pages/LoginPage'
@@ -84,8 +85,12 @@ export function App() {
 
   if (loading) {
     return (
-      <main>
-        <p>Loading...</p>
+      <main className="flex min-h-dvh items-center justify-center">
+        <div className="space-y-3 w-64">
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-5 w-1/2" />
+        </div>
       </main>
     )
   }
