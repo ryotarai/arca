@@ -45,7 +45,7 @@ ALTER TABLE user_settings ADD COLUMN agent_prompt TEXT NOT NULL DEFAULT '';
 
 ### Settings APIs (existing RPCs extended)
 
-- **Global prompt**: `SetupState` message gains `string agent_prompt` field. Read/written via existing `GetSetupState` / settings update RPCs.
+- **Global prompt**: `SetupStatus` proto message gains `string agent_prompt` field. Read/written via existing `GetSetupStatus` / `UpdateDomainSettings` RPCs.
 - **Template prompt**: `MachineTemplateConfig` gains `string agent_prompt` field. Read/written via existing `CreateMachineTemplate` / `UpdateMachineTemplate`.
 - **User prompt**: `UserSettings` message gains `string agent_prompt` field. Read/written via existing `GetUserSettings` / `UpdateUserSettings`.
 
@@ -63,13 +63,13 @@ message GetMachineAgentGuidelineResponse {
 }
 ```
 
-No `machine_id` in the request — the machine is identified from the arcad session token.
+No `machine_id` in the request — the machine is identified from the machine token (`Authorization: Bearer` header + `X-Arca-Machine-ID` header), following the same authentication pattern as `ReportMachineReadiness` and `GetMachineLLMModels`.
 
 ## Server-Side Guideline Assembly
 
 The `GetMachineAgentGuideline` handler:
 
-1. Identifies the machine from the session token
+1. Identifies the machine from the machine token
 2. Loads `setup_state.agent_prompt` (global)
 3. Loads `template_config_json` from the machine record, extracts `agent_prompt` (template)
 4. Loads `user_settings.agent_prompt` for the machine owner (user)
@@ -95,13 +95,13 @@ A new periodic syncer in arcad user mode, following the same pattern as `LLMSync
 
 - **Interval**: 5 minutes (`AgentGuidelineSyncInterval`). First sync runs immediately on startup.
 - **Change detection**: SHA256 hash of the response. Only writes files when content has changed.
-- **Target files** (4 files, all in the arcad user's home directory):
-  - `~/.claude/CLAUDE.md`
-  - `~/.codex/AGENTS.md`
-  - `~/.gemini/GEMINI.md`
-  - `~/.config/AGENTS.md`
+- **Target files** (4 files, all in the interactive user's home directory — e.g., `/home/arcauser/`; the path is discovered via the `ARCA_INTERACTIVE_USER_HOME` environment variable):
+  - `$HOME/.claude/CLAUDE.md`
+  - `$HOME/.codex/AGENTS.md`
+  - `$HOME/.gemini/GEMINI.md`
+  - `$HOME/.config/AGENTS.md`
 - **Write method**: Reuses `replaceOrAppendMarkedSection()` with `ARCA:AGENT_GUIDELINE_START` / `ARCA:AGENT_GUIDELINE_END` markers. Content outside markers is preserved.
-- **Directory creation**: The syncer creates parent directories (`~/.claude/`, `~/.codex/`, etc.) if they don't exist.
+- **Directory creation**: The syncer creates parent directories (`.claude/`, `.codex/`, etc.) if they don't exist.
 
 ### Ansible agent_guidelines role removal
 
