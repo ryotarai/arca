@@ -53,6 +53,18 @@ func GetTemplateServerAPIURL(configJSON string) string {
 	return strings.TrimSpace(wrapper.ServerApiUrl)
 }
 
+// GetTemplateAgentPrompt extracts the agent prompt from a template config
+// JSON string. Returns empty string if not set.
+func GetTemplateAgentPrompt(configJSON string) string {
+	var wrapper struct {
+		AgentPrompt string `json:"agentPrompt,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(configJSON), &wrapper); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(wrapper.AgentPrompt)
+}
+
 // GetTemplateAutoStopTimeoutSeconds extracts the auto-stop timeout from a
 // template config JSON string. Returns 0 if not set (disabled).
 // The value may be stored as a JSON number or a quoted string (protobuf

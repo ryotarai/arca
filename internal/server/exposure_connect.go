@@ -11,6 +11,7 @@ import (
 	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
+	"github.com/ryotarai/arca/internal/machine"
 )
 
 type exposureConnectService struct {
@@ -319,4 +320,71 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 	}
 
 	return connect.NewResponse(&arcav1.GetMachineLLMModelsResponse{Models: items}), nil
+}
+
+func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, req *connect.Request[arcav1.GetMachineAgentGuidelineRequest]) (*connect.Response[arcav1.GetMachineAgentGuidelineResponse], error) {
+	if s.store == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("exposure service unavailable"))
+	}
+
+	// 1. Authenticate via machine token
+	machineToken := strings.TrimSpace(machineTokenFromHeader(req.Header()))
+	if machineToken == "" {
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine token is required"))
+	}
+	machineID, err := s.store.GetMachineIDByMachineToken(ctx, machineToken)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
+		}
+		log.Printf("get machine id by token failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
+	}
+
+	// 2. Get machine record (includes template_config_json)
+	m, err := s.store.GetMachineByID(ctx, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		log.Printf("get machine by id failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
+	}
+
+	// 3. Parse agentPrompt from template config JSON
+	templatePrompt := db.GetTemplateAgentPrompt(m.TemplateConfigJSON)
+
+	// 4. Get global agent prompt from setup state
+	setup, err := s.store.GetSetupState(ctx)
+	if err != nil {
+		log.Printf("get setup state failed: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
+	}
+	globalPrompt := setup.AgentPrompt
+
+	// 5. Get user agent prompt from machine owner
+	var userPrompt string
+	ownerUserID, err := s.store.GetMachineOwnerUserID(ctx, machineID)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			log.Printf("get machine owner failed: %v", err)
+		}
+		// No owner or error — continue with empty user prompt
+	} else {
+		userPrompt, err = s.store.GetUserAgentPrompt(ctx, ownerUserID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			log.Printf("get user agent prompt failed: %v", err)
+		}
+	}
+
+	// 6. Build endpoint URL
+	hostname := db.MachineHostname(setup.DomainPrefix, m.Name, setup.BaseDomain)
+	endpointURL := "https://" + hostname
+
+	// 7. Assemble and return
+	guideline := machine.AssembleAgentGuideline(endpointURL, globalPrompt, templatePrompt, userPrompt)
+
+	return connect.NewResponse(&arcav1.GetMachineAgentGuidelineResponse{
+		Guideline: guideline,
+	}), nil
 }
