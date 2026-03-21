@@ -36,26 +36,27 @@ const (
 )
 
 type Machine struct {
-	ID               string
-	Name             string
-	TemplateID        string
-	TemplateType      string
-	TemplateConfigJSON string
-	SetupVersion     string
-	OptionsJSON      string
-	CustomImageID    string
-	Status           string
-	DesiredStatus    string
-	ContainerID      string
-	LastError        string
-	Ready            bool
-	ReadyReportedAt  int64
-	ReadyReason      string
-	ArcadVersion     string
-	MachineToken     string
-	UserRole         string
-	LastActivityAt   int64
-	Tags             []string
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJSON string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJSON              string
+	CustomImageID            string
+	Status                   string
+	DesiredStatus            string
+	ContainerID              string
+	LastError                string
+	Ready                    bool
+	ReadyReportedAt          int64
+	ReadyReason              string
+	ArcadVersion             string
+	MachineToken             string
+	UserRole                 string
+	LastActivityAt           int64
+	Tags                     []string
 }
 
 const (
@@ -118,13 +119,13 @@ type MachineEventInput struct {
 var ErrMachineNameAlreadyExists = errors.New("machine name already exists")
 
 type CreateMachineOptions struct {
-	OptionsJSON    string
-	CustomImageID  string
-	TemplateType    string
-	TemplateConfigJSON string
+	OptionsJSON              string
+	CustomImageID            string
+	ProviderType             string
+	InfrastructureConfigJSON string
 }
 
-func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, templateID, setupVersion string, extra ...string) (Machine, error) {
+func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, profileID, setupVersion string, extra ...string) (Machine, error) {
 	opts := CreateMachineOptions{}
 	if len(extra) > 0 && extra[0] != "" {
 		opts.OptionsJSON = extra[0]
@@ -133,15 +134,15 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, templa
 		opts.CustomImageID = strings.TrimSpace(extra[1])
 	}
 	if len(extra) > 2 {
-		opts.TemplateType = strings.TrimSpace(extra[2])
+		opts.ProviderType = strings.TrimSpace(extra[2])
 	}
 	if len(extra) > 3 {
-		opts.TemplateConfigJSON = strings.TrimSpace(extra[3])
+		opts.InfrastructureConfigJSON = strings.TrimSpace(extra[3])
 	}
-	return s.createMachineWithOwnerOpts(ctx, userID, name, templateID, setupVersion, opts)
+	return s.createMachineWithOwnerOpts(ctx, userID, name, profileID, setupVersion, opts)
 }
 
-func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, templateID, setupVersion string, opts CreateMachineOptions) (Machine, error) {
+func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, profileID, setupVersion string, opts CreateMachineOptions) (Machine, error) {
 	machineID, err := randomID()
 	if err != nil {
 		return Machine{}, err
@@ -156,18 +157,19 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, te
 		return Machine{}, err
 	}
 	nowUnix := time.Now().Unix()
-	templateID = NormalizeMachineTemplate(templateID)
+	profileID = NormalizeMachineProfile(profileID)
 	setupVersion = strings.TrimSpace(setupVersion)
 	optionsJSON := opts.OptionsJSON
 	if optionsJSON == "" {
 		optionsJSON = "{}"
 	}
 	customImageID := opts.CustomImageID
-	templateType := opts.TemplateType
-	templateConfigJSON := opts.TemplateConfigJSON
-	if templateConfigJSON == "" {
-		templateConfigJSON = "{}"
+	providerType := opts.ProviderType
+	infrastructureConfigJSON := opts.InfrastructureConfigJSON
+	if infrastructureConfigJSON == "" {
+		infrastructureConfigJSON = "{}"
 	}
+	appliedBootConfigHash := computeBootConfigHash(infrastructureConfigJSON)
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -191,7 +193,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, te
 	switch s.driver {
 	case DriverSQLite:
 		q := s.sqliteQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, TemplateID: templateID, TemplateType: templateType, TemplateConfigJson: templateConfigJSON, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
+		if err = q.CreateMachine(ctx, sqlitesqlc.CreateMachineParams{ID: machineID, Name: name, ProfileID: profileID, ProviderType: providerType, InfrastructureConfigJson: infrastructureConfigJSON, AppliedBootConfigHash: appliedBootConfigHash, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -251,7 +253,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, te
 		}
 	case DriverPostgres:
 		q := s.pgQueries.WithTx(tx)
-		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, TemplateID: templateID, TemplateType: templateType, TemplateConfigJson: templateConfigJSON, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
+		if err = q.CreateMachine(ctx, postgresqlsqlc.CreateMachineParams{ID: machineID, Name: name, ProfileID: profileID, ProviderType: providerType, InfrastructureConfigJson: infrastructureConfigJSON, AppliedBootConfigHash: appliedBootConfigHash, SetupVersion: setupVersion, OptionsJson: optionsJSON, CustomImageID: customImageID}); err != nil {
 			if isMachineNameUniqueConstraintError(err) {
 				return Machine{}, ErrMachineNameAlreadyExists
 			}
@@ -318,17 +320,18 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, te
 	}
 
 	return Machine{
-		ID:               machineID,
-		Name:             name,
-		TemplateID:        templateID,
-		TemplateType:      templateType,
-		TemplateConfigJSON: templateConfigJSON,
-		SetupVersion:     setupVersion,
-		OptionsJSON:      optionsJSON,
-		CustomImageID:    customImageID,
-		Status:           MachineStatusPending,
-		DesiredStatus:    MachineDesiredRunning,
-		MachineToken:     machineToken,
+		ID:                       machineID,
+		Name:                     name,
+		ProfileID:                profileID,
+		ProviderType:             providerType,
+		InfrastructureConfigJSON: infrastructureConfigJSON,
+		AppliedBootConfigHash:    appliedBootConfigHash,
+		SetupVersion:             setupVersion,
+		OptionsJSON:              optionsJSON,
+		CustomImageID:            customImageID,
+		Status:                   MachineStatusPending,
+		DesiredStatus:            MachineDesiredRunning,
+		MachineToken:             machineToken,
 	}, nil
 }
 
@@ -348,23 +351,24 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				userRole = MachineRoleAdmin
 			}
 			machines = append(machines, Machine{
-				ID:               row.ID,
-				Name:             row.Name,
-				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-				TemplateType:      row.TemplateType,
-				TemplateConfigJSON: row.TemplateConfigJson,
-				SetupVersion:     strings.TrimSpace(row.SetupVersion),
-				OptionsJSON:      row.OptionsJson,
-				CustomImageID:    row.CustomImageID,
-				Status:           row.Status,
-				DesiredStatus:    row.DesiredStatus,
-				ContainerID:      row.ContainerID,
-				LastError:        row.LastError,
-				Ready:            row.Ready,
-				ReadyReportedAt:  row.ReadyReportedAt,
-				ReadyReason:      row.ReadyReason,
-				ArcadVersion:     row.ArcadVersion,
-				UserRole:         userRole,
+				ID:                       row.ID,
+				Name:                     row.Name,
+				ProfileID:                NormalizeMachineProfile(row.ProfileID),
+				ProviderType:             row.ProviderType,
+				InfrastructureConfigJSON: row.InfrastructureConfigJson,
+				AppliedBootConfigHash:    row.AppliedBootConfigHash,
+				SetupVersion:             strings.TrimSpace(row.SetupVersion),
+				OptionsJSON:              row.OptionsJson,
+				CustomImageID:            row.CustomImageID,
+				Status:                   row.Status,
+				DesiredStatus:            row.DesiredStatus,
+				ContainerID:              row.ContainerID,
+				LastError:                row.LastError,
+				Ready:                    row.Ready,
+				ReadyReportedAt:          row.ReadyReportedAt,
+				ReadyReason:              row.ReadyReason,
+				ArcadVersion:             row.ArcadVersion,
+				UserRole:                 userRole,
 			})
 		}
 		return machines, nil
@@ -382,23 +386,24 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				userRole = MachineRoleAdmin
 			}
 			machines = append(machines, Machine{
-				ID:               row.ID,
-				Name:             row.Name,
-				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-				TemplateType:      row.TemplateType,
-				TemplateConfigJSON: row.TemplateConfigJson,
-				SetupVersion:     strings.TrimSpace(row.SetupVersion),
-				OptionsJSON:      row.OptionsJson,
-				CustomImageID:    row.CustomImageID,
-				Status:           row.Status,
-				DesiredStatus:    row.DesiredStatus,
-				ContainerID:      row.ContainerID,
-				LastError:        row.LastError,
-				Ready:            row.Ready,
-				ReadyReportedAt:  row.ReadyReportedAt,
-				ReadyReason:      row.ReadyReason,
-				ArcadVersion:     row.ArcadVersion,
-				UserRole:         userRole,
+				ID:                       row.ID,
+				Name:                     row.Name,
+				ProfileID:                NormalizeMachineProfile(row.ProfileID),
+				ProviderType:             row.ProviderType,
+				InfrastructureConfigJSON: row.InfrastructureConfigJson,
+				AppliedBootConfigHash:    row.AppliedBootConfigHash,
+				SetupVersion:             strings.TrimSpace(row.SetupVersion),
+				OptionsJSON:              row.OptionsJson,
+				CustomImageID:            row.CustomImageID,
+				Status:                   row.Status,
+				DesiredStatus:            row.DesiredStatus,
+				ContainerID:              row.ContainerID,
+				LastError:                row.LastError,
+				Ready:                    row.Ready,
+				ReadyReportedAt:          row.ReadyReportedAt,
+				ReadyReason:              row.ReadyReason,
+				ArcadVersion:             row.ArcadVersion,
+				UserRole:                 userRole,
 			})
 		}
 		return machines, nil
@@ -450,6 +455,40 @@ func (s *Store) UpdateMachineOptionsByID(ctx context.Context, machineID, options
 		return updated > 0, err
 	default:
 		return false, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpdateMachineProfileID(ctx context.Context, machineID, profileID string) error {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateMachineProfileID(ctx, sqlitesqlc.UpdateMachineProfileIDParams{
+			ProfileID: profileID,
+			MachineID: machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateMachineProfileID(ctx, postgresqlsqlc.UpdateMachineProfileIDParams{
+			ProfileID: profileID,
+			MachineID: machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpdateMachineAppliedBootConfigHash(ctx context.Context, machineID, hash string) error {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateMachineAppliedBootConfigHash(ctx, sqlitesqlc.UpdateMachineAppliedBootConfigHashParams{
+			AppliedBootConfigHash: hash,
+			MachineID:             machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateMachineAppliedBootConfigHash(ctx, postgresqlsqlc.UpdateMachineAppliedBootConfigHashParams{
+			AppliedBootConfigHash: hash,
+			MachineID:             machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
 	}
 }
 
@@ -584,23 +623,24 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			return Machine{}, err
 		}
 		return Machine{
-			ID:               row.ID,
-			Name:             row.Name,
-			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-			TemplateType:      row.TemplateType,
-			TemplateConfigJSON: row.TemplateConfigJson,
-			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			OptionsJSON:      row.OptionsJson,
-			CustomImageID:    row.CustomImageID,
-			Status:           row.Status,
-			DesiredStatus:    row.DesiredStatus,
-			ContainerID:      row.ContainerID,
-			LastError:        row.LastError,
-			Ready:            row.Ready,
-			ReadyReportedAt:  row.ReadyReportedAt,
-			ReadyReason:      row.ReadyReason,
-			ArcadVersion:     row.ArcadVersion,
-			MachineToken:     row.MachineToken,
+			ID:                       row.ID,
+			Name:                     row.Name,
+			ProfileID:                NormalizeMachineProfile(row.ProfileID),
+			ProviderType:             row.ProviderType,
+			InfrastructureConfigJSON: row.InfrastructureConfigJson,
+			AppliedBootConfigHash:    row.AppliedBootConfigHash,
+			SetupVersion:             strings.TrimSpace(row.SetupVersion),
+			OptionsJSON:              row.OptionsJson,
+			CustomImageID:            row.CustomImageID,
+			Status:                   row.Status,
+			DesiredStatus:            row.DesiredStatus,
+			ContainerID:              row.ContainerID,
+			LastError:                row.LastError,
+			Ready:                    row.Ready,
+			ReadyReportedAt:          row.ReadyReportedAt,
+			ReadyReason:              row.ReadyReason,
+			ArcadVersion:             row.ArcadVersion,
+			MachineToken:             row.MachineToken,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByID(ctx, machineID)
@@ -608,23 +648,24 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			return Machine{}, err
 		}
 		return Machine{
-			ID:               row.ID,
-			Name:             row.Name,
-			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-			TemplateType:      row.TemplateType,
-			TemplateConfigJSON: row.TemplateConfigJson,
-			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			OptionsJSON:      row.OptionsJson,
-			CustomImageID:    row.CustomImageID,
-			Status:           row.Status,
-			DesiredStatus:    row.DesiredStatus,
-			ContainerID:      row.ContainerID,
-			LastError:        row.LastError,
-			Ready:            row.Ready,
-			ReadyReportedAt:  row.ReadyReportedAt,
-			ReadyReason:      row.ReadyReason,
-			ArcadVersion:     row.ArcadVersion,
-			MachineToken:     row.MachineToken,
+			ID:                       row.ID,
+			Name:                     row.Name,
+			ProfileID:                NormalizeMachineProfile(row.ProfileID),
+			ProviderType:             row.ProviderType,
+			InfrastructureConfigJSON: row.InfrastructureConfigJson,
+			AppliedBootConfigHash:    row.AppliedBootConfigHash,
+			SetupVersion:             strings.TrimSpace(row.SetupVersion),
+			OptionsJSON:              row.OptionsJson,
+			CustomImageID:            row.CustomImageID,
+			Status:                   row.Status,
+			DesiredStatus:            row.DesiredStatus,
+			ContainerID:              row.ContainerID,
+			LastError:                row.LastError,
+			Ready:                    row.Ready,
+			ReadyReportedAt:          row.ReadyReportedAt,
+			ReadyReason:              row.ReadyReason,
+			ArcadVersion:             row.ArcadVersion,
+			MachineToken:             row.MachineToken,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -642,22 +683,23 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			return Machine{}, err
 		}
 		return Machine{
-			ID:               row.ID,
-			Name:             row.Name,
-			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-			TemplateType:      row.TemplateType,
-			TemplateConfigJSON: row.TemplateConfigJson,
-			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			OptionsJSON:      row.OptionsJson,
-			CustomImageID:    row.CustomImageID,
-			Status:           row.Status,
-			DesiredStatus:    row.DesiredStatus,
-			ContainerID:      row.ContainerID,
-			LastError:        row.LastError,
-			Ready:            row.Ready,
-			ReadyReportedAt:  row.ReadyReportedAt,
-			ReadyReason:      row.ReadyReason,
-			ArcadVersion:     row.ArcadVersion,
+			ID:                       row.ID,
+			Name:                     row.Name,
+			ProfileID:                NormalizeMachineProfile(row.ProfileID),
+			ProviderType:             row.ProviderType,
+			InfrastructureConfigJSON: row.InfrastructureConfigJson,
+			AppliedBootConfigHash:    row.AppliedBootConfigHash,
+			SetupVersion:             strings.TrimSpace(row.SetupVersion),
+			OptionsJSON:              row.OptionsJson,
+			CustomImageID:            row.CustomImageID,
+			Status:                   row.Status,
+			DesiredStatus:            row.DesiredStatus,
+			ContainerID:              row.ContainerID,
+			LastError:                row.LastError,
+			Ready:                    row.Ready,
+			ReadyReportedAt:          row.ReadyReportedAt,
+			ReadyReason:              row.ReadyReason,
+			ArcadVersion:             row.ArcadVersion,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByIDForUser(ctx, postgresqlsqlc.GetMachineByIDForUserParams{
@@ -668,22 +710,23 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			return Machine{}, err
 		}
 		return Machine{
-			ID:               row.ID,
-			Name:             row.Name,
-			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-			TemplateType:      row.TemplateType,
-			TemplateConfigJSON: row.TemplateConfigJson,
-			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			OptionsJSON:      row.OptionsJson,
-			CustomImageID:    row.CustomImageID,
-			Status:           row.Status,
-			DesiredStatus:    row.DesiredStatus,
-			ContainerID:      row.ContainerID,
-			LastError:        row.LastError,
-			Ready:            row.Ready,
-			ReadyReportedAt:  row.ReadyReportedAt,
-			ReadyReason:      row.ReadyReason,
-			ArcadVersion:     row.ArcadVersion,
+			ID:                       row.ID,
+			Name:                     row.Name,
+			ProfileID:                NormalizeMachineProfile(row.ProfileID),
+			ProviderType:             row.ProviderType,
+			InfrastructureConfigJSON: row.InfrastructureConfigJson,
+			AppliedBootConfigHash:    row.AppliedBootConfigHash,
+			SetupVersion:             strings.TrimSpace(row.SetupVersion),
+			OptionsJSON:              row.OptionsJson,
+			CustomImageID:            row.CustomImageID,
+			Status:                   row.Status,
+			DesiredStatus:            row.DesiredStatus,
+			ContainerID:              row.ContainerID,
+			LastError:                row.LastError,
+			Ready:                    row.Ready,
+			ReadyReportedAt:          row.ReadyReportedAt,
+			ReadyReason:              row.ReadyReason,
+			ArcadVersion:             row.ArcadVersion,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -698,22 +741,23 @@ func (s *Store) GetMachineByName(ctx context.Context, name string) (Machine, err
 			return Machine{}, err
 		}
 		return Machine{
-			ID:               row.ID,
-			Name:             row.Name,
-			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-			TemplateType:      row.TemplateType,
-			TemplateConfigJSON: row.TemplateConfigJson,
-			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			OptionsJSON:      row.OptionsJson,
-			CustomImageID:    row.CustomImageID,
-			Status:           row.Status,
-			DesiredStatus:    row.DesiredStatus,
-			ContainerID:      row.ContainerID,
-			LastError:        row.LastError,
-			Ready:            row.Ready,
-			ReadyReportedAt:  row.ReadyReportedAt,
-			ReadyReason:      row.ReadyReason,
-			ArcadVersion:     row.ArcadVersion,
+			ID:                       row.ID,
+			Name:                     row.Name,
+			ProfileID:                NormalizeMachineProfile(row.ProfileID),
+			ProviderType:             row.ProviderType,
+			InfrastructureConfigJSON: row.InfrastructureConfigJson,
+			AppliedBootConfigHash:    row.AppliedBootConfigHash,
+			SetupVersion:             strings.TrimSpace(row.SetupVersion),
+			OptionsJSON:              row.OptionsJson,
+			CustomImageID:            row.CustomImageID,
+			Status:                   row.Status,
+			DesiredStatus:            row.DesiredStatus,
+			ContainerID:              row.ContainerID,
+			LastError:                row.LastError,
+			Ready:                    row.Ready,
+			ReadyReportedAt:          row.ReadyReportedAt,
+			ReadyReason:              row.ReadyReason,
+			ArcadVersion:             row.ArcadVersion,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByName(ctx, name)
@@ -721,22 +765,23 @@ func (s *Store) GetMachineByName(ctx context.Context, name string) (Machine, err
 			return Machine{}, err
 		}
 		return Machine{
-			ID:               row.ID,
-			Name:             row.Name,
-			TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-			TemplateType:      row.TemplateType,
-			TemplateConfigJSON: row.TemplateConfigJson,
-			SetupVersion:     strings.TrimSpace(row.SetupVersion),
-			OptionsJSON:      row.OptionsJson,
-			CustomImageID:    row.CustomImageID,
-			Status:           row.Status,
-			DesiredStatus:    row.DesiredStatus,
-			ContainerID:      row.ContainerID,
-			LastError:        row.LastError,
-			Ready:            row.Ready,
-			ReadyReportedAt:  row.ReadyReportedAt,
-			ReadyReason:      row.ReadyReason,
-			ArcadVersion:     row.ArcadVersion,
+			ID:                       row.ID,
+			Name:                     row.Name,
+			ProfileID:                NormalizeMachineProfile(row.ProfileID),
+			ProviderType:             row.ProviderType,
+			InfrastructureConfigJSON: row.InfrastructureConfigJson,
+			AppliedBootConfigHash:    row.AppliedBootConfigHash,
+			SetupVersion:             strings.TrimSpace(row.SetupVersion),
+			OptionsJSON:              row.OptionsJson,
+			CustomImageID:            row.CustomImageID,
+			Status:                   row.Status,
+			DesiredStatus:            row.DesiredStatus,
+			ContainerID:              row.ContainerID,
+			LastError:                row.LastError,
+			Ready:                    row.Ready,
+			ReadyReportedAt:          row.ReadyReportedAt,
+			ReadyReason:              row.ReadyReason,
+			ArcadVersion:             row.ArcadVersion,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -835,22 +880,23 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
 			machines = append(machines, Machine{
-				ID:               row.ID,
-				Name:             row.Name,
-				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-				TemplateType:      row.TemplateType,
-				TemplateConfigJSON: row.TemplateConfigJson,
-				OptionsJSON:      row.OptionsJson,
-				CustomImageID:    row.CustomImageID,
-				Status:           row.Status,
-				DesiredStatus:    row.DesiredStatus,
-				ContainerID:      row.ContainerID,
-				LastError:        row.LastError,
-				Ready:            row.Ready,
-				ReadyReportedAt:  row.ReadyReportedAt,
-				ReadyReason:      row.ReadyReason,
-				ArcadVersion:     row.ArcadVersion,
-				LastActivityAt:   row.LastActivityAt,
+				ID:                       row.ID,
+				Name:                     row.Name,
+				ProfileID:                NormalizeMachineProfile(row.ProfileID),
+				ProviderType:             row.ProviderType,
+				InfrastructureConfigJSON: row.InfrastructureConfigJson,
+				AppliedBootConfigHash:    row.AppliedBootConfigHash,
+				OptionsJSON:              row.OptionsJson,
+				CustomImageID:            row.CustomImageID,
+				Status:                   row.Status,
+				DesiredStatus:            row.DesiredStatus,
+				ContainerID:              row.ContainerID,
+				LastError:                row.LastError,
+				Ready:                    row.Ready,
+				ReadyReportedAt:          row.ReadyReportedAt,
+				ReadyReason:              row.ReadyReason,
+				ArcadVersion:             row.ArcadVersion,
+				LastActivityAt:           row.LastActivityAt,
 			})
 		}
 		return machines, nil
@@ -865,22 +911,23 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 		machines := make([]Machine, 0, len(rows))
 		for _, row := range rows {
 			machines = append(machines, Machine{
-				ID:               row.ID,
-				Name:             row.Name,
-				TemplateID:        NormalizeMachineTemplate(row.TemplateID),
-				TemplateType:      row.TemplateType,
-				TemplateConfigJSON: row.TemplateConfigJson,
-				OptionsJSON:      row.OptionsJson,
-				CustomImageID:    row.CustomImageID,
-				Status:           row.Status,
-				DesiredStatus:    row.DesiredStatus,
-				ContainerID:      row.ContainerID,
-				LastError:        row.LastError,
-				Ready:            row.Ready,
-				ReadyReportedAt:  row.ReadyReportedAt,
-				ReadyReason:      row.ReadyReason,
-				ArcadVersion:     row.ArcadVersion,
-				LastActivityAt:   row.LastActivityAt,
+				ID:                       row.ID,
+				Name:                     row.Name,
+				ProfileID:                NormalizeMachineProfile(row.ProfileID),
+				ProviderType:             row.ProviderType,
+				InfrastructureConfigJSON: row.InfrastructureConfigJson,
+				AppliedBootConfigHash:    row.AppliedBootConfigHash,
+				OptionsJSON:              row.OptionsJson,
+				CustomImageID:            row.CustomImageID,
+				Status:                   row.Status,
+				DesiredStatus:            row.DesiredStatus,
+				ContainerID:              row.ContainerID,
+				LastError:                row.LastError,
+				Ready:                    row.Ready,
+				ReadyReportedAt:          row.ReadyReportedAt,
+				ReadyReason:              row.ReadyReason,
+				ArcadVersion:             row.ArcadVersion,
+				LastActivityAt:           row.LastActivityAt,
 			})
 		}
 		return machines, nil

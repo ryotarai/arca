@@ -61,7 +61,7 @@ type MachineStore interface {
 	RequestDeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByID(context.Context, string) (bool, error)
-	GetMachineTemplateByID(context.Context, string) (db.MachineTemplate, error)
+	GetMachineProfileByID(context.Context, string) (db.MachineProfile, error)
 }
 
 const sessionCookieName = "arca_session"

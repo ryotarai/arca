@@ -271,7 +271,7 @@ func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines [
 			continue
 		}
 
-		timeout := db.GetTemplateAutoStopTimeoutSeconds(machine.TemplateConfigJSON)
+		timeout := db.GetProfileAutoStopTimeoutSeconds(machine.InfrastructureConfigJSON)
 		if timeout <= 0 {
 			slog.Debug("auto-stop skip: no timeout configured", "machine_id", machine.ID, "timeout", timeout)
 			continue
@@ -393,7 +393,7 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	controlPlaneURL := controlPlaneURLFromSetup(setup)
 	// Override control plane URL from machine's snapshotted runtime config
-	if override := db.GetTemplateServerAPIURL(machine.TemplateConfigJSON); override != "" {
+	if override := db.GetProfileServerAPIURL(machine.InfrastructureConfigJSON); override != "" {
 		controlPlaneURL = override
 	}
 	if controlPlaneURL == "" {

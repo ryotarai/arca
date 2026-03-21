@@ -271,6 +271,6 @@ func (s *machineStoreStub) DeleteMachineByID(context.Context, string) (bool, err
 	panic("DeleteMachineByID should not be called in this test")
 }
 
-func (s *machineStoreStub) GetMachineTemplateByID(context.Context, string) (db.MachineTemplate, error) {
-	panic("GetMachineTemplateByID should not be called in this test")
+func (s *machineStoreStub) GetMachineProfileByID(context.Context, string) (db.MachineProfile, error) {
+	panic("GetMachineProfileByID should not be called in this test")
 }

@@ -10,13 +10,13 @@ import (
 )
 
 type routingTemplateStoreStub struct {
-	entries map[string]db.MachineTemplate
+	entries map[string]db.MachineProfile
 }
 
-func (s *routingTemplateStoreStub) GetMachineTemplateByID(_ context.Context, templateID string) (db.MachineTemplate, error) {
-	entry, ok := s.entries[templateID]
+func (s *routingTemplateStoreStub) GetMachineProfileByID(_ context.Context, profileID string) (db.MachineProfile, error) {
+	entry, ok := s.entries[profileID]
 	if !ok {
-		return db.MachineTemplate{}, sql.ErrNoRows
+		return db.MachineProfile{}, sql.ErrNoRows
 	}
 	return entry, nil
 }
@@ -45,55 +45,55 @@ func (r *fakeRuntime) GetMachineInfo(context.Context, db.Machine) (*RuntimeMachi
 	return &RuntimeMachineInfo{}, nil
 }
 
-func TestRoutingTemplate_ResolvesCatalogTemplateIDsAcrossTypes(t *testing.T) {
+func TestRoutingTemplate_ResolvesCatalogProfileIDsAcrossTypes(t *testing.T) {
 	t.Parallel()
 
 	store := &routingTemplateStoreStub{
-		entries: map[string]db.MachineTemplate{
-			"rt-libvirt": {ID: "rt-libvirt", Type: db.TemplateTypeLibvirt, ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt"}}`},
-			"rt-gce":     {ID: "rt-gce", Type: db.TemplateTypeGCE, ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce"}}`},
+		entries: map[string]db.MachineProfile{
+			"rt-libvirt": {ID: "rt-libvirt", Type: db.ProviderTypeLibvirt, ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt"}}`},
+			"rt-gce":     {ID: "rt-gce", Type: db.ProviderTypeGCE, ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce"}}`},
 		},
 	}
 
 	routing := NewRoutingTemplateWithCatalog(store, map[string]Runtime{})
-	routing.factory = map[string]TemplateFactory{
-		db.TemplateTypeLibvirt: func(catalog db.MachineTemplate) (Runtime, error) {
-			return &fakeRuntime{name: "catalog-libvirt:" + catalog.ID}, nil
+	routing.factory = map[string]ProfileFactory{
+		db.ProviderTypeLibvirt: func(profile db.MachineProfile) (Runtime, error) {
+			return &fakeRuntime{name: "catalog-libvirt:" + profile.ID}, nil
 		},
-		db.TemplateTypeGCE: func(catalog db.MachineTemplate) (Runtime, error) {
-			return &fakeRuntime{name: "catalog-gce:" + catalog.ID}, nil
+		db.ProviderTypeGCE: func(profile db.MachineProfile) (Runtime, error) {
+			return &fakeRuntime{name: "catalog-gce:" + profile.ID}, nil
 		},
 	}
 
 	ctx := context.Background()
 
-	libvirtContainer, err := routing.EnsureRunning(ctx, db.Machine{ID: "machine-libvirt", TemplateID: "rt-libvirt"}, RuntimeStartOptions{})
+	libvirtContainer, err := routing.EnsureRunning(ctx, db.Machine{ID: "machine-libvirt", ProfileID: "rt-libvirt"}, RuntimeStartOptions{})
 	if err != nil {
-		t.Fatalf("ensure running libvirt catalog template: %v", err)
+		t.Fatalf("ensure running libvirt catalog profile: %v", err)
 	}
 	if libvirtContainer != "catalog-libvirt:rt-libvirt" {
 		t.Fatalf("catalog libvirt container id = %q, want %q", libvirtContainer, "catalog-libvirt:rt-libvirt")
 	}
 
-	gceContainer, err := routing.EnsureRunning(ctx, db.Machine{ID: "machine-gce", TemplateID: "rt-gce"}, RuntimeStartOptions{})
+	gceContainer, err := routing.EnsureRunning(ctx, db.Machine{ID: "machine-gce", ProfileID: "rt-gce"}, RuntimeStartOptions{})
 	if err != nil {
-		t.Fatalf("ensure running gce catalog template: %v", err)
+		t.Fatalf("ensure running gce catalog profile: %v", err)
 	}
 	if gceContainer != "catalog-gce:rt-gce" {
 		t.Fatalf("catalog gce container id = %q, want %q", gceContainer, "catalog-gce:rt-gce")
 	}
 }
 
-func TestRoutingTemplate_MissingCatalogTemplateFails(t *testing.T) {
+func TestRoutingTemplate_MissingCatalogProfileFails(t *testing.T) {
 	t.Parallel()
 
-	routing := NewRoutingTemplateWithCatalog(&routingTemplateStoreStub{entries: map[string]db.MachineTemplate{}}, map[string]Runtime{})
-	_, _, err := routing.IsRunning(context.Background(), db.Machine{ID: "machine-missing", TemplateID: "rt-missing"})
+	routing := NewRoutingTemplateWithCatalog(&routingTemplateStoreStub{entries: map[string]db.MachineProfile{}}, map[string]Runtime{})
+	_, _, err := routing.IsRunning(context.Background(), db.Machine{ID: "machine-missing", ProfileID: "rt-missing"})
 	if err == nil {
-		t.Fatalf("expected missing template lookup to fail")
+		t.Fatalf("expected missing profile lookup to fail")
 	}
 	if !strings.Contains(err.Error(), "not found") {
-		t.Fatalf("error = %q, want template not found", err.Error())
+		t.Fatalf("error = %q, want profile not found", err.Error())
 	}
 }
 
@@ -101,17 +101,17 @@ func TestRoutingTemplate_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 	t.Parallel()
 
 	store := &routingTemplateStoreStub{
-		entries: map[string]db.MachineTemplate{
-			"rt-lxd": {ID: "rt-lxd", Type: db.TemplateTypeLXD, ConfigJSON: `{"lxd":{"endpoint":"http://old-host:8443","startupScript":"echo old"}}`},
+		entries: map[string]db.MachineProfile{
+			"rt-lxd": {ID: "rt-lxd", Type: db.ProviderTypeLXD, ConfigJSON: `{"lxd":{"endpoint":"http://old-host:8443","startupScript":"echo old"}}`},
 		},
 	}
 
-	factoryCalls := make(map[string]string) // templateID -> configJSON used
+	factoryCalls := make(map[string]string) // profileID -> configJSON used
 	routing := NewRoutingTemplateWithCatalog(store, map[string]Runtime{})
-	routing.factory = map[string]TemplateFactory{
-		db.TemplateTypeLXD: func(catalog db.MachineTemplate) (Runtime, error) {
-			factoryCalls[catalog.ID] = catalog.ConfigJSON
-			return &fakeRuntime{name: "lxd:" + catalog.ID}, nil
+	routing.factory = map[string]ProfileFactory{
+		db.ProviderTypeLXD: func(profile db.MachineProfile) (Runtime, error) {
+			factoryCalls[profile.ID] = profile.ConfigJSON
+			return &fakeRuntime{name: "lxd:" + profile.ID}, nil
 		},
 	}
 
@@ -120,10 +120,10 @@ func TestRoutingTemplate_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 	// Machine with snapshotted config should use it instead of catalog
 	snapshotConfig := `{"lxd":{"endpoint":"http://snapshot-host:8443","startupScript":"echo snapshot"}}`
 	_, err := routing.EnsureRunning(ctx, db.Machine{
-		ID:                "machine-snap",
-		TemplateID:         "rt-lxd",
-		TemplateType:       db.TemplateTypeLXD,
-		TemplateConfigJSON: snapshotConfig,
+		ID:                       "machine-snap",
+		ProfileID:                "rt-lxd",
+		ProviderType:             db.ProviderTypeLXD,
+		InfrastructureConfigJSON: snapshotConfig,
 	}, RuntimeStartOptions{})
 	if err != nil {
 		t.Fatalf("ensure running with snapshot: %v", err)
@@ -136,7 +136,7 @@ func TestRoutingTemplate_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 	delete(factoryCalls, "rt-lxd")
 	_, err = routing.EnsureRunning(ctx, db.Machine{
 		ID:        "machine-no-snap",
-		TemplateID: "rt-lxd",
+		ProfileID: "rt-lxd",
 	}, RuntimeStartOptions{})
 	if err != nil {
 		t.Fatalf("ensure running without snapshot: %v", err)
@@ -147,16 +147,16 @@ func TestRoutingTemplate_UsesSnapshotConfigWhenAvailable(t *testing.T) {
 	}
 }
 
-func TestTemplateFromConfig_StartupScriptIsPropagated(t *testing.T) {
+func TestProfileFromConfig_StartupScriptIsPropagated(t *testing.T) {
 	t.Parallel()
 
-	libvirtRuntime, err := templateFromLibvirtConfig(db.MachineTemplate{
+	libvirtRuntime, err := profileFromLibvirtConfig(db.MachineProfile{
 		ID:         "rt-libvirt",
-		Type:       db.TemplateTypeLibvirt,
+		Type:       db.ProviderTypeLibvirt,
 		ConfigJSON: `{"libvirt":{"uri":"qemu:///custom","network":"custom-net","storagePool":"custom-pool","startupScript":"echo libvirt startup"}}`,
 	})
 	if err != nil {
-		t.Fatalf("templateFromLibvirtConfig: %v", err)
+		t.Fatalf("profileFromLibvirtConfig: %v", err)
 	}
 	libvirtImpl, ok := libvirtRuntime.(*LibvirtRuntime)
 	if !ok {
@@ -166,13 +166,13 @@ func TestTemplateFromConfig_StartupScriptIsPropagated(t *testing.T) {
 		t.Fatalf("libvirt startup script = %q", libvirtImpl.startupScript)
 	}
 
-	gceRuntime, err := templateFromGceConfig(db.MachineTemplate{
+	gceRuntime, err := profileFromGceConfig(db.MachineProfile{
 		ID:         "rt-gce",
-		Type:       db.TemplateTypeGCE,
+		Type:       db.ProviderTypeGCE,
 		ConfigJSON: `{"gce":{"project":"p","zone":"z","network":"n","subnetwork":"s","serviceAccountEmail":"svc@example.iam.gserviceaccount.com","startupScript":"echo gce startup"}}`,
 	})
 	if err != nil {
-		t.Fatalf("templateFromGceConfig: %v", err)
+		t.Fatalf("profileFromGceConfig: %v", err)
 	}
 	gceImpl, ok := gceRuntime.(*GceRuntime)
 	if !ok {

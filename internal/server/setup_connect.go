@@ -332,7 +332,7 @@ func validateDomainPrefix(prefix string) (string, error) {
 }
 
 func normalizeMachineRuntime(runtime string) string {
-	return db.NormalizeMachineTemplate(runtime)
+	return db.NormalizeMachineProfile(runtime)
 }
 
 func validateOIDCIssuerURL(raw string) (string, error) {

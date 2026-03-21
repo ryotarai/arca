@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/version"
 )
 
@@ -18,7 +19,11 @@ func TestArcadVersionHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
-	machine, err := store.CreateMachineWithOwner(ctx, userID, "version-test", "libvirt", "v1")
+	profile, err := store.CreateMachineProfile(ctx, "test-profile", db.ProviderTypeLibvirt, `{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}`)
+	if err != nil {
+		t.Fatalf("create profile: %v", err)
+	}
+	machine, err := store.CreateMachineWithOwner(ctx, userID, "version-test", profile.ID, "v1")
 	if err != nil {
 		t.Fatalf("create machine: %v", err)
 	}

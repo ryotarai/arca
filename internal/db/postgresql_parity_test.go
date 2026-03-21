@@ -94,11 +94,17 @@ func TestStoreParityCoreWorkflows(t *testing.T) {
 				t.Fatalf("unexpected oidc setup state: %+v", setup)
 			}
 
-			created, err := store.CreateMachineWithOwner(ctx, userID, "machine-one", "libvirt", "v1")
+			// Create a profile first (required FK for machines.profile_id)
+			profile, err := store.CreateMachineProfile(ctx, "test-profile", ProviderTypeLibvirt, `{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}`)
+			if err != nil {
+				t.Fatalf("create profile: %v", err)
+			}
+
+			created, err := store.CreateMachineWithOwner(ctx, userID, "machine-one", profile.ID, "v1")
 			if err != nil {
 				t.Fatalf("create machine: %v", err)
 			}
-			if _, err := store.CreateMachineWithOwner(ctx, userID, "machine-one", "libvirt", "v1"); !errors.Is(err, ErrMachineNameAlreadyExists) {
+			if _, err := store.CreateMachineWithOwner(ctx, userID, "machine-one", profile.ID, "v1"); !errors.Is(err, ErrMachineNameAlreadyExists) {
 				t.Fatalf("expected duplicate name error, got %v", err)
 			}
 

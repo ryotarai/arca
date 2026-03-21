@@ -10,40 +10,40 @@ const (
 	MachineExposureMethodProxyViaServer = "proxy_via_server"
 )
 
-// TemplateExposureConfig represents the exposure configuration stored
-// inside a machine template's config_json.
-type TemplateExposureConfig struct {
+// ProfileExposureConfig represents the exposure configuration stored
+// inside a machine profile's config_json.
+type ProfileExposureConfig struct {
 	Method       string `json:"method,omitempty"`
 	Connectivity string `json:"connectivity,omitempty"`
 }
 
-// GetTemplateExposureMethod extracts the machine exposure method from
-// a template config JSON string. Always returns proxy_via_server.
-func GetTemplateExposureMethod(configJSON string) string {
+// GetProfileExposureMethod extracts the machine exposure method from
+// a profile config JSON string. Always returns proxy_via_server.
+func GetProfileExposureMethod(configJSON string) string {
 	return MachineExposureMethodProxyViaServer
 }
 
-// GetTemplateExposureConfig extracts the exposure config from a template
+// GetProfileExposureConfig extracts the exposure config from a profile
 // config JSON string. The exposure config is stored in the "exposure" key.
-func GetTemplateExposureConfig(configJSON string) TemplateExposureConfig {
+func GetProfileExposureConfig(configJSON string) ProfileExposureConfig {
 	var wrapper struct {
-		Exposure TemplateExposureConfig `json:"exposure"`
+		Exposure ProfileExposureConfig `json:"exposure"`
 	}
 	if err := json.Unmarshal([]byte(configJSON), &wrapper); err != nil {
-		return TemplateExposureConfig{}
+		return ProfileExposureConfig{}
 	}
 	return wrapper.Exposure
 }
 
-// GetTemplateConnectivity extracts the connectivity setting from a template
+// GetProfileConnectivity extracts the connectivity setting from a profile
 // config JSON string. Returns empty string if not set.
-func GetTemplateConnectivity(configJSON string) string {
-	return strings.TrimSpace(GetTemplateExposureConfig(configJSON).Connectivity)
+func GetProfileConnectivity(configJSON string) string {
+	return strings.TrimSpace(GetProfileExposureConfig(configJSON).Connectivity)
 }
 
-// GetTemplateServerAPIURL extracts the server API URL override from a template
+// GetProfileServerAPIURL extracts the server API URL override from a profile
 // config JSON string. Returns empty string if not set.
-func GetTemplateServerAPIURL(configJSON string) string {
+func GetProfileServerAPIURL(configJSON string) string {
 	var wrapper struct {
 		ServerApiUrl string `json:"serverApiUrl,omitempty"`
 	}
@@ -53,9 +53,9 @@ func GetTemplateServerAPIURL(configJSON string) string {
 	return strings.TrimSpace(wrapper.ServerApiUrl)
 }
 
-// GetTemplateAgentPrompt extracts the agent prompt from a template config
+// GetProfileAgentPrompt extracts the agent prompt from a profile config
 // JSON string. Returns empty string if not set.
-func GetTemplateAgentPrompt(configJSON string) string {
+func GetProfileAgentPrompt(configJSON string) string {
 	var wrapper struct {
 		AgentPrompt string `json:"agentPrompt,omitempty"`
 	}
@@ -65,11 +65,11 @@ func GetTemplateAgentPrompt(configJSON string) string {
 	return strings.TrimSpace(wrapper.AgentPrompt)
 }
 
-// GetTemplateAutoStopTimeoutSeconds extracts the auto-stop timeout from a
-// template config JSON string. Returns 0 if not set (disabled).
+// GetProfileAutoStopTimeoutSeconds extracts the auto-stop timeout from a
+// profile config JSON string. Returns 0 if not set (disabled).
 // The value may be stored as a JSON number or a quoted string (protobuf
 // encodes int64 as string), so we accept both forms.
-func GetTemplateAutoStopTimeoutSeconds(configJSON string) int64 {
+func GetProfileAutoStopTimeoutSeconds(configJSON string) int64 {
 	var wrapper struct {
 		AutoStopTimeoutSeconds json.Number `json:"autoStopTimeoutSeconds,omitempty"`
 	}

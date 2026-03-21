@@ -18,7 +18,11 @@ func TestReportMachineReadiness_AcceptsWhenDesiredRunning(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register owner: %v", err)
 	}
-	machine, err := store.CreateMachineWithOwner(ctx, userID, "ready-machine", "libvirt", "v1")
+	profile, err := store.CreateMachineProfile(ctx, "test-profile", db.ProviderTypeLibvirt, `{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}`)
+	if err != nil {
+		t.Fatalf("create profile: %v", err)
+	}
+	machine, err := store.CreateMachineWithOwner(ctx, userID, "ready-machine", profile.ID, "v1")
 	if err != nil {
 		t.Fatalf("create machine: %v", err)
 	}
@@ -64,7 +68,11 @@ func TestReportMachineReadiness_StoresArcadVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register owner: %v", err)
 	}
-	machine, err := store.CreateMachineWithOwner(ctx, userID, "version-machine", "libvirt", "v1")
+	profile, err := store.CreateMachineProfile(ctx, "test-profile", db.ProviderTypeLibvirt, `{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}`)
+	if err != nil {
+		t.Fatalf("create profile: %v", err)
+	}
+	machine, err := store.CreateMachineWithOwner(ctx, userID, "version-machine", profile.ID, "v1")
 	if err != nil {
 		t.Fatalf("create machine: %v", err)
 	}
@@ -120,7 +128,11 @@ func TestReportMachineReadiness_RejectsReadyWhenDesiredStopped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("register owner: %v", err)
 	}
-	machine, err := store.CreateMachineWithOwner(ctx, userID, "ready-stop-machine", "libvirt", "v1")
+	profile, err := store.CreateMachineProfile(ctx, "test-profile", db.ProviderTypeLibvirt, `{"libvirt":{"uri":"qemu:///system","network":"default","storagePool":"default"}}`)
+	if err != nil {
+		t.Fatalf("create profile: %v", err)
+	}
+	machine, err := store.CreateMachineWithOwner(ctx, userID, "ready-stop-machine", profile.ID, "v1")
 	if err != nil {
 		t.Fatalf("create machine: %v", err)
 	}

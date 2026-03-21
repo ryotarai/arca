@@ -34,7 +34,7 @@ func (s *machineTemplateConnectService) ListMachineTemplates(ctx context.Context
 		return nil, err
 	}
 
-	templates, err := s.store.ListMachineTemplates(ctx)
+	templates, err := s.store.ListMachineProfiles(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "list templates failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list templates"))
@@ -70,9 +70,9 @@ func (s *machineTemplateConnectService) CreateMachineTemplate(ctx context.Contex
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to save template"))
 	}
 
-	template, err := s.store.CreateMachineTemplate(ctx, validated.name, validated.templateType, configJSON)
+	template, err := s.store.CreateMachineProfile(ctx, validated.name, validated.templateType, configJSON)
 	if err != nil {
-		if errors.Is(err, db.ErrTemplateNameAlreadyExists) {
+		if errors.Is(err, db.ErrProfileNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("template name already exists"))
 		}
 		slog.ErrorContext(ctx, "create template failed", "error", err)
@@ -112,9 +112,9 @@ func (s *machineTemplateConnectService) UpdateMachineTemplate(ctx context.Contex
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update template"))
 	}
 
-	template, updated, err := s.store.UpdateMachineTemplateByID(ctx, templateID, validated.name, validated.templateType, configJSON)
+	template, updated, err := s.store.UpdateMachineProfileByID(ctx, templateID, validated.name, validated.templateType, configJSON)
 	if err != nil {
-		if errors.Is(err, db.ErrTemplateNameAlreadyExists) {
+		if errors.Is(err, db.ErrProfileNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("template name already exists"))
 		}
 		slog.ErrorContext(ctx, "update template failed", "error", err)
@@ -148,13 +148,13 @@ func (s *machineTemplateConnectService) DeleteMachineTemplate(ctx context.Contex
 
 	// Fetch name before deletion for audit log
 	var templateName string
-	if rt, rtErr := s.store.GetMachineTemplateByID(ctx, templateID); rtErr == nil {
+	if rt, rtErr := s.store.GetMachineProfileByID(ctx, templateID); rtErr == nil {
 		templateName = rt.Name
 	}
 
-	deleted, err := s.store.DeleteMachineTemplateByID(ctx, templateID)
+	deleted, err := s.store.DeleteMachineProfileByID(ctx, templateID)
 	if err != nil {
-		if errors.Is(err, db.ErrTemplateInUse) {
+		if errors.Is(err, db.ErrProfileInUse) {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("template is used by existing machines"))
 		}
 		slog.ErrorContext(ctx, "delete template failed", "error", err)
@@ -174,7 +174,7 @@ func (s *machineTemplateConnectService) ListAvailableMachineTemplates(ctx contex
 		return nil, err
 	}
 
-	templates, err := s.store.ListMachineTemplates(ctx)
+	templates, err := s.store.ListMachineProfiles(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "list available templates failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list templates"))
@@ -297,7 +297,7 @@ func validateTemplateRequest(name string, templateType arcav1.MachineTemplateTyp
 		}
 		return validatedTemplateRequest{
 			name:         normalizedName,
-			templateType: db.TemplateTypeLibvirt,
+			templateType: db.ProviderTypeLibvirt,
 			config: &arcav1.MachineTemplateConfig{
 				Provider: &arcav1.MachineTemplateConfig_Libvirt{
 					Libvirt: &arcav1.LibvirtTemplateConfig{
@@ -336,7 +336,7 @@ func validateTemplateRequest(name string, templateType arcav1.MachineTemplateTyp
 		}
 		return validatedTemplateRequest{
 			name:         normalizedName,
-			templateType: db.TemplateTypeGCE,
+			templateType: db.ProviderTypeGCE,
 			config: &arcav1.MachineTemplateConfig{
 				Provider: &arcav1.MachineTemplateConfig_Gce{
 					Gce: &arcav1.GceTemplateConfig{
@@ -370,7 +370,7 @@ func validateTemplateRequest(name string, templateType arcav1.MachineTemplateTyp
 		}
 		return validatedTemplateRequest{
 			name:         normalizedName,
-			templateType: db.TemplateTypeLXD,
+			templateType: db.ProviderTypeLXD,
 			config: &arcav1.MachineTemplateConfig{
 				Provider: &arcav1.MachineTemplateConfig_Lxd{
 					Lxd: &arcav1.LxdTemplateConfig{
@@ -406,7 +406,7 @@ func marshalTemplateConfigJSON(config *arcav1.MachineTemplateConfig) (string, er
 	return string(data), nil
 }
 
-func toTemplateMessage(template db.MachineTemplate) (*arcav1.MachineTemplate, error) {
+func toTemplateMessage(template db.MachineProfile) (*arcav1.MachineTemplate, error) {
 	templateType, err := templateTypeFromDB(template.Type)
 	if err != nil {
 		return nil, err
@@ -431,11 +431,11 @@ func toTemplateMessage(template db.MachineTemplate) (*arcav1.MachineTemplate, er
 
 func templateTypeFromDB(templateType string) (arcav1.MachineTemplateType, error) {
 	switch strings.ToLower(strings.TrimSpace(templateType)) {
-	case db.TemplateTypeLibvirt:
+	case db.ProviderTypeLibvirt:
 		return arcav1.MachineTemplateType_MACHINE_TEMPLATE_TYPE_LIBVIRT, nil
-	case db.TemplateTypeGCE:
+	case db.ProviderTypeGCE:
 		return arcav1.MachineTemplateType_MACHINE_TEMPLATE_TYPE_GCE, nil
-	case db.TemplateTypeLXD:
+	case db.ProviderTypeLXD:
 		return arcav1.MachineTemplateType_MACHINE_TEMPLATE_TYPE_LXD, nil
 	default:
 		return arcav1.MachineTemplateType_MACHINE_TEMPLATE_TYPE_UNSPECIFIED, errors.New("unknown template type")

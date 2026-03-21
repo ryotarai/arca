@@ -148,7 +148,7 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 	}
 
 	// Snapshot template config at creation time
-	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	tmpl, err := s.store.GetMachineProfileByID(ctx, templateID)
 	if err != nil {
 		slog.ErrorContext(ctx, "get template for snapshot failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
@@ -258,7 +258,7 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 
 	// Validate machine_type if provided
 	if machineType := strings.TrimSpace(options["machine_type"]); machineType != "" {
-		if err := s.validateMachineType(ctx, machine.TemplateID, machineType); err != nil {
+		if err := s.validateMachineType(ctx, machine.ProfileID, machineType); err != nil {
 			return nil, err
 		}
 	}
@@ -361,7 +361,7 @@ func (s *machineConnectService) validateTemplateExists(ctx context.Context, temp
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("template id is required"))
 	}
 
-	_, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	_, err := s.store.GetMachineProfileByID(ctx, templateID)
 	if err == nil {
 		return nil
 	}
@@ -617,18 +617,18 @@ func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.M
 		Status:        machine.Status,
 		DesiredStatus: machine.DesiredStatus,
 		LastError:     machine.LastError,
-		TemplateId:    machine.TemplateID,
+		TemplateId:    machine.ProfileID,
 		UpdateRequired:  machineUpdateRequired(machine),
 		Ready:           machine.Ready,
 		ReadyReportedAt: machine.ReadyReportedAt,
 		UserRole:        machine.UserRole,
 		ArcadVersion:    machine.ArcadVersion,
 		Options:         parseMachineOptions(machine.OptionsJSON),
-		TemplateType:    machine.TemplateType,
+		TemplateType:    machine.ProviderType,
 		Tags:            machine.Tags,
 	}
 	if includeConfig {
-		msg.TemplateConfigJson = machine.TemplateConfigJSON
+		msg.TemplateConfigJson = machine.InfrastructureConfigJSON
 	}
 	return msg
 }
@@ -709,11 +709,11 @@ func (s *machineConnectService) validateCustomImage(ctx context.Context, templat
 	}
 
 	// Verify template type matches
-	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	tmpl, err := s.store.GetMachineProfileByID(ctx, templateID)
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
 	}
-	if strings.ToLower(tmpl.Type) != strings.ToLower(img.TemplateType) {
+	if strings.ToLower(tmpl.Type) != strings.ToLower(img.ProviderType) {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image type does not match template"))
 	}
 
@@ -721,7 +721,7 @@ func (s *machineConnectService) validateCustomImage(ctx context.Context, templat
 }
 
 func (s *machineConnectService) validateMachineType(ctx context.Context, templateID, machineType string) error {
-	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	tmpl, err := s.store.GetMachineProfileByID(ctx, templateID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found"))
