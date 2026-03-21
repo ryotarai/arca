@@ -73,15 +73,23 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var claims *ArcadSessionClaims
 	if !exposure.Public || isOwnerOnlyArcaPath(r.URL.Path) {
 		if r.URL.Path == callbackPath {
 			p.handleTicketCallback(w, r, host)
 			return
 		}
-		if !p.isAuthenticated(r.Context(), r, host) {
+		c, ok := p.authenticatedClaims(r.Context(), r, host)
+		if !ok {
 			redirectTarget := callbackTargetURL(r)
 			http.Redirect(w, r, p.controlPlane.AuthorizeURL(redirectTarget), http.StatusFound)
 			return
+		}
+		claims = &c
+	} else {
+		// Public exposure: try to resolve user claims if a session cookie is present.
+		if c, ok := p.authenticatedClaims(r.Context(), r, host); ok {
+			claims = &c
 		}
 	}
 
@@ -92,6 +100,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if target == p.shelley {
 		proxy.ModifyResponse = rewriteShelleyHTMLResponse
+	}
+	origDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		origDirector(req)
+		setUserHeaders(req, claims)
 	}
 	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, err error) {
 		log.Printf("reverse proxy error for host %q target %q: %v", host, target, err)
@@ -177,29 +190,40 @@ func (p *Proxy) handleTicketCallback(w http.ResponseWriter, r *http.Request, hos
 	http.Redirect(w, r, nextPath, http.StatusFound)
 }
 
-func (p *Proxy) isAuthenticated(ctx context.Context, r *http.Request, host string) bool {
+func (p *Proxy) authenticatedClaims(ctx context.Context, r *http.Request, host string) (ArcadSessionClaims, bool) {
 	cookie, err := r.Cookie(p.sessionCookie)
 	if err != nil {
-		return false
+		return ArcadSessionClaims{}, false
 	}
 	sessionID := strings.TrimSpace(cookie.Value)
 	if sessionID == "" {
-		return false
+		return ArcadSessionClaims{}, false
 	}
 	ownerOnlyArca := isOwnerOnlyArcaPath(r.URL.Path)
-	if p.sessionCache.IsValid(sessionID, host, ownerOnlyArca) {
-		return true
+	if cached, ok := p.sessionCache.GetClaims(sessionID, host, ownerOnlyArca); ok {
+		return cached, true
 	}
-	if _, err := p.controlPlane.ValidateArcadSession(ctx, host, r.URL.Path, sessionID); err != nil {
+	claims, err := p.controlPlane.ValidateArcadSession(ctx, host, r.URL.Path, sessionID)
+	if err != nil {
 		if errors.Is(err, ErrInvalidSession) {
 			p.sessionCache.Invalidate(sessionID, host)
-			return false
+			return ArcadSessionClaims{}, false
 		}
 		log.Printf("session validation failed for host %q: %v", host, err)
-		return false
+		return ArcadSessionClaims{}, false
 	}
-	p.sessionCache.MarkValid(sessionID, host, ownerOnlyArca)
-	return true
+	p.sessionCache.MarkValid(sessionID, host, ownerOnlyArca, claims)
+	return claims, true
+}
+
+func setUserHeaders(req *http.Request, claims *ArcadSessionClaims) {
+	if claims != nil {
+		req.Header.Set("X-Arca-User-Id", claims.UserID)
+		req.Header.Set("X-Arca-User-Email", claims.UserEmail)
+	} else {
+		req.Header.Del("X-Arca-User-Id")
+		req.Header.Del("X-Arca-User-Email")
+	}
 }
 
 func callbackTargetURL(r *http.Request) string {

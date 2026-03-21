@@ -13,6 +13,7 @@ type sessionValidationCacheKey struct {
 
 type sessionValidationCacheEntry struct {
 	expiresAt time.Time
+	claims    ArcadSessionClaims
 }
 
 type SessionValidationCache struct {
@@ -45,13 +46,28 @@ func (c *SessionValidationCache) IsValid(sessionID, host string, ownerOnlyArca b
 	return ok && now.Before(entry.expiresAt)
 }
 
-func (c *SessionValidationCache) MarkValid(sessionID, host string, ownerOnlyArca bool) {
+func (c *SessionValidationCache) GetClaims(sessionID, host string, ownerOnlyArca bool) (ArcadSessionClaims, bool) {
+	if c == nil {
+		return ArcadSessionClaims{}, false
+	}
+	key := sessionValidationCacheKey{sessionID: sessionID, host: host, ownerOnlyArca: ownerOnlyArca}
+	now := c.now()
+	c.mu.RLock()
+	entry, ok := c.items[key]
+	c.mu.RUnlock()
+	if !ok || !now.Before(entry.expiresAt) {
+		return ArcadSessionClaims{}, false
+	}
+	return entry.claims, true
+}
+
+func (c *SessionValidationCache) MarkValid(sessionID, host string, ownerOnlyArca bool, claims ArcadSessionClaims) {
 	if c == nil {
 		return
 	}
 	key := sessionValidationCacheKey{sessionID: sessionID, host: host, ownerOnlyArca: ownerOnlyArca}
 	c.mu.Lock()
-	c.items[key] = sessionValidationCacheEntry{expiresAt: c.now().Add(c.ttl)}
+	c.items[key] = sessionValidationCacheEntry{expiresAt: c.now().Add(c.ttl), claims: claims}
 	c.mu.Unlock()
 }
 
