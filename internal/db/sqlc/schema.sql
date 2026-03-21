@@ -37,8 +37,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   token_hash TEXT NOT NULL UNIQUE,
   expires_at BIGINT NOT NULL,
   revoked_at TIMESTAMP,
-  impersonated_user_id TEXT DEFAULT NULL,
-  impersonated_by_user_id TEXT DEFAULT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -305,5 +303,11 @@ CREATE TABLE IF NOT EXISTS server_llm_models (
   token_command TEXT NOT NULL,
   max_context_tokens INTEGER NOT NULL DEFAULT 0,
   created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS admin_view_mode (
+  user_id TEXT PRIMARY KEY NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'admin',
   updated_at BIGINT NOT NULL
 );

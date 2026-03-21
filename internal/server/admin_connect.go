@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"errors"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/ryotarai/arca/internal/auth"
 	"github.com/ryotarai/arca/internal/db"
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
@@ -27,93 +27,42 @@ func newAdminConnectService(store *db.Store, authenticator Authenticator) *admin
 	return &adminConnectService{store: store, authenticator: authenticator}
 }
 
-func (s *adminConnectService) StartImpersonation(ctx context.Context, req *connect.Request[arcav1.StartImpersonationRequest]) (*connect.Response[arcav1.StartImpersonationResponse], error) {
-	adminUserID, sessionToken, err := s.authenticateAdminWithToken(ctx, req.Header())
+func (s *adminConnectService) SetAdminViewMode(ctx context.Context, req *connect.Request[arcav1.SetAdminViewModeRequest]) (*connect.Response[arcav1.SetAdminViewModeResponse], error) {
+	result, err := s.authenticateActualAdmin(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
-
-	targetUserID := strings.TrimSpace(req.Msg.GetUserId())
-	if targetUserID == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("user_id is required"))
+	mode := req.Msg.GetMode()
+	if mode != "admin" && mode != "user" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("mode must be 'admin' or 'user'"))
 	}
-
-	if targetUserID == adminUserID {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cannot impersonate yourself"))
+	if err := s.store.SetAdminViewMode(ctx, result.UserID, mode, time.Now().Unix()); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	return connect.NewResponse(&arcav1.SetAdminViewModeResponse{}), nil
+}
 
-	// Verify target user exists
-	targetUser, err := s.store.GetUserByID(ctx, targetUserID)
+func (s *adminConnectService) GetAdminViewMode(ctx context.Context, req *connect.Request[arcav1.GetAdminViewModeRequest]) (*connect.Response[arcav1.GetAdminViewModeResponse], error) {
+	result, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, req.Header())
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("user not found"))
+		return nil, err
+	}
+	user, err := s.store.GetUserByID(ctx, result.UserID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch user"))
+	}
+	isAdmin := user.Role == db.UserRoleAdmin
+	mode := "admin"
+	if isAdmin {
+		m, mErr := s.store.GetAdminViewMode(ctx, result.UserID)
+		if mErr == nil {
+			mode = m
 		}
-		log.Printf("get user for impersonation failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get user"))
 	}
-
-	tokenHash := hashToken(sessionToken)
-	updated, err := s.store.SetSessionImpersonation(ctx, tokenHash, targetUserID, adminUserID)
-	if err != nil {
-		log.Printf("set session impersonation failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to start impersonation"))
-	}
-	if !updated {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("session not found"))
-	}
-
-	// Audit log
-	s.logAudit(ctx, adminUserID, targetUserID, "admin.impersonation_start", "user", targetUser.ID, fmt.Sprintf(`{"target_email":%q}`, targetUser.Email))
-
-	return connect.NewResponse(&arcav1.StartImpersonationResponse{}), nil
-}
-
-func (s *adminConnectService) StopImpersonation(ctx context.Context, req *connect.Request[arcav1.StopImpersonationRequest]) (*connect.Response[arcav1.StopImpersonationResponse], error) {
-	sessionToken, _ := sessionTokenFromHeader(req.Header())
-	if sessionToken == "" {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-	}
-
-	result, err := s.authenticator.AuthenticateFull(ctx, sessionToken)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-	}
-
-	if result.OriginalUserID == "" {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("not currently impersonating"))
-	}
-
-	tokenHash := hashToken(sessionToken)
-	if _, err := s.store.ClearSessionImpersonation(ctx, tokenHash); err != nil {
-		log.Printf("clear session impersonation failed: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to stop impersonation"))
-	}
-
-	// Audit log
-	s.logAudit(ctx, result.OriginalUserID, result.UserID, "admin.impersonation_stop", "user", result.UserID, fmt.Sprintf(`{"target_email":%q}`, result.Email))
-
-	return connect.NewResponse(&arcav1.StopImpersonationResponse{}), nil
-}
-
-func (s *adminConnectService) GetImpersonationStatus(ctx context.Context, req *connect.Request[arcav1.GetImpersonationStatusRequest]) (*connect.Response[arcav1.GetImpersonationStatusResponse], error) {
-	sessionToken, _ := sessionTokenFromHeader(req.Header())
-	if sessionToken == "" {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-	}
-
-	result, err := s.authenticator.AuthenticateFull(ctx, sessionToken)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-	}
-
-	resp := &arcav1.GetImpersonationStatusResponse{}
-	if result.OriginalUserID != "" {
-		resp.IsImpersonating = true
-		resp.ImpersonatedUserEmail = result.Email
-		resp.OriginalUserEmail = result.OriginalEmail
-	}
-
-	return connect.NewResponse(resp), nil
+	return connect.NewResponse(&arcav1.GetAdminViewModeResponse{
+		Mode:    mode,
+		IsAdmin: isAdmin,
+	}), nil
 }
 
 func (s *adminConnectService) ListAuditLogs(ctx context.Context, req *connect.Request[arcav1.ListAuditLogsRequest]) (*connect.Response[arcav1.ListAuditLogsResponse], error) {
@@ -169,74 +118,33 @@ func (s *adminConnectService) ListAuditLogs(ctx context.Context, req *connect.Re
 	return connect.NewResponse(&arcav1.ListAuditLogsResponse{AuditLogs: items, TotalCount: int32(totalCount)}), nil
 }
 
-func (s *adminConnectService) authenticateAdmin(ctx context.Context, header http.Header) (string, error) {
-	sessionToken, _ := sessionTokenFromHeader(header)
-	if sessionToken != "" {
-		result, err := s.authenticator.AuthenticateFull(ctx, sessionToken)
-		if err == nil {
-			checkUserID := result.UserID
-			checkRole := result.Role
-			if result.OriginalUserID != "" {
-				checkUserID = result.OriginalUserID
-				origUser, getErr := s.store.GetUserByID(ctx, result.OriginalUserID)
-				if getErr != nil {
-					return "", connect.NewError(connect.CodeInternal, errors.New("failed to verify admin"))
-				}
-				checkRole = origUser.Role
-			}
-			if checkRole != db.UserRoleAdmin {
-				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can access admin functions"))
-			}
-			return checkUserID, nil
-		}
-	}
-
-	if iapJWT := iapJWTFromHeader(header); iapJWT != "" {
-		userID, _, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
-		if err == nil {
-			if role != db.UserRoleAdmin {
-				return "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can access admin functions"))
-			}
-			return userID, nil
-		}
-	}
-
-	return "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-}
-
-// authenticateAdminWithToken returns (adminUserID, sessionToken, error).
-func (s *adminConnectService) authenticateAdminWithToken(ctx context.Context, header http.Header) (string, string, error) {
-	sessionToken, _ := sessionTokenFromHeader(header)
-	if sessionToken == "" {
-		return "", "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
-	}
-
-	result, err := s.authenticator.AuthenticateFull(ctx, sessionToken)
+// authenticateAdmin checks the effective role (blocked by non-admin mode).
+func (s *adminConnectService) authenticateAdmin(ctx context.Context, header http.Header) (auth.AuthResult, error) {
+	result, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, header)
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+		return auth.AuthResult{}, err
 	}
-
-	checkUserID := result.UserID
-	checkRole := result.Role
-	if result.OriginalUserID != "" {
-		checkUserID = result.OriginalUserID
-		origUser, getErr := s.store.GetUserByID(ctx, result.OriginalUserID)
-		if getErr != nil {
-			return "", "", connect.NewError(connect.CodeInternal, errors.New("failed to verify admin"))
-		}
-		checkRole = origUser.Role
+	if result.Role != db.UserRoleAdmin {
+		return auth.AuthResult{}, connect.NewError(connect.CodePermissionDenied, errors.New("admin required"))
 	}
-
-	if checkRole != db.UserRoleAdmin {
-		return "", "", connect.NewError(connect.CodePermissionDenied, errors.New("only admin can impersonate users"))
-	}
-
-	return checkUserID, sessionToken, nil
+	return result, nil
 }
 
-func hashToken(token string) string {
-	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:])
+// authenticateActualAdmin checks the actual DB role, not effective role.
+// This allows admins in non-admin mode to switch back.
+func (s *adminConnectService) authenticateActualAdmin(ctx context.Context, header http.Header) (auth.AuthResult, error) {
+	result, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, header)
+	if err != nil {
+		return auth.AuthResult{}, err
+	}
+	user, err := s.store.GetUserByID(ctx, result.UserID)
+	if err != nil {
+		return auth.AuthResult{}, connect.NewError(connect.CodeInternal, errors.New("failed to fetch user"))
+	}
+	if user.Role != db.UserRoleAdmin {
+		return auth.AuthResult{}, connect.NewError(connect.CodePermissionDenied, errors.New("admin required"))
+	}
+	return result, nil
 }
 
 func (s *adminConnectService) logAudit(ctx context.Context, actorUserID, actingAsUserID, action, resourceType, resourceID, detailsJSON string) {
@@ -288,7 +196,7 @@ func (s *adminConnectService) ListServerLLMModels(ctx context.Context, req *conn
 }
 
 func (s *adminConnectService) CreateServerLLMModel(ctx context.Context, req *connect.Request[arcav1.CreateServerLLMModelRequest]) (*connect.Response[arcav1.CreateServerLLMModelResponse], error) {
-	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	adminResult, err := s.authenticateAdmin(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -337,13 +245,13 @@ func (s *adminConnectService) CreateServerLLMModel(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to retrieve created model"))
 	}
 
-	s.logAudit(ctx, adminUserID, "", "server_llm_model.create", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
+	s.logAudit(ctx, adminResult.UserID, "", "server_llm_model.create", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
 
 	return connect.NewResponse(&arcav1.CreateServerLLMModelResponse{Model: serverLLMModelToProto(created)}), nil
 }
 
 func (s *adminConnectService) UpdateServerLLMModel(ctx context.Context, req *connect.Request[arcav1.UpdateServerLLMModelRequest]) (*connect.Response[arcav1.UpdateServerLLMModelResponse], error) {
-	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	adminResult, err := s.authenticateAdmin(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -405,13 +313,13 @@ func (s *adminConnectService) UpdateServerLLMModel(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to retrieve updated model"))
 	}
 
-	s.logAudit(ctx, adminUserID, "", "server_llm_model.update", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
+	s.logAudit(ctx, adminResult.UserID, "", "server_llm_model.update", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, configName))
 
 	return connect.NewResponse(&arcav1.UpdateServerLLMModelResponse{Model: serverLLMModelToProto(result)}), nil
 }
 
 func (s *adminConnectService) DeleteServerLLMModel(ctx context.Context, req *connect.Request[arcav1.DeleteServerLLMModelRequest]) (*connect.Response[arcav1.DeleteServerLLMModelResponse], error) {
-	adminUserID, err := s.authenticateAdmin(ctx, req.Header())
+	adminResult, err := s.authenticateAdmin(ctx, req.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +347,7 @@ func (s *adminConnectService) DeleteServerLLMModel(ctx context.Context, req *con
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("server LLM model not found"))
 	}
 
-	s.logAudit(ctx, adminUserID, "", "server_llm_model.delete", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, existing.ConfigName))
+	s.logAudit(ctx, adminResult.UserID, "", "server_llm_model.delete", "server_llm_model", id, fmt.Sprintf(`{"config_name":%q}`, existing.ConfigName))
 
 	return connect.NewResponse(&arcav1.DeleteServerLLMModelResponse{}), nil
 }

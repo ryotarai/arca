@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { getImpersonationStatus, getSetupStatus, logout, me } from '@/lib/api'
-import type { ImpersonationStatus, SetupStatus, User } from '@/lib/types'
+import { getAdminViewMode, getSetupStatus, logout, me } from '@/lib/api'
+import type { AdminViewMode, SetupStatus, User } from '@/lib/types'
 import { LoginPage } from '@/pages/LoginPage'
 import { CreateMachinePage } from '@/pages/CreateMachinePage'
 import { MachineDetailPage } from '@/pages/MachineDetailPage'
@@ -21,12 +21,12 @@ import { AuditLogPage } from '@/pages/AuditLogPage'
 import { CustomImagesPage } from '@/pages/CustomImagesPage'
 import { ServerLLMModelsPage } from '@/pages/ServerLLMModelsPage'
 import { AppLayout } from '@/pages/AppLayout'
-import { ImpersonationBanner } from '@/components/ImpersonationBanner'
+import { NonAdminModeBanner } from '@/components/NonAdminModeBanner'
 
 export function App() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
-  const [impersonation, setImpersonation] = useState<ImpersonationStatus | null>(null)
+  const [adminViewMode, setAdminViewMode] = useState<AdminViewMode | null>(null)
   const [setupStatus, setSetupStatus] = useState<SetupStatus>({
     isConfigured: true,
     hasAdmin: true,
@@ -58,10 +58,8 @@ export function App() {
             if (meUser != null) {
               setUser(meUser)
               try {
-                const impStatus = await getImpersonationStatus()
-                if (impStatus.isImpersonating) {
-                  setImpersonation(impStatus)
-                }
+                const viewMode = await getAdminViewMode()
+                setAdminViewMode(viewMode)
               } catch {
                 // ignore - endpoint may not exist on older servers
               }
@@ -131,11 +129,8 @@ export function App() {
 
   return (
     <>
-      {impersonation?.isImpersonating && (
-        <ImpersonationBanner
-          impersonatedUserEmail={impersonation.impersonatedUserEmail}
-          originalUserEmail={impersonation.originalUserEmail}
-        />
+      {adminViewMode?.isAdmin && adminViewMode?.mode === 'user' && (
+        <NonAdminModeBanner />
       )}
       <Routes>
         <Route path="/setup" element={<Navigate to="/" replace />} />
@@ -144,7 +139,7 @@ export function App() {
         <Route path="/users/setup" element={<UserSetupPage user={user} />} />
         <Route path="/access-denied" element={<AccessDeniedPage />} />
 
-        <Route element={<AppLayout user={user} onLogout={handleLogout} impersonation={impersonation} />}>
+        <Route element={<AppLayout user={user} onLogout={handleLogout} adminViewMode={adminViewMode} />}>
           <Route path="/" element={<Navigate to="/machines" replace />} />
           <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} />} />
           <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />

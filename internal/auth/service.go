@@ -275,15 +275,13 @@ func (s *Service) LoginWithOIDCCode(ctx context.Context, code, redirectURI strin
 	return user.ID, user.Email, user.Role, sessionToken, expiresAt, nil
 }
 
-// AuthResult holds the effective and original user identity after authentication.
-// When impersonation is active, the top-level fields reflect the impersonated
-// user, while OriginalUserID/OriginalEmail hold the admin who started it.
+// AuthResult holds the effective user identity after authentication.
 type AuthResult struct {
-	UserID        string
-	Email         string
-	Role          string
-	OriginalUserID string // non-empty when impersonating
-	OriginalEmail  string
+	UserID         string
+	Email          string
+	Role           string
+	IsNonAdminMode bool
+	IsStaticToken  bool
 }
 
 func (s *Service) Authenticate(ctx context.Context, sessionToken string) (string, string, string, error) {
@@ -304,7 +302,7 @@ func (s *Service) AuthenticateFull(ctx context.Context, sessionToken string) (Au
 		if err != nil {
 			return AuthResult{}, err
 		}
-		return AuthResult{UserID: id, Email: email, Role: role}, nil
+		return AuthResult{UserID: id, Email: email, Role: role, IsStaticToken: true}, nil
 	}
 	tokenHash := hashSessionToken(sessionToken)
 	user, err := s.store.GetUserByActiveSessionTokenHash(ctx, tokenHash, s.now().Unix())
@@ -313,21 +311,6 @@ func (s *Service) AuthenticateFull(ctx context.Context, sessionToken string) (Au
 			return AuthResult{}, ErrUnauthenticated
 		}
 		return AuthResult{}, err
-	}
-
-	// Check for impersonation
-	imp, impErr := s.store.GetSessionImpersonation(ctx, tokenHash, s.now().Unix())
-	if impErr == nil && imp.ImpersonatedUserID != "" {
-		impUser, getErr := s.store.GetUserByID(ctx, imp.ImpersonatedUserID)
-		if getErr == nil {
-			return AuthResult{
-				UserID:         impUser.ID,
-				Email:          impUser.Email,
-				Role:           impUser.Role,
-				OriginalUserID: user.ID,
-				OriginalEmail:  user.Email,
-			}, nil
-		}
 	}
 
 	return AuthResult{UserID: user.ID, Email: user.Email, Role: user.Role}, nil

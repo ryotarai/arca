@@ -89,7 +89,7 @@ func (s *sharingConnectService) GetMachineSharing(ctx context.Context, req *conn
 }
 
 func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *connect.Request[arcav1.UpdateMachineSharingRequest]) (*connect.Response[arcav1.UpdateMachineSharingResponse], error) {
-	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, req.Header())
+	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, req.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +265,7 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 }
 
 func (s *sharingConnectService) RequestMachineAccess(ctx context.Context, req *connect.Request[arcav1.RequestMachineAccessRequest]) (*connect.Response[arcav1.RequestMachineAccessResponse], error) {
-	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, req.Header())
+	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, req.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +349,7 @@ func (s *sharingConnectService) ListMachineAccessRequests(ctx context.Context, r
 }
 
 func (s *sharingConnectService) ResolveMachineAccessRequest(ctx context.Context, req *connect.Request[arcav1.ResolveMachineAccessRequestRequest]) (*connect.Response[arcav1.ResolveMachineAccessRequestResponse], error) {
-	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, req.Header())
+	authResult, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, req.Header())
 	if err != nil {
 		return nil, err
 	}

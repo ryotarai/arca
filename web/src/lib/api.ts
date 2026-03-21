@@ -1160,16 +1160,15 @@ export async function listAvailableImages(templateId: string): Promise<CustomIma
   return response.images
 }
 
-// Admin / Impersonation API
+// Admin API
 import {
   AdminService,
   CreateServerLLMModelRequestSchema,
   DeleteServerLLMModelRequestSchema,
-  GetImpersonationStatusRequestSchema,
+  GetAdminViewModeRequestSchema,
   ListAuditLogsRequestSchema,
   ListServerLLMModelsRequestSchema,
-  StartImpersonationRequestSchema,
-  StopImpersonationRequestSchema,
+  SetAdminViewModeRequestSchema,
   UpdateServerLLMModelRequestSchema,
 } from '@/gen/arca/v1/admin_pb'
 import type { AuditLog, ServerLLMModel } from '@/gen/arca/v1/admin_pb'
@@ -1178,27 +1177,15 @@ const adminClient = createClient(AdminService, connectTransport)
 
 export type { AuditLog, ServerLLMModel }
 
-export type ImpersonationStatus = {
-  isImpersonating: boolean
-  impersonatedUserEmail: string
-  originalUserEmail: string
+import type { AdminViewMode } from '@/lib/types'
+
+export async function setAdminViewMode(mode: string): Promise<void> {
+  await adminClient.setAdminViewMode(create(SetAdminViewModeRequestSchema, { mode }))
 }
 
-export async function startImpersonation(userId: string): Promise<void> {
-  await adminClient.startImpersonation(create(StartImpersonationRequestSchema, { userId }))
-}
-
-export async function stopImpersonation(): Promise<void> {
-  await adminClient.stopImpersonation(create(StopImpersonationRequestSchema))
-}
-
-export async function getImpersonationStatus(): Promise<ImpersonationStatus> {
-  const response = await adminClient.getImpersonationStatus(create(GetImpersonationStatusRequestSchema))
-  return {
-    isImpersonating: response.isImpersonating,
-    impersonatedUserEmail: response.impersonatedUserEmail,
-    originalUserEmail: response.originalUserEmail,
-  }
+export async function getAdminViewMode(): Promise<AdminViewMode> {
+  const res = await adminClient.getAdminViewMode(create(GetAdminViewModeRequestSchema))
+  return { mode: res.mode, isAdmin: res.isAdmin }
 }
 
 export type AuditLogListResult = {

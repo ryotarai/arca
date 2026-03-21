@@ -128,23 +128,11 @@ func (s *authConnectService) Me(ctx context.Context, req *connect.Request[arcav1
 		return nil, connect.NewError(connect.CodeUnavailable, errors.New("auth unavailable"))
 	}
 
-	sessionToken, _ := sessionTokenFromHeader(req.Header())
-	if sessionToken != "" {
-		userID, email, role, err := s.authenticator.Authenticate(ctx, sessionToken)
-		if err == nil {
-			return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}}), nil
-		}
+	result, err := authenticateUserFromHeaderWithResult(ctx, s.authenticator, s.store, req.Header())
+	if err != nil {
+		return nil, err
 	}
-
-	// Fallback: try IAP JWT
-	if iapJWT := iapJWTFromHeader(req.Header()); iapJWT != "" {
-		userID, email, role, err := s.authenticator.AuthenticateIAPJWT(ctx, iapJWT)
-		if err == nil {
-			return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: userID, Email: email, Role: role}}), nil
-		}
-	}
-
-	return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	return connect.NewResponse(&arcav1.MeResponse{User: &arcav1.User{Id: result.UserID, Email: result.Email, Role: result.Role}}), nil
 }
 
 func iapJWTFromHeader(header http.Header) string {
