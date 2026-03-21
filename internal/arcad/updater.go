@@ -2,6 +2,8 @@ package arcad
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -123,6 +125,26 @@ func downloadAndReplaceBinary(ctx context.Context, cfg Config, httpClient *http.
 	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
 		return fmt.Errorf("write binary: %w", err)
 	}
+
+	// Verify SHA256 checksum if the server provided one.
+	expectedHash := resp.Header.Get("X-Checksum-SHA256")
+	if expectedHash != "" {
+		if _, err := tmpFile.Seek(0, 0); err != nil {
+			return fmt.Errorf("seek temp file: %w", err)
+		}
+		h := sha256.New()
+		if _, err := io.Copy(h, tmpFile); err != nil {
+			return fmt.Errorf("compute checksum: %w", err)
+		}
+		actualHash := hex.EncodeToString(h.Sum(nil))
+		if actualHash != expectedHash {
+			return fmt.Errorf("checksum mismatch: expected %s, got %s", expectedHash, actualHash)
+		}
+		log.Printf("binary checksum verified: %s", actualHash)
+	} else {
+		log.Printf("server did not provide checksum header, skipping verification")
+	}
+
 	if err := tmpFile.Close(); err != nil {
 		return fmt.Errorf("close temp file: %w", err)
 	}
