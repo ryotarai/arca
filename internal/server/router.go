@@ -27,6 +27,7 @@ type Dependencies struct {
 	Slack            *notification.SlackService
 	Encryptor        *crypto.Encryptor
 	LLMTokenExecutor *LLMTokenExecutor
+	RateLimiter      *RateLimiter
 }
 
 type HealthChecker interface {
@@ -78,7 +79,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	r.Use(securityHeaders)
 
 	if deps.Authenticator != nil {
-		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator, deps.Store))
+		path, handler := arcav1connect.NewAuthServiceHandler(newAuthConnectService(deps.Authenticator, deps.Store, deps.RateLimiter))
 		r.Mount(path, handler)
 	}
 	if deps.Authenticator != nil && deps.MachineStore != nil {

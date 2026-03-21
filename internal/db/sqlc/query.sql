@@ -1000,3 +1000,12 @@ WHERE id = sqlc.arg(id);
 -- name: DeleteServerLLMModel :execrows
 DELETE FROM server_llm_models
 WHERE id = sqlc.arg(id);
+
+-- name: InsertRateLimitEntry :exec
+INSERT INTO rate_limit_entries (key, timestamp_unix) VALUES (sqlc.arg(key), sqlc.arg(timestamp_unix));
+
+-- name: CountRateLimitEntries :one
+SELECT COUNT(*) FROM rate_limit_entries WHERE key = sqlc.arg(key) AND timestamp_unix > sqlc.arg(window_start);
+
+-- name: CleanupRateLimitEntries :exec
+DELETE FROM rate_limit_entries WHERE timestamp_unix < sqlc.arg(cutoff);

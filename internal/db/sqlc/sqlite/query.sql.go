@@ -73,6 +73,15 @@ func (q *Queries) ClaimMachineJob(ctx context.Context, arg ClaimMachineJobParams
 	return result.RowsAffected()
 }
 
+const cleanupRateLimitEntries = `-- name: CleanupRateLimitEntries :exec
+DELETE FROM rate_limit_entries WHERE timestamp_unix < ?1
+`
+
+func (q *Queries) CleanupRateLimitEntries(ctx context.Context, cutoff int64) error {
+	_, err := q.db.ExecContext(ctx, cleanupRateLimitEntries, cutoff)
+	return err
+}
+
 const countActiveStartOrReconcileJobsByMachineID = `-- name: CountActiveStartOrReconcileJobsByMachineID :one
 SELECT COUNT(1)
 FROM machine_jobs
@@ -106,6 +115,22 @@ func (q *Queries) CountAuditLogsFiltered(ctx context.Context, arg CountAuditLogs
 	var total_count int64
 	err := row.Scan(&total_count)
 	return total_count, err
+}
+
+const countRateLimitEntries = `-- name: CountRateLimitEntries :one
+SELECT COUNT(*) FROM rate_limit_entries WHERE key = ?1 AND timestamp_unix > ?2
+`
+
+type CountRateLimitEntriesParams struct {
+	Key         string
+	WindowStart int64
+}
+
+func (q *Queries) CountRateLimitEntries(ctx context.Context, arg CountRateLimitEntriesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRateLimitEntries, arg.Key, arg.WindowStart)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const createArcadExchangeToken = `-- name: CreateArcadExchangeToken :exec
@@ -1751,6 +1776,20 @@ func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const insertRateLimitEntry = `-- name: InsertRateLimitEntry :exec
+INSERT INTO rate_limit_entries (key, timestamp_unix) VALUES (?1, ?2)
+`
+
+type InsertRateLimitEntryParams struct {
+	Key           string
+	TimestampUnix int64
+}
+
+func (q *Queries) InsertRateLimitEntry(ctx context.Context, arg InsertRateLimitEntryParams) error {
+	_, err := q.db.ExecContext(ctx, insertRateLimitEntry, arg.Key, arg.TimestampUnix)
+	return err
 }
 
 const invalidateUserSetupTokensByUserID = `-- name: InvalidateUserSetupTokensByUserID :exec

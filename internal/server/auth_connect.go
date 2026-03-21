@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -20,10 +21,11 @@ import (
 type authConnectService struct {
 	authenticator Authenticator
 	store         *db.Store
+	rateLimiter   *RateLimiter
 }
 
-func newAuthConnectService(authenticator Authenticator, store *db.Store) *authConnectService {
-	return &authConnectService{authenticator: authenticator, store: store}
+func newAuthConnectService(authenticator Authenticator, store *db.Store, rateLimiter *RateLimiter) *authConnectService {
+	return &authConnectService{authenticator: authenticator, store: store, rateLimiter: rateLimiter}
 }
 
 func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arcav1.LoginRequest]) (*connect.Response[arcav1.LoginResponse], error) {
@@ -33,6 +35,16 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 
 	if s.isPasswordLoginDisabled(ctx) {
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("password login is disabled"))
+	}
+
+	if s.rateLimiter != nil {
+		ip := peerIPFromConnect(req)
+		allowed, err := s.rateLimiter.Allow(ctx, "login:"+ip)
+		if err != nil {
+			log.Printf("rate limiter error: %v", err)
+		} else if !allowed {
+			return nil, connect.NewError(connect.CodeResourceExhausted, errors.New("too many login attempts, please try again later"))
+		}
 	}
 
 	userID, email, role, token, expiresAt, err := s.authenticator.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
@@ -247,6 +259,21 @@ func (s *authConnectService) isPasswordLoginDisabled(ctx context.Context) bool {
 		return false
 	}
 	return state.PasswordLoginDisabled
+}
+
+// peerIPFromConnect extracts the client IP from a ConnectRPC request.
+// chi's RealIP middleware has already set the peer address from
+// X-Real-IP / X-Forwarded-For on the underlying http.Request.
+func peerIPFromConnect[T any](req *connect.Request[T]) string {
+	addr := req.Peer().Addr
+	if addr == "" {
+		return "unknown"
+	}
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	return host
 }
 
 func isSecureRequest(header http.Header) bool {

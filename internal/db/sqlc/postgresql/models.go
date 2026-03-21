@@ -168,6 +168,11 @@ type MachineToken struct {
 	RevokedAt sql.NullInt64
 }
 
+type RateLimitEntry struct {
+	Key           string
+	TimestampUnix int64
+}
+
 type ServerLlmModel struct {
 	ID               string
 	ConfigName       string

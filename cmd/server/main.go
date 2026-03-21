@@ -107,10 +107,13 @@ func main() {
 		}
 	}
 
+	loginRateLimiter := server.NewRateLimiter(store, 10, 5*time.Minute)
+	loginRateLimiter.StartCleanup(ctx, 10*time.Minute)
+
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor, LLMTokenExecutor: server.NewLLMTokenExecutor()}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor, LLMTokenExecutor: server.NewLLMTokenExecutor(), RateLimiter: loginRateLimiter}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
