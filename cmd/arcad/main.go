@@ -83,6 +83,12 @@ func runUserMode(cfg arcad.Config) {
 	go arcad.NewReadinessReporter(readinessChecker, controlPlaneClient, cfg.ReadyReportInterval).Run(ctx)
 	go arcad.NewLLMSyncer(controlPlaneClient, cfg.ShelleyPort, 1*time.Minute).Run(ctx)
 
+	guidelineHomeDir := os.Getenv("ARCA_INTERACTIVE_USER_HOME")
+	if guidelineHomeDir == "" {
+		guidelineHomeDir = os.Getenv("HOME")
+	}
+	go arcad.NewAgentGuidelineSyncer(controlPlaneClient, guidelineHomeDir, 5*time.Minute).Run(ctx)
+
 	select {
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
