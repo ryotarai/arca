@@ -18,6 +18,8 @@ type AdminSettingsPageProps = {
 
 export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLogout }: AdminSettingsPageProps) {
   const [serverDomain, setServerDomain] = useState(setupStatus.serverDomain)
+  const [baseDomain, setBaseDomain] = useState(setupStatus.baseDomain)
+  const [domainPrefix, setDomainPrefix] = useState(setupStatus.domainPrefix)
   const [disableInternetPublicExposure, setDisableInternetPublicExposure] = useState(setupStatus.internetPublicExposureDisabled)
   const [passwordLoginDisabled, setPasswordLoginDisabled] = useState(setupStatus.passwordLoginDisabled)
   const [iapEnabled, setIapEnabled] = useState(setupStatus.iapEnabled)
@@ -35,6 +37,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
 
   useEffect(() => {
     setServerDomain(setupStatus.serverDomain)
+    setBaseDomain(setupStatus.baseDomain)
+    setDomainPrefix(setupStatus.domainPrefix)
     setDisableInternetPublicExposure(setupStatus.internetPublicExposureDisabled)
     setIapEnabled(setupStatus.iapEnabled)
     setIapAudience(setupStatus.iapAudience)
@@ -77,6 +81,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         iapAudience.trim(),
         iapAutoProvisioning,
         oidcAutoProvisioning,
+        baseDomain.trim(),
+        domainPrefix.trim(),
       )
       const normalizedOidcAllowedEmailDomains = oidcAllowedEmailDomainsText
         .split(/\r?\n/)
@@ -96,6 +102,8 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         oidcClientSecretConfigured: setupStatus.oidcClientSecretConfigured || oidcClientSecret !== '',
         oidcAllowedEmailDomains: normalizedOidcAllowedEmailDomains,
         serverDomain: serverDomain.trim(),
+        baseDomain: baseDomain.trim(),
+        domainPrefix: domainPrefix.trim(),
       })
       setOidcClientSecret('')
       setSaved(true)
@@ -146,6 +154,34 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                   placeholder="arca.example.com"
                 />
                 <p className="text-xs text-muted-foreground">The domain where machines reach this server.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="settings-base-domain">
+                  Base domain
+                </Label>
+                <Input
+                  id="settings-base-domain"
+                  value={baseDomain}
+                  onChange={(event) => setBaseDomain(event.target.value)}
+                  className="h-10"
+                  placeholder="example.com"
+                />
+                <p className="text-xs text-muted-foreground">The base domain for machine endpoints (e.g. <code>example.com</code>). Machine URLs will be <code>{'{prefix}{name}.{base_domain}'}</code>.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="settings-domain-prefix">
+                  Domain prefix
+                </Label>
+                <Input
+                  id="settings-domain-prefix"
+                  value={domainPrefix}
+                  onChange={(event) => setDomainPrefix(event.target.value)}
+                  className="h-10"
+                  placeholder="arca-"
+                />
+                <p className="text-xs text-muted-foreground">Optional prefix for machine hostnames (e.g. <code>arca-</code>). Leave empty for no prefix.</p>
               </div>
 
               <div className="space-y-2">

@@ -28,6 +28,8 @@ message SetupStatus {
   string iap_audience = 19;
   bool iap_auto_provisioning = 20;
   bool oidc_auto_provisioning = 21;
+  string base_domain = 22;
+  string domain_prefix = 23;
 }
 
 message GetSetupStatusRequest {}
@@ -73,6 +75,8 @@ message UpdateDomainSettingsRequest {
   string iap_audience = 17;
   bool iap_auto_provisioning = 18;
   bool oidc_auto_provisioning = 19;
+  string base_domain = 20;
+  string domain_prefix = 21;
 }
 
 message UpdateDomainSettingsResponse {

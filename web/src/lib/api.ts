@@ -648,6 +648,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         oidcClientSecretConfigured?: boolean
         oidcAllowedEmailDomains?: string[]
         serverDomain?: string
+        baseDomain?: string
+        domainPrefix?: string
         passwordLoginDisabled?: boolean
         iapEnabled?: boolean
         iapAudience?: string
@@ -667,6 +669,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
       oidcClientSecretConfigured?: boolean
       oidcAllowedEmailDomains?: string[]
       serverDomain?: string
+      baseDomain?: string
+      domainPrefix?: string
       passwordLoginDisabled?: boolean
       iapEnabled?: boolean
       iapAudience?: string
@@ -690,6 +694,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     const oidcAllowedEmailDomains =
       response.status?.oidcAllowedEmailDomains ?? response.oidcAllowedEmailDomains ?? []
     const serverDomain = response.status?.serverDomain ?? response.serverDomain ?? ''
+    const baseDomain = response.status?.baseDomain ?? response.baseDomain ?? ''
+    const domainPrefix = response.status?.domainPrefix ?? response.domainPrefix ?? ''
     const passwordLoginDisabled =
       response.status?.passwordLoginDisabled ?? response.passwordLoginDisabled ?? false
     const iapEnabled = response.status?.iapEnabled ?? response.iapEnabled ?? false
@@ -700,8 +706,8 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     return {
       isConfigured,
       hasAdmin,
-      baseDomain: '',
-      domainPrefix: '',
+      baseDomain,
+      domainPrefix,
       internetPublicExposureDisabled,
       oidcEnabled,
       oidcIssuerURL,
@@ -799,6 +805,8 @@ export async function updateDomainSettings(
   iapAudience: string = '',
   iapAutoProvisioning: boolean = false,
   oidcAutoProvisioning: boolean = false,
+  baseDomain: string = '',
+  domainPrefix: string = '',
 ): Promise<void> {
   const response = await callConnectJSONCandidates<{
     status?: {
@@ -821,6 +829,8 @@ export async function updateDomainSettings(
     iapAudience,
     iapAutoProvisioning,
     oidcAutoProvisioning,
+    baseDomain,
+    domainPrefix,
   })
   if (response.status?.completed !== true) {
     throw new Error(response.message ?? 'failed to update domain settings')

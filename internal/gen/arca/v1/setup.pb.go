@@ -38,6 +38,8 @@ type SetupStatus struct {
 	IapAudience                    string                 `protobuf:"bytes,19,opt,name=iap_audience,json=iapAudience,proto3" json:"iap_audience,omitempty"`
 	IapAutoProvisioning            bool                   `protobuf:"varint,20,opt,name=iap_auto_provisioning,json=iapAutoProvisioning,proto3" json:"iap_auto_provisioning,omitempty"`
 	OidcAutoProvisioning           bool                   `protobuf:"varint,21,opt,name=oidc_auto_provisioning,json=oidcAutoProvisioning,proto3" json:"oidc_auto_provisioning,omitempty"`
+	BaseDomain                     string                 `protobuf:"bytes,22,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
+	DomainPrefix                   string                 `protobuf:"bytes,23,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
@@ -175,6 +177,20 @@ func (x *SetupStatus) GetOidcAutoProvisioning() bool {
 		return x.OidcAutoProvisioning
 	}
 	return false
+}
+
+func (x *SetupStatus) GetBaseDomain() string {
+	if x != nil {
+		return x.BaseDomain
+	}
+	return ""
+}
+
+func (x *SetupStatus) GetDomainPrefix() string {
+	if x != nil {
+		return x.DomainPrefix
+	}
+	return ""
 }
 
 type GetSetupStatusRequest struct {
@@ -481,6 +497,8 @@ type UpdateDomainSettingsRequest struct {
 	IapAudience                   string                 `protobuf:"bytes,17,opt,name=iap_audience,json=iapAudience,proto3" json:"iap_audience,omitempty"`
 	IapAutoProvisioning           bool                   `protobuf:"varint,18,opt,name=iap_auto_provisioning,json=iapAutoProvisioning,proto3" json:"iap_auto_provisioning,omitempty"`
 	OidcAutoProvisioning          bool                   `protobuf:"varint,19,opt,name=oidc_auto_provisioning,json=oidcAutoProvisioning,proto3" json:"oidc_auto_provisioning,omitempty"`
+	BaseDomain                    string                 `protobuf:"bytes,20,opt,name=base_domain,json=baseDomain,proto3" json:"base_domain,omitempty"`
+	DomainPrefix                  string                 `protobuf:"bytes,21,opt,name=domain_prefix,json=domainPrefix,proto3" json:"domain_prefix,omitempty"`
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
@@ -613,6 +631,20 @@ func (x *UpdateDomainSettingsRequest) GetOidcAutoProvisioning() bool {
 	return false
 }
 
+func (x *UpdateDomainSettingsRequest) GetBaseDomain() string {
+	if x != nil {
+		return x.BaseDomain
+	}
+	return ""
+}
+
+func (x *UpdateDomainSettingsRequest) GetDomainPrefix() string {
+	if x != nil {
+		return x.DomainPrefix
+	}
+	return ""
+}
+
 type UpdateDomainSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        *SetupStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
@@ -661,7 +693,7 @@ var File_arca_v1_setup_proto protoreflect.FileDescriptor
 
 const file_arca_v1_setup_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xea\x05\n" +
+	"\x13arca/v1/setup.proto\x12\aarca.v1\"\xb0\x06\n" +
 	"\vSetupStatus\x12\x1c\n" +
 	"\tcompleted\x18\x01 \x01(\bR\tcompleted\x12)\n" +
 	"\x10admin_configured\x18\x02 \x01(\bR\x0fadminConfigured\x12'\n" +
@@ -679,7 +711,10 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"iapEnabled\x12!\n" +
 	"\fiap_audience\x18\x13 \x01(\tR\viapAudience\x122\n" +
 	"\x15iap_auto_provisioning\x18\x14 \x01(\bR\x13iapAutoProvisioning\x124\n" +
-	"\x16oidc_auto_provisioning\x18\x15 \x01(\bR\x14oidcAutoProvisioningJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\x0f\x10\x10\"\x17\n" +
+	"\x16oidc_auto_provisioning\x18\x15 \x01(\bR\x14oidcAutoProvisioning\x12\x1f\n" +
+	"\vbase_domain\x18\x16 \x01(\tR\n" +
+	"baseDomain\x12#\n" +
+	"\rdomain_prefix\x18\x17 \x01(\tR\fdomainPrefixJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\x0f\x10\x10\"\x17\n" +
 	"\x15GetSetupStatusRequest\"F\n" +
 	"\x16GetSetupStatusResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"C\n" +
@@ -697,7 +732,7 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"\x0esetup_password\x18\v \x01(\tR\rsetupPasswordJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\t\x10\n" +
 	"\"E\n" +
 	"\x15CompleteSetupResponse\x12,\n" +
-	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\xcd\x05\n" +
+	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status\"\x93\x06\n" +
 	"\x1bUpdateDomainSettingsRequest\x12'\n" +
 	"\x0fmachine_runtime\x18\x03 \x01(\tR\x0emachineRuntime\x12G\n" +
 	" disable_internet_public_exposure\x18\x04 \x01(\bR\x1ddisableInternetPublicExposure\x12!\n" +
@@ -714,7 +749,10 @@ const file_arca_v1_setup_proto_rawDesc = "" +
 	"iapEnabled\x12!\n" +
 	"\fiap_audience\x18\x11 \x01(\tR\viapAudience\x122\n" +
 	"\x15iap_auto_provisioning\x18\x12 \x01(\bR\x13iapAutoProvisioning\x124\n" +
-	"\x16oidc_auto_provisioning\x18\x13 \x01(\bR\x14oidcAutoProvisioningJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\v\x10\fJ\x04\b\r\x10\x0eJ\x04\b\x0e\x10\x0f\"L\n" +
+	"\x16oidc_auto_provisioning\x18\x13 \x01(\bR\x14oidcAutoProvisioning\x12\x1f\n" +
+	"\vbase_domain\x18\x14 \x01(\tR\n" +
+	"baseDomain\x12#\n" +
+	"\rdomain_prefix\x18\x15 \x01(\tR\fdomainPrefixJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\v\x10\fJ\x04\b\r\x10\x0eJ\x04\b\x0e\x10\x0f\"L\n" +
 	"\x1cUpdateDomainSettingsResponse\x12,\n" +
 	"\x06status\x18\x01 \x01(\v2\x14.arca.v1.SetupStatusR\x06status2\xf8\x02\n" +
 	"\fSetupService\x12Q\n" +

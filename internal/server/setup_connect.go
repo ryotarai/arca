@@ -211,6 +211,22 @@ func (s *setupConnectService) UpdateDomainSettings(ctx context.Context, req *con
 		current.ServerDomain = validated
 	}
 
+	if bd := strings.TrimSpace(req.Msg.GetBaseDomain()); bd != "" {
+		validated, domErr := validateBaseDomain(bd)
+		if domErr != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, domErr)
+		}
+		current.BaseDomain = validated
+	}
+
+	if dp := req.Msg.GetDomainPrefix(); dp != "" {
+		validated, dpErr := validateDomainPrefix(dp)
+		if dpErr != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, dpErr)
+		}
+		current.DomainPrefix = validated
+	}
+
 	oidcIssuerURL, err := validateOIDCIssuerURL(req.Msg.GetOidcIssuerUrl())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -273,6 +289,8 @@ func setupStatusMessage(state db.SetupState) *arcav1.SetupStatus {
 		OidcClientSecretConfigured:     strings.TrimSpace(state.OIDCClientSecret) != "",
 		OidcAllowedEmailDomains:        append([]string(nil), state.OIDCAllowedEmailDomains...),
 		ServerDomain:                   state.ServerDomain,
+		BaseDomain:                     state.BaseDomain,
+		DomainPrefix:                   state.DomainPrefix,
 		PasswordLoginDisabled:          state.PasswordLoginDisabled,
 		IapEnabled:                     state.IAPEnabled,
 		IapAudience:                    state.IAPAudience,
