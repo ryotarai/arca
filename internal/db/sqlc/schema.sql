@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS machine_templates (
 CREATE TABLE IF NOT EXISTS user_machines (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'editor', 'viewer')),
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('owner', 'admin', 'editor', 'viewer')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id, machine_id)
 );

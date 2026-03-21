@@ -224,14 +224,14 @@ WHERE id = sqlc.arg(machine_id)
     FROM user_machines um
     WHERE um.machine_id = machines.id
       AND um.user_id = sqlc.arg(user_id)
-      AND um.role = 'admin'
+      AND um.role IN ('owner', 'admin')
   );
 
 -- name: DeleteUserMachineByMachineIDForOwner :execrows
 DELETE FROM user_machines
 WHERE machine_id = sqlc.arg(machine_id)
   AND user_id = sqlc.arg(user_id)
-  AND role = 'admin';
+  AND role IN ('owner', 'admin');
 
 -- name: DeleteMachineIfNoUsers :exec
 DELETE FROM machines
@@ -284,8 +284,7 @@ LIMIT 1;
 SELECT um.user_id
 FROM user_machines um
 WHERE um.machine_id = sqlc.arg(machine_id)
-  AND um.role = 'admin'
-ORDER BY um.created_at ASC
+  AND um.role = 'owner'
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
@@ -312,7 +311,7 @@ WHERE machine_states.machine_id = sqlc.arg(machine_id)
     FROM user_machines um
     WHERE um.machine_id = machine_states.machine_id
       AND um.user_id = sqlc.arg(user_id)
-      AND um.role = 'admin'
+      AND um.role IN ('owner', 'admin')
   );
 
 -- name: UpdateMachineRuntimeStateByMachineID :exec

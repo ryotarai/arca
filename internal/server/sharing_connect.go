@@ -134,6 +134,15 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to sync members"))
 	}
 
+	// Find the current owner
+	var ownerUserID string
+	for _, m := range currentMembers {
+		if m.Role == db.MachineRoleOwner {
+			ownerUserID = m.UserID
+			break
+		}
+	}
+
 	// Build a set of requested user IDs
 	requestedSet := make(map[string]string) // userID -> role
 	for _, m := range requestedMembers {
@@ -160,6 +169,11 @@ func (s *sharingConnectService) UpdateMachineSharing(ctx context.Context, req *c
 	// Ensure the caller cannot remove themselves as admin
 	if _, ok := requestedSet[userID]; !ok {
 		requestedSet[userID] = db.MachineRoleAdmin
+	}
+
+	// Protect the owner: cannot be removed or demoted via sharing update
+	if ownerUserID != "" {
+		requestedSet[ownerUserID] = db.MachineRoleOwner
 	}
 
 	// Remove members not in request

@@ -59,6 +59,7 @@ type Machine struct {
 }
 
 const (
+	MachineRoleOwner  = "owner"
 	MachineRoleAdmin  = "admin"
 	MachineRoleEditor = "editor"
 	MachineRoleViewer = "viewer"
@@ -199,7 +200,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, te
 		if err = q.CreateUserMachine(ctx, sqlitesqlc.CreateUserMachineParams{
 			UserID:    userID,
 			MachineID: machineID,
-			Role:      "admin",
+			Role:      MachineRoleOwner,
 		}); err != nil {
 			return Machine{}, err
 		}
@@ -259,7 +260,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, te
 		if err = q.CreateUserMachine(ctx, postgresqlsqlc.CreateUserMachineParams{
 			UserID:    userID,
 			MachineID: machineID,
-			Role:      "admin",
+			Role:      MachineRoleOwner,
 		}); err != nil {
 			return Machine{}, err
 		}
@@ -1306,6 +1307,10 @@ func (s *Store) ResolveMachineRole(ctx context.Context, userID, machineID string
 	// Check individual role
 	role, err := s.GetUserMachineRole(ctx, userID, machineID)
 	if err == nil && role != "" {
+		// Owner has all admin privileges
+		if role == MachineRoleOwner {
+			return MachineRoleAdmin
+		}
 		return role
 	}
 	// Check group-based access
