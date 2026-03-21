@@ -444,7 +444,8 @@ func templateTypeFromDB(templateType string) (arcav1.MachineTemplateType, error)
 
 func unmarshalTemplateConfigJSON(raw string) (*arcav1.MachineTemplateConfig, error) {
 	config := &arcav1.MachineTemplateConfig{}
-	if err := protojson.Unmarshal([]byte(raw), config); err != nil {
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err := unmarshaler.Unmarshal([]byte(raw), config); err != nil {
 		return nil, err
 	}
 	return config, nil
