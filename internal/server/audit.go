@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -19,7 +19,7 @@ func writeAuditLog(ctx context.Context, store *db.Store, actorUserID, actingAsUs
 	}
 	id, err := randomAuditID()
 	if err != nil {
-		log.Printf("generate audit log id failed: %v", err)
+		slog.ErrorContext(ctx, "generate audit log id failed", "error", err)
 		return
 	}
 	entry := db.AuditLogEntry{
@@ -33,7 +33,7 @@ func writeAuditLog(ctx context.Context, store *db.Store, actorUserID, actingAsUs
 		CreatedAt:      time.Now(),
 	}
 	if err := store.CreateAuditLog(ctx, entry); err != nil {
-		log.Printf("create audit log failed: %v", err)
+		slog.ErrorContext(ctx, "create audit log failed", "error", err)
 	}
 }
 

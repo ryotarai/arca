@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -67,7 +67,7 @@ func (s *groupConnectService) ListGroups(ctx context.Context, req *connect.Reque
 
 	groups, err := s.store.ListUserGroups(ctx)
 	if err != nil {
-		log.Printf("list groups failed: %v", err)
+		slog.ErrorContext(ctx, "list groups failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list groups"))
 	}
 
@@ -98,7 +98,7 @@ func (s *groupConnectService) CreateGroup(ctx context.Context, req *connect.Requ
 		if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("group name already exists"))
 		}
-		log.Printf("create group failed: %v", err)
+		slog.ErrorContext(ctx, "create group failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create group"))
 	}
 
@@ -132,7 +132,7 @@ func (s *groupConnectService) DeleteGroup(ctx context.Context, req *connect.Requ
 
 	deleted, err := s.store.DeleteUserGroup(ctx, groupID)
 	if err != nil {
-		log.Printf("delete group failed: %v", err)
+		slog.ErrorContext(ctx, "delete group failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete group"))
 	}
 	if !deleted {
@@ -159,13 +159,13 @@ func (s *groupConnectService) GetGroup(ctx context.Context, req *connect.Request
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("group not found"))
 		}
-		log.Printf("get group failed: %v", err)
+		slog.ErrorContext(ctx, "get group failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get group"))
 	}
 
 	members, err := s.store.ListUserGroupMembers(ctx, groupID)
 	if err != nil {
-		log.Printf("list group members failed: %v", err)
+		slog.ErrorContext(ctx, "list group members failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list group members"))
 	}
 
@@ -217,7 +217,7 @@ func (s *groupConnectService) AddGroupMember(ctx context.Context, req *connect.R
 	}
 
 	if err := s.store.AddUserGroupMember(ctx, groupID, userID); err != nil {
-		log.Printf("add group member failed: %v", err)
+		slog.ErrorContext(ctx, "add group member failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to add group member"))
 	}
 
@@ -246,7 +246,7 @@ func (s *groupConnectService) RemoveGroupMember(ctx context.Context, req *connec
 
 	removed, err := s.store.RemoveUserGroupMember(ctx, groupID, userID)
 	if err != nil {
-		log.Printf("remove group member failed: %v", err)
+		slog.ErrorContext(ctx, "remove group member failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to remove group member"))
 	}
 	if !removed {
@@ -275,7 +275,7 @@ func (s *groupConnectService) SearchGroups(ctx context.Context, req *connect.Req
 
 	groups, err := s.store.SearchUserGroups(ctx, query, limit)
 	if err != nil {
-		log.Printf("search groups failed: %v", err)
+		slog.ErrorContext(ctx, "search groups failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to search groups"))
 	}
 

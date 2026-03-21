@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -41,7 +41,7 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 		ip := peerIPFromConnect(req)
 		allowed, err := s.rateLimiter.Allow(ctx, "login:"+ip)
 		if err != nil {
-			log.Printf("rate limiter error: %v", err)
+			slog.ErrorContext(ctx, "rate limiter error", "error", err)
 		} else if !allowed {
 			return nil, connect.NewError(connect.CodeResourceExhausted, errors.New("too many login attempts, please try again later"))
 		}
@@ -53,7 +53,7 @@ func (s *authConnectService) Login(ctx context.Context, req *connect.Request[arc
 		case errors.Is(err, auth.ErrInvalidCredentials):
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid credentials"))
 		default:
-			log.Printf("login failed: %v", err)
+			slog.ErrorContext(ctx, "login failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to login"))
 		}
 	}
@@ -71,7 +71,7 @@ func (s *authConnectService) StartOidcLogin(ctx context.Context, req *connect.Re
 	}
 	state, err := randomCookieToken(24)
 	if err != nil {
-		log.Printf("generate oidc state failed: %v", err)
+		slog.ErrorContext(ctx, "generate oidc state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to prepare oidc login"))
 	}
 	authURL, err := s.authenticator.StartOIDCLogin(ctx, req.Msg.GetRedirectUri(), state)
@@ -82,7 +82,7 @@ func (s *authConnectService) StartOidcLogin(ctx context.Context, req *connect.Re
 		case errors.Is(err, auth.ErrInvalidInput):
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid oidc login request"))
 		default:
-			log.Printf("start oidc login failed: %v", err)
+			slog.ErrorContext(ctx, "start oidc login failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to start oidc login"))
 		}
 	}
@@ -107,7 +107,7 @@ func (s *authConnectService) CompleteOidcLogin(ctx context.Context, req *connect
 		case errors.Is(err, auth.ErrOIDCRejected):
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("oidc login rejected"))
 		default:
-			log.Printf("complete oidc login failed: %v", err)
+			slog.ErrorContext(ctx, "complete oidc login failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to complete oidc login"))
 		}
 	}

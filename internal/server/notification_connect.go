@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -31,7 +31,7 @@ func (s *notificationConnectService) GetSlackConfig(ctx context.Context, req *co
 
 	config, err := s.store.GetSlackConfig(ctx)
 	if err != nil {
-		log.Printf("get slack config failed: %v", err)
+		slog.ErrorContext(ctx, "get slack config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load slack config"))
 	}
 
@@ -63,14 +63,14 @@ func (s *notificationConnectService) UpdateSlackConfig(ctx context.Context, req 
 	}
 
 	if err := s.store.UpdateSlackConfig(ctx, update); err != nil {
-		log.Printf("update slack config failed: %v", err)
+		slog.ErrorContext(ctx, "update slack config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update slack config"))
 	}
 
 	// Reload to return the saved state (with masked token).
 	saved, err := s.store.GetSlackConfig(ctx)
 	if err != nil {
-		log.Printf("reload slack config failed: %v", err)
+		slog.ErrorContext(ctx, "reload slack config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to reload slack config"))
 	}
 
@@ -122,7 +122,7 @@ func (s *notificationConnectService) GetUserNotificationSettings(ctx context.Con
 
 	slackConfig, err := s.store.GetSlackConfig(ctx)
 	if err != nil {
-		log.Printf("get slack config failed: %v", err)
+		slog.ErrorContext(ctx, "get slack config failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load slack config"))
 	}
 
@@ -138,7 +138,7 @@ func (s *notificationConnectService) GetUserNotificationSettings(ctx context.Con
 				SlackAdminEnabled: slackConfig.Enabled,
 			}), nil
 		}
-		log.Printf("get user notification settings failed: %v", err)
+		slog.ErrorContext(ctx, "get user notification settings failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load notification settings"))
 	}
 
@@ -164,7 +164,7 @@ func (s *notificationConnectService) UpdateUserNotificationSettings(ctx context.
 	}
 
 	if err := s.store.UpsertUserNotificationSettings(ctx, userID, update); err != nil {
-		log.Printf("update user notification settings failed: %v", err)
+		slog.ErrorContext(ctx, "update user notification settings failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update notification settings"))
 	}
 

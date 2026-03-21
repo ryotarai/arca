@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -91,13 +91,13 @@ func (s *adminConnectService) ListAuditLogs(ctx context.Context, req *connect.Re
 
 	entries, err := s.store.ListAuditLogsFiltered(ctx, filter)
 	if err != nil {
-		log.Printf("list audit logs failed: %v", err)
+		slog.ErrorContext(ctx, "list audit logs failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list audit logs"))
 	}
 
 	totalCount, err := s.store.CountAuditLogsFiltered(ctx, actionPrefix, actorEmail)
 	if err != nil {
-		log.Printf("count audit logs failed: %v", err)
+		slog.ErrorContext(ctx, "count audit logs failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to count audit logs"))
 	}
 
@@ -150,7 +150,7 @@ func (s *adminConnectService) authenticateActualAdmin(ctx context.Context, heade
 func (s *adminConnectService) logAudit(ctx context.Context, actorUserID, actingAsUserID, action, resourceType, resourceID, detailsJSON string) {
 	id, err := randomAuditID()
 	if err != nil {
-		log.Printf("generate audit log id failed: %v", err)
+		slog.ErrorContext(ctx, "generate audit log id failed", "error", err)
 		return
 	}
 	entry := db.AuditLogEntry{
@@ -164,7 +164,7 @@ func (s *adminConnectService) logAudit(ctx context.Context, actorUserID, actingA
 		CreatedAt:      time.Now(),
 	}
 	if err := s.store.CreateAuditLog(ctx, entry); err != nil {
-		log.Printf("create audit log failed: %v", err)
+		slog.ErrorContext(ctx, "create audit log failed", "error", err)
 	}
 }
 
@@ -183,7 +183,7 @@ func (s *adminConnectService) ListServerLLMModels(ctx context.Context, req *conn
 
 	models, err := s.store.ListServerLLMModels(ctx)
 	if err != nil {
-		log.Printf("list server llm models failed: %v", err)
+		slog.ErrorContext(ctx, "list server llm models failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list server LLM models"))
 	}
 
@@ -235,13 +235,13 @@ func (s *adminConnectService) CreateServerLLMModel(ctx context.Context, req *con
 	}
 
 	if err := s.store.CreateServerLLMModel(ctx, model); err != nil {
-		log.Printf("create server llm model failed: %v", err)
+		slog.ErrorContext(ctx, "create server llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to create server LLM model"))
 	}
 
 	created, err := s.store.GetServerLLMModel(ctx, id)
 	if err != nil {
-		log.Printf("get server llm model after create failed: %v", err)
+		slog.ErrorContext(ctx, "get server llm model after create failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to retrieve created model"))
 	}
 
@@ -284,7 +284,7 @@ func (s *adminConnectService) UpdateServerLLMModel(ctx context.Context, req *con
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("server LLM model not found"))
 		}
-		log.Printf("get server llm model failed: %v", err)
+		slog.ErrorContext(ctx, "get server llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get server LLM model"))
 	}
 
@@ -300,7 +300,7 @@ func (s *adminConnectService) UpdateServerLLMModel(ctx context.Context, req *con
 
 	updated, err := s.store.UpdateServerLLMModel(ctx, model)
 	if err != nil {
-		log.Printf("update server llm model failed: %v", err)
+		slog.ErrorContext(ctx, "update server llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update server LLM model"))
 	}
 	if !updated {
@@ -309,7 +309,7 @@ func (s *adminConnectService) UpdateServerLLMModel(ctx context.Context, req *con
 
 	result, err := s.store.GetServerLLMModel(ctx, id)
 	if err != nil {
-		log.Printf("get server llm model after update failed: %v", err)
+		slog.ErrorContext(ctx, "get server llm model after update failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to retrieve updated model"))
 	}
 
@@ -334,13 +334,13 @@ func (s *adminConnectService) DeleteServerLLMModel(ctx context.Context, req *con
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("server LLM model not found"))
 		}
-		log.Printf("get server llm model failed: %v", err)
+		slog.ErrorContext(ctx, "get server llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get server LLM model"))
 	}
 
 	deleted, err := s.store.DeleteServerLLMModel(ctx, id)
 	if err != nil {
-		log.Printf("delete server llm model failed: %v", err)
+		slog.ErrorContext(ctx, "delete server llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete server LLM model"))
 	}
 	if !deleted {

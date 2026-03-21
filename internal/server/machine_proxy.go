@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -90,7 +90,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 		var infoErr error
 		machineInfo, infoErr = h.ipCache.Get(r.Context(), m)
 		if infoErr != nil {
-			log.Printf("machine proxy: ip cache lookup for %q failed: %v", m.ID, infoErr)
+			slog.ErrorContext(r.Context(), "machine proxy: ip cache lookup failed", "machine_id", m.ID, "error", infoErr)
 		}
 	}
 	connectivity := db.GetTemplateExposureConfig(m.TemplateConfigJSON).Connectivity
@@ -102,7 +102,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 
 	target, err := url.Parse(upstreamURL)
 	if err != nil {
-		log.Printf("machine proxy: parse upstream url %q failed: %v", upstreamURL, err)
+		slog.ErrorContext(r.Context(), "machine proxy: parse upstream url failed", "upstream_url", upstreamURL, "error", err)
 		http.Error(w, "invalid upstream", http.StatusBadGateway)
 		return true
 	}
@@ -115,7 +115,7 @@ func (h *MachineProxyHandler) TryServeHTTP(w http.ResponseWriter, r *http.Reques
 			// hostname-based exposure lookup and authentication.
 		},
 		ErrorHandler: func(rw http.ResponseWriter, req *http.Request, proxyErr error) {
-			log.Printf("machine proxy: upstream error for %q: %v", m.ID, proxyErr)
+			slog.ErrorContext(req.Context(), "machine proxy: upstream error", "machine_id", m.ID, "error", proxyErr)
 			http.Error(rw, "upstream error", http.StatusBadGateway)
 		},
 	}

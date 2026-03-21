@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
+	"log/slog"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -50,14 +50,14 @@ func (s *exposureConnectService) UpsertMachineExposure(ctx context.Context, req 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("load machine failed: %v", err)
+		slog.ErrorContext(ctx, "load machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
 	}
 
 	// Dynamically construct the exposure from setup_state
 	setup, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("get setup state failed: %v", err)
+		slog.ErrorContext(ctx, "get setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
 	hostname := db.MachineHostname(setup.DomainPrefix, m.Name, setup.BaseDomain)
@@ -97,13 +97,13 @@ func (s *exposureConnectService) ListMachineExposures(ctx context.Context, req *
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("load machine failed: %v", err)
+		slog.ErrorContext(ctx, "load machine failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
 	}
 
 	setup, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("get setup state failed: %v", err)
+		slog.ErrorContext(ctx, "get setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
 	hostname := db.MachineHostname(setup.DomainPrefix, m.Name, setup.BaseDomain)
@@ -137,7 +137,7 @@ func (s *exposureConnectService) GetMachineExposureByHostname(ctx context.Contex
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
 			}
-			log.Printf("get machine id by token failed: %v", err)
+			slog.ErrorContext(ctx, "get machine id by token failed", "error", err)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
 		}
 		if machineID != "" && machineID != resolvedMachineID {
@@ -154,7 +154,7 @@ func (s *exposureConnectService) GetMachineExposureByHostname(ctx context.Contex
 	// Resolve machine name from hostname via setup_state
 	setup, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("get setup state failed: %v", err)
+		slog.ErrorContext(ctx, "get setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
 	name, ok := db.ExtractMachineNameFromHostname(hostname, setup.DomainPrefix, setup.BaseDomain)
@@ -166,7 +166,7 @@ func (s *exposureConnectService) GetMachineExposureByHostname(ctx context.Contex
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("exposure not found"))
 		}
-		log.Printf("get machine by name failed: %v", err)
+		slog.ErrorContext(ctx, "get machine by name failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve exposure"))
 	}
 	if m.ID != machineID {
@@ -198,7 +198,7 @@ func (s *exposureConnectService) ReportMachineReadiness(ctx context.Context, req
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
 		}
-		log.Printf("get machine id by token failed: %v", err)
+		slog.ErrorContext(ctx, "get machine id by token failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
 	}
 
@@ -216,7 +216,7 @@ func (s *exposureConnectService) ReportMachineReadiness(ctx context.Context, req
 		strings.TrimSpace(req.Msg.GetArcadVersion()),
 	)
 	if err != nil {
-		log.Printf("report machine readiness failed: %v", err)
+		slog.ErrorContext(ctx, "report machine readiness failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to report machine readiness"))
 	}
 
@@ -237,7 +237,7 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
 		}
-		log.Printf("get machine id by token failed: %v", err)
+		slog.ErrorContext(ctx, "get machine id by token failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
 	}
 
@@ -246,7 +246,7 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 		if errors.Is(err, sql.ErrNoRows) {
 			return connect.NewResponse(&arcav1.GetMachineLLMModelsResponse{}), nil
 		}
-		log.Printf("get machine owner failed: %v", err)
+		slog.ErrorContext(ctx, "get machine owner failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve machine owner"))
 	}
 
@@ -255,7 +255,7 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 
 	userModels, err := s.store.ListUserLLMModelsWithAPIKey(ctx, ownerUserID)
 	if err != nil {
-		log.Printf("list user llm models failed: %v", err)
+		slog.ErrorContext(ctx, "list user llm models failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list LLM models"))
 	}
 
@@ -265,7 +265,7 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 		if s.encryptor != nil && m.APIKeyEncrypted != "" {
 			decrypted, err := s.encryptor.Decrypt(m.APIKeyEncrypted)
 			if err != nil {
-				log.Printf("decrypt api key for model %s failed: %v", m.ID, err)
+				slog.ErrorContext(ctx, "decrypt api key for model", "error", err)
 				continue
 			}
 			apiKey = decrypted
@@ -285,14 +285,14 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 	if s.llmTokenExecutor != nil {
 		serverModels, err := s.store.ListServerLLMModels(ctx)
 		if err != nil {
-			log.Printf("list server llm models failed: %v", err)
+			slog.ErrorContext(ctx, "list server llm models failed", "error", err)
 			// Continue without server models rather than failing
 		} else if len(serverModels) > 0 {
 			// Get owner's email for token command stdin
 			ownerEmail := ""
 			ownerUser, err := s.store.GetUserByID(ctx, ownerUserID)
 			if err != nil {
-				log.Printf("get owner user for token command failed: %v", err)
+				slog.ErrorContext(ctx, "get owner user for token command failed", "error", err)
 			} else {
 				ownerEmail = ownerUser.Email
 			}
@@ -303,7 +303,7 @@ func (s *exposureConnectService) GetMachineLLMModels(ctx context.Context, req *c
 				}
 				token, err := s.llmTokenExecutor.GetToken(ctx, sm.ID, sm.TokenCommand, ownerEmail, ownerUserID)
 				if err != nil {
-					log.Printf("execute token command for server model %s failed: %v", sm.ID, err)
+					slog.ErrorContext(ctx, "execute token command for server model", "error", err)
 					continue
 				}
 				items = append(items, &arcav1.MachineLLMModel{
