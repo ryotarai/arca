@@ -458,7 +458,7 @@ func (s *userConnectService) GetUserAgentPrompt(ctx context.Context, req *connec
 
 	prompt, err := s.store.GetUserAgentPrompt(ctx, userID)
 	if err != nil {
-		log.Printf("get user agent prompt failed: %v", err)
+		slog.ErrorContext(ctx, "get user agent prompt failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load user agent prompt"))
 	}
 
@@ -473,7 +473,7 @@ func (s *userConnectService) UpdateUserAgentPrompt(ctx context.Context, req *con
 
 	prompt := req.Msg.GetAgentPrompt()
 	if err := s.store.SetUserAgentPrompt(ctx, userID, prompt); err != nil {
-		log.Printf("update user agent prompt failed: %v", err)
+		slog.ErrorContext(ctx, "update user agent prompt failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update user agent prompt"))
 	}
 

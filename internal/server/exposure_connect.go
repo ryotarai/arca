@@ -337,7 +337,7 @@ func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, r
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid machine token"))
 		}
-		log.Printf("get machine id by token failed: %v", err)
+		slog.ErrorContext(ctx, "get machine id by token failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
 	}
 
@@ -347,7 +347,7 @@ func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, r
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 		}
-		log.Printf("get machine by id failed: %v", err)
+		slog.ErrorContext(ctx, "get machine by id failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
 	}
 
@@ -357,7 +357,7 @@ func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, r
 	// 4. Get global agent prompt from setup state
 	setup, err := s.store.GetSetupState(ctx)
 	if err != nil {
-		log.Printf("get setup state failed: %v", err)
+		slog.ErrorContext(ctx, "get setup state failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load setup state"))
 	}
 	globalPrompt := setup.AgentPrompt
@@ -367,13 +367,13 @@ func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, r
 	ownerUserID, err := s.store.GetMachineOwnerUserID(ctx, machineID)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			log.Printf("get machine owner failed: %v", err)
+			slog.ErrorContext(ctx, "get machine owner failed", "error", err)
 		}
 		// No owner or error — continue with empty user prompt
 	} else {
 		userPrompt, err = s.store.GetUserAgentPrompt(ctx, ownerUserID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			log.Printf("get user agent prompt failed: %v", err)
+			slog.ErrorContext(ctx, "get user agent prompt failed", "error", err)
 		}
 	}
 
