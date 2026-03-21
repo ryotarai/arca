@@ -541,7 +541,7 @@ func (s *userConnectService) DuplicateUserLLMModel(ctx context.Context, req *con
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("LLM model not found"))
 		}
-		log.Printf("get user llm model for duplicate failed: %v", err)
+		slog.ErrorContext(ctx, "get user llm model for duplicate failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load LLM model"))
 	}
 
@@ -562,13 +562,13 @@ func (s *userConnectService) DuplicateUserLLMModel(ctx context.Context, req *con
 		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
 			return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("config_name %q already exists", newConfigName))
 		}
-		log.Printf("create duplicate user llm model failed: %v", err)
+		slog.ErrorContext(ctx, "create duplicate user llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to duplicate LLM model"))
 	}
 
 	created, err := s.store.GetUserLLMModel(ctx, newID, userID)
 	if err != nil {
-		log.Printf("get duplicated llm model failed: %v", err)
+		slog.ErrorContext(ctx, "get duplicated llm model failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load duplicated LLM model"))
 	}
 
