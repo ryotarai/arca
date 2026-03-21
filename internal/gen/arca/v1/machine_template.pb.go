@@ -451,6 +451,7 @@ type MachineTemplateConfig struct {
 	Exposure               *MachineExposureConfig           `protobuf:"bytes,3,opt,name=exposure,proto3" json:"exposure,omitempty"`
 	ServerApiUrl           string                           `protobuf:"bytes,5,opt,name=server_api_url,json=serverApiUrl,proto3" json:"server_api_url,omitempty"`
 	AutoStopTimeoutSeconds int64                            `protobuf:"varint,6,opt,name=auto_stop_timeout_seconds,json=autoStopTimeoutSeconds,proto3" json:"auto_stop_timeout_seconds,omitempty"`
+	AgentPrompt            string                           `protobuf:"bytes,7,opt,name=agent_prompt,json=agentPrompt,proto3" json:"agent_prompt,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -538,6 +539,13 @@ func (x *MachineTemplateConfig) GetAutoStopTimeoutSeconds() int64 {
 		return x.AutoStopTimeoutSeconds
 	}
 	return 0
+}
+
+func (x *MachineTemplateConfig) GetAgentPrompt() string {
+	if x != nil {
+		return x.AgentPrompt
+	}
+	return ""
 }
 
 type isMachineTemplateConfig_Provider interface {
@@ -1199,14 +1207,15 @@ const file_arca_v1_machine_template_proto_rawDesc = "" +
 	"\x10\v\"V\n" +
 	"\x11LxdTemplateConfig\x12\x1a\n" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12%\n" +
-	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\xdc\x02\n" +
+	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\xff\x02\n" +
 	"\x15MachineTemplateConfig\x12:\n" +
 	"\alibvirt\x18\x01 \x01(\v2\x1e.arca.v1.LibvirtTemplateConfigH\x00R\alibvirt\x12.\n" +
 	"\x03gce\x18\x02 \x01(\v2\x1a.arca.v1.GceTemplateConfigH\x00R\x03gce\x12.\n" +
 	"\x03lxd\x18\x04 \x01(\v2\x1a.arca.v1.LxdTemplateConfigH\x00R\x03lxd\x12:\n" +
 	"\bexposure\x18\x03 \x01(\v2\x1e.arca.v1.MachineExposureConfigR\bexposure\x12$\n" +
 	"\x0eserver_api_url\x18\x05 \x01(\tR\fserverApiUrl\x129\n" +
-	"\x19auto_stop_timeout_seconds\x18\x06 \x01(\x03R\x16autoStopTimeoutSecondsB\n" +
+	"\x19auto_stop_timeout_seconds\x18\x06 \x01(\x03R\x16autoStopTimeoutSeconds\x12!\n" +
+	"\fagent_prompt\x18\a \x01(\tR\vagentPromptB\n" +
 	"\n" +
 	"\bprovider\"\xdd\x01\n" +
 	"\x0fMachineTemplate\x12\x0e\n" +

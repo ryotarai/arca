@@ -69,6 +69,12 @@ const (
 	// UserServiceUpdateUserStartupScriptProcedure is the fully-qualified name of the UserService's
 	// UpdateUserStartupScript RPC.
 	UserServiceUpdateUserStartupScriptProcedure = "/arca.v1.UserService/UpdateUserStartupScript"
+	// UserServiceGetUserAgentPromptProcedure is the fully-qualified name of the UserService's
+	// GetUserAgentPrompt RPC.
+	UserServiceGetUserAgentPromptProcedure = "/arca.v1.UserService/GetUserAgentPrompt"
+	// UserServiceUpdateUserAgentPromptProcedure is the fully-qualified name of the UserService's
+	// UpdateUserAgentPrompt RPC.
+	UserServiceUpdateUserAgentPromptProcedure = "/arca.v1.UserService/UpdateUserAgentPrompt"
 )
 
 // UserServiceClient is a client for the arca.v1.UserService service.
@@ -86,6 +92,8 @@ type UserServiceClient interface {
 	DuplicateUserLLMModel(context.Context, *connect.Request[v1.DuplicateUserLLMModelRequest]) (*connect.Response[v1.DuplicateUserLLMModelResponse], error)
 	GetUserStartupScript(context.Context, *connect.Request[v1.GetUserStartupScriptRequest]) (*connect.Response[v1.GetUserStartupScriptResponse], error)
 	UpdateUserStartupScript(context.Context, *connect.Request[v1.UpdateUserStartupScriptRequest]) (*connect.Response[v1.UpdateUserStartupScriptResponse], error)
+	GetUserAgentPrompt(context.Context, *connect.Request[v1.GetUserAgentPromptRequest]) (*connect.Response[v1.GetUserAgentPromptResponse], error)
+	UpdateUserAgentPrompt(context.Context, *connect.Request[v1.UpdateUserAgentPromptRequest]) (*connect.Response[v1.UpdateUserAgentPromptResponse], error)
 }
 
 // NewUserServiceClient constructs a client for the arca.v1.UserService service. By default, it uses
@@ -177,6 +185,18 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("UpdateUserStartupScript")),
 			connect.WithClientOptions(opts...),
 		),
+		getUserAgentPrompt: connect.NewClient[v1.GetUserAgentPromptRequest, v1.GetUserAgentPromptResponse](
+			httpClient,
+			baseURL+UserServiceGetUserAgentPromptProcedure,
+			connect.WithSchema(userServiceMethods.ByName("GetUserAgentPrompt")),
+			connect.WithClientOptions(opts...),
+		),
+		updateUserAgentPrompt: connect.NewClient[v1.UpdateUserAgentPromptRequest, v1.UpdateUserAgentPromptResponse](
+			httpClient,
+			baseURL+UserServiceUpdateUserAgentPromptProcedure,
+			connect.WithSchema(userServiceMethods.ByName("UpdateUserAgentPrompt")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -195,6 +215,8 @@ type userServiceClient struct {
 	duplicateUserLLMModel   *connect.Client[v1.DuplicateUserLLMModelRequest, v1.DuplicateUserLLMModelResponse]
 	getUserStartupScript    *connect.Client[v1.GetUserStartupScriptRequest, v1.GetUserStartupScriptResponse]
 	updateUserStartupScript *connect.Client[v1.UpdateUserStartupScriptRequest, v1.UpdateUserStartupScriptResponse]
+	getUserAgentPrompt      *connect.Client[v1.GetUserAgentPromptRequest, v1.GetUserAgentPromptResponse]
+	updateUserAgentPrompt   *connect.Client[v1.UpdateUserAgentPromptRequest, v1.UpdateUserAgentPromptResponse]
 }
 
 // ListUsers calls arca.v1.UserService.ListUsers.
@@ -262,6 +284,16 @@ func (c *userServiceClient) UpdateUserStartupScript(ctx context.Context, req *co
 	return c.updateUserStartupScript.CallUnary(ctx, req)
 }
 
+// GetUserAgentPrompt calls arca.v1.UserService.GetUserAgentPrompt.
+func (c *userServiceClient) GetUserAgentPrompt(ctx context.Context, req *connect.Request[v1.GetUserAgentPromptRequest]) (*connect.Response[v1.GetUserAgentPromptResponse], error) {
+	return c.getUserAgentPrompt.CallUnary(ctx, req)
+}
+
+// UpdateUserAgentPrompt calls arca.v1.UserService.UpdateUserAgentPrompt.
+func (c *userServiceClient) UpdateUserAgentPrompt(ctx context.Context, req *connect.Request[v1.UpdateUserAgentPromptRequest]) (*connect.Response[v1.UpdateUserAgentPromptResponse], error) {
+	return c.updateUserAgentPrompt.CallUnary(ctx, req)
+}
+
 // UserServiceHandler is an implementation of the arca.v1.UserService service.
 type UserServiceHandler interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
@@ -277,6 +309,8 @@ type UserServiceHandler interface {
 	DuplicateUserLLMModel(context.Context, *connect.Request[v1.DuplicateUserLLMModelRequest]) (*connect.Response[v1.DuplicateUserLLMModelResponse], error)
 	GetUserStartupScript(context.Context, *connect.Request[v1.GetUserStartupScriptRequest]) (*connect.Response[v1.GetUserStartupScriptResponse], error)
 	UpdateUserStartupScript(context.Context, *connect.Request[v1.UpdateUserStartupScriptRequest]) (*connect.Response[v1.UpdateUserStartupScriptResponse], error)
+	GetUserAgentPrompt(context.Context, *connect.Request[v1.GetUserAgentPromptRequest]) (*connect.Response[v1.GetUserAgentPromptResponse], error)
+	UpdateUserAgentPrompt(context.Context, *connect.Request[v1.UpdateUserAgentPromptRequest]) (*connect.Response[v1.UpdateUserAgentPromptResponse], error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -364,6 +398,18 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("UpdateUserStartupScript")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceGetUserAgentPromptHandler := connect.NewUnaryHandler(
+		UserServiceGetUserAgentPromptProcedure,
+		svc.GetUserAgentPrompt,
+		connect.WithSchema(userServiceMethods.ByName("GetUserAgentPrompt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceUpdateUserAgentPromptHandler := connect.NewUnaryHandler(
+		UserServiceUpdateUserAgentPromptProcedure,
+		svc.UpdateUserAgentPrompt,
+		connect.WithSchema(userServiceMethods.ByName("UpdateUserAgentPrompt")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceListUsersProcedure:
@@ -392,6 +438,10 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceGetUserStartupScriptHandler.ServeHTTP(w, r)
 		case UserServiceUpdateUserStartupScriptProcedure:
 			userServiceUpdateUserStartupScriptHandler.ServeHTTP(w, r)
+		case UserServiceGetUserAgentPromptProcedure:
+			userServiceGetUserAgentPromptHandler.ServeHTTP(w, r)
+		case UserServiceUpdateUserAgentPromptProcedure:
+			userServiceUpdateUserAgentPromptHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -451,4 +501,12 @@ func (UnimplementedUserServiceHandler) GetUserStartupScript(context.Context, *co
 
 func (UnimplementedUserServiceHandler) UpdateUserStartupScript(context.Context, *connect.Request[v1.UpdateUserStartupScriptRequest]) (*connect.Response[v1.UpdateUserStartupScriptResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.UpdateUserStartupScript is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) GetUserAgentPrompt(context.Context, *connect.Request[v1.GetUserAgentPromptRequest]) (*connect.Response[v1.GetUserAgentPromptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.GetUserAgentPrompt is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) UpdateUserAgentPrompt(context.Context, *connect.Request[v1.UpdateUserAgentPromptRequest]) (*connect.Response[v1.UpdateUserAgentPromptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.UserService.UpdateUserAgentPrompt is not implemented"))
 }

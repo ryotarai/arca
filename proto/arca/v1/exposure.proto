@@ -10,6 +10,7 @@ service ExposureService {
   rpc GetMachineExposureByHostname(GetMachineExposureByHostnameRequest) returns (GetMachineExposureByHostnameResponse);
   rpc ReportMachineReadiness(ReportMachineReadinessRequest) returns (ReportMachineReadinessResponse);
   rpc GetMachineLLMModels(GetMachineLLMModelsRequest) returns (GetMachineLLMModelsResponse);
+  rpc GetMachineAgentGuideline(GetMachineAgentGuidelineRequest) returns (GetMachineAgentGuidelineResponse);
 }
 
 message MachineExposure {
@@ -73,4 +74,10 @@ message MachineLLMModel {
   string model_name = 4;
   string api_key = 5;
   int32 max_context_tokens = 6;
+}
+
+message GetMachineAgentGuidelineRequest {}
+
+message GetMachineAgentGuidelineResponse {
+  string guideline = 1;
 }

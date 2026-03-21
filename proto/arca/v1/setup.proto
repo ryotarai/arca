@@ -30,6 +30,7 @@ message SetupStatus {
   bool oidc_auto_provisioning = 21;
   string base_domain = 22;
   string domain_prefix = 23;
+  string agent_prompt = 24;
 }
 
 message GetSetupStatusRequest {}
@@ -77,6 +78,7 @@ message UpdateDomainSettingsRequest {
   bool oidc_auto_provisioning = 19;
   string base_domain = 20;
   string domain_prefix = 21;
+  string agent_prompt = 22;
 }
 
 message UpdateDomainSettingsResponse {

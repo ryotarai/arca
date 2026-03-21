@@ -48,6 +48,9 @@ const (
 	// ExposureServiceGetMachineLLMModelsProcedure is the fully-qualified name of the ExposureService's
 	// GetMachineLLMModels RPC.
 	ExposureServiceGetMachineLLMModelsProcedure = "/arca.v1.ExposureService/GetMachineLLMModels"
+	// ExposureServiceGetMachineAgentGuidelineProcedure is the fully-qualified name of the
+	// ExposureService's GetMachineAgentGuideline RPC.
+	ExposureServiceGetMachineAgentGuidelineProcedure = "/arca.v1.ExposureService/GetMachineAgentGuideline"
 )
 
 // ExposureServiceClient is a client for the arca.v1.ExposureService service.
@@ -57,6 +60,7 @@ type ExposureServiceClient interface {
 	GetMachineExposureByHostname(context.Context, *connect.Request[v1.GetMachineExposureByHostnameRequest]) (*connect.Response[v1.GetMachineExposureByHostnameResponse], error)
 	ReportMachineReadiness(context.Context, *connect.Request[v1.ReportMachineReadinessRequest]) (*connect.Response[v1.ReportMachineReadinessResponse], error)
 	GetMachineLLMModels(context.Context, *connect.Request[v1.GetMachineLLMModelsRequest]) (*connect.Response[v1.GetMachineLLMModelsResponse], error)
+	GetMachineAgentGuideline(context.Context, *connect.Request[v1.GetMachineAgentGuidelineRequest]) (*connect.Response[v1.GetMachineAgentGuidelineResponse], error)
 }
 
 // NewExposureServiceClient constructs a client for the arca.v1.ExposureService service. By default,
@@ -100,6 +104,12 @@ func NewExposureServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(exposureServiceMethods.ByName("GetMachineLLMModels")),
 			connect.WithClientOptions(opts...),
 		),
+		getMachineAgentGuideline: connect.NewClient[v1.GetMachineAgentGuidelineRequest, v1.GetMachineAgentGuidelineResponse](
+			httpClient,
+			baseURL+ExposureServiceGetMachineAgentGuidelineProcedure,
+			connect.WithSchema(exposureServiceMethods.ByName("GetMachineAgentGuideline")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -110,6 +120,7 @@ type exposureServiceClient struct {
 	getMachineExposureByHostname *connect.Client[v1.GetMachineExposureByHostnameRequest, v1.GetMachineExposureByHostnameResponse]
 	reportMachineReadiness       *connect.Client[v1.ReportMachineReadinessRequest, v1.ReportMachineReadinessResponse]
 	getMachineLLMModels          *connect.Client[v1.GetMachineLLMModelsRequest, v1.GetMachineLLMModelsResponse]
+	getMachineAgentGuideline     *connect.Client[v1.GetMachineAgentGuidelineRequest, v1.GetMachineAgentGuidelineResponse]
 }
 
 // UpsertMachineExposure calls arca.v1.ExposureService.UpsertMachineExposure.
@@ -137,6 +148,11 @@ func (c *exposureServiceClient) GetMachineLLMModels(ctx context.Context, req *co
 	return c.getMachineLLMModels.CallUnary(ctx, req)
 }
 
+// GetMachineAgentGuideline calls arca.v1.ExposureService.GetMachineAgentGuideline.
+func (c *exposureServiceClient) GetMachineAgentGuideline(ctx context.Context, req *connect.Request[v1.GetMachineAgentGuidelineRequest]) (*connect.Response[v1.GetMachineAgentGuidelineResponse], error) {
+	return c.getMachineAgentGuideline.CallUnary(ctx, req)
+}
+
 // ExposureServiceHandler is an implementation of the arca.v1.ExposureService service.
 type ExposureServiceHandler interface {
 	UpsertMachineExposure(context.Context, *connect.Request[v1.UpsertMachineExposureRequest]) (*connect.Response[v1.UpsertMachineExposureResponse], error)
@@ -144,6 +160,7 @@ type ExposureServiceHandler interface {
 	GetMachineExposureByHostname(context.Context, *connect.Request[v1.GetMachineExposureByHostnameRequest]) (*connect.Response[v1.GetMachineExposureByHostnameResponse], error)
 	ReportMachineReadiness(context.Context, *connect.Request[v1.ReportMachineReadinessRequest]) (*connect.Response[v1.ReportMachineReadinessResponse], error)
 	GetMachineLLMModels(context.Context, *connect.Request[v1.GetMachineLLMModelsRequest]) (*connect.Response[v1.GetMachineLLMModelsResponse], error)
+	GetMachineAgentGuideline(context.Context, *connect.Request[v1.GetMachineAgentGuidelineRequest]) (*connect.Response[v1.GetMachineAgentGuidelineResponse], error)
 }
 
 // NewExposureServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -183,6 +200,12 @@ func NewExposureServiceHandler(svc ExposureServiceHandler, opts ...connect.Handl
 		connect.WithSchema(exposureServiceMethods.ByName("GetMachineLLMModels")),
 		connect.WithHandlerOptions(opts...),
 	)
+	exposureServiceGetMachineAgentGuidelineHandler := connect.NewUnaryHandler(
+		ExposureServiceGetMachineAgentGuidelineProcedure,
+		svc.GetMachineAgentGuideline,
+		connect.WithSchema(exposureServiceMethods.ByName("GetMachineAgentGuideline")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.ExposureService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ExposureServiceUpsertMachineExposureProcedure:
@@ -195,6 +218,8 @@ func NewExposureServiceHandler(svc ExposureServiceHandler, opts ...connect.Handl
 			exposureServiceReportMachineReadinessHandler.ServeHTTP(w, r)
 		case ExposureServiceGetMachineLLMModelsProcedure:
 			exposureServiceGetMachineLLMModelsHandler.ServeHTTP(w, r)
+		case ExposureServiceGetMachineAgentGuidelineProcedure:
+			exposureServiceGetMachineAgentGuidelineHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -222,4 +247,8 @@ func (UnimplementedExposureServiceHandler) ReportMachineReadiness(context.Contex
 
 func (UnimplementedExposureServiceHandler) GetMachineLLMModels(context.Context, *connect.Request[v1.GetMachineLLMModelsRequest]) (*connect.Response[v1.GetMachineLLMModelsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.ExposureService.GetMachineLLMModels is not implemented"))
+}
+
+func (UnimplementedExposureServiceHandler) GetMachineAgentGuideline(context.Context, *connect.Request[v1.GetMachineAgentGuidelineRequest]) (*connect.Response[v1.GetMachineAgentGuidelineResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.ExposureService.GetMachineAgentGuideline is not implemented"))
 }
