@@ -2908,6 +2908,27 @@ func (q *Queries) MarkAuthTicketUsed(ctx context.Context, arg MarkAuthTicketUsed
 	return result.RowsAffected()
 }
 
+const markMachineJobFailed = `-- name: MarkMachineJobFailed :exec
+UPDATE machine_jobs
+SET status = 'failed',
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = $1,
+    updated_at = $2
+WHERE id = $3
+`
+
+type MarkMachineJobFailedParams struct {
+	LastError sql.NullString
+	UpdatedAt int64
+	ID        string
+}
+
+func (q *Queries) MarkMachineJobFailed(ctx context.Context, arg MarkMachineJobFailedParams) error {
+	_, err := q.db.ExecContext(ctx, markMachineJobFailed, arg.LastError, arg.UpdatedAt, arg.ID)
+	return err
+}
+
 const markMachineJobSucceeded = `-- name: MarkMachineJobSucceeded :exec
 UPDATE machine_jobs
 SET status = 'succeeded',

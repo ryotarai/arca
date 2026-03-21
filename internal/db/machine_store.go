@@ -1047,6 +1047,25 @@ func (s *Store) MarkMachineJobSucceeded(ctx context.Context, jobID string, nowUn
 	}
 }
 
+func (s *Store) MarkMachineJobFailed(ctx context.Context, jobID string, lastError string, nowUnix int64) error {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.MarkMachineJobFailed(ctx, sqlitesqlc.MarkMachineJobFailedParams{
+			LastError: sql.NullString{String: lastError, Valid: true},
+			UpdatedAt: nowUnix,
+			ID:        jobID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.MarkMachineJobFailed(ctx, postgresqlsqlc.MarkMachineJobFailedParams{
+			LastError: sql.NullString{String: lastError, Valid: true},
+			UpdatedAt: nowUnix,
+			ID:        jobID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) RequeueMachineJob(ctx context.Context, jobID string, nextRunAt int64, lastError string, nowUnix int64) error {
 	switch s.driver {
 	case DriverSQLite:

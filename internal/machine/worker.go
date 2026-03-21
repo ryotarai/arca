@@ -77,6 +77,7 @@ func (w *Worker) SetNotifier(n Notifier) {
 const (
 	readyPollInterval = 2 * time.Second
 	readyStaleAfter   = 30 * time.Second
+	maxJobAttempts    = 10
 )
 
 func NewWorker(store *db.Store, runtime Runtime, workerID string, ipCache *MachineIPCache, maxConcurrency int) *Worker {
@@ -305,7 +306,12 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 			message := fmt.Sprintf("panic: %v", recovered)
 			log.Printf("machine worker panic: %s\n%s", message, string(debug.Stack()))
 			w.emitEvent(ctx, job.MachineID, job.ID, "error", "job_panic", message)
-			_ = w.store.RequeueMachineJob(ctx, job.ID, nowUnix+retryDelaySeconds(job.Attempt), message, nowUnix)
+			if job.Attempt >= maxJobAttempts {
+				w.emitEvent(ctx, job.MachineID, job.ID, "error", "max_retries_exceeded", fmt.Sprintf("job exceeded maximum attempts (%d)", maxJobAttempts))
+				_ = w.store.MarkMachineJobFailed(ctx, job.ID, message, nowUnix)
+			} else {
+				_ = w.store.RequeueMachineJob(ctx, job.ID, nowUnix+retryDelaySeconds(job.Attempt), message, nowUnix)
+			}
 		}
 	}()
 
@@ -343,10 +349,15 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 			"error", err,
 		)
 		_ = w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusFailed, machine.DesiredStatus, machine.ContainerID, err.Error())
-		nextRunAt := nowUnix + retryDelaySeconds(job.Attempt)
 		w.emitEvent(ctx, machine.ID, job.ID, "error", "job_failed", err.Error())
-		w.emitEvent(ctx, machine.ID, job.ID, "info", "retry_scheduled", fmt.Sprintf("retry scheduled at unix=%d", nextRunAt))
-		_ = w.store.RequeueMachineJob(ctx, job.ID, nextRunAt, err.Error(), nowUnix)
+		if job.Attempt >= maxJobAttempts {
+			w.emitEvent(ctx, machine.ID, job.ID, "error", "max_retries_exceeded", fmt.Sprintf("job exceeded maximum attempts (%d)", maxJobAttempts))
+			_ = w.store.MarkMachineJobFailed(ctx, job.ID, err.Error(), nowUnix)
+		} else {
+			nextRunAt := nowUnix + retryDelaySeconds(job.Attempt)
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "retry_scheduled", fmt.Sprintf("retry scheduled at unix=%d", nextRunAt))
+			_ = w.store.RequeueMachineJob(ctx, job.ID, nextRunAt, err.Error(), nowUnix)
+		}
 		return
 	}
 
@@ -395,7 +406,9 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		authorizeURL = "https://" + serverDomain + "/console/authorize"
 	}
 
-	containerID, err := w.runtime.EnsureRunning(ctx, machine, RuntimeStartOptions{
+	startCtx, startCancel := context.WithTimeout(ctx, w.startupTTL)
+	defer startCancel()
+	containerID, err := w.runtime.EnsureRunning(startCtx, machine, RuntimeStartOptions{
 		ControlPlaneURL:       controlPlaneURL,
 		AuthorizeURL:          authorizeURL,
 		MachineID:             machine.ID,

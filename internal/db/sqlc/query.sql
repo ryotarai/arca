@@ -428,6 +428,15 @@ SET status = 'succeeded',
     updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id);
 
+-- name: MarkMachineJobFailed :exec
+UPDATE machine_jobs
+SET status = 'failed',
+    lease_owner = NULL,
+    lease_until = NULL,
+    last_error = sqlc.arg(last_error),
+    updated_at = sqlc.arg(updated_at)
+WHERE id = sqlc.arg(id);
+
 -- name: RequeueMachineJob :exec
 UPDATE machine_jobs
 SET status = 'queued',
