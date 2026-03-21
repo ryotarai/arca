@@ -18,6 +18,8 @@ rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
   rpc UpdateUserLLMModel(UpdateUserLLMModelRequest) returns (UpdateUserLLMModelResponse);
   rpc DeleteUserLLMModel(DeleteUserLLMModelRequest) returns (DeleteUserLLMModelResponse);
   rpc DuplicateUserLLMModel(DuplicateUserLLMModelRequest) returns (DuplicateUserLLMModelResponse);
+  rpc GetUserStartupScript(GetUserStartupScriptRequest) returns (GetUserStartupScriptResponse);
+  rpc UpdateUserStartupScript(UpdateUserStartupScriptRequest) returns (UpdateUserStartupScriptResponse);
 }
 
 message ManagedUser {
@@ -144,4 +146,18 @@ message DuplicateUserLLMModelRequest {
 
 message DuplicateUserLLMModelResponse {
   LLMModel model = 1;
+}
+
+message GetUserStartupScriptRequest {}
+
+message GetUserStartupScriptResponse {
+  string startup_script = 1;
+}
+
+message UpdateUserStartupScriptRequest {
+  string startup_script = 1;
+}
+
+message UpdateUserStartupScriptResponse {
+  string startup_script = 1;
 }

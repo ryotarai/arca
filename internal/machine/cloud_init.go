@@ -15,6 +15,9 @@ func cloudInitUserData(machine db.Machine, opts RuntimeStartOptions) string {
 		agentEndpoint   = "http://localhost:11030"
 	)
 	startupScript := opts.StartupScript
+	if userScript := strings.TrimSpace(opts.UserStartupScript); userScript != "" {
+		startupScript = startupScript + "\n" + userScript
+	}
 	if strings.TrimSpace(startupScript) == "" {
 		startupScript = "exit 0\n"
 	}

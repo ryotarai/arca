@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   getUserNotificationSettings,
   updateUserNotificationSettings,
+  getUserStartupScript,
+  updateUserStartupScript,
   listUserLLMModels,
   createUserLLMModel,
   updateUserLLMModel,
@@ -48,11 +50,83 @@ export function SettingsPage({ user, onLogout }: SettingsPageProps) {
           </div>
         </header>
 
+        <StartupScriptCard userId={user.id} />
+
         <LLMModelsCard userId={user.id} />
 
         <NotificationSettingsCard userId={user.id} />
       </section>
     </main>
+  )
+}
+
+function StartupScriptCard({ userId }: { userId: string }) {
+  const [script, setScript] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const result = await getUserStartupScript()
+        if (!cancelled) setScript(result)
+      } catch (e) {
+        if (!cancelled) setError(messageFromError(e))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [userId])
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+    setSaved(false)
+    setSaving(true)
+    try {
+      const result = await updateUserStartupScript(script)
+      setScript(result)
+      setSaved(true)
+    } catch (e) {
+      setError(messageFromError(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="py-0 shadow-sm">
+      <CardHeader className="space-y-2 p-6 pb-3">
+        <CardTitle className="text-xl">Startup script</CardTitle>
+        <CardDescription>
+          This script runs on every machine you create, after the template startup script. It executes as the arcauser user (sudo available).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-6 pt-3">
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : (
+          <form className="space-y-4" onSubmit={submit}>
+            <textarea
+              value={script}
+              onChange={(e) => { setScript(e.target.value); setSaved(false) }}
+              className="min-h-[200px] w-full rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="#!/bin/bash&#10;# Your startup script here..."
+              disabled={saving}
+            />
+            <Button type="submit" className="h-10 w-full" disabled={saving}>
+              {saving ? 'Saving...' : 'Save startup script'}
+            </Button>
+          </form>
+        )}
+        {saved && <p className="mt-3 text-sm text-emerald-300">Startup script updated.</p>}
+        {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
+      </CardContent>
+    </Card>
   )
 }
 

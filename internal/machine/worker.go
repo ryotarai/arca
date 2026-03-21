@@ -31,11 +31,12 @@ type Runtime interface {
 }
 
 type RuntimeStartOptions struct {
-	ControlPlaneURL       string
-	AuthorizeURL          string
-	MachineID             string
-	MachineToken          string
-	StartupScript         string
+	ControlPlaneURL    string
+	AuthorizeURL       string
+	MachineID          string
+	MachineToken       string
+	StartupScript      string
+	UserStartupScript  string
 }
 
 // Notifier sends notifications for machine lifecycle events.
@@ -405,13 +406,21 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		authorizeURL = "https://" + serverDomain + "/console/authorize"
 	}
 
+	// Fetch the machine owner's startup script.
+	var userStartupScript string
+	ownerUserID, ownerErr := w.store.GetMachineOwnerUserID(ctx, machine.ID)
+	if ownerErr == nil {
+		userStartupScript, _ = w.store.GetUserStartupScript(ctx, ownerUserID)
+	}
+
 	startCtx, startCancel := context.WithTimeout(ctx, w.startupTTL)
 	defer startCancel()
 	containerID, err := w.runtime.EnsureRunning(startCtx, machine, RuntimeStartOptions{
-		ControlPlaneURL:       controlPlaneURL,
-		AuthorizeURL:          authorizeURL,
-		MachineID:             machine.ID,
-		MachineToken:          machine.MachineToken,
+		ControlPlaneURL:   controlPlaneURL,
+		AuthorizeURL:      authorizeURL,
+		MachineID:         machine.ID,
+		MachineToken:      machine.MachineToken,
+		UserStartupScript: userStartupScript,
 	})
 	if err != nil {
 		return err

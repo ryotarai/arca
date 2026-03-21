@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN startup_script TEXT NOT NULL DEFAULT '';

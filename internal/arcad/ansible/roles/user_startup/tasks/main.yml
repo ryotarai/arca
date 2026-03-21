@@ -6,4 +6,5 @@
 
 - name: Run user startup script
   ansible.builtin.shell: "/usr/bin/env bash {{ user_startup_script }}"
+  become_user: "{{ interactive_user }}"
   when: startup_script_stat.stat.exists

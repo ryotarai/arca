@@ -218,6 +218,7 @@ type User struct {
 	PasswordHash          string
 	PasswordSetupRequired bool
 	Role                  string
+	StartupScript         string
 	CreatedAt             time.Time
 }
 

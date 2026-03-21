@@ -15,12 +15,12 @@ INSERT INTO users (id, email, password_hash)
 VALUES (sqlc.arg(id), sqlc.arg(email), sqlc.arg(password_hash));
 
 -- name: ListUsers :many
-SELECT id, email, password_hash, password_setup_required, role, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
 FROM users
 ORDER BY created_at DESC;
 
 -- name: GetUserByEmail :one
-SELECT id, email, password_hash, password_setup_required, role, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
 FROM users
 WHERE email = sqlc.arg(email)
 LIMIT 1;
@@ -33,7 +33,7 @@ ORDER BY email ASC
 LIMIT sqlc.arg(limit_count);
 
 -- name: GetUserByID :one
-SELECT id, email, password_hash, password_setup_required, role, created_at
+SELECT id, email, password_hash, password_setup_required, role, startup_script, created_at
 FROM users
 WHERE id = sqlc.arg(id)
 LIMIT 1;
@@ -52,6 +52,16 @@ WHERE id = sqlc.arg(id);
 UPDATE users
 SET password_setup_required = sqlc.arg(password_setup_required)
 WHERE id = sqlc.arg(id);
+
+-- name: GetUserStartupScript :one
+SELECT startup_script
+FROM users
+WHERE id = sqlc.arg(user_id);
+
+-- name: UpdateUserStartupScript :exec
+UPDATE users
+SET startup_script = sqlc.arg(startup_script)
+WHERE id = sqlc.arg(user_id);
 
 -- name: CreateUserSetupToken :exec
 INSERT INTO user_setup_tokens (id, token_hash, user_id, created_by_user_id, expires_at, created_at)
@@ -155,7 +165,7 @@ INSERT INTO sessions (id, user_id, token_hash, expires_at)
 VALUES (sqlc.arg(id), sqlc.arg(user_id), sqlc.arg(token_hash), sqlc.arg(expires_at_unix));
 
 -- name: GetUserByActiveSessionTokenHash :one
-SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.created_at
+SELECT u.id, u.email, u.password_hash, u.password_setup_required, u.role, u.startup_script, u.created_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = sqlc.arg(token_hash)

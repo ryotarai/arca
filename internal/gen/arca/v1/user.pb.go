@@ -1353,6 +1353,174 @@ func (x *DuplicateUserLLMModelResponse) GetModel() *LLMModel {
 	return nil
 }
 
+type GetUserStartupScriptRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserStartupScriptRequest) Reset() {
+	*x = GetUserStartupScriptRequest{}
+	mi := &file_arca_v1_user_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserStartupScriptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserStartupScriptRequest) ProtoMessage() {}
+
+func (x *GetUserStartupScriptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserStartupScriptRequest.ProtoReflect.Descriptor instead.
+func (*GetUserStartupScriptRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{25}
+}
+
+type GetUserStartupScriptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartupScript string                 `protobuf:"bytes,1,opt,name=startup_script,json=startupScript,proto3" json:"startup_script,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserStartupScriptResponse) Reset() {
+	*x = GetUserStartupScriptResponse{}
+	mi := &file_arca_v1_user_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserStartupScriptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserStartupScriptResponse) ProtoMessage() {}
+
+func (x *GetUserStartupScriptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserStartupScriptResponse.ProtoReflect.Descriptor instead.
+func (*GetUserStartupScriptResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetUserStartupScriptResponse) GetStartupScript() string {
+	if x != nil {
+		return x.StartupScript
+	}
+	return ""
+}
+
+type UpdateUserStartupScriptRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartupScript string                 `protobuf:"bytes,1,opt,name=startup_script,json=startupScript,proto3" json:"startup_script,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserStartupScriptRequest) Reset() {
+	*x = UpdateUserStartupScriptRequest{}
+	mi := &file_arca_v1_user_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserStartupScriptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserStartupScriptRequest) ProtoMessage() {}
+
+func (x *UpdateUserStartupScriptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserStartupScriptRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserStartupScriptRequest) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *UpdateUserStartupScriptRequest) GetStartupScript() string {
+	if x != nil {
+		return x.StartupScript
+	}
+	return ""
+}
+
+type UpdateUserStartupScriptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartupScript string                 `protobuf:"bytes,1,opt,name=startup_script,json=startupScript,proto3" json:"startup_script,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserStartupScriptResponse) Reset() {
+	*x = UpdateUserStartupScriptResponse{}
+	mi := &file_arca_v1_user_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserStartupScriptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserStartupScriptResponse) ProtoMessage() {}
+
+func (x *UpdateUserStartupScriptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_user_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserStartupScriptResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserStartupScriptResponse) Descriptor() ([]byte, []int) {
+	return file_arca_v1_user_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *UpdateUserStartupScriptResponse) GetStartupScript() string {
+	if x != nil {
+		return x.StartupScript
+	}
+	return ""
+}
+
 var File_arca_v1_user_proto protoreflect.FileDescriptor
 
 const file_arca_v1_user_proto_rawDesc = "" +
@@ -1448,7 +1616,14 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x1cDuplicateUserLLMModelRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
 	"\x1dDuplicateUserLLMModelResponse\x12'\n" +
-	"\x05model\x18\x01 \x01(\v2\x11.arca.v1.LLMModelR\x05model2\xd4\a\n" +
+	"\x05model\x18\x01 \x01(\v2\x11.arca.v1.LLMModelR\x05model\"\x1d\n" +
+	"\x1bGetUserStartupScriptRequest\"E\n" +
+	"\x1cGetUserStartupScriptResponse\x12%\n" +
+	"\x0estartup_script\x18\x01 \x01(\tR\rstartupScript\"G\n" +
+	"\x1eUpdateUserStartupScriptRequest\x12%\n" +
+	"\x0estartup_script\x18\x01 \x01(\tR\rstartupScript\"H\n" +
+	"\x1fUpdateUserStartupScriptResponse\x12%\n" +
+	"\x0estartup_script\x18\x01 \x01(\tR\rstartupScript2\xa7\t\n" +
 	"\vUserService\x12B\n" +
 	"\tListUsers\x12\x19.arca.v1.ListUsersRequest\x1a\x1a.arca.v1.ListUsersResponse\x12E\n" +
 	"\n" +
@@ -1461,7 +1636,9 @@ const file_arca_v1_user_proto_rawDesc = "" +
 	"\x12CreateUserLLMModel\x12\".arca.v1.CreateUserLLMModelRequest\x1a#.arca.v1.CreateUserLLMModelResponse\x12]\n" +
 	"\x12UpdateUserLLMModel\x12\".arca.v1.UpdateUserLLMModelRequest\x1a#.arca.v1.UpdateUserLLMModelResponse\x12]\n" +
 	"\x12DeleteUserLLMModel\x12\".arca.v1.DeleteUserLLMModelRequest\x1a#.arca.v1.DeleteUserLLMModelResponse\x12f\n" +
-	"\x15DuplicateUserLLMModel\x12%.arca.v1.DuplicateUserLLMModelRequest\x1a&.arca.v1.DuplicateUserLLMModelResponseB\x8b\x01\n" +
+	"\x15DuplicateUserLLMModel\x12%.arca.v1.DuplicateUserLLMModelRequest\x1a&.arca.v1.DuplicateUserLLMModelResponse\x12c\n" +
+	"\x14GetUserStartupScript\x12$.arca.v1.GetUserStartupScriptRequest\x1a%.arca.v1.GetUserStartupScriptResponse\x12l\n" +
+	"\x17UpdateUserStartupScript\x12'.arca.v1.UpdateUserStartupScriptRequest\x1a(.arca.v1.UpdateUserStartupScriptResponseB\x8b\x01\n" +
 	"\vcom.arca.v1B\tUserProtoP\x01Z4github.com/ryotarai/arca/internal/gen/arca/v1;arcav1\xa2\x02\x03AXX\xaa\x02\aArca.V1\xca\x02\aArca\\V1\xe2\x02\x13Arca\\V1\\GPBMetadata\xea\x02\bArca::V1b\x06proto3"
 
 var (
@@ -1476,40 +1653,44 @@ func file_arca_v1_user_proto_rawDescGZIP() []byte {
 	return file_arca_v1_user_proto_rawDescData
 }
 
-var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_arca_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_arca_v1_user_proto_goTypes = []any{
-	(*ManagedUser)(nil),                   // 0: arca.v1.ManagedUser
-	(*ListUsersRequest)(nil),              // 1: arca.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),             // 2: arca.v1.ListUsersResponse
-	(*CreateUserRequest)(nil),             // 3: arca.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),            // 4: arca.v1.CreateUserResponse
-	(*IssueUserSetupTokenRequest)(nil),    // 5: arca.v1.IssueUserSetupTokenRequest
-	(*IssueUserSetupTokenResponse)(nil),   // 6: arca.v1.IssueUserSetupTokenResponse
-	(*CompleteUserSetupRequest)(nil),      // 7: arca.v1.CompleteUserSetupRequest
-	(*CompleteUserSetupResponse)(nil),     // 8: arca.v1.CompleteUserSetupResponse
-	(*UpdateUserRoleRequest)(nil),         // 9: arca.v1.UpdateUserRoleRequest
-	(*UpdateUserRoleResponse)(nil),        // 10: arca.v1.UpdateUserRoleResponse
-	(*SearchUsersRequest)(nil),            // 11: arca.v1.SearchUsersRequest
-	(*SearchUsersResponse)(nil),           // 12: arca.v1.SearchUsersResponse
-	(*UserSearchResult)(nil),              // 13: arca.v1.UserSearchResult
-	(*LLMModel)(nil),                      // 14: arca.v1.LLMModel
-	(*ListUserLLMModelsRequest)(nil),      // 15: arca.v1.ListUserLLMModelsRequest
-	(*ListUserLLMModelsResponse)(nil),     // 16: arca.v1.ListUserLLMModelsResponse
-	(*CreateUserLLMModelRequest)(nil),     // 17: arca.v1.CreateUserLLMModelRequest
-	(*CreateUserLLMModelResponse)(nil),    // 18: arca.v1.CreateUserLLMModelResponse
-	(*UpdateUserLLMModelRequest)(nil),     // 19: arca.v1.UpdateUserLLMModelRequest
-	(*UpdateUserLLMModelResponse)(nil),    // 20: arca.v1.UpdateUserLLMModelResponse
-	(*DeleteUserLLMModelRequest)(nil),     // 21: arca.v1.DeleteUserLLMModelRequest
-	(*DeleteUserLLMModelResponse)(nil),    // 22: arca.v1.DeleteUserLLMModelResponse
-	(*DuplicateUserLLMModelRequest)(nil),  // 23: arca.v1.DuplicateUserLLMModelRequest
-	(*DuplicateUserLLMModelResponse)(nil), // 24: arca.v1.DuplicateUserLLMModelResponse
-	(*User)(nil),                          // 25: arca.v1.User
+	(*ManagedUser)(nil),                     // 0: arca.v1.ManagedUser
+	(*ListUsersRequest)(nil),                // 1: arca.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),               // 2: arca.v1.ListUsersResponse
+	(*CreateUserRequest)(nil),               // 3: arca.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),              // 4: arca.v1.CreateUserResponse
+	(*IssueUserSetupTokenRequest)(nil),      // 5: arca.v1.IssueUserSetupTokenRequest
+	(*IssueUserSetupTokenResponse)(nil),     // 6: arca.v1.IssueUserSetupTokenResponse
+	(*CompleteUserSetupRequest)(nil),        // 7: arca.v1.CompleteUserSetupRequest
+	(*CompleteUserSetupResponse)(nil),       // 8: arca.v1.CompleteUserSetupResponse
+	(*UpdateUserRoleRequest)(nil),           // 9: arca.v1.UpdateUserRoleRequest
+	(*UpdateUserRoleResponse)(nil),          // 10: arca.v1.UpdateUserRoleResponse
+	(*SearchUsersRequest)(nil),              // 11: arca.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),             // 12: arca.v1.SearchUsersResponse
+	(*UserSearchResult)(nil),                // 13: arca.v1.UserSearchResult
+	(*LLMModel)(nil),                        // 14: arca.v1.LLMModel
+	(*ListUserLLMModelsRequest)(nil),        // 15: arca.v1.ListUserLLMModelsRequest
+	(*ListUserLLMModelsResponse)(nil),       // 16: arca.v1.ListUserLLMModelsResponse
+	(*CreateUserLLMModelRequest)(nil),       // 17: arca.v1.CreateUserLLMModelRequest
+	(*CreateUserLLMModelResponse)(nil),      // 18: arca.v1.CreateUserLLMModelResponse
+	(*UpdateUserLLMModelRequest)(nil),       // 19: arca.v1.UpdateUserLLMModelRequest
+	(*UpdateUserLLMModelResponse)(nil),      // 20: arca.v1.UpdateUserLLMModelResponse
+	(*DeleteUserLLMModelRequest)(nil),       // 21: arca.v1.DeleteUserLLMModelRequest
+	(*DeleteUserLLMModelResponse)(nil),      // 22: arca.v1.DeleteUserLLMModelResponse
+	(*DuplicateUserLLMModelRequest)(nil),    // 23: arca.v1.DuplicateUserLLMModelRequest
+	(*DuplicateUserLLMModelResponse)(nil),   // 24: arca.v1.DuplicateUserLLMModelResponse
+	(*GetUserStartupScriptRequest)(nil),     // 25: arca.v1.GetUserStartupScriptRequest
+	(*GetUserStartupScriptResponse)(nil),    // 26: arca.v1.GetUserStartupScriptResponse
+	(*UpdateUserStartupScriptRequest)(nil),  // 27: arca.v1.UpdateUserStartupScriptRequest
+	(*UpdateUserStartupScriptResponse)(nil), // 28: arca.v1.UpdateUserStartupScriptResponse
+	(*User)(nil),                            // 29: arca.v1.User
 }
 var file_arca_v1_user_proto_depIdxs = []int32{
 	0,  // 0: arca.v1.ListUsersResponse.users:type_name -> arca.v1.ManagedUser
 	0,  // 1: arca.v1.CreateUserResponse.user:type_name -> arca.v1.ManagedUser
 	0,  // 2: arca.v1.IssueUserSetupTokenResponse.user:type_name -> arca.v1.ManagedUser
-	25, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
+	29, // 3: arca.v1.CompleteUserSetupResponse.user:type_name -> arca.v1.User
 	0,  // 4: arca.v1.UpdateUserRoleResponse.user:type_name -> arca.v1.ManagedUser
 	13, // 5: arca.v1.SearchUsersResponse.users:type_name -> arca.v1.UserSearchResult
 	14, // 6: arca.v1.ListUserLLMModelsResponse.models:type_name -> arca.v1.LLMModel
@@ -1527,19 +1708,23 @@ var file_arca_v1_user_proto_depIdxs = []int32{
 	19, // 18: arca.v1.UserService.UpdateUserLLMModel:input_type -> arca.v1.UpdateUserLLMModelRequest
 	21, // 19: arca.v1.UserService.DeleteUserLLMModel:input_type -> arca.v1.DeleteUserLLMModelRequest
 	23, // 20: arca.v1.UserService.DuplicateUserLLMModel:input_type -> arca.v1.DuplicateUserLLMModelRequest
-	2,  // 21: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
-	4,  // 22: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
-	6,  // 23: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
-	8,  // 24: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
-	10, // 25: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
-	12, // 26: arca.v1.UserService.SearchUsers:output_type -> arca.v1.SearchUsersResponse
-	16, // 27: arca.v1.UserService.ListUserLLMModels:output_type -> arca.v1.ListUserLLMModelsResponse
-	18, // 28: arca.v1.UserService.CreateUserLLMModel:output_type -> arca.v1.CreateUserLLMModelResponse
-	20, // 29: arca.v1.UserService.UpdateUserLLMModel:output_type -> arca.v1.UpdateUserLLMModelResponse
-	22, // 30: arca.v1.UserService.DeleteUserLLMModel:output_type -> arca.v1.DeleteUserLLMModelResponse
-	24, // 31: arca.v1.UserService.DuplicateUserLLMModel:output_type -> arca.v1.DuplicateUserLLMModelResponse
-	21, // [21:32] is the sub-list for method output_type
-	10, // [10:21] is the sub-list for method input_type
+	25, // 21: arca.v1.UserService.GetUserStartupScript:input_type -> arca.v1.GetUserStartupScriptRequest
+	27, // 22: arca.v1.UserService.UpdateUserStartupScript:input_type -> arca.v1.UpdateUserStartupScriptRequest
+	2,  // 23: arca.v1.UserService.ListUsers:output_type -> arca.v1.ListUsersResponse
+	4,  // 24: arca.v1.UserService.CreateUser:output_type -> arca.v1.CreateUserResponse
+	6,  // 25: arca.v1.UserService.IssueUserSetupToken:output_type -> arca.v1.IssueUserSetupTokenResponse
+	8,  // 26: arca.v1.UserService.CompleteUserSetup:output_type -> arca.v1.CompleteUserSetupResponse
+	10, // 27: arca.v1.UserService.UpdateUserRole:output_type -> arca.v1.UpdateUserRoleResponse
+	12, // 28: arca.v1.UserService.SearchUsers:output_type -> arca.v1.SearchUsersResponse
+	16, // 29: arca.v1.UserService.ListUserLLMModels:output_type -> arca.v1.ListUserLLMModelsResponse
+	18, // 30: arca.v1.UserService.CreateUserLLMModel:output_type -> arca.v1.CreateUserLLMModelResponse
+	20, // 31: arca.v1.UserService.UpdateUserLLMModel:output_type -> arca.v1.UpdateUserLLMModelResponse
+	22, // 32: arca.v1.UserService.DeleteUserLLMModel:output_type -> arca.v1.DeleteUserLLMModelResponse
+	24, // 33: arca.v1.UserService.DuplicateUserLLMModel:output_type -> arca.v1.DuplicateUserLLMModelResponse
+	26, // 34: arca.v1.UserService.GetUserStartupScript:output_type -> arca.v1.GetUserStartupScriptResponse
+	28, // 35: arca.v1.UserService.UpdateUserStartupScript:output_type -> arca.v1.UpdateUserStartupScriptResponse
+	23, // [23:36] is the sub-list for method output_type
+	10, // [10:23] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -1557,7 +1742,7 @@ func file_arca_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_user_proto_rawDesc), len(file_arca_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   25,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

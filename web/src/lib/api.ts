@@ -68,12 +68,14 @@ import {
   CreateUserLLMModelRequestSchema,
   DeleteUserLLMModelRequestSchema,
   DuplicateUserLLMModelRequestSchema,
+  GetUserStartupScriptRequestSchema,
   IssueUserSetupTokenRequestSchema,
   ListUserLLMModelsRequestSchema,
   ListUsersRequestSchema as ListManagedUsersRequestSchema,
   SearchUsersRequestSchema,
   UpdateUserLLMModelRequestSchema,
   UpdateUserRoleRequestSchema,
+  UpdateUserStartupScriptRequestSchema,
   UserService,
 } from '@/gen/arca/v1/user_pb'
 import type { LLMModel } from '@/gen/arca/v1/user_pb'
@@ -1084,6 +1086,18 @@ export async function duplicateUserLLMModel(id: string): Promise<LLMModel> {
     throw new Error('request failed')
   }
   return response.model
+}
+
+// User Startup Script API
+
+export async function getUserStartupScript(): Promise<string> {
+  const response = await userClient.getUserStartupScript(create(GetUserStartupScriptRequestSchema, {}))
+  return response.startupScript
+}
+
+export async function updateUserStartupScript(script: string): Promise<string> {
+  const response = await userClient.updateUserStartupScript(create(UpdateUserStartupScriptRequestSchema, { startupScript: script }))
+  return response.startupScript
 }
 
 // Custom Image API

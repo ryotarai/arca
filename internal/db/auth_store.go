@@ -488,6 +488,34 @@ func (s *Store) SearchUsersByEmail(ctx context.Context, query string, limit int6
 	}
 }
 
+func (s *Store) GetUserStartupScript(ctx context.Context, userID string) (string, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.GetUserStartupScript(ctx, userID)
+	case DriverPostgres:
+		return s.pgQueries.GetUserStartupScript(ctx, userID)
+	default:
+		return "", unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) UpdateUserStartupScript(ctx context.Context, userID, startupScript string) error {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateUserStartupScript(ctx, sqlitesqlc.UpdateUserStartupScriptParams{
+			StartupScript: startupScript,
+			UserID:        userID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateUserStartupScript(ctx, postgresqlsqlc.UpdateUserStartupScriptParams{
+			StartupScript: startupScript,
+			UserID:        userID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
 func toAuthUser(user sqlitesqlc.User) AuthUser {
 	return AuthUser{
 		ID:                    user.ID,
