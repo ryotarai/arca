@@ -201,8 +201,9 @@ Shows the count of machines using each profile and how many need restarts.
 2. Add `boot_config_hash` column to `machine_profiles` (compute from existing `config_json`).
 3. Rename machine columns: `template_id` → `profile_id`, `template_type` → `provider_type`, `template_config_json` → `infrastructure_config_json`.
 4. Add `applied_boot_config_hash` column to `machines`.
-5. Add FK constraint: `machines.profile_id` → `machine_profiles.id`.
-6. Strip dynamic settings (runtime policy, boot settings) from each machine's `infrastructure_config_json`, keeping only infrastructure fields.
+5. Add FK constraint: `machines.profile_id` → `machine_profiles.id` with `ON DELETE RESTRICT` (enforces deletion rule at DB level).
+6. Rename `template_custom_images` → `profile_custom_images` and update its FK. Rename `custom_images.template_type` → `provider_type` for consistency.
+7. Strip dynamic settings (runtime policy, boot settings) from each machine's `infrastructure_config_json`, keeping only infrastructure fields.
 
 ### API
 
