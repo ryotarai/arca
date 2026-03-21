@@ -19,6 +19,55 @@ test.describe('non-admin mode', () => {
     await expect(page.getByRole('button', { name: 'Back to admin' })).toBeVisible()
   })
 
+  test('admin menu items are hidden in non-admin mode', async ({ page }) => {
+    await loginAsAdmin(page)
+
+    // Enter non-admin mode via API
+    await page.request.post('/arca.v1.AdminService/SetAdminViewMode', {
+      data: { mode: 'user' },
+    })
+
+    // Reload to pick up non-admin mode
+    await page.goto('/machines')
+    await expect(page.getByText('You are in non-admin mode')).toBeVisible()
+
+    // Non-admin navigation items should still be visible
+    await expect(page.getByRole('link', { name: 'Machines' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'User settings' })).toBeVisible()
+
+    // Admin navigation items should be hidden
+    await expect(page.getByRole('link', { name: 'Machine Templates' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Groups' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Admin settings' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Audit logs' })).toHaveCount(0)
+  })
+
+  test('direct URL access to admin pages redirects in non-admin mode', async ({ page }) => {
+    await loginAsAdmin(page)
+
+    // Enter non-admin mode via API
+    await page.request.post('/arca.v1.AdminService/SetAdminViewMode', {
+      data: { mode: 'user' },
+    })
+
+    // /admin/settings redirects to /settings
+    await page.goto('/admin/settings')
+    await expect(page).toHaveURL('/settings')
+
+    // /users redirects to /machines
+    await page.goto('/users')
+    await expect(page).toHaveURL('/machines')
+
+    // /groups redirects to /machines
+    await page.goto('/groups')
+    await expect(page).toHaveURL('/machines')
+
+    // /machine-templates redirects to /machines
+    await page.goto('/machine-templates')
+    await expect(page).toHaveURL('/machines')
+  })
+
   test('clicking Back to admin restores admin access', async ({ page }) => {
     await loginAsAdmin(page)
 
