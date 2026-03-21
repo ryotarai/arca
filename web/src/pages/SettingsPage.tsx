@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
+  getUserAgentPrompt,
+  updateUserAgentPrompt,
   getUserNotificationSettings,
   updateUserNotificationSettings,
   getUserStartupScript,
@@ -51,6 +53,8 @@ export function SettingsPage({ user, onLogout }: SettingsPageProps) {
         </header>
 
         <StartupScriptCard userId={user.id} />
+
+        <AgentPromptCard userId={user.id} />
 
         <LLMModelsCard userId={user.id} />
 
@@ -124,6 +128,85 @@ function StartupScriptCard({ userId }: { userId: string }) {
           </form>
         )}
         {saved && <p className="mt-3 text-sm text-emerald-300">Startup script updated.</p>}
+        {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
+function AgentPromptCard({ userId }: { userId: string }) {
+  const [prompt, setPrompt] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const value = await getUserAgentPrompt()
+        if (cancelled) return
+        setPrompt(value)
+      } catch {
+        // Agent prompt may not be available; use default.
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [userId])
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+    setSaved(false)
+    setSaving(true)
+    try {
+      const result = await updateUserAgentPrompt(prompt)
+      setPrompt(result)
+      setSaved(true)
+    } catch (e) {
+      setError(messageFromError(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="py-0 shadow-sm">
+      <CardHeader className="space-y-2 p-6 pb-3">
+        <CardTitle className="text-xl">Agent prompt</CardTitle>
+        <CardDescription>
+          Custom instructions injected into agent guidelines on your machines.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-6 pt-3">
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : (
+          <form className="space-y-4" onSubmit={submit}>
+            <div className="space-y-2">
+              <Label htmlFor="settings-user-agent-prompt">
+                Prompt
+              </Label>
+              <textarea
+                id="settings-user-agent-prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                rows={6}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Example: I prefer concise code with minimal comments."
+                disabled={saving}
+              />
+            </div>
+            <Button type="submit" className="h-10 w-full" disabled={saving}>
+              {saving ? 'Saving...' : 'Save agent prompt'}
+            </Button>
+          </form>
+        )}
+        {saved && <p className="mt-3 text-sm text-emerald-300">Agent prompt updated.</p>}
         {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
       </CardContent>
     </Card>
