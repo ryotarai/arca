@@ -39,7 +39,7 @@ func (s *proxyStubControlPlane) ValidateArcadSession(_ context.Context, _, _, se
 	if strings.TrimSpace(sessionID) == "" || sessionID != s.exchangeClaims.SessionID {
 		return ArcadSessionClaims{}, ErrInvalidSession
 	}
-	return ArcadSessionClaims{UserID: s.exchangeClaims.UserID}, nil
+	return ArcadSessionClaims{UserID: s.exchangeClaims.UserID, UserEmail: s.exchangeClaims.UserEmail}, nil
 }
 
 func (s *proxyStubControlPlane) ReportMachineReadiness(_ context.Context, _ bool, _, _, _ string) (bool, error) {
@@ -345,6 +345,97 @@ func TestProxyRedirectsUnauthenticatedArcaPathEvenWhenPublicExposure(t *testing.
 	loc := rr.Header().Get("Location")
 	if !strings.HasPrefix(loc, "https://control.example/auth/authorize?target=") {
 		t.Fatalf("unexpected redirect location: %q", loc)
+	}
+}
+
+func TestProxySetsUserHeadersForAuthenticatedUser(t *testing.T) {
+	var receivedHeaders http.Header
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(upstream.Close)
+
+	cp := &proxyStubControlPlane{
+		exposure:       Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: false},
+		exchangeClaims: ArcadSessionClaims{SessionID: "as_valid", UserID: "u1", UserEmail: "user@example.com", ExpiresAt: time.Now().Add(time.Hour)},
+	}
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, upstream.URL), "")
+
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/", nil)
+	addValidSessionCookie(req)
+	rr := httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	if got := receivedHeaders.Get("X-Arca-User-Id"); got != "u1" {
+		t.Fatalf("expected X-Arca-User-Id %q, got %q", "u1", got)
+	}
+	if got := receivedHeaders.Get("X-Arca-User-Email"); got != "user@example.com" {
+		t.Fatalf("expected X-Arca-User-Email %q, got %q", "user@example.com", got)
+	}
+}
+
+func TestProxyRemovesUserHeadersForAnonymousPublicExposure(t *testing.T) {
+	var receivedHeaders http.Header
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(upstream.Close)
+
+	cp := &proxyStubControlPlane{
+		exposure: Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true},
+	}
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, upstream.URL), "")
+
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/", nil)
+	// Set spoofed headers that should be stripped
+	req.Header.Set("X-Arca-User-Id", "spoofed")
+	req.Header.Set("X-Arca-User-Email", "spoofed@evil.com")
+	rr := httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	if got := receivedHeaders.Get("X-Arca-User-Id"); got != "" {
+		t.Fatalf("expected empty X-Arca-User-Id, got %q", got)
+	}
+	if got := receivedHeaders.Get("X-Arca-User-Email"); got != "" {
+		t.Fatalf("expected empty X-Arca-User-Email, got %q", got)
+	}
+}
+
+func TestProxySetsUserHeadersForAuthenticatedPublicExposure(t *testing.T) {
+	var receivedHeaders http.Header
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(upstream.Close)
+
+	cp := &proxyStubControlPlane{
+		exposure:       Exposure{Host: "app.example", Target: "127.0.0.1:3000", Public: true},
+		exchangeClaims: ArcadSessionClaims{SessionID: "as_valid", UserID: "u1", UserEmail: "user@example.com", ExpiresAt: time.Now().Add(time.Hour)},
+	}
+	proxy := NewProxy(NewExposureCache(cp), cp, "arcad_session", mustURL(t, upstream.URL), "")
+
+	req := httptest.NewRequest(http.MethodGet, "http://app.example/", nil)
+	addValidSessionCookie(req)
+	rr := httptest.NewRecorder()
+	proxy.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rr.Code)
+	}
+	if got := receivedHeaders.Get("X-Arca-User-Id"); got != "u1" {
+		t.Fatalf("expected X-Arca-User-Id %q, got %q", "u1", got)
+	}
+	if got := receivedHeaders.Get("X-Arca-User-Email"); got != "user@example.com" {
+		t.Fatalf("expected X-Arca-User-Email %q, got %q", "user@example.com", got)
 	}
 }
 

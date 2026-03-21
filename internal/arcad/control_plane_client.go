@@ -48,6 +48,7 @@ func (e Exposure) targetURL() (*url.URL, error) {
 type ArcadSessionClaims struct {
 	SessionID string
 	UserID    string
+	UserEmail string
 	ExpiresAt time.Time
 }
 
@@ -195,7 +196,8 @@ func (c *HTTPControlPlaneClient) ExchangeArcadSession(ctx context.Context, host,
 	if expiresAtUnix <= 0 {
 		expiresAt = time.Now().Add(8 * time.Hour)
 	}
-	return ArcadSessionClaims{SessionID: sessionID, UserID: userID, ExpiresAt: expiresAt}, nil
+	userEmail := userEmailFromPayload(decoded)
+	return ArcadSessionClaims{SessionID: sessionID, UserID: userID, UserEmail: userEmail, ExpiresAt: expiresAt}, nil
 }
 
 func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host, path, sessionID string) (ArcadSessionClaims, error) {
@@ -236,7 +238,8 @@ func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host,
 	if userID == "" {
 		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session validation response")
 	}
-	return ArcadSessionClaims{UserID: userID}, nil
+	userEmail := userEmailFromPayload(decoded)
+	return ArcadSessionClaims{UserID: userID, UserEmail: userEmail}, nil
 }
 
 func (c *HTTPControlPlaneClient) GetMachineLLMModels(ctx context.Context) ([]MachineLLMModel, error) {
@@ -342,6 +345,14 @@ func userIDFromPayload(payload map[string]any) string {
 		return ""
 	}
 	return stringValue(user["id"])
+}
+
+func userEmailFromPayload(payload map[string]any) string {
+	user, ok := payload["user"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	return stringValue(user["email"])
 }
 
 func stringValue(v any) string {
