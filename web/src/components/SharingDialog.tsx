@@ -298,23 +298,29 @@ export function SharingDialog({ machineID, open, onOpenChange }: SharingDialogPr
                     >
                       <span className="text-sm text-foreground truncate">{member.email}</span>
                       <div className="flex items-center gap-2 shrink-0">
-                        <select
-                          value={member.role}
-                          onChange={(e) => handleMemberRoleChange(member.email, e.target.value)}
-                          className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-                        >
-                          <option value="admin">Admin</option>
-                          <option value="editor">Editor</option>
-                          <option value="viewer">Viewer</option>
-                        </select>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className="h-8 px-2 text-xs"
-                          onClick={() => handleRemoveMember(member.email)}
-                        >
-                          Remove
-                        </Button>
+                        {member.role === 'owner' ? (
+                          <span className="h-8 flex items-center px-2 text-xs text-muted-foreground">Owner</span>
+                        ) : (
+                          <>
+                            <select
+                              value={member.role}
+                              onChange={(e) => handleMemberRoleChange(member.email, e.target.value)}
+                              className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+                            >
+                              <option value="admin">Admin</option>
+                              <option value="editor">Editor</option>
+                              <option value="viewer">Viewer</option>
+                            </select>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="h-8 px-2 text-xs"
+                              onClick={() => handleRemoveMember(member.email)}
+                            >
+                              Remove
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
