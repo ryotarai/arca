@@ -12,7 +12,7 @@ func canUserAccessMachine(ctx context.Context, store *db.Store, machineID, userI
 	if role == db.MachineRoleNone {
 		return false
 	}
-	// /__arca/* paths (ttyd/shelley/claudecodeui) require admin or editor
+	// /__arca/* paths (ttyd/shelley) require admin or editor
 	if isPrivilegedArcaPath(targetPath) {
 		return role == db.MachineRoleAdmin || role == db.MachineRoleEditor
 	}

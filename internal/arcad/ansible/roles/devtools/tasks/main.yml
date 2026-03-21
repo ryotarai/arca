@@ -36,11 +36,3 @@
   when: brew_stat_after.stat.exists
   ignore_errors: yes
 
-- name: Install brew cask packages
-  ansible.builtin.shell: |
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew list --cask {{ item }} >/dev/null 2>&1 || brew install --cask {{ item }}
-  become_user: "{{ interactive_user }}"
-  loop:
-    - claude-code
-  when: brew_stat_after.stat.exists
-  ignore_errors: yes
