@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file arca/v1/machine.proto.
  */
 export const file_arca_v1_machine: GenFile = /*@__PURE__*/
-  fileDesc("ChVhcmNhL3YxL21hY2hpbmUucHJvdG8SB2FyY2EudjEiigMKB01hY2hpbmUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIOCgZzdGF0dXMYAyABKAkSFgoOZGVzaXJlZF9zdGF0dXMYBCABKAkSEgoKbGFzdF9lcnJvchgFIAEoCRITCgt0ZW1wbGF0ZV9pZBgHIAEoCRIXCg91cGRhdGVfcmVxdWlyZWQYCCABKAgSDQoFcmVhZHkYCSABKAgSGQoRcmVhZHlfcmVwb3J0ZWRfYXQYCiABKAMSEQoJdXNlcl9yb2xlGAsgASgJEhUKDWFyY2FkX3ZlcnNpb24YDCABKAkSLgoHb3B0aW9ucxgNIAMoCzIdLmFyY2EudjEuTWFjaGluZS5PcHRpb25zRW50cnkSFQoNdGVtcGxhdGVfdHlwZRgOIAEoCRIcChR0ZW1wbGF0ZV9jb25maWdfanNvbhgPIAEoCRIMCgR0YWdzGBAgAygJGi4KDE9wdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQIBhAHIhUKE0xpc3RNYWNoaW5lc1JlcXVlc3QiOgoUTGlzdE1hY2hpbmVzUmVzcG9uc2USIgoIbWFjaGluZXMYASADKAsyEC5hcmNhLnYxLk1hY2hpbmUiJwoRR2V0TWFjaGluZVJlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCSI3ChJHZXRNYWNoaW5lUmVzcG9uc2USIQoHbWFjaGluZRgBIAEoCzIQLmFyY2EudjEuTWFjaGluZSLNAQoUQ3JlYXRlTWFjaGluZVJlcXVlc3QSDAoEbmFtZRgBIAEoCRITCgt0ZW1wbGF0ZV9pZBgCIAEoCRI7CgdvcHRpb25zGAMgAygLMiouYXJjYS52MS5DcmVhdGVNYWNoaW5lUmVxdWVzdC5PcHRpb25zRW50cnkSFwoPY3VzdG9tX2ltYWdlX2lkGAQgASgJEgwKBHRhZ3MYBSADKAkaLgoMT3B0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiUQoVQ3JlYXRlTWFjaGluZVJlc3BvbnNlEiEKB21hY2hpbmUYASABKAsyEC5hcmNhLnYxLk1hY2hpbmUSFQoNbWFjaGluZV90b2tlbhgCIAEoCSKlAQoUVXBkYXRlTWFjaGluZVJlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEjsKB29wdGlvbnMYAyADKAsyKi5hcmNhLnYxLlVwZGF0ZU1hY2hpbmVSZXF1ZXN0Lk9wdGlvbnNFbnRyeRouCgxPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI6ChVVcGRhdGVNYWNoaW5lUmVzcG9uc2USIQoHbWFjaGluZRgBIAEoCzIQLmFyY2EudjEuTWFjaGluZSIvChNTdGFydE1hY2hpbmVSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAlKBAgCEAMiOQoUU3RhcnRNYWNoaW5lUmVzcG9uc2USIQoHbWFjaGluZRgBIAEoCzIQLmFyY2EudjEuTWFjaGluZSIoChJTdG9wTWFjaGluZVJlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCSI4ChNTdG9wTWFjaGluZVJlc3BvbnNlEiEKB21hY2hpbmUYASABKAsyEC5hcmNhLnYxLk1hY2hpbmUiKgoURGVsZXRlTWFjaGluZVJlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCSIXChVEZWxldGVNYWNoaW5lUmVzcG9uc2UihgEKDE1hY2hpbmVFdmVudBIKCgJpZBgBIAEoCRISCgptYWNoaW5lX2lkGAIgASgJEg4KBmpvYl9pZBgDIAEoCRINCgVsZXZlbBgEIAEoCRISCgpldmVudF90eXBlGAUgASgJEg8KB21lc3NhZ2UYBiABKAkSEgoKY3JlYXRlZF9hdBgHIAEoAyI9ChhMaXN0TWFjaGluZUV2ZW50c1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCRINCgVsaW1pdBgCIAEoBSI8ChhVcGRhdGVNYWNoaW5lVGFnc1JlcXVlc3QSEgoKbWFjaGluZV9pZBgBIAEoCRIMCgR0YWdzGAIgAygJIj4KGVVwZGF0ZU1hY2hpbmVUYWdzUmVzcG9uc2USIQoHbWFjaGluZRgBIAEoCzIQLmFyY2EudjEuTWFjaGluZSJCChlMaXN0TWFjaGluZUV2ZW50c1Jlc3BvbnNlEiUKBmV2ZW50cxgBIAMoCzIVLmFyY2EudjEuTWFjaGluZUV2ZW50MuMFCg5NYWNoaW5lU2VydmljZRJLCgxMaXN0TWFjaGluZXMSHC5hcmNhLnYxLkxpc3RNYWNoaW5lc1JlcXVlc3QaHS5hcmNhLnYxLkxpc3RNYWNoaW5lc1Jlc3BvbnNlEkUKCkdldE1hY2hpbmUSGi5hcmNhLnYxLkdldE1hY2hpbmVSZXF1ZXN0GhsuYXJjYS52MS5HZXRNYWNoaW5lUmVzcG9uc2USTgoNQ3JlYXRlTWFjaGluZRIdLmFyY2EudjEuQ3JlYXRlTWFjaGluZVJlcXVlc3QaHi5hcmNhLnYxLkNyZWF0ZU1hY2hpbmVSZXNwb25zZRJOCg1VcGRhdGVNYWNoaW5lEh0uYXJjYS52MS5VcGRhdGVNYWNoaW5lUmVxdWVzdBoeLmFyY2EudjEuVXBkYXRlTWFjaGluZVJlc3BvbnNlEloKEVVwZGF0ZU1hY2hpbmVUYWdzEiEuYXJjYS52MS5VcGRhdGVNYWNoaW5lVGFnc1JlcXVlc3QaIi5hcmNhLnYxLlVwZGF0ZU1hY2hpbmVUYWdzUmVzcG9uc2USSwoMU3RhcnRNYWNoaW5lEhwuYXJjYS52MS5TdGFydE1hY2hpbmVSZXF1ZXN0Gh0uYXJjYS52MS5TdGFydE1hY2hpbmVSZXNwb25zZRJICgtTdG9wTWFjaGluZRIbLmFyY2EudjEuU3RvcE1hY2hpbmVSZXF1ZXN0GhwuYXJjYS52MS5TdG9wTWFjaGluZVJlc3BvbnNlEk4KDURlbGV0ZU1hY2hpbmUSHS5hcmNhLnYxLkRlbGV0ZU1hY2hpbmVSZXF1ZXN0Gh4uYXJjYS52MS5EZWxldGVNYWNoaW5lUmVzcG9uc2USWgoRTGlzdE1hY2hpbmVFdmVudHMSIS5hcmNhLnYxLkxpc3RNYWNoaW5lRXZlbnRzUmVxdWVzdBoiLmFyY2EudjEuTGlzdE1hY2hpbmVFdmVudHNSZXNwb25zZUKOAQoLY29tLmFyY2EudjFCDE1hY2hpbmVQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
+  fileDesc("ChVhcmNhL3YxL21hY2hpbmUucHJvdG8SB2FyY2EudjEipwMKB01hY2hpbmUSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIOCgZzdGF0dXMYAyABKAkSFgoOZGVzaXJlZF9zdGF0dXMYBCABKAkSEgoKbGFzdF9lcnJvchgFIAEoCRISCgpwcm9maWxlX2lkGAcgASgJEhcKD3VwZGF0ZV9yZXF1aXJlZBgIIAEoCBINCgVyZWFkeRgJIAEoCBIZChFyZWFkeV9yZXBvcnRlZF9hdBgKIAEoAxIRCgl1c2VyX3JvbGUYCyABKAkSFQoNYXJjYWRfdmVyc2lvbhgMIAEoCRIuCgdvcHRpb25zGA0gAygLMh0uYXJjYS52MS5NYWNoaW5lLk9wdGlvbnNFbnRyeRIVCg1wcm92aWRlcl90eXBlGA4gASgJEiIKGmluZnJhc3RydWN0dXJlX2NvbmZpZ19qc29uGA8gASgJEgwKBHRhZ3MYECADKAkSFgoOcmVzdGFydF9uZWVkZWQYESABKAgaLgoMT3B0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgGEAciFQoTTGlzdE1hY2hpbmVzUmVxdWVzdCI6ChRMaXN0TWFjaGluZXNSZXNwb25zZRIiCghtYWNoaW5lcxgBIAMoCzIQLmFyY2EudjEuTWFjaGluZSInChFHZXRNYWNoaW5lUmVxdWVzdBISCgptYWNoaW5lX2lkGAEgASgJIjcKEkdldE1hY2hpbmVSZXNwb25zZRIhCgdtYWNoaW5lGAEgASgLMhAuYXJjYS52MS5NYWNoaW5lIswBChRDcmVhdGVNYWNoaW5lUmVxdWVzdBIMCgRuYW1lGAEgASgJEhIKCnByb2ZpbGVfaWQYAiABKAkSOwoHb3B0aW9ucxgDIAMoCzIqLmFyY2EudjEuQ3JlYXRlTWFjaGluZVJlcXVlc3QuT3B0aW9uc0VudHJ5EhcKD2N1c3RvbV9pbWFnZV9pZBgEIAEoCRIMCgR0YWdzGAUgAygJGi4KDE9wdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlEKFUNyZWF0ZU1hY2hpbmVSZXNwb25zZRIhCgdtYWNoaW5lGAEgASgLMhAuYXJjYS52MS5NYWNoaW5lEhUKDW1hY2hpbmVfdG9rZW4YAiABKAkipQEKFFVwZGF0ZU1hY2hpbmVSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAkSDAoEbmFtZRgCIAEoCRI7CgdvcHRpb25zGAMgAygLMiouYXJjYS52MS5VcGRhdGVNYWNoaW5lUmVxdWVzdC5PcHRpb25zRW50cnkaLgoMT3B0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiOgoVVXBkYXRlTWFjaGluZVJlc3BvbnNlEiEKB21hY2hpbmUYASABKAsyEC5hcmNhLnYxLk1hY2hpbmUiRQobQ2hhbmdlTWFjaGluZVByb2ZpbGVSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAkSEgoKcHJvZmlsZV9pZBgCIAEoCSJBChxDaGFuZ2VNYWNoaW5lUHJvZmlsZVJlc3BvbnNlEiEKB21hY2hpbmUYASABKAsyEC5hcmNhLnYxLk1hY2hpbmUiLwoTU3RhcnRNYWNoaW5lUmVxdWVzdBISCgptYWNoaW5lX2lkGAEgASgJSgQIAhADIjkKFFN0YXJ0TWFjaGluZVJlc3BvbnNlEiEKB21hY2hpbmUYASABKAsyEC5hcmNhLnYxLk1hY2hpbmUiKAoSU3RvcE1hY2hpbmVSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAkiOAoTU3RvcE1hY2hpbmVSZXNwb25zZRIhCgdtYWNoaW5lGAEgASgLMhAuYXJjYS52MS5NYWNoaW5lIioKFERlbGV0ZU1hY2hpbmVSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAkiFwoVRGVsZXRlTWFjaGluZVJlc3BvbnNlIoYBCgxNYWNoaW5lRXZlbnQSCgoCaWQYASABKAkSEgoKbWFjaGluZV9pZBgCIAEoCRIOCgZqb2JfaWQYAyABKAkSDQoFbGV2ZWwYBCABKAkSEgoKZXZlbnRfdHlwZRgFIAEoCRIPCgdtZXNzYWdlGAYgASgJEhIKCmNyZWF0ZWRfYXQYByABKAMiPQoYTGlzdE1hY2hpbmVFdmVudHNSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAkSDQoFbGltaXQYAiABKAUiPAoYVXBkYXRlTWFjaGluZVRhZ3NSZXF1ZXN0EhIKCm1hY2hpbmVfaWQYASABKAkSDAoEdGFncxgCIAMoCSI+ChlVcGRhdGVNYWNoaW5lVGFnc1Jlc3BvbnNlEiEKB21hY2hpbmUYASABKAsyEC5hcmNhLnYxLk1hY2hpbmUiQgoZTGlzdE1hY2hpbmVFdmVudHNSZXNwb25zZRIlCgZldmVudHMYASADKAsyFS5hcmNhLnYxLk1hY2hpbmVFdmVudDLIBgoOTWFjaGluZVNlcnZpY2USSwoMTGlzdE1hY2hpbmVzEhwuYXJjYS52MS5MaXN0TWFjaGluZXNSZXF1ZXN0Gh0uYXJjYS52MS5MaXN0TWFjaGluZXNSZXNwb25zZRJFCgpHZXRNYWNoaW5lEhouYXJjYS52MS5HZXRNYWNoaW5lUmVxdWVzdBobLmFyY2EudjEuR2V0TWFjaGluZVJlc3BvbnNlEk4KDUNyZWF0ZU1hY2hpbmUSHS5hcmNhLnYxLkNyZWF0ZU1hY2hpbmVSZXF1ZXN0Gh4uYXJjYS52MS5DcmVhdGVNYWNoaW5lUmVzcG9uc2USTgoNVXBkYXRlTWFjaGluZRIdLmFyY2EudjEuVXBkYXRlTWFjaGluZVJlcXVlc3QaHi5hcmNhLnYxLlVwZGF0ZU1hY2hpbmVSZXNwb25zZRJaChFVcGRhdGVNYWNoaW5lVGFncxIhLmFyY2EudjEuVXBkYXRlTWFjaGluZVRhZ3NSZXF1ZXN0GiIuYXJjYS52MS5VcGRhdGVNYWNoaW5lVGFnc1Jlc3BvbnNlEmMKFENoYW5nZU1hY2hpbmVQcm9maWxlEiQuYXJjYS52MS5DaGFuZ2VNYWNoaW5lUHJvZmlsZVJlcXVlc3QaJS5hcmNhLnYxLkNoYW5nZU1hY2hpbmVQcm9maWxlUmVzcG9uc2USSwoMU3RhcnRNYWNoaW5lEhwuYXJjYS52MS5TdGFydE1hY2hpbmVSZXF1ZXN0Gh0uYXJjYS52MS5TdGFydE1hY2hpbmVSZXNwb25zZRJICgtTdG9wTWFjaGluZRIbLmFyY2EudjEuU3RvcE1hY2hpbmVSZXF1ZXN0GhwuYXJjYS52MS5TdG9wTWFjaGluZVJlc3BvbnNlEk4KDURlbGV0ZU1hY2hpbmUSHS5hcmNhLnYxLkRlbGV0ZU1hY2hpbmVSZXF1ZXN0Gh4uYXJjYS52MS5EZWxldGVNYWNoaW5lUmVzcG9uc2USWgoRTGlzdE1hY2hpbmVFdmVudHMSIS5hcmNhLnYxLkxpc3RNYWNoaW5lRXZlbnRzUmVxdWVzdBoiLmFyY2EudjEuTGlzdE1hY2hpbmVFdmVudHNSZXNwb25zZUKOAQoLY29tLmFyY2EudjFCDE1hY2hpbmVQcm90b1ABWjRnaXRodWIuY29tL3J5b3RhcmFpL2FyY2EvaW50ZXJuYWwvZ2VuL2FyY2EvdjE7YXJjYXYxogIDQVhYqgIHQXJjYS5WMcoCB0FyY2FcVjHiAhNBcmNhXFYxXEdQQk1ldGFkYXRh6gIIQXJjYTo6VjFiBnByb3RvMw");
 
 /**
  * @generated from message arca.v1.Machine
@@ -42,9 +42,9 @@ export type Machine = Message<"arca.v1.Machine"> & {
   lastError: string;
 
   /**
-   * @generated from field: string template_id = 7;
+   * @generated from field: string profile_id = 7;
    */
-  templateId: string;
+  profileId: string;
 
   /**
    * @generated from field: bool update_required = 8;
@@ -77,19 +77,24 @@ export type Machine = Message<"arca.v1.Machine"> & {
   options: { [key: string]: string };
 
   /**
-   * @generated from field: string template_type = 14;
+   * @generated from field: string provider_type = 14;
    */
-  templateType: string;
+  providerType: string;
 
   /**
-   * @generated from field: string template_config_json = 15;
+   * @generated from field: string infrastructure_config_json = 15;
    */
-  templateConfigJson: string;
+  infrastructureConfigJson: string;
 
   /**
    * @generated from field: repeated string tags = 16;
    */
   tags: string[];
+
+  /**
+   * @generated from field: bool restart_needed = 17;
+   */
+  restartNeeded: boolean;
 };
 
 /**
@@ -173,9 +178,9 @@ export type CreateMachineRequest = Message<"arca.v1.CreateMachineRequest"> & {
   name: string;
 
   /**
-   * @generated from field: string template_id = 2;
+   * @generated from field: string profile_id = 2;
    */
-  templateId: string;
+  profileId: string;
 
   /**
    * @generated from field: map<string, string> options = 3;
@@ -267,6 +272,45 @@ export const UpdateMachineResponseSchema: GenMessage<UpdateMachineResponse> = /*
   messageDesc(file_arca_v1_machine, 8);
 
 /**
+ * @generated from message arca.v1.ChangeMachineProfileRequest
+ */
+export type ChangeMachineProfileRequest = Message<"arca.v1.ChangeMachineProfileRequest"> & {
+  /**
+   * @generated from field: string machine_id = 1;
+   */
+  machineId: string;
+
+  /**
+   * @generated from field: string profile_id = 2;
+   */
+  profileId: string;
+};
+
+/**
+ * Describes the message arca.v1.ChangeMachineProfileRequest.
+ * Use `create(ChangeMachineProfileRequestSchema)` to create a new message.
+ */
+export const ChangeMachineProfileRequestSchema: GenMessage<ChangeMachineProfileRequest> = /*@__PURE__*/
+  messageDesc(file_arca_v1_machine, 9);
+
+/**
+ * @generated from message arca.v1.ChangeMachineProfileResponse
+ */
+export type ChangeMachineProfileResponse = Message<"arca.v1.ChangeMachineProfileResponse"> & {
+  /**
+   * @generated from field: arca.v1.Machine machine = 1;
+   */
+  machine?: Machine;
+};
+
+/**
+ * Describes the message arca.v1.ChangeMachineProfileResponse.
+ * Use `create(ChangeMachineProfileResponseSchema)` to create a new message.
+ */
+export const ChangeMachineProfileResponseSchema: GenMessage<ChangeMachineProfileResponse> = /*@__PURE__*/
+  messageDesc(file_arca_v1_machine, 10);
+
+/**
  * @generated from message arca.v1.StartMachineRequest
  */
 export type StartMachineRequest = Message<"arca.v1.StartMachineRequest"> & {
@@ -281,7 +325,7 @@ export type StartMachineRequest = Message<"arca.v1.StartMachineRequest"> & {
  * Use `create(StartMachineRequestSchema)` to create a new message.
  */
 export const StartMachineRequestSchema: GenMessage<StartMachineRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 9);
+  messageDesc(file_arca_v1_machine, 11);
 
 /**
  * @generated from message arca.v1.StartMachineResponse
@@ -298,7 +342,7 @@ export type StartMachineResponse = Message<"arca.v1.StartMachineResponse"> & {
  * Use `create(StartMachineResponseSchema)` to create a new message.
  */
 export const StartMachineResponseSchema: GenMessage<StartMachineResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 10);
+  messageDesc(file_arca_v1_machine, 12);
 
 /**
  * @generated from message arca.v1.StopMachineRequest
@@ -315,7 +359,7 @@ export type StopMachineRequest = Message<"arca.v1.StopMachineRequest"> & {
  * Use `create(StopMachineRequestSchema)` to create a new message.
  */
 export const StopMachineRequestSchema: GenMessage<StopMachineRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 11);
+  messageDesc(file_arca_v1_machine, 13);
 
 /**
  * @generated from message arca.v1.StopMachineResponse
@@ -332,7 +376,7 @@ export type StopMachineResponse = Message<"arca.v1.StopMachineResponse"> & {
  * Use `create(StopMachineResponseSchema)` to create a new message.
  */
 export const StopMachineResponseSchema: GenMessage<StopMachineResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 12);
+  messageDesc(file_arca_v1_machine, 14);
 
 /**
  * @generated from message arca.v1.DeleteMachineRequest
@@ -349,7 +393,7 @@ export type DeleteMachineRequest = Message<"arca.v1.DeleteMachineRequest"> & {
  * Use `create(DeleteMachineRequestSchema)` to create a new message.
  */
 export const DeleteMachineRequestSchema: GenMessage<DeleteMachineRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 13);
+  messageDesc(file_arca_v1_machine, 15);
 
 /**
  * @generated from message arca.v1.DeleteMachineResponse
@@ -362,7 +406,7 @@ export type DeleteMachineResponse = Message<"arca.v1.DeleteMachineResponse"> & {
  * Use `create(DeleteMachineResponseSchema)` to create a new message.
  */
 export const DeleteMachineResponseSchema: GenMessage<DeleteMachineResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 14);
+  messageDesc(file_arca_v1_machine, 16);
 
 /**
  * @generated from message arca.v1.MachineEvent
@@ -409,7 +453,7 @@ export type MachineEvent = Message<"arca.v1.MachineEvent"> & {
  * Use `create(MachineEventSchema)` to create a new message.
  */
 export const MachineEventSchema: GenMessage<MachineEvent> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 15);
+  messageDesc(file_arca_v1_machine, 17);
 
 /**
  * @generated from message arca.v1.ListMachineEventsRequest
@@ -431,7 +475,7 @@ export type ListMachineEventsRequest = Message<"arca.v1.ListMachineEventsRequest
  * Use `create(ListMachineEventsRequestSchema)` to create a new message.
  */
 export const ListMachineEventsRequestSchema: GenMessage<ListMachineEventsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 16);
+  messageDesc(file_arca_v1_machine, 18);
 
 /**
  * @generated from message arca.v1.UpdateMachineTagsRequest
@@ -453,7 +497,7 @@ export type UpdateMachineTagsRequest = Message<"arca.v1.UpdateMachineTagsRequest
  * Use `create(UpdateMachineTagsRequestSchema)` to create a new message.
  */
 export const UpdateMachineTagsRequestSchema: GenMessage<UpdateMachineTagsRequest> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 17);
+  messageDesc(file_arca_v1_machine, 19);
 
 /**
  * @generated from message arca.v1.UpdateMachineTagsResponse
@@ -470,7 +514,7 @@ export type UpdateMachineTagsResponse = Message<"arca.v1.UpdateMachineTagsRespon
  * Use `create(UpdateMachineTagsResponseSchema)` to create a new message.
  */
 export const UpdateMachineTagsResponseSchema: GenMessage<UpdateMachineTagsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 18);
+  messageDesc(file_arca_v1_machine, 20);
 
 /**
  * @generated from message arca.v1.ListMachineEventsResponse
@@ -487,7 +531,7 @@ export type ListMachineEventsResponse = Message<"arca.v1.ListMachineEventsRespon
  * Use `create(ListMachineEventsResponseSchema)` to create a new message.
  */
 export const ListMachineEventsResponseSchema: GenMessage<ListMachineEventsResponse> = /*@__PURE__*/
-  messageDesc(file_arca_v1_machine, 19);
+  messageDesc(file_arca_v1_machine, 21);
 
 /**
  * @generated from service arca.v1.MachineService
@@ -532,6 +576,14 @@ export const MachineService: GenService<{
     methodKind: "unary";
     input: typeof UpdateMachineTagsRequestSchema;
     output: typeof UpdateMachineTagsResponseSchema;
+  },
+  /**
+   * @generated from rpc arca.v1.MachineService.ChangeMachineProfile
+   */
+  changeMachineProfile: {
+    methodKind: "unary";
+    input: typeof ChangeMachineProfileRequestSchema;
+    output: typeof ChangeMachineProfileResponseSchema;
   },
   /**
    * @generated from rpc arca.v1.MachineService.StartMachine

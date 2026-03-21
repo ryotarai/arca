@@ -1063,3 +1063,6 @@ UPDATE machines SET profile_id = sqlc.arg(profile_id) WHERE id = sqlc.arg(machin
 
 -- name: UpdateMachineAppliedBootConfigHash :exec
 UPDATE machines SET applied_boot_config_hash = sqlc.arg(applied_boot_config_hash) WHERE id = sqlc.arg(machine_id);
+
+-- name: UpdateMachineInfrastructureConfig :exec
+UPDATE machines SET provider_type = sqlc.arg(provider_type), infrastructure_config_json = sqlc.arg(infrastructure_config_json) WHERE id = sqlc.arg(machine_id);

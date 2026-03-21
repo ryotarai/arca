@@ -492,6 +492,25 @@ func (s *Store) UpdateMachineAppliedBootConfigHash(ctx context.Context, machineI
 	}
 }
 
+func (s *Store) UpdateMachineInfrastructureConfig(ctx context.Context, machineID, providerType, infraConfigJSON string) error {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateMachineInfrastructureConfig(ctx, sqlitesqlc.UpdateMachineInfrastructureConfigParams{
+			ProviderType:             providerType,
+			InfrastructureConfigJson: infraConfigJSON,
+			MachineID:                machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateMachineInfrastructureConfig(ctx, postgresqlsqlc.UpdateMachineInfrastructureConfigParams{
+			ProviderType:             providerType,
+			InfrastructureConfigJson: infraConfigJSON,
+			MachineID:                machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) RequestStartMachineByIDForOwner(ctx context.Context, userID, machineID string) (bool, error) {
 	return s.requestStateTransition(ctx, userID, machineID, MachineStatusPending, MachineDesiredRunning, MachineJobStart)
 }

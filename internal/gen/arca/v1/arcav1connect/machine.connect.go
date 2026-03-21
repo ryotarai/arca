@@ -48,6 +48,9 @@ const (
 	// MachineServiceUpdateMachineTagsProcedure is the fully-qualified name of the MachineService's
 	// UpdateMachineTags RPC.
 	MachineServiceUpdateMachineTagsProcedure = "/arca.v1.MachineService/UpdateMachineTags"
+	// MachineServiceChangeMachineProfileProcedure is the fully-qualified name of the MachineService's
+	// ChangeMachineProfile RPC.
+	MachineServiceChangeMachineProfileProcedure = "/arca.v1.MachineService/ChangeMachineProfile"
 	// MachineServiceStartMachineProcedure is the fully-qualified name of the MachineService's
 	// StartMachine RPC.
 	MachineServiceStartMachineProcedure = "/arca.v1.MachineService/StartMachine"
@@ -69,6 +72,7 @@ type MachineServiceClient interface {
 	CreateMachine(context.Context, *connect.Request[v1.CreateMachineRequest]) (*connect.Response[v1.CreateMachineResponse], error)
 	UpdateMachine(context.Context, *connect.Request[v1.UpdateMachineRequest]) (*connect.Response[v1.UpdateMachineResponse], error)
 	UpdateMachineTags(context.Context, *connect.Request[v1.UpdateMachineTagsRequest]) (*connect.Response[v1.UpdateMachineTagsResponse], error)
+	ChangeMachineProfile(context.Context, *connect.Request[v1.ChangeMachineProfileRequest]) (*connect.Response[v1.ChangeMachineProfileResponse], error)
 	StartMachine(context.Context, *connect.Request[v1.StartMachineRequest]) (*connect.Response[v1.StartMachineResponse], error)
 	StopMachine(context.Context, *connect.Request[v1.StopMachineRequest]) (*connect.Response[v1.StopMachineResponse], error)
 	DeleteMachine(context.Context, *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error)
@@ -116,6 +120,12 @@ func NewMachineServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(machineServiceMethods.ByName("UpdateMachineTags")),
 			connect.WithClientOptions(opts...),
 		),
+		changeMachineProfile: connect.NewClient[v1.ChangeMachineProfileRequest, v1.ChangeMachineProfileResponse](
+			httpClient,
+			baseURL+MachineServiceChangeMachineProfileProcedure,
+			connect.WithSchema(machineServiceMethods.ByName("ChangeMachineProfile")),
+			connect.WithClientOptions(opts...),
+		),
 		startMachine: connect.NewClient[v1.StartMachineRequest, v1.StartMachineResponse](
 			httpClient,
 			baseURL+MachineServiceStartMachineProcedure,
@@ -145,15 +155,16 @@ func NewMachineServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // machineServiceClient implements MachineServiceClient.
 type machineServiceClient struct {
-	listMachines      *connect.Client[v1.ListMachinesRequest, v1.ListMachinesResponse]
-	getMachine        *connect.Client[v1.GetMachineRequest, v1.GetMachineResponse]
-	createMachine     *connect.Client[v1.CreateMachineRequest, v1.CreateMachineResponse]
-	updateMachine     *connect.Client[v1.UpdateMachineRequest, v1.UpdateMachineResponse]
-	updateMachineTags *connect.Client[v1.UpdateMachineTagsRequest, v1.UpdateMachineTagsResponse]
-	startMachine      *connect.Client[v1.StartMachineRequest, v1.StartMachineResponse]
-	stopMachine       *connect.Client[v1.StopMachineRequest, v1.StopMachineResponse]
-	deleteMachine     *connect.Client[v1.DeleteMachineRequest, v1.DeleteMachineResponse]
-	listMachineEvents *connect.Client[v1.ListMachineEventsRequest, v1.ListMachineEventsResponse]
+	listMachines         *connect.Client[v1.ListMachinesRequest, v1.ListMachinesResponse]
+	getMachine           *connect.Client[v1.GetMachineRequest, v1.GetMachineResponse]
+	createMachine        *connect.Client[v1.CreateMachineRequest, v1.CreateMachineResponse]
+	updateMachine        *connect.Client[v1.UpdateMachineRequest, v1.UpdateMachineResponse]
+	updateMachineTags    *connect.Client[v1.UpdateMachineTagsRequest, v1.UpdateMachineTagsResponse]
+	changeMachineProfile *connect.Client[v1.ChangeMachineProfileRequest, v1.ChangeMachineProfileResponse]
+	startMachine         *connect.Client[v1.StartMachineRequest, v1.StartMachineResponse]
+	stopMachine          *connect.Client[v1.StopMachineRequest, v1.StopMachineResponse]
+	deleteMachine        *connect.Client[v1.DeleteMachineRequest, v1.DeleteMachineResponse]
+	listMachineEvents    *connect.Client[v1.ListMachineEventsRequest, v1.ListMachineEventsResponse]
 }
 
 // ListMachines calls arca.v1.MachineService.ListMachines.
@@ -179,6 +190,11 @@ func (c *machineServiceClient) UpdateMachine(ctx context.Context, req *connect.R
 // UpdateMachineTags calls arca.v1.MachineService.UpdateMachineTags.
 func (c *machineServiceClient) UpdateMachineTags(ctx context.Context, req *connect.Request[v1.UpdateMachineTagsRequest]) (*connect.Response[v1.UpdateMachineTagsResponse], error) {
 	return c.updateMachineTags.CallUnary(ctx, req)
+}
+
+// ChangeMachineProfile calls arca.v1.MachineService.ChangeMachineProfile.
+func (c *machineServiceClient) ChangeMachineProfile(ctx context.Context, req *connect.Request[v1.ChangeMachineProfileRequest]) (*connect.Response[v1.ChangeMachineProfileResponse], error) {
+	return c.changeMachineProfile.CallUnary(ctx, req)
 }
 
 // StartMachine calls arca.v1.MachineService.StartMachine.
@@ -208,6 +224,7 @@ type MachineServiceHandler interface {
 	CreateMachine(context.Context, *connect.Request[v1.CreateMachineRequest]) (*connect.Response[v1.CreateMachineResponse], error)
 	UpdateMachine(context.Context, *connect.Request[v1.UpdateMachineRequest]) (*connect.Response[v1.UpdateMachineResponse], error)
 	UpdateMachineTags(context.Context, *connect.Request[v1.UpdateMachineTagsRequest]) (*connect.Response[v1.UpdateMachineTagsResponse], error)
+	ChangeMachineProfile(context.Context, *connect.Request[v1.ChangeMachineProfileRequest]) (*connect.Response[v1.ChangeMachineProfileResponse], error)
 	StartMachine(context.Context, *connect.Request[v1.StartMachineRequest]) (*connect.Response[v1.StartMachineResponse], error)
 	StopMachine(context.Context, *connect.Request[v1.StopMachineRequest]) (*connect.Response[v1.StopMachineResponse], error)
 	DeleteMachine(context.Context, *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error)
@@ -251,6 +268,12 @@ func NewMachineServiceHandler(svc MachineServiceHandler, opts ...connect.Handler
 		connect.WithSchema(machineServiceMethods.ByName("UpdateMachineTags")),
 		connect.WithHandlerOptions(opts...),
 	)
+	machineServiceChangeMachineProfileHandler := connect.NewUnaryHandler(
+		MachineServiceChangeMachineProfileProcedure,
+		svc.ChangeMachineProfile,
+		connect.WithSchema(machineServiceMethods.ByName("ChangeMachineProfile")),
+		connect.WithHandlerOptions(opts...),
+	)
 	machineServiceStartMachineHandler := connect.NewUnaryHandler(
 		MachineServiceStartMachineProcedure,
 		svc.StartMachine,
@@ -287,6 +310,8 @@ func NewMachineServiceHandler(svc MachineServiceHandler, opts ...connect.Handler
 			machineServiceUpdateMachineHandler.ServeHTTP(w, r)
 		case MachineServiceUpdateMachineTagsProcedure:
 			machineServiceUpdateMachineTagsHandler.ServeHTTP(w, r)
+		case MachineServiceChangeMachineProfileProcedure:
+			machineServiceChangeMachineProfileHandler.ServeHTTP(w, r)
 		case MachineServiceStartMachineProcedure:
 			machineServiceStartMachineHandler.ServeHTTP(w, r)
 		case MachineServiceStopMachineProcedure:
@@ -322,6 +347,10 @@ func (UnimplementedMachineServiceHandler) UpdateMachine(context.Context, *connec
 
 func (UnimplementedMachineServiceHandler) UpdateMachineTags(context.Context, *connect.Request[v1.UpdateMachineTagsRequest]) (*connect.Response[v1.UpdateMachineTagsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.MachineService.UpdateMachineTags is not implemented"))
+}
+
+func (UnimplementedMachineServiceHandler) ChangeMachineProfile(context.Context, *connect.Request[v1.ChangeMachineProfileRequest]) (*connect.Response[v1.ChangeMachineProfileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.MachineService.ChangeMachineProfile is not implemented"))
 }
 
 func (UnimplementedMachineServiceHandler) StartMachine(context.Context, *connect.Request[v1.StartMachineRequest]) (*connect.Response[v1.StartMachineResponse], error) {

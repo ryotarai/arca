@@ -53,7 +53,7 @@ func (s *Store) GetSetupState(ctx context.Context) (SetupState, error) {
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
 	}
-	machineRuntime = NormalizeMachineTemplate(machineRuntime)
+	machineRuntime = NormalizeMachineProfile(machineRuntime)
 	internetPublicExposureDisabledRaw, err := s.getMetaValue(ctx, setupMetaDisableInternetPublicExposure)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return SetupState{}, err
@@ -196,7 +196,7 @@ func (s *Store) HasAdminUser(ctx context.Context) (bool, error) {
 
 func (s *Store) UpsertSetupState(ctx context.Context, state SetupState) error {
 	nowUnix := time.Now().Unix()
-	state.MachineRuntime = NormalizeMachineTemplate(state.MachineRuntime)
+	state.MachineRuntime = NormalizeMachineProfile(state.MachineRuntime)
 
 	var err error
 	switch s.driver {

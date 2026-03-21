@@ -271,7 +271,16 @@ func (w *Worker) autoStopMachines(ctx context.Context, nowUnix int64, machines [
 			continue
 		}
 
-		timeout := db.GetProfileAutoStopTimeoutSeconds(machine.InfrastructureConfigJSON)
+		// Read auto_stop_timeout from profile (live) if available, else from frozen config
+		var timeout int64
+		if profileID := strings.TrimSpace(machine.ProfileID); profileID != "" {
+			if p, pErr := w.store.GetMachineProfileByID(ctx, profileID); pErr == nil {
+				timeout = db.GetProfileAutoStopTimeoutSeconds(p.ConfigJSON)
+			}
+		}
+		if timeout <= 0 {
+			timeout = db.GetProfileAutoStopTimeoutSeconds(machine.InfrastructureConfigJSON)
+		}
 		if timeout <= 0 {
 			slog.Debug("auto-stop skip: no timeout configured", "machine_id", machine.ID, "timeout", timeout)
 			continue
@@ -387,13 +396,28 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "runtime_starting", "starting machine runtime")
 
+	// Fetch the machine's profile for live dynamic settings
+	var profile db.MachineProfile
+	if profileID := strings.TrimSpace(machine.ProfileID); profileID != "" {
+		p, pErr := w.store.GetMachineProfileByID(ctx, profileID)
+		if pErr != nil {
+			slog.Warn("fetch profile for machine start", "machine_id", machine.ID, "profile_id", profileID, "error", pErr)
+		} else {
+			profile = p
+		}
+	}
+
 	setup, err := w.store.GetSetupState(ctx)
 	if err != nil {
 		return fmt.Errorf("load setup state: %w", err)
 	}
 	controlPlaneURL := controlPlaneURLFromSetup(setup)
-	// Override control plane URL from machine's snapshotted runtime config
-	if override := db.GetProfileServerAPIURL(machine.InfrastructureConfigJSON); override != "" {
+	// Override control plane URL from profile (live) if available, else from frozen config
+	if profile.ConfigJSON != "" {
+		if override := db.GetProfileServerAPIURL(profile.ConfigJSON); override != "" {
+			controlPlaneURL = override
+		}
+	} else if override := db.GetProfileServerAPIURL(machine.InfrastructureConfigJSON); override != "" {
 		controlPlaneURL = override
 	}
 	if controlPlaneURL == "" {
@@ -461,6 +485,13 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		"",
 	); err != nil {
 		return err
+	}
+
+	// Update applied_boot_config_hash from the profile used for this start
+	if profile.BootConfigHash != "" {
+		if err := w.store.UpdateMachineAppliedBootConfigHash(ctx, machine.ID, profile.BootConfigHash); err != nil {
+			slog.Warn("update applied boot config hash failed", "machine_id", machine.ID, "error", err)
+		}
 	}
 
 	// Initialize last_activity_at so idle timer starts from readiness, not epoch 0

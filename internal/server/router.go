@@ -92,7 +92,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		path, handler := arcav1connect.NewUserServiceHandler(newUserConnectService(deps.Store, deps.Authenticator, deps.Encryptor))
 		r.Mount(path, handler)
 
-		path, handler = arcav1connect.NewMachineTemplateServiceHandler(newMachineTemplateConnectService(deps.Store, deps.Authenticator))
+		path, handler = arcav1connect.NewMachineProfileServiceHandler(newMachineProfileConnectService(deps.Store, deps.Authenticator))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil {

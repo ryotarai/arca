@@ -41,12 +41,12 @@ func TestMachineProfileSelection_CreateRequiresExplicitProfile(t *testing.T) {
 
 	createdWithExplicit, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
 		Name:       "machine-explicit-template",
-		TemplateId: overrideProfile.ID,
+		ProfileId: overrideProfile.ID,
 	}, ownerToken))
 	if err != nil {
 		t.Fatalf("create machine with explicit profile: %v", err)
 	}
-	if got := createdWithExplicit.Msg.GetMachine().GetTemplateId(); got != overrideProfile.ID {
+	if got := createdWithExplicit.Msg.GetMachine().GetProfileId(); got != overrideProfile.ID {
 		t.Fatalf("explicit profile id = %q, want %q", got, overrideProfile.ID)
 	}
 }
@@ -70,7 +70,7 @@ func TestMachineProfileSelection_InvalidOrDeletedProfileIsRejected(t *testing.T)
 
 	machineResp, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
 		Name:       "machine-template-deletion",
-		TemplateId: profileEntry.ID,
+		ProfileId: profileEntry.ID,
 	}, ownerToken))
 	if err != nil {
 		t.Fatalf("create machine before profile deletion: %v", err)
@@ -86,24 +86,24 @@ func TestMachineProfileSelection_InvalidOrDeletedProfileIsRejected(t *testing.T)
 	if err != nil {
 		t.Fatalf("start machine with still-configured profile: %v", err)
 	}
-	if got := startResp.Msg.GetMachine().GetTemplateId(); got != profileEntry.ID {
+	if got := startResp.Msg.GetMachine().GetProfileId(); got != profileEntry.ID {
 		t.Fatalf("profile id after start = %q, want %q", got, profileEntry.ID)
 	}
 
 	createdResp, err := service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
 		Name:       "machine-template-still-valid",
-		TemplateId: profileEntry.ID,
+		ProfileId: profileEntry.ID,
 	}, ownerToken))
 	if err != nil {
 		t.Fatalf("expected create to succeed with profile still configured: %v", err)
 	}
-	if got := createdResp.Msg.GetMachine().GetTemplateId(); got != profileEntry.ID {
+	if got := createdResp.Msg.GetMachine().GetProfileId(); got != profileEntry.ID {
 		t.Fatalf("create profile id = %q, want %q", got, profileEntry.ID)
 	}
 
 	_, err = service.CreateMachine(ctx, authRequest(arcav1.CreateMachineRequest{
 		Name:       "machine-template-unknown-id",
-		TemplateId: "template-does-not-exist",
+		ProfileId: "template-does-not-exist",
 	}, ownerToken))
 	if err == nil {
 		t.Fatalf("expected create to fail with unknown profile id")

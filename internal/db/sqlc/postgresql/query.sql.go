@@ -3546,6 +3546,21 @@ func (q *Queries) UpdateMachineAppliedBootConfigHash(ctx context.Context, arg Up
 	return err
 }
 
+const updateMachineInfrastructureConfig = `-- name: UpdateMachineInfrastructureConfig :exec
+UPDATE machines SET provider_type = $1, infrastructure_config_json = $2 WHERE id = $3
+`
+
+type UpdateMachineInfrastructureConfigParams struct {
+	ProviderType             string
+	InfrastructureConfigJson string
+	MachineID                string
+}
+
+func (q *Queries) UpdateMachineInfrastructureConfig(ctx context.Context, arg UpdateMachineInfrastructureConfigParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineInfrastructureConfig, arg.ProviderType, arg.InfrastructureConfigJson, arg.MachineID)
+	return err
+}
+
 const updateMachineLastActivityAt = `-- name: UpdateMachineLastActivityAt :exec
 UPDATE machine_states
 SET last_activity_at = $1

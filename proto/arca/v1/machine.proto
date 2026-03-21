@@ -10,6 +10,7 @@ service MachineService {
   rpc CreateMachine(CreateMachineRequest) returns (CreateMachineResponse);
   rpc UpdateMachine(UpdateMachineRequest) returns (UpdateMachineResponse);
   rpc UpdateMachineTags(UpdateMachineTagsRequest) returns (UpdateMachineTagsResponse);
+  rpc ChangeMachineProfile(ChangeMachineProfileRequest) returns (ChangeMachineProfileResponse);
   rpc StartMachine(StartMachineRequest) returns (StartMachineResponse);
   rpc StopMachine(StopMachineRequest) returns (StopMachineResponse);
   rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
@@ -23,16 +24,17 @@ message Machine {
   string desired_status = 4;
   string last_error = 5;
   reserved 6; // was endpoint
-  string template_id = 7;
+  string profile_id = 7;
   bool update_required = 8;
   bool ready = 9;
   int64 ready_reported_at = 10;
   string user_role = 11;
   string arcad_version = 12;
   map<string, string> options = 13;
-  string template_type = 14;
-  string template_config_json = 15;
+  string provider_type = 14;
+  string infrastructure_config_json = 15;
   repeated string tags = 16;
+  bool restart_needed = 17;
 }
 
 message ListMachinesRequest {}
@@ -51,7 +53,7 @@ message GetMachineResponse {
 
 message CreateMachineRequest {
   string name = 1;
-  string template_id = 2;
+  string profile_id = 2;
   map<string, string> options = 3;
   string custom_image_id = 4;
   repeated string tags = 5;
@@ -69,6 +71,15 @@ message UpdateMachineRequest {
 }
 
 message UpdateMachineResponse {
+  Machine machine = 1;
+}
+
+message ChangeMachineProfileRequest {
+  string machine_id = 1;
+  string profile_id = 2;
+}
+
+message ChangeMachineProfileResponse {
   Machine machine = 1;
 }
 

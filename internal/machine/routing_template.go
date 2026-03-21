@@ -159,7 +159,7 @@ func (r *RoutingTemplate) runtimeForMachine(ctx context.Context, machine db.Mach
 var profileConfigUnmarshaler = protojson.UnmarshalOptions{DiscardUnknown: true}
 
 func profileFromLibvirtConfig(profile db.MachineProfile) (Runtime, error) {
-	config := &arcav1.MachineTemplateConfig{}
+	config := &arcav1.MachineProfileConfig{}
 	if err := profileConfigUnmarshaler.Unmarshal([]byte(profile.ConfigJSON), config); err != nil {
 		return nil, fmt.Errorf("decode profile config: %w", err)
 	}
@@ -178,7 +178,7 @@ func profileFromLibvirtConfig(profile db.MachineProfile) (Runtime, error) {
 }
 
 func profileFromGceConfig(profile db.MachineProfile) (Runtime, error) {
-	config := &arcav1.MachineTemplateConfig{}
+	config := &arcav1.MachineProfileConfig{}
 	if err := profileConfigUnmarshaler.Unmarshal([]byte(profile.ConfigJSON), config); err != nil {
 		return nil, fmt.Errorf("decode profile config: %w", err)
 	}
@@ -204,7 +204,7 @@ func profileFromGceConfig(profile db.MachineProfile) (Runtime, error) {
 }
 
 func profileFromLxdConfig(profile db.MachineProfile) (Runtime, error) {
-	config := &arcav1.MachineTemplateConfig{}
+	config := &arcav1.MachineProfileConfig{}
 	if err := profileConfigUnmarshaler.Unmarshal([]byte(profile.ConfigJSON), config); err != nil {
 		return nil, fmt.Errorf("decode profile config: %w", err)
 	}
