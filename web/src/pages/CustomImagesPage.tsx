@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -285,6 +285,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Provider type</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Description</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Profiles</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Source Machine</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -299,6 +300,13 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                       {img.associatedTemplateIds.length > 0
                         ? img.associatedTemplateIds.map((rid) => profiles.find((r) => r.id === rid)?.name ?? rid).join(', ')
                         : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {img.sourceMachineId ? (
+                        <Link to={`/machines/${img.sourceMachineId}`} className="text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors">
+                          {img.sourceMachineId}
+                        </Link>
+                      ) : '-'}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{img.createdAt ? new Date(img.createdAt).toLocaleDateString() : '-'}</td>
                     <td className="px-4 py-3 text-right">
