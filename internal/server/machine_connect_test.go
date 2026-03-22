@@ -377,6 +377,10 @@ func (s *machineStoreStub) RequestStopMachineByIDForOwner(context.Context, strin
 	panic("RequestStopMachineByIDForOwner should not be called in this test")
 }
 
+func (s *machineStoreStub) RequestRestartMachineByIDForOwner(context.Context, string, string) (bool, error) {
+	panic("RequestRestartMachineByIDForOwner should not be called in this test")
+}
+
 func (s *machineStoreStub) RequestDeleteMachineByIDForOwner(context.Context, string, string) (bool, error) {
 	panic("RequestDeleteMachineByIDForOwner should not be called in this test")
 }

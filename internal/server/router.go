@@ -60,6 +60,7 @@ type MachineStore interface {
 	UpdateMachineNameByIDForOwner(context.Context, string, string, string) (bool, error)
 	RequestStartMachineByIDForOwner(context.Context, string, string) (bool, error)
 	RequestStopMachineByIDForOwner(context.Context, string, string) (bool, error)
+	RequestRestartMachineByIDForOwner(context.Context, string, string) (bool, error)
 	RequestDeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByIDForOwner(context.Context, string, string) (bool, error)
 	DeleteMachineByID(context.Context, string) (bool, error)

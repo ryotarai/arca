@@ -19,6 +19,7 @@ import {
   MachineService,
   StartMachineRequestSchema,
   StopMachineRequestSchema,
+  RestartMachineRequestSchema,
   UpdateMachineRequestSchema,
   UpdateMachineTagsRequestSchema,
   CreateImageFromMachineRequestSchema,
@@ -389,6 +390,14 @@ export async function startMachine(id: string): Promise<Machine> {
 
 export async function stopMachine(id: string): Promise<Machine> {
   const response = await machineClient.stopMachine(create(StopMachineRequestSchema, { machineId: id }))
+  if (response.machine == null) {
+    throw new Error('request failed')
+  }
+  return response.machine
+}
+
+export async function restartMachine(id: string): Promise<Machine> {
+  const response = await machineClient.restartMachine(create(RestartMachineRequestSchema, { machineId: id }))
   if (response.machine == null) {
     throw new Error('request failed')
   }

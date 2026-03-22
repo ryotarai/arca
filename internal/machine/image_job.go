@@ -13,21 +13,13 @@ import (
 	"github.com/ryotarai/arca/internal/workflow"
 )
 
-type createImageMetadata struct {
-	ImageName     string `json:"image_name"`
-	CustomImageID string `json:"custom_image_id,omitempty"`
-	Step          string `json:"step,omitempty"`
-	ImageData     string `json:"image_data,omitempty"`
-}
-
 func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job db.MachineJob) error {
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	defer cancel()
 
-	var meta createImageMetadata
-	if err := json.Unmarshal([]byte(job.MetadataJSON), &meta); err != nil {
-		return fmt.Errorf("parse job metadata: %w", err)
-	}
+	store := workflow.StoreFunc(func(ctx context.Context, data []byte) error {
+		return w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(data))
+	})
 
 	// Deferred cleanup:
 	// - On success: clear locked_operation so other operations can proceed.
@@ -47,20 +39,12 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 		}
 	}()
 
-	// Checkpoint callback: persist the next step to job metadata so retries
-	// resume from the right point instead of re-executing completed steps.
-	checkpoint := func(nextStep string) {
-		meta.Step = nextStep
-		metaBytes, _ := json.Marshal(meta)
-		if err := w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(metaBytes)); err != nil {
-			slog.Warn("failed to checkpoint image job", "job_id", job.ID, "error", err)
-		}
-	}
+	runner := workflow.New(store)
 
 	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_started",
-		fmt.Sprintf("Image creation started (step: %s, attempt: %d)", meta.Step, job.Attempt))
+		fmt.Sprintf("Image creation started (step: %s, attempt: %d)", runner.Get("step"), job.Attempt))
 
-	jobErr = workflow.New(checkpoint).
+	jobErr = runner.
 		Step("prepare", func(sCtx context.Context) error {
 			if err := w.callArcadPrepareForImage(sCtx, machine); err != nil {
 				return err
@@ -76,23 +60,23 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 			return nil
 		}).
 		StepWithTimeout("snapshot", 10*time.Minute, func(sCtx context.Context) error {
-			imageRef, err := w.runtime.CreateImage(sCtx, machine, meta.ImageName)
+			imageRef, err := w.runtime.CreateImage(sCtx, machine, runner.Get("image_name"))
 			if err != nil {
 				return err
 			}
 			dataJSON, _ := json.Marshal(imageRef)
-			meta.ImageData = string(dataJSON)
+			runner.Set("image_data", string(dataJSON))
 			w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_snapshot_created", "Snapshot created")
 			return nil
 		}).
 		Step("save", func(sCtx context.Context) error {
 			customImage, err := w.store.CreateCustomImageFromMachine(sCtx,
-				meta.ImageName, machine.ProviderType, meta.ImageData,
+				runner.Get("image_name"), machine.ProviderType, runner.Get("image_data"),
 				job.Description, machine.ID, machine.ProfileID)
 			if err != nil {
 				return err
 			}
-			meta.CustomImageID = customImage.ID
+			runner.Set("custom_image_id", customImage.ID)
 			return nil
 		}).
 		StepWithTimeout("restart", 4*time.Minute, func(sCtx context.Context) error {
@@ -104,11 +88,11 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 			}
 			return nil
 		}).
-		Run(ctx, meta.Step)
+		Run(ctx, []byte(job.MetadataJSON))
 
 	if jobErr == nil {
 		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_completed",
-			fmt.Sprintf("Image '%s' created successfully", meta.ImageName))
+			fmt.Sprintf("Image '%s' created successfully", runner.Get("image_name")))
 	}
 	return jobErr
 }

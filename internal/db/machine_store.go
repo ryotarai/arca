@@ -33,6 +33,7 @@ const (
 	MachineJobStop        = "stop"
 	MachineJobReconcile   = "reconcile"
 	MachineJobDelete      = "delete"
+	MachineJobRestart     = "restart"
 	MachineJobCreateImage = "create_image"
 )
 
@@ -527,6 +528,10 @@ func (s *Store) RequestStartMachineByIDForOwner(ctx context.Context, userID, mac
 
 func (s *Store) RequestStopMachineByIDForOwner(ctx context.Context, userID, machineID string) (bool, error) {
 	return s.requestStateTransition(ctx, userID, machineID, MachineStatusStopping, MachineDesiredStopped, MachineJobStop)
+}
+
+func (s *Store) RequestRestartMachineByIDForOwner(ctx context.Context, userID, machineID string) (bool, error) {
+	return s.requestStateTransition(ctx, userID, machineID, MachineStatusStopping, MachineDesiredRunning, MachineJobRestart)
 }
 
 func (s *Store) RequestDeleteMachineByIDForOwner(ctx context.Context, userID, machineID string) (bool, error) {
@@ -1366,6 +1371,8 @@ func requestedEventType(jobKind string) string {
 		return "stop_requested"
 	case MachineJobDelete:
 		return "delete_requested"
+	case MachineJobRestart:
+		return "restart_requested"
 	case MachineJobReconcile:
 		return "reconcile_requested"
 	default:

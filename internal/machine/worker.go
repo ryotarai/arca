@@ -355,6 +355,8 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 		err = w.handleStop(ctx, machine, job.ID)
 	case db.MachineJobDelete:
 		err = w.handleDelete(ctx, machine, job.ID)
+	case db.MachineJobRestart:
+		err = w.handleRestart(ctx, machine, job)
 	case db.MachineJobCreateImage:
 		err = w.handleCreateImage(ctx, machine, job)
 	default:
@@ -629,6 +631,81 @@ func (w *Worker) handleStop(ctx context.Context, machine db.Machine, jobID strin
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "stopped", "machine is stopped")
 	return nil
+}
+
+func (w *Worker) handleRestart(ctx context.Context, machine db.Machine, job db.MachineJob) error {
+	if w.ipCache != nil {
+		w.ipCache.Invalidate(machine.ID)
+	}
+
+	// Restart uses step-tracked execution so that if the stop succeeds but
+	// the start fails, the retry resumes from the start step instead of
+	// stopping the (already stopped) machine again.
+	store := workflow.StoreFunc(func(ctx context.Context, data []byte) error {
+		return w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(data))
+	})
+
+	return workflow.New(store).
+		StepWithTimeout("stop", w.stopTTL, func(sCtx context.Context) error {
+			if err := w.store.UpdateMachineRuntimeStateByMachineID(
+				ctx, machine.ID, db.MachineStatusStopping, db.MachineDesiredRunning, machine.ContainerID, "",
+			); err != nil {
+				return err
+			}
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "runtime_stopping", "stopping machine for restart")
+
+			if err := w.runtime.EnsureStopped(sCtx, machine); err != nil {
+				return err
+			}
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "stopped", "machine stopped")
+			return nil
+		}).
+		StepWithTimeout("start", w.startupTTL, func(sCtx context.Context) error {
+			if err := w.store.UpdateMachineRuntimeStateByMachineID(
+				ctx, machine.ID, db.MachineStatusStarting, db.MachineDesiredRunning, "", "",
+			); err != nil {
+				return err
+			}
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "runtime_starting", "starting machine after restart")
+
+			startOpts := w.buildStartOptions(ctx, machine)
+			containerID, err := w.runtime.EnsureRunning(sCtx, machine, startOpts)
+			if err != nil {
+				return err
+			}
+			if err := w.store.UpdateMachineRuntimeStateByMachineID(
+				ctx, machine.ID, db.MachineStatusStarting, db.MachineDesiredRunning, containerID, "",
+			); err != nil {
+				return err
+			}
+
+			if w.ipCache != nil {
+				w.ipCache.Invalidate(machine.ID)
+			}
+
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "waiting_ready", "waiting for machine readiness")
+			if err := w.waitMachineReady(sCtx, machine.ID); err != nil {
+				if errors.Is(err, errStartCancelled) {
+					return nil
+				}
+				return fmt.Errorf("wait machine ready: %w", err)
+			}
+
+			if err := w.store.UpdateMachineRuntimeStateByMachineID(
+				ctx, machine.ID, db.MachineStatusRunning, db.MachineDesiredRunning, containerID, "",
+			); err != nil {
+				return err
+			}
+
+			if startOpts.BootConfigHash != "" {
+				_ = w.store.UpdateMachineAppliedBootConfigHash(ctx, machine.ID, startOpts.BootConfigHash)
+			}
+			_ = w.store.UpdateMachineLastActivityAt(ctx, machine.ID)
+
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "ready", "machine is ready")
+			return nil
+		}).
+		Run(ctx, []byte(job.MetadataJSON))
 }
 
 func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID string) error {

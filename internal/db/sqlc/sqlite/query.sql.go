@@ -101,7 +101,7 @@ SELECT COUNT(1)
 FROM machine_jobs
 WHERE machine_id = ?1
   AND status IN ('queued', 'running')
-  AND kind IN ('start', 'reconcile')
+  AND kind IN ('start', 'reconcile', 'restart')
 `
 
 func (q *Queries) CountActiveStartOrReconcileJobsByMachineID(ctx context.Context, machineID string) (int64, error) {
