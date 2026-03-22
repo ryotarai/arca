@@ -113,8 +113,8 @@ func (w *Worker) callArcadPrepareForImage(ctx context.Context, machine db.Machin
 		return fmt.Errorf("machine has no private IP")
 	}
 
-	// arcad listens on port 21032
-	url := fmt.Sprintf("http://%s:21032/api/prepare-for-image", info.PrivateIP)
+	// arcad listens on port 21030 (default ARCAD_LISTEN_ADDR)
+	url := fmt.Sprintf("http://%s:21030/api/prepare-for-image", info.PrivateIP)
 
 	reqCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
