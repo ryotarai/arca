@@ -5,8 +5,10 @@ import {
   bestEffortDeleteMachine,
   createMachineViaAPI,
   waitForMachineByName,
+  waitForMachineStatus,
 } from './helpers/machine'
-import { ensureLxdProfile } from './helpers/machine-profile'
+import { ensureLxdProfile, ensureMockProfile } from './helpers/machine-profile'
+import { resetBehavior, setDefaultBehavior } from './helpers/mock'
 
 test.describe('machine list', () => {
   test('machines page shows heading and create button', async ({ page }) => {
@@ -271,5 +273,51 @@ test.describe('machine detail', () => {
     } finally {
       await bestEffortDeleteMachine(page, machineID)
     }
+  })
+})
+
+test.describe('mock runtime lifecycle', () => {
+  let profileId: string
+
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page)
+    const profile = await ensureMockProfile(page)
+    profileId = profile.id
+  })
+
+  test.afterEach(async ({ page }) => {
+    await resetBehavior(page)
+  })
+
+  test('create machine and wait for running', async ({ page }) => {
+    const machineId = await createMachineViaAPI(page, `mock-test-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['running'])
+  })
+
+  test('stop and restart machine', async ({ page }) => {
+    const machineId = await createMachineViaAPI(page, `mock-stop-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['running'])
+
+    await page.request.post('/arca.v1.MachineService/StopMachine', {
+      data: { machineId },
+    })
+    await waitForMachineStatus(page, machineId, ['stopped'])
+
+    await page.request.post('/arca.v1.MachineService/StartMachine', {
+      data: { machineId },
+    })
+    await waitForMachineStatus(page, machineId, ['running'])
+  })
+
+  test('delete machine', async ({ page }) => {
+    const machineId = await createMachineViaAPI(page, `mock-del-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['running'])
+    await bestEffortDeleteMachine(page, machineId)
+  })
+
+  test('shows starting state with delay', async ({ page }) => {
+    await setDefaultBehavior(page, { delayMs: 3000 })
+    const machineId = await createMachineViaAPI(page, `mock-slow-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['starting', 'running'])
   })
 })
