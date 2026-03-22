@@ -344,6 +344,8 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			userRole := row.UserRole
 			if userRole == "" {
 				userRole = MachineRoleViewer
+			} else if userRole == MachineRoleOwner {
+				userRole = MachineRoleAdmin
 			}
 			machines = append(machines, Machine{
 				ID:               row.ID,
@@ -376,6 +378,8 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 			userRole := row.UserRole
 			if userRole == "" {
 				userRole = MachineRoleViewer
+			} else if userRole == MachineRoleOwner {
+				userRole = MachineRoleAdmin
 			}
 			machines = append(machines, Machine{
 				ID:               row.ID,
