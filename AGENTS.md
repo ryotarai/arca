@@ -151,6 +151,7 @@ Regenerate from sources instead:
 - If the user explicitly asks not to commit, skip the auto-commit workflow.
 - In PRs, include purpose, key changes, test results (`make test/backend`, `make test/e2e`), linked issues, and screenshots for UI changes.
 - Confirm regenerated artifacts and docs updates when behavior or operations change.
+- Before merging a PR, wait for all CI checks to pass. Use `gh pr checks <number> --watch` to poll until checks complete. If a check fails, investigate and fix before merging.
 - After creating a PR from a feature branch, always switch back to `main` (`git checkout main`) so subsequent work starts from the correct base.
 
 ## Design Principles
