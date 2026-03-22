@@ -66,9 +66,12 @@ func runUserMode(cfg arcad.Config) {
 	readinessChecker := arcad.NewReadinessChecker(cfg.StartupSentinel, splitCSV(cfg.ReadyEndpoints))
 	proxy.SetReadinessChecker(readinessChecker)
 
+	mux := http.NewServeMux()
+	mux.Handle("/api/prepare-for-image", arcad.PrepareForImageHandler(cfg))
+	mux.Handle("/", proxy)
 	httpServer := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           proxy,
+		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
