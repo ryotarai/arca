@@ -6,13 +6,13 @@ import {
   loginAsAdmin,
 } from './helpers/auth'
 import { bestEffortDeleteMachine, createMachineViaAPI } from './helpers/machine'
-import { ensureLxdProfile } from './helpers/machine-profile'
+import { ensureMockProfile } from './helpers/machine-profile'
 
 test.describe('sharing', () => {
   test('Share button opens sharing dialog', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `share-dialog-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -30,7 +30,7 @@ test.describe('sharing', () => {
   test('add member by email', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `share-add-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     const memberEmail = `member-${Date.now()}@example.com`
@@ -53,7 +53,7 @@ test.describe('sharing', () => {
   test('change member role', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `share-role-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     const memberEmail = `role-member-${Date.now()}@example.com`
@@ -83,7 +83,7 @@ test.describe('sharing', () => {
   test('remove member', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `share-rm-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     const memberEmail = `rm-member-${Date.now()}@example.com`
@@ -113,7 +113,7 @@ test.describe('sharing', () => {
   test('toggle general access', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `share-gen-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -147,7 +147,7 @@ test.describe('sharing', () => {
   test('sharing persists after dialog close and reopen', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `share-persist-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     const memberEmail = `persist-member-${Date.now()}@example.com`
@@ -181,7 +181,7 @@ test.describe('sharing', () => {
   test('non-admin shared user cannot see admin controls', async ({ page, browser }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `share-nonadmin-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     const viewerEmail = `viewer-${Date.now()}@example.com`
