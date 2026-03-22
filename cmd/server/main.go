@@ -72,6 +72,17 @@ func main() {
 		}
 	}
 	runtime := machine.NewRoutingTemplateWithCatalog(store, map[string]machine.Runtime{})
+
+	var mockRT *machine.MockRuntime
+	if os.Getenv("ARCA_ENABLE_MOCK") == "true" {
+		mockRT = machine.NewMockRuntime(store)
+		runtime.RegisterMockFactory(mockRT)
+		slog.Info("mock runtime enabled")
+	}
+	if mockRT != nil {
+		defer mockRT.Shutdown(context.Background())
+	}
+
 	ipCache := machine.NewMachineIPCache(runtime, store, 5*time.Minute)
 	slackService := notification.NewSlackService(store)
 	machineWorker := machine.NewWorker(store, runtime, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency)
@@ -113,7 +124,7 @@ func main() {
 	machineProxy := server.NewMachineProxyHandler(store, ipCache)
 	httpServer := &http.Server{
 		Addr:              addr,
-		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor, LLMTokenExecutor: server.NewLLMTokenExecutor(), RateLimiter: loginRateLimiter}),
+		Handler:           server.NewRouter(server.Dependencies{HealthChecker: store, Authenticator: authService, MachineStore: store, Store: store, MachineProxy: machineProxy, Slack: slackService, Encryptor: encryptor, LLMTokenExecutor: server.NewLLMTokenExecutor(), RateLimiter: loginRateLimiter, MockRuntime: mockRT}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
