@@ -419,12 +419,14 @@ export async function deleteMachine(id: string): Promise<void> {
 function profileTypeToProto(type: MachineProfileTypeLocal): MachineProfileType {
   if (type === 'gce') return MachineProfileType.GCE
   if (type === 'lxd') return MachineProfileType.LXD
+  if (type === 'mock') return MachineProfileType.MOCK
   return MachineProfileType.LIBVIRT
 }
 
 function profileTypeFromProto(type: MachineProfileType): MachineProfileTypeLocal {
   if (type === MachineProfileType.GCE) return 'gce'
   if (type === MachineProfileType.LXD) return 'lxd'
+  if (type === MachineProfileType.MOCK) return 'mock'
   return 'libvirt'
 }
 
@@ -448,6 +450,7 @@ function toMachineProfileItem(input: {
           value: { project: string; zone: string; network: string; subnetwork: string; serviceAccountEmail: string; startupScript: string; diskSizeGb: bigint; allowedMachineTypes: string[] }
         }
       | { case: 'lxd'; value: { endpoint: string; startupScript: string } }
+      | { case: 'mock'; value: object }
       | { case: undefined; value?: undefined }
     exposure?: {
       method?: number
@@ -484,6 +487,8 @@ function toMachineProfileItem(input: {
       endpoint: lxd?.endpoint ?? '',
       startupScript: lxd?.startupScript ?? '',
     }
+  } else if (profileType === 'mock') {
+    config = { type: 'mock' }
   } else {
     const libvirt = input.config?.provider.case === 'libvirt' ? input.config.provider.value : undefined
     config = {
@@ -547,6 +552,11 @@ function profileConfigPayload(type: MachineProfileTypeLocal, config: MachineProf
         endpoint: config.endpoint,
         startupScript: config.startupScript,
       },
+    }
+  } else if (type === 'mock') {
+    provider = {
+      case: 'mock' as const,
+      value: {},
     }
   } else {
     if (config.type !== 'libvirt') {
