@@ -558,8 +558,8 @@ func (s *machineConnectService) CreateImageFromMachine(ctx context.Context, req 
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to check image name uniqueness"))
 	}
 	for _, img := range existingImages {
-		if img.Name == imageName && strings.EqualFold(img.TemplateType, machine.TemplateType) {
-			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("image with this name already exists for this template type"))
+		if img.Name == imageName && strings.EqualFold(img.ProviderType, machine.ProviderType) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("image with this name already exists for this provider type"))
 		}
 	}
 
@@ -884,7 +884,7 @@ func (s *machineConnectService) validateCustomImage(ctx context.Context, profile
 	}
 
 	// Verify image is associated with the specified profile
-	profileIDs, err := s.dbStore.ListTemplateIDsByCustomImageID(ctx, customImageID)
+	profileIDs, err := s.dbStore.ListProfileIDsByCustomImageID(ctx, customImageID)
 	if err != nil {
 		slog.ErrorContext(ctx, "list profile IDs for image failed", "error", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to verify image association"))

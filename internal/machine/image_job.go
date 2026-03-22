@@ -82,8 +82,8 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 	// Step 4: Create custom_images record (idempotent)
 	dataJSON, _ := json.Marshal(imageRef)
 	customImage, err := w.store.CreateCustomImageFromMachine(ctx,
-		meta.ImageName, machine.TemplateType, string(dataJSON),
-		job.Description, machine.ID, machine.TemplateID)
+		meta.ImageName, machine.ProviderType, string(dataJSON),
+		job.Description, machine.ID, machine.ProfileID)
 	if err != nil {
 		jobErr = err
 		return jobErr

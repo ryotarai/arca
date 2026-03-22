@@ -41,6 +41,7 @@ type RuntimeStartOptions struct {
 	MachineToken       string
 	StartupScript      string
 	UserStartupScript  string
+	BootConfigHash     string
 }
 
 // Notifier sends notifications for machine lifecycle events.
@@ -457,8 +458,8 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 
 	// Update applied_boot_config_hash from the profile used for this start
-	if profile.BootConfigHash != "" {
-		if err := w.store.UpdateMachineAppliedBootConfigHash(ctx, machine.ID, profile.BootConfigHash); err != nil {
+	if startOpts.BootConfigHash != "" {
+		if err := w.store.UpdateMachineAppliedBootConfigHash(ctx, machine.ID, startOpts.BootConfigHash); err != nil {
 			slog.Warn("update applied boot config hash failed", "machine_id", machine.ID, "error", err)
 		}
 	}
@@ -562,6 +563,7 @@ func (w *Worker) buildStartOptions(ctx context.Context, machine db.Machine) Runt
 		MachineToken:      machine.MachineToken,
 		StartupScript:     profileStartupScript,
 		UserStartupScript: userStartupScript,
+		BootConfigHash:    profile.BootConfigHash,
 	}
 }
 
