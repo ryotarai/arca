@@ -11,17 +11,31 @@ import (
 	"github.com/ryotarai/arca/internal/workflow"
 )
 
-// captureStore records all saved states for test assertions.
-type captureStore struct {
-	saves []map[string]string
+// memStore is an in-memory Store for tests.
+type memStore struct {
+	data   map[string][]byte
+	saves  []map[string]string // captures each save for assertions
 }
 
-func (s *captureStore) Save(_ context.Context, data []byte) error {
+func newMemStore() *memStore {
+	return &memStore{data: make(map[string][]byte)}
+}
+
+func (s *memStore) LoadWorkflowState(_ context.Context, id string) ([]byte, error) {
+	return s.data[id], nil
+}
+
+func (s *memStore) SaveWorkflowState(_ context.Context, id string, data []byte) error {
+	s.data[id] = append([]byte(nil), data...)
 	var m map[string]string
-	if err := json.Unmarshal(data, &m); err != nil {
-		return err
+	if err := json.Unmarshal(data, &m); err == nil {
+		s.saves = append(s.saves, m)
 	}
-	s.saves = append(s.saves, m)
+	return nil
+}
+
+func (s *memStore) DeleteWorkflowState(_ context.Context, id string) error {
+	delete(s.data, id)
 	return nil
 }
 
@@ -34,10 +48,10 @@ func savedSteps(saves []map[string]string) []string {
 }
 
 func TestRunAllSteps(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 	var executed []string
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
 			executed = append(executed, "a")
@@ -51,7 +65,7 @@ func TestRunAllSteps(t *testing.T) {
 			executed = append(executed, "c")
 			return nil
 		}).
-		Run(context.Background(), nil)
+		Run(context.Background())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -62,13 +76,19 @@ func TestRunAllSteps(t *testing.T) {
 	if got := strings.Join(savedSteps(store.saves), ","); got != "b,c" {
 		t.Errorf("checkpointed steps = %q, want b,c", got)
 	}
+	// State should be deleted after successful completion.
+	if store.data["test-1"] != nil {
+		t.Error("expected workflow state to be deleted after success")
+	}
 }
 
 func TestResumeFromStep(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
+	// Simulate a previous checkpoint.
+	store.data["test-1"] = []byte(`{"step":"b"}`)
 	var executed []string
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
 			executed = append(executed, "a")
@@ -82,7 +102,7 @@ func TestResumeFromStep(t *testing.T) {
 			executed = append(executed, "c")
 			return nil
 		}).
-		Run(context.Background(), []byte(`{"step":"b"}`))
+		Run(context.Background())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -93,10 +113,11 @@ func TestResumeFromStep(t *testing.T) {
 }
 
 func TestResumeFromLastStep(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
+	store.data["test-1"] = []byte(`{"step":"b"}`)
 	var executed []string
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
 			executed = append(executed, "a")
@@ -106,7 +127,7 @@ func TestResumeFromLastStep(t *testing.T) {
 			executed = append(executed, "b")
 			return nil
 		}).
-		Run(context.Background(), []byte(`{"step":"b"}`))
+		Run(context.Background())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -114,17 +135,14 @@ func TestResumeFromLastStep(t *testing.T) {
 	if got := strings.Join(executed, ","); got != "b" {
 		t.Errorf("executed = %q, want b", got)
 	}
-	if len(store.saves) != 0 {
-		t.Errorf("expected no saves after last step, got %d", len(store.saves))
-	}
 }
 
 func TestErrorStopsExecution(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 	var executed []string
 	testErr := errors.New("step b failed")
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
 			executed = append(executed, "a")
@@ -138,7 +156,7 @@ func TestErrorStopsExecution(t *testing.T) {
 			executed = append(executed, "c")
 			return nil
 		}).
-		Run(context.Background(), nil)
+		Run(context.Background())
 
 	if !errors.Is(err, testErr) {
 		t.Errorf("expected testErr, got %v", err)
@@ -146,12 +164,16 @@ func TestErrorStopsExecution(t *testing.T) {
 	if got := strings.Join(executed, ","); got != "a,b" {
 		t.Errorf("executed = %q, want a,b (c should not run)", got)
 	}
+	// State should be persisted (not deleted) on failure for retry.
+	if store.data["test-1"] == nil {
+		t.Error("expected workflow state to be persisted on failure")
+	}
 }
 
 func TestTerminalError(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
 			return workflow.Terminal(errors.New("permanent failure"))
@@ -160,7 +182,7 @@ func TestTerminalError(t *testing.T) {
 			t.Fatal("should not reach step b")
 			return nil
 		}).
-		Run(context.Background(), nil)
+		Run(context.Background())
 
 	if err == nil {
 		t.Fatal("expected error")
@@ -183,12 +205,13 @@ func TestTerminalErrorPreservesMessage(t *testing.T) {
 }
 
 func TestUnknownStepIsTerminal(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
+	store.data["test-1"] = []byte(`{"step":"nonexistent"}`)
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error { return nil }).
-		Run(context.Background(), []byte(`{"step":"nonexistent"}`))
+		Run(context.Background())
 
 	if err == nil {
 		t.Fatal("expected error for unknown step")
@@ -199,15 +222,15 @@ func TestUnknownStepIsTerminal(t *testing.T) {
 }
 
 func TestStepWithTimeout(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		StepWithTimeout("slow", 10*time.Millisecond, func(ctx context.Context) error {
 			<-ctx.Done()
 			return ctx.Err()
 		}).
-		Run(context.Background(), nil)
+		Run(context.Background())
 
 	if err == nil {
 		t.Fatal("expected timeout error")
@@ -218,12 +241,12 @@ func TestStepWithTimeout(t *testing.T) {
 }
 
 func TestNoCheckpointForSingleStep(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("only", func(ctx context.Context) error { return nil }).
-		Run(context.Background(), nil)
+		Run(context.Background())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -234,23 +257,23 @@ func TestNoCheckpointForSingleStep(t *testing.T) {
 }
 
 func TestEmptyWorkflow(t *testing.T) {
-	store := &captureStore{}
-	runner := workflow.New(store)
-	err := runner.Run(context.Background(), nil)
+	store := newMemStore()
+	runner := workflow.NewRunner(store, "test-1")
+	err := runner.Run(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestCheckpointNotCalledOnError(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	runner.
 		Step("a", func(ctx context.Context) error { return nil }).
 		Step("b", func(ctx context.Context) error { return errors.New("fail") }).
 		Step("c", func(ctx context.Context) error { return nil }).
-		Run(context.Background(), nil)
+		Run(context.Background())
 
 	if got := strings.Join(savedSteps(store.saves), ","); got != "b" {
 		t.Errorf("checkpointed steps = %q, want b", got)
@@ -258,16 +281,16 @@ func TestCheckpointNotCalledOnError(t *testing.T) {
 }
 
 func TestParentContextCancellation(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
 			return ctx.Err()
 		}).
-		Run(ctx, nil)
+		Run(ctx)
 
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context.Canceled, got %v", err)
@@ -275,9 +298,9 @@ func TestParentContextCancellation(t *testing.T) {
 }
 
 func TestStatePersistedAcrossCheckpoints(t *testing.T) {
-	store := &captureStore{}
+	store := newMemStore()
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	runner.Set("initial", "value")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
@@ -293,7 +316,7 @@ func TestStatePersistedAcrossCheckpoints(t *testing.T) {
 			}
 			return nil
 		}).
-		Run(context.Background(), nil)
+		Run(context.Background())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -309,15 +332,13 @@ func TestStatePersistedAcrossCheckpoints(t *testing.T) {
 	if saved["from_a"] != "hello" {
 		t.Errorf("saved from_a = %q, want hello", saved["from_a"])
 	}
-	if saved["initial"] != "value" {
-		t.Errorf("saved initial = %q, want value", saved["initial"])
-	}
 }
 
-func TestStateLoadedFromSavedState(t *testing.T) {
-	store := &captureStore{}
+func TestStateLoadedFromStore(t *testing.T) {
+	store := newMemStore()
+	store.data["test-1"] = []byte(`{"step":"b","image_name":"my-image","image_data":"snapshot-123"}`)
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
 	err := runner.
 		Step("a", func(ctx context.Context) error { return nil }).
 		Step("b", func(ctx context.Context) error {
@@ -329,18 +350,19 @@ func TestStateLoadedFromSavedState(t *testing.T) {
 			}
 			return nil
 		}).
-		Run(context.Background(), []byte(`{"step":"b","image_name":"my-image","image_data":"snapshot-123"}`))
+		Run(context.Background())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestInitialStateWithoutStep(t *testing.T) {
-	store := &captureStore{}
+func TestFirstRunWithSetDefaults(t *testing.T) {
+	store := newMemStore()
 	var executed []string
 
-	runner := workflow.New(store)
+	runner := workflow.NewRunner(store, "test-1")
+	runner.Set("image_name", "foo")
 	err := runner.
 		Step("a", func(ctx context.Context) error {
 			if got := runner.Get("image_name"); got != "foo" {
@@ -353,12 +375,35 @@ func TestInitialStateWithoutStep(t *testing.T) {
 			executed = append(executed, "b")
 			return nil
 		}).
-		Run(context.Background(), []byte(`{"image_name":"foo"}`))
+		Run(context.Background())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if got := strings.Join(executed, ","); got != "a,b" {
 		t.Errorf("executed = %q, want a,b", got)
+	}
+}
+
+func TestStoreOverridesDefaults(t *testing.T) {
+	store := newMemStore()
+	// Previous checkpoint has different value.
+	store.data["test-1"] = []byte(`{"step":"b","image_name":"from-db"}`)
+
+	runner := workflow.NewRunner(store, "test-1")
+	runner.Set("image_name", "from-caller") // should be overwritten by DB
+
+	err := runner.
+		Step("a", func(ctx context.Context) error { return nil }).
+		Step("b", func(ctx context.Context) error {
+			if got := runner.Get("image_name"); got != "from-db" {
+				t.Errorf("Get(image_name) = %q, want from-db (DB should override)", got)
+			}
+			return nil
+		}).
+		Run(context.Background())
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

@@ -4,8 +4,9 @@
 // rather than re-executing the entire workflow.
 //
 // The library owns state management and persistence. Callers provide a
-// [Store] implementation that writes to durable storage (e.g., a database),
-// and use [Runner.Get]/[Runner.Set] to pass data between steps.
+// [Store] implementation (typically backed by a database table), and
+// use [Runner.Get]/[Runner.Set] to pass data between steps. The runner
+// serializes and persists state automatically at each checkpoint.
 //
 // This is inspired by Temporal's workflow model but requires no external
 // dependencies or additional infrastructure.
@@ -40,17 +41,14 @@ func IsTerminal(err error) bool {
 	return errors.As(err, &te)
 }
 
-// Store persists workflow state durably. Implementations must ensure
-// that writes survive process restarts so that [Runner.Run] can resume
-// from the correct step after a crash.
+// Store persists and loads workflow state durably. Implementations must
+// ensure that writes survive process restarts so that [Runner.Run] can
+// resume from the correct step after a crash.
 type Store interface {
-	Save(ctx context.Context, data []byte) error
+	LoadWorkflowState(ctx context.Context, id string) ([]byte, error)
+	SaveWorkflowState(ctx context.Context, id string, data []byte) error
+	DeleteWorkflowState(ctx context.Context, id string) error
 }
-
-// StoreFunc adapts a function into a [Store].
-type StoreFunc func(ctx context.Context, data []byte) error
-
-func (f StoreFunc) Save(ctx context.Context, data []byte) error { return f(ctx, data) }
 
 // StepFunc is a function that executes a single workflow step.
 // The context may carry a per-step timeout set via [Runner.StepWithTimeout].
@@ -72,13 +70,17 @@ type step struct {
 type Runner struct {
 	steps []step
 	store Store
+	id    string
 	state map[string]string
 }
 
-// New creates a Runner that persists checkpoints to store.
-func New(store Store) *Runner {
+// NewRunner creates a Runner that persists checkpoints to store under
+// the given id. The id should uniquely identify this workflow instance
+// (e.g., a job ID).
+func NewRunner(store Store, id string) *Runner {
 	return &Runner{
 		store: store,
+		id:    id,
 		state: make(map[string]string),
 	}
 }
@@ -108,27 +110,26 @@ func (r *Runner) Set(key string, value string) {
 	r.state[key] = value
 }
 
-// Run executes steps, resuming from the step recorded in savedState.
-// If savedState is nil or empty, execution starts from the first step.
-//
-// savedState is a JSON object previously written by the [Store]. The
-// runner reads the "step" key to determine where to resume and loads
-// all other keys into the state map accessible via [Get]/[Set].
+// Run executes steps, resuming from the last checkpointed step.
+// On first run (no persisted state), execution starts from the first step.
+// On retry, the persisted state is loaded from the [Store] and execution
+// resumes from the recorded step.
 //
 // Returns nil on success, or the first error encountered. A
 // [TerminalError] signals that retrying will not help.
-func (r *Runner) Run(ctx context.Context, savedState []byte) error {
+//
+// On successful completion, the persisted state is automatically deleted
+// from the store.
+func (r *Runner) Run(ctx context.Context) error {
 	if len(r.steps) == 0 {
 		return nil
 	}
 
-	// Load persisted state.
-	if len(savedState) > 0 {
+	// Load persisted state from store.
+	if data, err := r.store.LoadWorkflowState(ctx, r.id); err == nil && len(data) > 0 {
 		var loaded map[string]string
-		if err := json.Unmarshal(savedState, &loaded); err == nil {
-			for k, v := range loaded {
-				r.state[k] = v
-			}
+		if err := json.Unmarshal(data, &loaded); err == nil {
+			r.state = loaded
 		}
 	}
 
@@ -169,19 +170,17 @@ func (r *Runner) Run(ctx context.Context, savedState []byte) error {
 		}
 
 		// Checkpoint: persist state with the next step so retries resume
-		// from there. Not called after the last step — the caller handles
-		// completion.
-		if r.store != nil && i+1 < len(r.steps) {
+		// from there. Not called after the last step.
+		if i+1 < len(r.steps) {
 			r.state["step"] = r.steps[i+1].name
 			if data, err := json.Marshal(r.state); err == nil {
-				if saveErr := r.store.Save(ctx, data); saveErr != nil {
-					// Best-effort: if save fails, the step was idempotent
-					// and will re-execute on retry.
-					_ = saveErr
-				}
+				_ = r.store.SaveWorkflowState(ctx, r.id, data)
 			}
 		}
 	}
+
+	// Clean up persisted state on success.
+	_ = r.store.DeleteWorkflowState(ctx, r.id)
 
 	return nil
 }
