@@ -71,6 +71,12 @@ func main() {
 			workerConcurrency = n
 		}
 	}
+	var workerPollInterval time.Duration
+	if v := os.Getenv("ARCA_WORKER_POLL_INTERVAL"); v != "" {
+		if d, parseErr := time.ParseDuration(v); parseErr == nil && d > 0 {
+			workerPollInterval = d
+		}
+	}
 	runtime := machine.NewRoutingTemplateWithCatalog(store, map[string]machine.Runtime{})
 
 	var mockRT *machine.MockRuntime
@@ -85,7 +91,7 @@ func main() {
 
 	ipCache := machine.NewMachineIPCache(runtime, store, 5*time.Minute)
 	slackService := notification.NewSlackService(store)
-	machineWorker := machine.NewWorker(store, runtime, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency)
+	machineWorker := machine.NewWorker(store, runtime, "worker-"+strconv.FormatInt(time.Now().UnixNano(), 10), ipCache, workerConcurrency, workerPollInterval)
 	machineWorker.SetNotifier(slackService)
 	workerDone := make(chan struct{})
 	go func() {

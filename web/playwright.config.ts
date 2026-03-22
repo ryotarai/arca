@@ -35,6 +35,8 @@ export default defineConfig({
       ARCA_SKIP_SETUP: '1',
       ARCA_ENABLE_MOCK: 'true',
       ARCA_ENCRYPTION_KEY: process.env.ARCA_ENCRYPTION_KEY ?? '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      ARCA_WORKER_POLL_INTERVAL: '10s',
+      ARCA_WORKER_CONCURRENCY: '1',
     },
     url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080/',
     reuseExistingServer: true,
