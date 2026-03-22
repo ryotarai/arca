@@ -26,21 +26,28 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 		return fmt.Errorf("parse job metadata: %w", err)
 	}
 
-	// Deferred cleanup: on error, attempt restart but do NOT clear lock
-	// (processJob will retry the job and the lock must remain held).
+	// Deferred cleanup: on error after the machine was stopped, attempt
+	// restart so the user is not left with a stopped machine while retries
+	// proceed.  Do NOT restart if the stop itself failed — that would cause
+	// a stop→start loop visible in GCE audit logs.
 	// On success, clear the lock so other operations can proceed.
 	var jobErr error
+	var machineStopped bool
 	defer func() {
 		if jobErr != nil {
 			w.emitEvent(ctx, machine.ID, job.ID, "error", "imaging_failed",
 				fmt.Sprintf("Image creation failed: %v", jobErr))
-			// Best-effort restart
-			startOpts := w.buildStartOptions(ctx, machine)
-			restartCtx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
-			defer cancel()
-			if _, restartErr := w.runtime.EnsureRunning(restartCtx, machine, startOpts); restartErr != nil {
-				w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
-					fmt.Sprintf("Failed to restart after imaging failure: %v", restartErr))
+			// Only restart if the machine was actually stopped by us; if the
+			// stop step itself failed, restarting would race with the pending
+			// GCE stop and create a stop/start loop.
+			if machineStopped {
+				startOpts := w.buildStartOptions(ctx, machine)
+				restartCtx, rCancel := context.WithTimeout(context.Background(), 4*time.Minute)
+				defer rCancel()
+				if _, restartErr := w.runtime.EnsureRunning(restartCtx, machine, startOpts); restartErr != nil {
+					w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
+						fmt.Sprintf("Failed to restart after imaging failure: %v", restartErr))
+				}
 			}
 			// Do NOT clear lock here - processJob will retry the job
 		} else {
@@ -67,6 +74,7 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 	if jobErr = w.runtime.EnsureStopped(stopCtx, machine); jobErr != nil {
 		return jobErr
 	}
+	machineStopped = true
 	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_stopped", "Machine stopped")
 
 	// Step 3: Create image snapshot
