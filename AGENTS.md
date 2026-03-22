@@ -171,10 +171,10 @@ Regenerate from sources instead:
 - Before creating a commit, verify the current branch (`git branch --show-current`) to ensure you are on the intended branch. If the branch has already been merged (check with `gh pr list --head <branch> --state merged`), switch to a new feature branch from `origin/main` instead of committing to the stale branch.
 
 ### Worktree Cleanup After PR Merge
-- After a PR is merged, immediately clean up the corresponding worktree:
-  1. Run `chmod -R u+w .claude/worktrees/<branch-path>` (Go module caches are read-only).
-  2. Run `git worktree remove .claude/worktrees/<branch-path>` (or `rm -rf` then `git worktree prune` if removal fails).
-  3. Delete the local branch with `git branch -D <branch-name>`.
+- After a PR is merged, immediately:
+  1. Clean up the worktree: run `chmod -R u+w .claude/worktrees/<branch-path>` then `git worktree remove .claude/worktrees/<branch-path>` (or `rm -rf` then `git worktree prune` if removal fails).
+  2. Delete the local branch with `git branch -D <branch-name>`.
+  3. In the main working directory, run `git pull` to fast-forward `main` to include the merged changes.
 
 ### Autonomy & Workflow
 - If environment setup is required to complete requested work and the setup is non-destructive (for example installing missing runtime or browser dependencies), proceed without asking for additional confirmation.
