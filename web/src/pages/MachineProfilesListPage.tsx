@@ -93,6 +93,16 @@ export function MachineProfilesListPage({ user }: MachineProfilesListPageProps) 
                         </p>
                         <p className="text-xs text-muted-foreground">Created {formatUnix(profile.createdAt)}</p>
                       </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center rounded-full border border-border bg-muted/30 px-2 py-0.5 font-medium">
+                          {profile.machineCount} {profile.machineCount === 1 ? 'machine' : 'machines'}
+                        </span>
+                        {profile.runningMachineCount > 0 && (
+                          <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-200">
+                            {profile.runningMachineCount} running
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
