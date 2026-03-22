@@ -571,16 +571,18 @@ func (*MachineProfileConfig_Gce) isMachineProfileConfig_Provider() {}
 func (*MachineProfileConfig_Lxd) isMachineProfileConfig_Provider() {}
 
 type MachineProfile struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type           MachineProfileType     `protobuf:"varint,3,opt,name=type,proto3,enum=arca.v1.MachineProfileType" json:"type,omitempty"`
-	Config         *MachineProfileConfig  `protobuf:"bytes,4,opt,name=config,proto3" json:"config,omitempty"`
-	CreatedAt      int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      int64                  `protobuf:"varint,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	BootConfigHash string                 `protobuf:"bytes,7,opt,name=boot_config_hash,json=bootConfigHash,proto3" json:"boot_config_hash,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Type                MachineProfileType     `protobuf:"varint,3,opt,name=type,proto3,enum=arca.v1.MachineProfileType" json:"type,omitempty"`
+	Config              *MachineProfileConfig  `protobuf:"bytes,4,opt,name=config,proto3" json:"config,omitempty"`
+	CreatedAt           int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt           int64                  `protobuf:"varint,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	BootConfigHash      string                 `protobuf:"bytes,7,opt,name=boot_config_hash,json=bootConfigHash,proto3" json:"boot_config_hash,omitempty"`
+	MachineCount        int32                  `protobuf:"varint,8,opt,name=machine_count,json=machineCount,proto3" json:"machine_count,omitempty"`
+	RunningMachineCount int32                  `protobuf:"varint,9,opt,name=running_machine_count,json=runningMachineCount,proto3" json:"running_machine_count,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *MachineProfile) Reset() {
@@ -660,6 +662,20 @@ func (x *MachineProfile) GetBootConfigHash() string {
 		return x.BootConfigHash
 	}
 	return ""
+}
+
+func (x *MachineProfile) GetMachineCount() int32 {
+	if x != nil {
+		return x.MachineCount
+	}
+	return 0
+}
+
+func (x *MachineProfile) GetRunningMachineCount() int32 {
+	if x != nil {
+		return x.RunningMachineCount
+	}
+	return 0
 }
 
 type ListMachineProfilesRequest struct {
@@ -1225,7 +1241,7 @@ const file_arca_v1_machine_profile_proto_rawDesc = "" +
 	"\x19auto_stop_timeout_seconds\x18\x06 \x01(\x03R\x16autoStopTimeoutSeconds\x12!\n" +
 	"\fagent_prompt\x18\a \x01(\tR\vagentPromptB\n" +
 	"\n" +
-	"\bprovider\"\x84\x02\n" +
+	"\bprovider\"\xdd\x02\n" +
 	"\x0eMachineProfile\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12/\n" +
@@ -1235,7 +1251,9 @@ const file_arca_v1_machine_profile_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x06 \x01(\x03R\tupdatedAt\x12(\n" +
-	"\x10boot_config_hash\x18\a \x01(\tR\x0ebootConfigHash\"\x1c\n" +
+	"\x10boot_config_hash\x18\a \x01(\tR\x0ebootConfigHash\x12#\n" +
+	"\rmachine_count\x18\b \x01(\x05R\fmachineCount\x122\n" +
+	"\x15running_machine_count\x18\t \x01(\x05R\x13runningMachineCount\"\x1c\n" +
 	"\x1aListMachineProfilesRequest\"R\n" +
 	"\x1bListMachineProfilesResponse\x123\n" +
 	"\bprofiles\x18\x01 \x03(\v2\x17.arca.v1.MachineProfileR\bprofiles\"\x99\x01\n" +

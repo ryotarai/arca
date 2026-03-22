@@ -47,6 +47,13 @@ func (s *machineProfileConnectService) ListMachineProfiles(ctx context.Context, 
 			slog.ErrorContext(ctx, "invalid profile row", "profile_id", profile.ID, "error", convErr)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to decode profile config"))
 		}
+		// Populate machine counts
+		if total, err := s.store.CountMachinesByProfileID(ctx, profile.ID); err == nil {
+			message.MachineCount = int32(total)
+		}
+		if running, err := s.store.CountRunningMachinesByProfileID(ctx, profile.ID); err == nil {
+			message.RunningMachineCount = int32(running)
+		}
 		items = append(items, message)
 	}
 

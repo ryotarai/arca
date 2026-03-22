@@ -188,6 +188,19 @@ func (q *Queries) CountRecentJobsByStatus(ctx context.Context, arg CountRecentJo
 	return i, err
 }
 
+const countRunningMachinesByProfileID = `-- name: CountRunningMachinesByProfileID :one
+SELECT COUNT(*) FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE m.profile_id = ?1 AND ms.status = 'running'
+`
+
+func (q *Queries) CountRunningMachinesByProfileID(ctx context.Context, profileID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRunningMachinesByProfileID, profileID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createArcadExchangeToken = `-- name: CreateArcadExchangeToken :exec
 INSERT INTO arcad_exchange_tokens (id, token_hash, user_id, machine_id, exposure_id, expires_at, created_at)
 VALUES (

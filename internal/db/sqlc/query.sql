@@ -1053,6 +1053,11 @@ SELECT boot_config_hash FROM machine_profiles WHERE id = sqlc.arg(id);
 -- name: CountMachinesByProfileID :one
 SELECT COUNT(*) FROM machines WHERE profile_id = sqlc.arg(profile_id);
 
+-- name: CountRunningMachinesByProfileID :one
+SELECT COUNT(*) FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE m.profile_id = sqlc.arg(profile_id) AND ms.status = 'running';
+
 -- name: CountMachinesByProfileIDAndMachineType :one
 SELECT COUNT(*) FROM machines
 WHERE profile_id = sqlc.arg(profile_id)

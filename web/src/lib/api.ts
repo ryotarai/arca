@@ -451,6 +451,8 @@ function toMachineProfileItem(input: {
   }
   createdAt: bigint
   updatedAt: bigint
+  machineCount?: number
+  runningMachineCount?: number
 }): MachineProfileItem {
   const profileType = profileTypeFromProto(input.type)
   let config: MachineProfileConfig
@@ -503,6 +505,8 @@ function toMachineProfileItem(input: {
     agentPrompt: input.config?.agentPrompt ?? '',
     createdAt: Number(input.createdAt),
     updatedAt: Number(input.updatedAt),
+    machineCount: input.machineCount ?? 0,
+    runningMachineCount: input.runningMachineCount ?? 0,
   }
 }
 

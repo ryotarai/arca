@@ -222,6 +222,23 @@ func (s *Store) countMachinesByProfileID(ctx context.Context, profileID string) 
 	}
 }
 
+// CountMachinesByProfileID returns total machine count for a profile (exported).
+func (s *Store) CountMachinesByProfileID(ctx context.Context, profileID string) (int64, error) {
+	return s.countMachinesByProfileID(ctx, profileID)
+}
+
+// CountRunningMachinesByProfileID returns running machine count for a profile.
+func (s *Store) CountRunningMachinesByProfileID(ctx context.Context, profileID string) (int64, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.CountRunningMachinesByProfileID(ctx, profileID)
+	case DriverPostgres:
+		return s.pgQueries.CountRunningMachinesByProfileID(ctx, profileID)
+	default:
+		return 0, unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) GetMachineProfileByID(ctx context.Context, profileID string) (MachineProfile, error) {
 	profileID = strings.TrimSpace(profileID)
 

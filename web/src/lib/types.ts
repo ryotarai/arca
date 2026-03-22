@@ -99,6 +99,8 @@ export type MachineProfileItem = {
   agentPrompt: string
   createdAt: number
   updatedAt: number
+  machineCount: number
+  runningMachineCount: number
 }
 
 // Backward-compatible aliases for code that still references old names
