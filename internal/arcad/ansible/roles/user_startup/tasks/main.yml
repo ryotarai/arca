@@ -4,6 +4,14 @@
     path: "{{ user_startup_script }}"
   register: startup_script_stat
 
+- name: Set user startup script ownership and permissions
+  ansible.builtin.file:
+    path: "{{ user_startup_script }}"
+    owner: "{{ interactive_user }}"
+    group: arca
+    mode: "0700"
+  when: startup_script_stat.stat.exists
+
 - name: Run user startup script
   ansible.builtin.shell: "/usr/bin/env bash {{ user_startup_script }}"
   become_user: "{{ interactive_user }}"
