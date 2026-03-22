@@ -179,7 +179,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, pr
 	}
 	appliedBootConfigHash := opts.AppliedBootConfigHash
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return Machine{}, err
 	}
@@ -546,7 +546,7 @@ func (s *Store) requestStateTransition(ctx context.Context, userID, machineID, s
 	eventType := requestedEventType(jobKind)
 	message := "desired state set to " + desiredStatus
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return false, err
 	}
@@ -1192,7 +1192,7 @@ func (s *Store) RequeueMachineJob(ctx context.Context, jobID string, nextRunAt i
 }
 
 func (s *Store) DeleteMachineByIDForOwner(ctx context.Context, userID, machineID string) (bool, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return false, err
 	}
@@ -1645,7 +1645,7 @@ func (s *Store) RequestSystemStopMachine(ctx context.Context, machineID string) 
 		return false, err
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return false, err
 	}
@@ -1988,7 +1988,7 @@ func (s *Store) ListAllMachineTags(ctx context.Context) (map[string][]string, er
 
 // SetMachineTags replaces all tags for a machine within a transaction.
 func (s *Store) SetMachineTags(ctx context.Context, machineID string, tags []string) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -2115,7 +2115,7 @@ func (s *Store) LockMachineAndEnqueueCreateImageJob(ctx context.Context, machine
 	}
 	nowUnix := time.Now().Unix()
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return "", err
 	}
