@@ -26,7 +26,7 @@ func NewStore(db *sql.DB, driver string) *Store {
 
 	switch driver {
 	case DriverSQLite:
-		store.sqliteQueries = sqlitesqlc.New(db)
+		store.sqliteQueries = sqlitesqlc.New(&noCancelDB{db: db})
 	case DriverPostgres:
 		store.pgQueries = postgresqlsqlc.New(db)
 	}
@@ -53,6 +53,16 @@ func (s *Store) Ping(ctx context.Context) error {
 	default:
 		return unsupportedDriverError(s.driver)
 	}
+}
+
+// beginTx starts a transaction. For SQLite, the context's cancellation
+// signal is stripped so that sqlite3_interrupt is never called on the
+// shared connection (see nocanceldb.go).
+func (s *Store) beginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	if s.driver == DriverSQLite {
+		ctx = context.WithoutCancel(ctx)
+	}
+	return s.db.BeginTx(ctx, opts)
 }
 
 func unsupportedDriverError(driver string) error {

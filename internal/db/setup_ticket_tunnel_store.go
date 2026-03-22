@@ -432,7 +432,7 @@ func (s *Store) verifyAndConsumeAuthTicketByMachineID(ctx context.Context, machi
 		return VerifiedTicket{}, sql.ErrNoRows
 	}
 	ticketHash := hashToken(ticket)
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return VerifiedTicket{}, err
 	}

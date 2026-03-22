@@ -397,7 +397,7 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 
 	switch s.driver {
 	case DriverSQLite:
-		tx, err := s.db.BeginTx(ctx, nil)
+		tx, err := s.beginTx(ctx, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -430,7 +430,7 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 			return nil, err
 		}
 	case DriverPostgres:
-		tx, err := s.db.BeginTx(ctx, nil)
+		tx, err := s.beginTx(ctx, nil)
 		if err != nil {
 			return nil, err
 		}

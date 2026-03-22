@@ -68,7 +68,7 @@ func (s *Store) ExchangeArcadTokenByMachineID(ctx context.Context, machineID, to
 		return ArcadSession{}, sql.ErrNoRows
 	}
 	tokenHash := hashToken(token)
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return ArcadSession{}, err
 	}

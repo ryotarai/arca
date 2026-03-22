@@ -196,7 +196,7 @@ func (s *Store) ListUsers(ctx context.Context, nowUnix int64) ([]ManagedUser, er
 }
 
 func (s *Store) IssueUserSetupToken(ctx context.Context, tokenID, tokenHash, userID, createdByUserID string, expiresAtUnix, nowUnix int64) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -283,7 +283,7 @@ func (s *Store) IssueUserSetupToken(ctx context.Context, tokenID, tokenHash, use
 }
 
 func (s *Store) CompleteUserSetup(ctx context.Context, tokenHash, passwordHash string, nowUnix int64) (AuthUser, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.beginTx(ctx, nil)
 	if err != nil {
 		return AuthUser{}, err
 	}
