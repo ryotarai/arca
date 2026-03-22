@@ -955,6 +955,15 @@ func (q *Queries) DeleteUserMachineByMachineIDForOwner(ctx context.Context, arg 
 	return result.RowsAffected()
 }
 
+const deleteWorkflowState = `-- name: DeleteWorkflowState :exec
+DELETE FROM workflow_states WHERE id = $1
+`
+
+func (q *Queries) DeleteWorkflowState(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, deleteWorkflowState, id)
+	return err
+}
+
 const disassociateAllProfilesFromCustomImage = `-- name: DisassociateAllProfilesFromCustomImage :exec
 DELETE FROM profile_custom_images
 WHERE custom_image_id = $1
@@ -3251,6 +3260,17 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const loadWorkflowState = `-- name: LoadWorkflowState :one
+SELECT data FROM workflow_states WHERE id = $1
+`
+
+func (q *Queries) LoadWorkflowState(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRowContext(ctx, loadWorkflowState, id)
+	var data string
+	err := row.Scan(&data)
+	return data, err
+}
+
 const markArcadExchangeTokenUsed = `-- name: MarkArcadExchangeTokenUsed :execrows
 UPDATE arcad_exchange_tokens
 SET used_at = $1
@@ -4283,5 +4303,21 @@ func (q *Queries) UpsertUserNotificationSettings(ctx context.Context, arg Upsert
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
+	return err
+}
+
+const upsertWorkflowState = `-- name: UpsertWorkflowState :exec
+INSERT INTO workflow_states (id, data, updated_at) VALUES ($1, $2, $3)
+ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at
+`
+
+type UpsertWorkflowStateParams struct {
+	ID        string
+	Data      string
+	UpdatedAt int64
+}
+
+func (q *Queries) UpsertWorkflowState(ctx context.Context, arg UpsertWorkflowStateParams) error {
+	_, err := q.db.ExecContext(ctx, upsertWorkflowState, arg.ID, arg.Data, arg.UpdatedAt)
 	return err
 }

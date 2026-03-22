@@ -314,3 +314,9 @@ CREATE TABLE IF NOT EXISTS machine_tags (
   PRIMARY KEY (machine_id, tag)
 );
 CREATE INDEX IF NOT EXISTS idx_machine_tags_tag ON machine_tags(tag);
+
+CREATE TABLE IF NOT EXISTS workflow_states (
+  id TEXT PRIMARY KEY,
+  data TEXT NOT NULL DEFAULT '{}',
+  updated_at BIGINT NOT NULL
+);

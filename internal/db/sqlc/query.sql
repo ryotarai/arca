@@ -1111,3 +1111,13 @@ UPDATE machines SET applied_boot_config_hash = sqlc.arg(applied_boot_config_hash
 
 -- name: UpdateMachineInfrastructureConfig :exec
 UPDATE machines SET provider_type = sqlc.arg(provider_type), infrastructure_config_json = sqlc.arg(infrastructure_config_json) WHERE id = sqlc.arg(machine_id);
+
+-- name: LoadWorkflowState :one
+SELECT data FROM workflow_states WHERE id = sqlc.arg(id);
+
+-- name: UpsertWorkflowState :exec
+INSERT INTO workflow_states (id, data, updated_at) VALUES (sqlc.arg(id), sqlc.arg(data), sqlc.arg(updated_at))
+ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at;
+
+-- name: DeleteWorkflowState :exec
+DELETE FROM workflow_states WHERE id = sqlc.arg(id);

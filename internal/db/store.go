@@ -59,15 +59,22 @@ func (s *Store) Ping(ctx context.Context) error {
 // LoadWorkflowState loads persisted workflow state by ID.
 // Returns nil, nil if no state exists.
 func (s *Store) LoadWorkflowState(ctx context.Context, id string) ([]byte, error) {
-	var data string
-	err := s.db.QueryRowContext(ctx, "SELECT data FROM workflow_states WHERE id = ?", id).Scan(&data)
-	if err == sql.ErrNoRows {
-		return nil, nil
+	switch s.driver {
+	case DriverSQLite:
+		data, err := s.sqliteQueries.LoadWorkflowState(ctx, id)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return []byte(data), err
+	case DriverPostgres:
+		data, err := s.pgQueries.LoadWorkflowState(ctx, id)
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return []byte(data), err
+	default:
+		return nil, unsupportedDriverError(s.driver)
 	}
-	if err != nil {
-		return nil, err
-	}
-	return []byte(data), nil
 }
 
 // SaveWorkflowState upserts workflow state.
@@ -75,17 +82,13 @@ func (s *Store) SaveWorkflowState(ctx context.Context, id string, data []byte) e
 	nowUnix := time.Now().Unix()
 	switch s.driver {
 	case DriverSQLite:
-		_, err := s.db.ExecContext(ctx,
-			`INSERT INTO workflow_states (id, data, updated_at) VALUES (?, ?, ?)
-			 ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
-			id, string(data), nowUnix)
-		return err
+		return s.sqliteQueries.UpsertWorkflowState(ctx, sqlitesqlc.UpsertWorkflowStateParams{
+			ID: id, Data: string(data), UpdatedAt: nowUnix,
+		})
 	case DriverPostgres:
-		_, err := s.db.ExecContext(ctx,
-			`INSERT INTO workflow_states (id, data, updated_at) VALUES ($1, $2, $3)
-			 ON CONFLICT(id) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
-			id, string(data), nowUnix)
-		return err
+		return s.pgQueries.UpsertWorkflowState(ctx, postgresqlsqlc.UpsertWorkflowStateParams{
+			ID: id, Data: string(data), UpdatedAt: nowUnix,
+		})
 	default:
 		return unsupportedDriverError(s.driver)
 	}
@@ -93,8 +96,14 @@ func (s *Store) SaveWorkflowState(ctx context.Context, id string, data []byte) e
 
 // DeleteWorkflowState removes workflow state by ID.
 func (s *Store) DeleteWorkflowState(ctx context.Context, id string) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM workflow_states WHERE id = ?", id)
-	return err
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.DeleteWorkflowState(ctx, id)
+	case DriverPostgres:
+		return s.pgQueries.DeleteWorkflowState(ctx, id)
+	default:
+		return unsupportedDriverError(s.driver)
+	}
 }
 
 func unsupportedDriverError(driver string) error {
