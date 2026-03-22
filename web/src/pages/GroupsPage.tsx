@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -27,7 +28,6 @@ export function GroupsPage({ user }: GroupsPageProps) {
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
 
   // Detail view state
   const [selectedGroupID, setSelectedGroupID] = useState<string | null>(null)
@@ -43,11 +43,10 @@ export function GroupsPage({ user }: GroupsPageProps) {
   useEffect(() => {
     const run = async () => {
       setLoading(true)
-      setError('')
       try {
         setGroups(await listGroups())
       } catch (err) {
-        setError(messageFromError(err))
+        toast.error(messageFromError(err))
       } finally {
         setLoading(false)
       }
@@ -66,7 +65,7 @@ export function GroupsPage({ user }: GroupsPageProps) {
         setSelectedGroup(result.group)
         setMembers(result.members)
       } catch (err) {
-        if (!cancelled) setError(messageFromError(err))
+        if (!cancelled) toast.error(messageFromError(err))
       } finally {
         if (!cancelled) setDetailLoading(false)
       }
@@ -88,21 +87,20 @@ export function GroupsPage({ user }: GroupsPageProps) {
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
     setSaving(true)
     try {
       await createGroup(name.trim())
       setName('')
+      toast.success('Group created.')
       await reloadGroups()
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (groupID: string) => {
-    setError('')
     try {
       await deleteGroup(groupID)
       if (selectedGroupID === groupID) {
@@ -110,9 +108,10 @@ export function GroupsPage({ user }: GroupsPageProps) {
         setSelectedGroup(null)
         setMembers([])
       }
+      toast.success('Group deleted.')
       await reloadGroups()
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     }
   }
 
@@ -143,7 +142,6 @@ export function GroupsPage({ user }: GroupsPageProps) {
 
   const handleAddMember = async (userResult: { id: string; email: string }) => {
     if (selectedGroupID == null) return
-    setError('')
     setMemberSearch('')
     setMemberSearchResults([])
     setShowMemberDropdown(false)
@@ -154,13 +152,12 @@ export function GroupsPage({ user }: GroupsPageProps) {
       setMembers(result.members)
       await reloadGroups()
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     }
   }
 
   const handleRemoveMember = async (userID: string) => {
     if (selectedGroupID == null) return
-    setError('')
     try {
       await removeGroupMember(selectedGroupID, userID)
       const result = await getGroup(selectedGroupID)
@@ -168,7 +165,7 @@ export function GroupsPage({ user }: GroupsPageProps) {
       setMembers(result.members)
       await reloadGroups()
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     }
   }
 
@@ -327,7 +324,6 @@ export function GroupsPage({ user }: GroupsPageProps) {
           </Card>
         )}
 
-        {error !== '' && <p className="text-sm text-red-300">{error}</p>}
       </section>
     </main>
   )

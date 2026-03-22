@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -68,8 +69,6 @@ function StartupScriptCard({ userId }: { userId: string }) {
   const [script, setScript] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -78,7 +77,7 @@ function StartupScriptCard({ userId }: { userId: string }) {
         const result = await getUserStartupScript()
         if (!cancelled) setScript(result)
       } catch (e) {
-        if (!cancelled) setError(messageFromError(e))
+        if (!cancelled) toast.error(messageFromError(e))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -88,15 +87,13 @@ function StartupScriptCard({ userId }: { userId: string }) {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
-    setSaved(false)
     setSaving(true)
     try {
       const result = await updateUserStartupScript(script)
       setScript(result)
-      setSaved(true)
+      toast.success('Startup script updated.')
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setSaving(false)
     }
@@ -117,7 +114,7 @@ function StartupScriptCard({ userId }: { userId: string }) {
           <form className="space-y-4" onSubmit={submit}>
             <textarea
               value={script}
-              onChange={(e) => { setScript(e.target.value); setSaved(false) }}
+              onChange={(e) => { setScript(e.target.value) }}
               className="min-h-[200px] w-full rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="#!/bin/bash&#10;# Your startup script here..."
               disabled={saving}
@@ -127,8 +124,6 @@ function StartupScriptCard({ userId }: { userId: string }) {
             </Button>
           </form>
         )}
-        {saved && <p className="mt-3 text-sm text-emerald-300">Startup script updated.</p>}
-        {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
       </CardContent>
     </Card>
   )
@@ -138,8 +133,6 @@ function AgentPromptCard({ userId }: { userId: string }) {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -160,15 +153,13 @@ function AgentPromptCard({ userId }: { userId: string }) {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
-    setSaved(false)
     setSaving(true)
     try {
       const result = await updateUserAgentPrompt(prompt)
       setPrompt(result)
-      setSaved(true)
+      toast.success('Agent prompt updated.')
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setSaving(false)
     }
@@ -206,8 +197,6 @@ function AgentPromptCard({ userId }: { userId: string }) {
             </Button>
           </form>
         )}
-        {saved && <p className="mt-3 text-sm text-emerald-300">Agent prompt updated.</p>}
-        {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
       </CardContent>
     </Card>
   )
@@ -245,7 +234,6 @@ function endpointTypeLabel(value: string): string {
 function LLMModelsCard({ userId }: { userId: string }) {
   const [models, setModels] = useState<LLMModel[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<LLMFormData>(emptyForm)
@@ -257,9 +245,8 @@ function LLMModelsCard({ userId }: { userId: string }) {
     try {
       const result = await listUserLLMModels()
       setModels(result)
-      setError('')
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setLoading(false)
     }
@@ -274,7 +261,7 @@ function LLMModelsCard({ userId }: { userId: string }) {
           setModels(result)
         }
       } catch (e) {
-        if (!cancelled) setError(messageFromError(e))
+        if (!cancelled) toast.error(messageFromError(e))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -322,6 +309,7 @@ function LLMModelsCard({ userId }: { userId: string }) {
         await createUserLLMModel(params)
       }
       setDialogOpen(false)
+      toast.success(editingId != null ? 'LLM model updated.' : 'LLM model created.')
       await loadModels()
     } catch (e) {
       setFormError(messageFromError(e))
@@ -333,9 +321,10 @@ function LLMModelsCard({ userId }: { userId: string }) {
   const handleDuplicate = async (id: string) => {
     try {
       await duplicateUserLLMModel(id)
+      toast.success('LLM model duplicated.')
       await loadModels()
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     }
   }
 
@@ -343,9 +332,10 @@ function LLMModelsCard({ userId }: { userId: string }) {
     try {
       await deleteUserLLMModel(id)
       setDeleteConfirmId(null)
+      toast.success('LLM model deleted.')
       await loadModels()
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
       setDeleteConfirmId(null)
     }
   }
@@ -405,7 +395,6 @@ function LLMModelsCard({ userId }: { userId: string }) {
               ))}
             </div>
           )}
-          {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
         </CardContent>
       </Card>
 
@@ -533,8 +522,6 @@ function NotificationSettingsCard({ userId }: { userId: string }) {
   const [slackAdminEnabled, setSlackAdminEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -561,8 +548,6 @@ function NotificationSettingsCard({ userId }: { userId: string }) {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
-    setSaved(false)
     setSaving(true)
     try {
       const result = await updateUserNotificationSettings({
@@ -571,9 +556,9 @@ function NotificationSettingsCard({ userId }: { userId: string }) {
       })
       setSlackEnabled(result.slackEnabled)
       setSlackUserId(result.slackUserId)
-      setSaved(true)
+      toast.success('Notification settings updated.')
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setSaving(false)
     }
@@ -621,8 +606,6 @@ function NotificationSettingsCard({ userId }: { userId: string }) {
             </Button>
           </form>
         )}
-        {saved && <p className="mt-3 text-sm text-emerald-300">Notification settings updated.</p>}
-        {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
       </CardContent>
     </Card>
   )

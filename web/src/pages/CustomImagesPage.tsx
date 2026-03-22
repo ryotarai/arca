@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -42,7 +43,6 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
   const [images, setImages] = useState<CustomImage[]>([])
   const [profiles, setProfiles] = useState<MachineProfileItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<ImageFormData>(emptyForm)
@@ -55,7 +55,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
       setImages(imgs)
       setProfiles(rts)
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setLoading(false)
     }
@@ -74,7 +74,6 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
 
   const handleSave = async () => {
     setSaving(true)
-    setError('')
     try {
       if (editingId) {
         await updateCustomImage({
@@ -97,9 +96,10 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
       setShowForm(false)
       setEditingId(null)
       setForm(emptyForm)
+      toast.success(editingId ? 'Image updated.' : 'Image created.')
       await refresh()
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setSaving(false)
     }
@@ -113,12 +113,12 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
       variant: 'destructive',
       onConfirm: () => {
         void (async () => {
-          setError('')
           try {
             await deleteCustomImage(id)
+            toast.success('Image deleted.')
             await refresh()
           } catch (e) {
-            setError(messageFromError(e))
+            toast.error(messageFromError(e))
           }
         })()
       },
@@ -165,12 +165,6 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
           description="Manage custom machine images for profiles."
           actions={<Button onClick={handleCreate}>New image</Button>}
         />
-
-        {error && (
-          <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
-            {error}
-          </p>
-        )}
 
         {showForm && (
           <Card className="py-0 shadow-sm">

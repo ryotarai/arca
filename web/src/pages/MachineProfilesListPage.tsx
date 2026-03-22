@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/PageHeader'
@@ -27,16 +28,14 @@ function exposureLabel(_method: string): string {
 export function MachineProfilesListPage({ user }: MachineProfilesListPageProps) {
   const [profiles, setProfiles] = useState<MachineProfileItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
 
   useEffect(() => {
     const run = async () => {
       setLoading(true)
-      setError('')
       try {
         setProfiles(await listMachineProfiles())
       } catch (err) {
-        setError(messageFromError(err))
+        toast.error(messageFromError(err))
       } finally {
         setLoading(false)
       }
@@ -113,7 +112,6 @@ export function MachineProfilesListPage({ user }: MachineProfilesListPageProps) 
           </CardContent>
         </Card>
 
-        {error !== '' && <p className="text-sm text-red-300">{error}</p>}
       </section>
     </main>
   )

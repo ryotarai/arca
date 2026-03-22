@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -54,7 +55,6 @@ function endpointTypeLabel(value: string): string {
 export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
   const [models, setModels] = useState<ServerLLMModel[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormData>(emptyForm)
@@ -70,9 +70,8 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
     try {
       const result = await listServerLLMModels()
       setModels(result)
-      setError('')
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setLoading(false)
     }
@@ -87,7 +86,7 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
           setModels(result)
         }
       } catch (e) {
-        if (!cancelled) setError(messageFromError(e))
+        if (!cancelled) toast.error(messageFromError(e))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -135,6 +134,7 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
         await createServerLLMModel(params)
       }
       setDialogOpen(false)
+      toast.success(editingId != null ? 'Server LLM model updated.' : 'Server LLM model created.')
       await loadModels()
     } catch (e) {
       setFormError(messageFromError(e))
@@ -147,9 +147,10 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
     try {
       await deleteServerLLMModel(id)
       setDeleteConfirmId(null)
+      toast.success('Server LLM model deleted.')
       await loadModels()
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
       setDeleteConfirmId(null)
     }
   }
@@ -217,7 +218,6 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
                 ))}
               </div>
             )}
-            {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
           </CardContent>
         </Card>
         </section>
