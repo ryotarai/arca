@@ -10,7 +10,28 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  backend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Create stub ui/dist for go:embed
+        run: mkdir -p internal/server/ui/dist && touch internal/server/ui/dist/.gitkeep
+
+      - name: Generate sqlc
+        run: make sqlc
+
+      - name: Run backend tests
+        run: make test/backend
+
+  e2e-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,9 +64,6 @@ jobs:
 
       - name: Install sqlite3
         run: sudo apt-get install -y sqlite3
-
-      - name: Run backend tests
-        run: make test/backend
 
       - name: Run E2E tests
         run: make test/e2e
