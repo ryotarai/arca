@@ -14,6 +14,7 @@ import {
 } from '@/lib/api'
 import type { ServerLLMModel } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { PageHeader } from '@/components/PageHeader'
 import type { User } from '@/lib/types'
 
 type ServerLLMModelsPageProps = {
@@ -155,14 +156,13 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
 
   return (
     <>
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <div className="mb-8">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Server LLM Models</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage server-wide LLM model configurations. These models are available to all users via token commands.
-          </p>
-        </div>
+      <main className="min-h-dvh px-6 py-10">
+        <section className="mx-auto w-full max-w-3xl space-y-6">
+        <PageHeader
+          label="Admin"
+          title="Server LLM Models"
+          description="Manage server-wide LLM model configurations. These models are available to all users via token commands."
+        />
 
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
@@ -220,6 +220,7 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
             {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
           </CardContent>
         </Card>
+        </section>
       </main>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

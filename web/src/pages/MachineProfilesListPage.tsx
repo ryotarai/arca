@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { listMachineProfiles } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
@@ -53,18 +54,19 @@ export function MachineProfilesListPage({ user }: MachineProfilesListPageProps) 
   return (
     <main className="min-h-dvh px-6 py-10">
       <section className="mx-auto w-full max-w-4xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Machine Profiles</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Manage machine profile entries and provider-specific configuration.</p>
-          </div>
-          <Button asChild>
-            <Link to="/machine-profiles/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New profile
-            </Link>
-          </Button>
-        </div>
+        <PageHeader
+          label="Admin"
+          title="Machine Profiles"
+          description="Manage machine profile entries and provider-specific configuration."
+          actions={
+            <Button asChild>
+              <Link to="/machine-profiles/new">
+                <Plus className="mr-2 h-4 w-4" />
+                New profile
+              </Link>
+            </Button>
+          }
+        />
 
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
