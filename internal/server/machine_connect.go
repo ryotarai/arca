@@ -646,9 +646,12 @@ func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.M
 }
 
 // computeRestartNeeded checks whether a machine's applied boot config hash
-// differs from its profile's current boot config hash. Returns true when a
-// restart is needed to pick up profile changes.
+// differs from its profile's current boot config hash. Returns true only
+// when the machine is running and a restart is needed to pick up profile changes.
 func (s *machineConnectService) computeRestartNeeded(ctx context.Context, machine db.Machine) bool {
+	if machine.Status != db.MachineStatusRunning {
+		return false
+	}
 	if s.dbStore == nil {
 		return false
 	}
@@ -866,7 +869,9 @@ func (s *machineConnectService) ChangeMachineProfile(ctx context.Context, req *c
 		}
 	}
 
-	// Update the machine's profile_id and infrastructure config
+	// Update only the machine's profile_id. The infrastructure_config_json
+	// remains frozen from original creation — it is NOT updated when
+	// changing profiles.
 	if s.dbStore == nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
 	}
@@ -874,17 +879,6 @@ func (s *machineConnectService) ChangeMachineProfile(ctx context.Context, req *c
 	if err := s.dbStore.UpdateMachineProfileID(ctx, machineID, newProfileID); err != nil {
 		slog.ErrorContext(ctx, "update machine profile failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update machine profile"))
-	}
-
-	// Update infrastructure config snapshot from new profile
-	infraConfigJSON, err := extractInfrastructureConfig(newProfile.ConfigJSON)
-	if err != nil {
-		slog.ErrorContext(ctx, "extract infrastructure config failed", "error", err)
-		// Non-fatal: profile_id was already updated
-	} else {
-		if err := s.dbStore.UpdateMachineInfrastructureConfig(ctx, machineID, newProfile.Type, infraConfigJSON); err != nil {
-			slog.ErrorContext(ctx, "update infrastructure config failed", "error", err)
-		}
 	}
 
 	updated, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
@@ -900,11 +894,13 @@ func (s *machineConnectService) ChangeMachineProfile(ctx context.Context, req *c
 	return connect.NewResponse(&arcav1.ChangeMachineProfileResponse{Machine: toMachineMessageWithAdmin(updated, isAdmin)}), nil
 }
 
-// extractInfrastructureConfig removes top-level dynamic settings
-// (server_api_url, auto_stop_timeout_seconds) from a profile config JSON.
-// These are read live from the profile at runtime. Provider-specific fields
-// (including startup_script) are preserved because the runtime factories
-// need them to construct runtime instances.
+// extractInfrastructureConfig removes dynamic/boot settings from a profile
+// config JSON so only infrastructure fields remain. Stripped settings:
+//   - Top-level: serverApiUrl, server_api_url, autoStopTimeoutSeconds, auto_stop_timeout_seconds
+//   - Provider sub-objects: startup_script, startupScript (for libvirt, gce, lxd)
+//
+// This matches the migration (000047) that strips startup scripts from
+// existing machines' infrastructure_config_json.
 func extractInfrastructureConfig(configJSON string) (string, error) {
 	if configJSON == "" || configJSON == "{}" {
 		return configJSON, nil
@@ -920,6 +916,25 @@ func extractInfrastructureConfig(configJSON string) (string, error) {
 	delete(raw, "server_api_url")
 	delete(raw, "autoStopTimeoutSeconds")
 	delete(raw, "auto_stop_timeout_seconds")
+
+	// Remove startup_script / startupScript from each provider sub-object
+	for _, provider := range []string{"libvirt", "gce", "lxd"} {
+		providerRaw, ok := raw[provider]
+		if !ok {
+			continue
+		}
+		var providerConfig map[string]json.RawMessage
+		if err := json.Unmarshal(providerRaw, &providerConfig); err != nil {
+			continue
+		}
+		delete(providerConfig, "startup_script")
+		delete(providerConfig, "startupScript")
+		updated, err := json.Marshal(providerConfig)
+		if err != nil {
+			continue
+		}
+		raw[provider] = updated
+	}
 
 	result, err := json.Marshal(raw)
 	if err != nil {
