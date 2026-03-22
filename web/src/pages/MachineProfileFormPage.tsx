@@ -4,6 +4,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
 import { createMachineProfile, listMachineProfiles, updateMachineProfile } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
@@ -218,6 +228,63 @@ function fillFormFromProfile(profile: MachineProfileItem): ProfileFormState {
   }
 }
 
+// Categorize changed fields for the confirmation dialog
+type ChangeCategory = 'immediate' | 'next_start' | 'new_only'
+type ChangeItem = { label: string; category: ChangeCategory }
+
+function detectChanges(original: ProfileFormState, current: ProfileFormState): ChangeItem[] {
+  const changes: ChangeItem[] = []
+  const type = current.type
+
+  // Immediate changes
+  if (original.autoStopTimeoutHours !== current.autoStopTimeoutHours) {
+    const oldVal = original.autoStopTimeoutHours || 'disabled'
+    const newVal = current.autoStopTimeoutHours || 'disabled'
+    changes.push({ label: `Auto-stop timeout: ${oldVal} \u2192 ${newVal} hours`, category: 'immediate' })
+  }
+  if (original.serverApiUrl !== current.serverApiUrl) {
+    changes.push({ label: 'Server API URL changed', category: 'immediate' })
+  }
+
+  // Next-start changes (startup script)
+  if (type === 'gce' && original.gceStartupScript !== current.gceStartupScript) {
+    changes.push({ label: 'Startup script changed', category: 'next_start' })
+  }
+  if (type === 'lxd' && original.lxdStartupScript !== current.lxdStartupScript) {
+    changes.push({ label: 'Startup script changed', category: 'next_start' })
+  }
+  if (type === 'libvirt' && original.libvirtStartupScript !== current.libvirtStartupScript) {
+    changes.push({ label: 'Startup script changed', category: 'next_start' })
+  }
+
+  // New machines only
+  if (original.name !== current.name) {
+    changes.push({ label: `Name: ${original.name} \u2192 ${current.name}`, category: 'new_only' })
+  }
+  if (original.exposureConnectivity !== current.exposureConnectivity) {
+    changes.push({ label: 'Connectivity changed', category: 'new_only' })
+  }
+  if (type === 'gce') {
+    if (original.gceProject !== current.gceProject) changes.push({ label: 'Project changed', category: 'new_only' })
+    if (original.gceZone !== current.gceZone) changes.push({ label: 'Zone changed', category: 'new_only' })
+    if (original.gceNetwork !== current.gceNetwork) changes.push({ label: 'Network changed', category: 'new_only' })
+    if (original.gceSubnetwork !== current.gceSubnetwork) changes.push({ label: 'Subnetwork changed', category: 'new_only' })
+    if (original.gceServiceAccountEmail !== current.gceServiceAccountEmail) changes.push({ label: 'Service account changed', category: 'new_only' })
+    if (original.gceDiskSizeGb !== current.gceDiskSizeGb) changes.push({ label: 'Disk size changed', category: 'new_only' })
+    if (original.gceAllowedMachineTypes !== current.gceAllowedMachineTypes) changes.push({ label: 'Allowed machine types changed', category: 'new_only' })
+  }
+  if (type === 'lxd') {
+    if (original.lxdEndpoint !== current.lxdEndpoint) changes.push({ label: 'Endpoint changed', category: 'new_only' })
+  }
+  if (type === 'libvirt') {
+    if (original.libvirtURI !== current.libvirtURI) changes.push({ label: 'URI changed', category: 'new_only' })
+    if (original.libvirtNetwork !== current.libvirtNetwork) changes.push({ label: 'Network changed', category: 'new_only' })
+    if (original.libvirtStoragePool !== current.libvirtStoragePool) changes.push({ label: 'Storage pool changed', category: 'new_only' })
+  }
+
+  return changes
+}
+
 export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
   const { profileID } = useParams()
   const navigate = useNavigate()
@@ -228,7 +295,11 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const initialFormRef = useRef<string>(JSON.stringify(emptyProfileForm()))
+  const originalFormRef = useRef<ProfileFormState>(emptyProfileForm())
   const isDirty = JSON.stringify(form) !== initialFormRef.current
+  const [machineCount, setMachineCount] = useState(0)
+  const [runningMachineCount, setRunningMachineCount] = useState(0)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   useUnsavedChanges(isDirty)
 
@@ -250,6 +321,9 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
           const filled = fillFormFromProfile(found)
           setForm(filled)
           initialFormRef.current = JSON.stringify(filled)
+          originalFormRef.current = filled
+          setMachineCount(found.machineCount)
+          setRunningMachineCount(found.runningMachineCount)
         } else {
           setError('Profile not found.')
         }
@@ -276,13 +350,7 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
     return <Navigate to="/machines" replace />
   }
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (validationError != null) {
-      setError(validationError)
-      return
-    }
-
+  const doSave = async () => {
     setError('')
     setSaving(true)
     try {
@@ -305,6 +373,28 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
       setSaving(false)
     }
   }
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (validationError != null) {
+      setError(validationError)
+      return
+    }
+
+    // For new profiles, save directly without confirmation
+    if (!isEdit || machineCount === 0) {
+      await doSave()
+      return
+    }
+
+    // For existing profiles with machines, show confirmation dialog
+    setConfirmOpen(true)
+  }
+
+  const changes = isEdit ? detectChanges(originalFormRef.current, form) : []
+  const immediateChanges = changes.filter((c) => c.category === 'immediate')
+  const nextStartChanges = changes.filter((c) => c.category === 'next_start')
+  const newOnlyChanges = changes.filter((c) => c.category === 'new_only')
 
   return (
     <main className="min-h-dvh px-6 py-10">
@@ -568,6 +658,60 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
         )}
       </section>
 
+      {/* Save confirmation dialog for editing existing profiles */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save profile changes?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>This profile is used by {machineCount} {machineCount === 1 ? 'machine' : 'machines'}{runningMachineCount > 0 ? ` (${runningMachineCount} running)` : ''}.</p>
+                {immediateChanges.length > 0 && (
+                  <div className="rounded-md border border-amber-400/30 bg-amber-500/10 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-amber-200">Immediate ({machineCount} {machineCount === 1 ? 'machine' : 'machines'})</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {immediateChanges.map((c, i) => (
+                        <li key={i} className="text-sm text-amber-100">{c.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {nextStartChanges.length > 0 && (
+                  <div className="rounded-md border border-sky-400/30 bg-sky-500/10 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-sky-200">On next start{runningMachineCount > 0 ? ` (${runningMachineCount} running)` : ''}</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {nextStartChanges.map((c, i) => (
+                        <li key={i} className="text-sm text-sky-100">{c.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {newOnlyChanges.length > 0 && (
+                  <div className="rounded-md border border-border bg-muted/30 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">New machines only</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {newOnlyChanges.map((c, i) => (
+                        <li key={i} className="text-sm text-muted-foreground">{c.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false)
+                void doSave()
+              }}
+            >
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }
