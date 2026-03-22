@@ -98,7 +98,7 @@ func NewWorker(store *db.Store, runtime Runtime, workerID string, ipCache *Machi
 		leaseTTL:       30 * time.Second,
 		reconcileTTL:   15 * time.Second,
 		startupTTL:     4 * time.Minute,
-		stopTTL:        90 * time.Second,
+		stopTTL:        10 * time.Minute,
 		maxConcurrency: maxConcurrency,
 		sem:            make(chan struct{}, maxConcurrency),
 	}
