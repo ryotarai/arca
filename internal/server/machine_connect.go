@@ -595,7 +595,7 @@ func (s *machineConnectService) CreateImageFromMachine(ctx context.Context, req 
 	if err != nil {
 		slog.ErrorContext(ctx, "enqueue create image job failed", "error", err)
 		// Attempt to unlock the machine since job creation failed
-		if unlockErr := s.dbStore.SetMachineLockedOperation(ctx, machineID, ""); unlockErr != nil {
+		if unlockErr := s.dbStore.ClearMachineLockedOperation(ctx, machineID); unlockErr != nil {
 			slog.ErrorContext(ctx, "failed to unlock machine after job enqueue failure", "error", unlockErr)
 		}
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to enqueue image creation job"))

@@ -41,6 +41,7 @@ func prepareForImage() error {
 	}{
 		{"stop shelley/ttyd", stopArcaServices},
 		{"remove arcad env", func() error { return removeIfExists("/etc/arca/arcad.env") }},
+		{"remove arcad state", func() error { return os.RemoveAll("/var/lib/arca") }},
 		{"clean cloud-init", func() error { return exec.Command("cloud-init", "clean").Run() }},
 		{"remove SSH host keys", removeSSHHostKeys},
 		{"truncate machine-id", func() error { return os.WriteFile("/etc/machine-id", []byte(""), 0644) }},

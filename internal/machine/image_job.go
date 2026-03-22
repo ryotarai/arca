@@ -18,12 +18,17 @@ type createImageMetadata struct {
 }
 
 func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job db.MachineJob) error {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+	defer cancel()
+
 	var meta createImageMetadata
 	if err := json.Unmarshal([]byte(job.MetadataJSON), &meta); err != nil {
 		return fmt.Errorf("parse job metadata: %w", err)
 	}
 
-	// Deferred cleanup: on ANY error, attempt restart and clear lock.
+	// Deferred cleanup: on error, attempt restart but do NOT clear lock
+	// (processJob will retry the job and the lock must remain held).
+	// On success, clear the lock so other operations can proceed.
 	var jobErr error
 	defer func() {
 		if jobErr != nil {
@@ -37,10 +42,12 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 				w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
 					fmt.Sprintf("Failed to restart after imaging failure: %v", restartErr))
 			}
-		}
-		// Always clear lock
-		if clearErr := w.store.ClearMachineLockedOperation(ctx, machine.ID); clearErr != nil {
-			slog.Error("failed to clear locked_operation", "machine_id", machine.ID, "error", clearErr)
+			// Do NOT clear lock here - processJob will retry the job
+		} else {
+			// Success: clear lock
+			if clearErr := w.store.ClearMachineLockedOperation(ctx, machine.ID); clearErr != nil {
+				slog.Error("failed to clear locked_operation", "machine_id", machine.ID, "error", clearErr)
+			}
 		}
 	}()
 

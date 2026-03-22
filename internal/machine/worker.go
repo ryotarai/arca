@@ -368,6 +368,11 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 		if job.Attempt >= maxJobAttempts {
 			w.emitEvent(ctx, machine.ID, job.ID, "error", "max_retries_exceeded", fmt.Sprintf("job exceeded maximum attempts (%d)", maxJobAttempts))
 			_ = w.store.MarkMachineJobFailed(ctx, job.ID, err.Error(), nowUnix)
+			// When a create_image job is terminally failed, clear the lock
+			// so the machine is not permanently stuck.
+			if job.Kind == db.MachineJobCreateImage {
+				_ = w.store.ClearMachineLockedOperation(ctx, machine.ID)
+			}
 		} else {
 			nextRunAt := nowUnix + retryDelaySeconds(job.Attempt)
 			w.emitEvent(ctx, machine.ID, job.ID, "info", "retry_scheduled", fmt.Sprintf("retry scheduled at unix=%d", nextRunAt))
