@@ -411,7 +411,7 @@ VALUES (
 );
 
 -- name: ListRunnableMachineJobs :many
-SELECT mj.id, mj.machine_id, mj.kind, mj.attempt
+SELECT mj.id, mj.machine_id, mj.kind, mj.attempt, mj.description, mj.metadata_json
 FROM machine_jobs mj
 WHERE mj.status = 'queued'
   AND mj.next_run_at <= sqlc.arg(now_unix)
@@ -479,6 +479,7 @@ SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)
+  AND ms.locked_operation IS NULL
 ORDER BY ms.updated_at ASC
 LIMIT sqlc.arg(limit_n);
 
@@ -1033,6 +1034,35 @@ ON CONFLICT (machine_id, tag) DO NOTHING;
 
 -- name: ListAllMachineTags :many
 SELECT machine_id, tag FROM machine_tags ORDER BY machine_id, tag;
+
+-- name: SetMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = sqlc.arg(locked_operation), updated_at = sqlc.arg(now_unix) WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: ClearMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = NULL, updated_at = sqlc.arg(now_unix) WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: EnqueueMachineJobWithMeta :exec
+INSERT INTO machine_jobs (
+  id, machine_id, kind, status, attempt, next_run_at, description, metadata_json, created_at, updated_at
+)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(machine_id),
+  sqlc.arg(kind),
+  'queued',
+  0,
+  sqlc.arg(next_run_at),
+  sqlc.arg(description),
+  sqlc.arg(metadata_json),
+  sqlc.arg(now_unix),
+  sqlc.arg(now_unix)
+);
+
+-- name: UpdateMachineJobMetadataJSON :exec
+UPDATE machine_jobs SET metadata_json = sqlc.arg(metadata_json), updated_at = sqlc.arg(now_unix) WHERE id = sqlc.arg(id);
+
+-- name: HasActiveCreateImageJob :one
+SELECT COUNT(*) > 0 FROM machine_jobs WHERE machine_id = sqlc.arg(machine_id) AND kind = 'create_image' AND status IN ('queued', 'running');
 
 -- name: CountRecentJobsByStatus :one
 SELECT

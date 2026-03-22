@@ -29,10 +29,11 @@ const (
 	MachineDesiredStopped = "stopped"
 	MachineDesiredDeleted = "deleted"
 
-	MachineJobStart     = "start"
-	MachineJobStop      = "stop"
-	MachineJobReconcile = "reconcile"
-	MachineJobDelete    = "delete"
+	MachineJobStart       = "start"
+	MachineJobStop        = "stop"
+	MachineJobReconcile   = "reconcile"
+	MachineJobDelete      = "delete"
+	MachineJobCreateImage = "create_image"
 )
 
 type Machine struct {
@@ -57,6 +58,7 @@ type Machine struct {
 	UserRole                 string
 	LastActivityAt           int64
 	Tags                     []string
+	LockedOperation          string
 }
 
 const (
@@ -92,10 +94,12 @@ type MachineReadiness struct {
 }
 
 type MachineJob struct {
-	ID        string
-	MachineID string
-	Kind      string
-	Attempt   int64
+	ID           string
+	MachineID    string
+	Kind         string
+	Attempt      int64
+	Description  string
+	MetadataJSON string
 }
 
 type MachineEvent struct {
@@ -1080,7 +1084,14 @@ func (s *Store) ClaimNextMachineJob(ctx context.Context, leaseOwner string, leas
 				return MachineJob{}, false, claimErr
 			}
 			if claimed > 0 {
-				return MachineJob{ID: job.ID, MachineID: job.MachineID, Kind: job.Kind, Attempt: int64(job.Attempt)}, true, nil
+				return MachineJob{
+					ID:           job.ID,
+					MachineID:    job.MachineID,
+					Kind:         job.Kind,
+					Attempt:      int64(job.Attempt),
+					Description:  job.Description.String,
+					MetadataJSON: job.MetadataJson.String,
+				}, true, nil
 			}
 		}
 		return MachineJob{}, false, nil
@@ -1103,7 +1114,14 @@ func (s *Store) ClaimNextMachineJob(ctx context.Context, leaseOwner string, leas
 				return MachineJob{}, false, claimErr
 			}
 			if claimed > 0 {
-				return MachineJob{ID: job.ID, MachineID: job.MachineID, Kind: job.Kind, Attempt: int64(job.Attempt)}, true, nil
+				return MachineJob{
+					ID:           job.ID,
+					MachineID:    job.MachineID,
+					Kind:         job.Kind,
+					Attempt:      int64(job.Attempt),
+					Description:  job.Description.String,
+					MetadataJSON: job.MetadataJson.String,
+				}, true, nil
 			}
 		}
 		return MachineJob{}, false, nil
@@ -2002,4 +2020,109 @@ func (s *Store) SetMachineTags(ctx context.Context, machineID string, tags []str
 	}
 
 	return tx.Commit()
+}
+
+func (s *Store) SetMachineLockedOperation(ctx context.Context, machineID, operation string) error {
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.SetMachineLockedOperation(ctx, sqlitesqlc.SetMachineLockedOperationParams{
+			LockedOperation: sql.NullString{String: operation, Valid: true},
+			NowUnix:         nowUnix,
+			MachineID:       machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.SetMachineLockedOperation(ctx, postgresqlsqlc.SetMachineLockedOperationParams{
+			LockedOperation: sql.NullString{String: operation, Valid: true},
+			NowUnix:         nowUnix,
+			MachineID:       machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ClearMachineLockedOperation(ctx context.Context, machineID string) error {
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.ClearMachineLockedOperation(ctx, sqlitesqlc.ClearMachineLockedOperationParams{
+			NowUnix:   nowUnix,
+			MachineID: machineID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.ClearMachineLockedOperation(ctx, postgresqlsqlc.ClearMachineLockedOperationParams{
+			NowUnix:   nowUnix,
+			MachineID: machineID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) EnqueueCreateImageJob(ctx context.Context, machineID, description, metadataJSON string) (string, error) {
+	jobID, err := randomID()
+	if err != nil {
+		return "", err
+	}
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		err = s.sqliteQueries.EnqueueMachineJobWithMeta(ctx, sqlitesqlc.EnqueueMachineJobWithMetaParams{
+			ID:           jobID,
+			MachineID:    machineID,
+			Kind:         MachineJobCreateImage,
+			NextRunAt:    nowUnix,
+			Description:  sql.NullString{String: description, Valid: description != ""},
+			MetadataJson: sql.NullString{String: metadataJSON, Valid: metadataJSON != ""},
+			NowUnix:      nowUnix,
+		})
+	case DriverPostgres:
+		err = s.pgQueries.EnqueueMachineJobWithMeta(ctx, postgresqlsqlc.EnqueueMachineJobWithMetaParams{
+			ID:           jobID,
+			MachineID:    machineID,
+			Kind:         MachineJobCreateImage,
+			NextRunAt:    nowUnix,
+			Description:  sql.NullString{String: description, Valid: description != ""},
+			MetadataJson: sql.NullString{String: metadataJSON, Valid: metadataJSON != ""},
+			NowUnix:      nowUnix,
+		})
+	default:
+		return "", unsupportedDriverError(s.driver)
+	}
+	if err != nil {
+		return "", err
+	}
+	return jobID, nil
+}
+
+func (s *Store) UpdateMachineJobMetadataJSON(ctx context.Context, jobID, metadataJSON string) error {
+	nowUnix := time.Now().Unix()
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.UpdateMachineJobMetadataJSON(ctx, sqlitesqlc.UpdateMachineJobMetadataJSONParams{
+			MetadataJson: sql.NullString{String: metadataJSON, Valid: metadataJSON != ""},
+			NowUnix:      nowUnix,
+			ID:           jobID,
+		})
+	case DriverPostgres:
+		return s.pgQueries.UpdateMachineJobMetadataJSON(ctx, postgresqlsqlc.UpdateMachineJobMetadataJSONParams{
+			MetadataJson: sql.NullString{String: metadataJSON, Valid: metadataJSON != ""},
+			NowUnix:      nowUnix,
+			ID:           jobID,
+		})
+	default:
+		return unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) HasActiveCreateImageJob(ctx context.Context, machineID string) (bool, error) {
+	switch s.driver {
+	case DriverSQLite:
+		return s.sqliteQueries.HasActiveCreateImageJob(ctx, machineID)
+	case DriverPostgres:
+		return s.pgQueries.HasActiveCreateImageJob(ctx, machineID)
+	default:
+		return false, unsupportedDriverError(s.driver)
+	}
 }

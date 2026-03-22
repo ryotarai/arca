@@ -82,6 +82,20 @@ func (q *Queries) CleanupRateLimitEntries(ctx context.Context, cutoff int64) err
 	return err
 }
 
+const clearMachineLockedOperation = `-- name: ClearMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = NULL, updated_at = $1 WHERE machine_id = $2
+`
+
+type ClearMachineLockedOperationParams struct {
+	NowUnix   int64
+	MachineID string
+}
+
+func (q *Queries) ClearMachineLockedOperation(ctx context.Context, arg ClearMachineLockedOperationParams) error {
+	_, err := q.db.ExecContext(ctx, clearMachineLockedOperation, arg.NowUnix, arg.MachineID)
+	return err
+}
+
 const countActiveStartOrReconcileJobsByMachineID = `-- name: CountActiveStartOrReconcileJobsByMachineID :one
 SELECT COUNT(1)
 FROM machine_jobs
@@ -1005,6 +1019,47 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 	return err
 }
 
+const enqueueMachineJobWithMeta = `-- name: EnqueueMachineJobWithMeta :exec
+INSERT INTO machine_jobs (
+  id, machine_id, kind, status, attempt, next_run_at, description, metadata_json, created_at, updated_at
+)
+VALUES (
+  $1,
+  $2,
+  $3,
+  'queued',
+  0,
+  $4,
+  $5,
+  $6,
+  $7,
+  $7
+)
+`
+
+type EnqueueMachineJobWithMetaParams struct {
+	ID           string
+	MachineID    string
+	Kind         string
+	NextRunAt    int64
+	Description  sql.NullString
+	MetadataJson sql.NullString
+	NowUnix      int64
+}
+
+func (q *Queries) EnqueueMachineJobWithMeta(ctx context.Context, arg EnqueueMachineJobWithMetaParams) error {
+	_, err := q.db.ExecContext(ctx, enqueueMachineJobWithMeta,
+		arg.ID,
+		arg.MachineID,
+		arg.Kind,
+		arg.NextRunAt,
+		arg.Description,
+		arg.MetadataJson,
+		arg.NowUnix,
+	)
+	return err
+}
+
 const extendMachineJobLease = `-- name: ExtendMachineJobLease :execrows
 UPDATE machine_jobs
 SET lease_until = $1, updated_at = $2
@@ -1903,6 +1958,17 @@ func (q *Queries) GetValidUserSetupTokenByHash(ctx context.Context, arg GetValid
 	return i, err
 }
 
+const hasActiveCreateImageJob = `-- name: HasActiveCreateImageJob :one
+SELECT COUNT(*) > 0 FROM machine_jobs WHERE machine_id = $1 AND kind = 'create_image' AND status IN ('queued', 'running')
+`
+
+func (q *Queries) HasActiveCreateImageJob(ctx context.Context, machineID string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, hasActiveCreateImageJob, machineID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const hasAdminUser = `-- name: HasAdminUser :one
 SELECT COUNT(1) > 0
 FROM users
@@ -2582,6 +2648,7 @@ SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = $1
+  AND ms.locked_operation IS NULL
 ORDER BY ms.updated_at ASC
 LIMIT $2
 `
@@ -2773,7 +2840,7 @@ func (q *Queries) ListProfileIDsByCustomImageID(ctx context.Context, customImage
 }
 
 const listRunnableMachineJobs = `-- name: ListRunnableMachineJobs :many
-SELECT mj.id, mj.machine_id, mj.kind, mj.attempt
+SELECT mj.id, mj.machine_id, mj.kind, mj.attempt, mj.description, mj.metadata_json
 FROM machine_jobs mj
 WHERE mj.status = 'queued'
   AND mj.next_run_at <= $1
@@ -2790,10 +2857,12 @@ type ListRunnableMachineJobsParams struct {
 }
 
 type ListRunnableMachineJobsRow struct {
-	ID        string
-	MachineID string
-	Kind      string
-	Attempt   int32
+	ID           string
+	MachineID    string
+	Kind         string
+	Attempt      int32
+	Description  sql.NullString
+	MetadataJson sql.NullString
 }
 
 func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableMachineJobsParams) ([]ListRunnableMachineJobsRow, error) {
@@ -2810,6 +2879,8 @@ func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableM
 			&i.MachineID,
 			&i.Kind,
 			&i.Attempt,
+			&i.Description,
+			&i.MetadataJson,
 		); err != nil {
 			return nil, err
 		}
@@ -3551,6 +3622,21 @@ func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmail
 	return items, nil
 }
 
+const setMachineLockedOperation = `-- name: SetMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = $1, updated_at = $2 WHERE machine_id = $3
+`
+
+type SetMachineLockedOperationParams struct {
+	LockedOperation sql.NullString
+	NowUnix         int64
+	MachineID       string
+}
+
+func (q *Queries) SetMachineLockedOperation(ctx context.Context, arg SetMachineLockedOperationParams) error {
+	_, err := q.db.ExecContext(ctx, setMachineLockedOperation, arg.LockedOperation, arg.NowUnix, arg.MachineID)
+	return err
+}
+
 const updateCustomImage = `-- name: UpdateCustomImage :execrows
 UPDATE custom_images
 SET name = $1,
@@ -3611,6 +3697,21 @@ type UpdateMachineInfrastructureConfigParams struct {
 
 func (q *Queries) UpdateMachineInfrastructureConfig(ctx context.Context, arg UpdateMachineInfrastructureConfigParams) error {
 	_, err := q.db.ExecContext(ctx, updateMachineInfrastructureConfig, arg.ProviderType, arg.InfrastructureConfigJson, arg.MachineID)
+	return err
+}
+
+const updateMachineJobMetadataJSON = `-- name: UpdateMachineJobMetadataJSON :exec
+UPDATE machine_jobs SET metadata_json = $1, updated_at = $2 WHERE id = $3
+`
+
+type UpdateMachineJobMetadataJSONParams struct {
+	MetadataJson sql.NullString
+	NowUnix      int64
+	ID           string
+}
+
+func (q *Queries) UpdateMachineJobMetadataJSON(ctx context.Context, arg UpdateMachineJobMetadataJSONParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineJobMetadataJSON, arg.MetadataJson, arg.NowUnix, arg.ID)
 	return err
 }
 
