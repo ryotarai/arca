@@ -20,6 +20,7 @@ message CustomImage {
   string description = 5;
   repeated string associated_template_ids = 6;
   string created_at = 7;
+  string source_machine_id = 8;
 }
 
 message ListCustomImagesRequest {}

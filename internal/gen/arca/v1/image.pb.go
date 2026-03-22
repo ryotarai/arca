@@ -30,6 +30,7 @@ type CustomImage struct {
 	Description           string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	AssociatedTemplateIds []string               `protobuf:"bytes,6,rep,name=associated_template_ids,json=associatedTemplateIds,proto3" json:"associated_template_ids,omitempty"`
 	CreatedAt             string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	SourceMachineId       string                 `protobuf:"bytes,8,opt,name=source_machine_id,json=sourceMachineId,proto3" json:"source_machine_id,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -109,6 +110,13 @@ func (x *CustomImage) GetAssociatedTemplateIds() []string {
 func (x *CustomImage) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *CustomImage) GetSourceMachineId() string {
+	if x != nil {
+		return x.SourceMachineId
 	}
 	return ""
 }
@@ -613,7 +621,7 @@ var File_arca_v1_image_proto protoreflect.FileDescriptor
 
 const file_arca_v1_image_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/image.proto\x12\aarca.v1\"\xbc\x02\n" +
+	"\x13arca/v1/image.proto\x12\aarca.v1\"\xe8\x02\n" +
 	"\vCustomImage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
@@ -622,7 +630,8 @@ const file_arca_v1_image_proto_rawDesc = "" +
 	"\vdescription\x18\x05 \x01(\tR\vdescription\x126\n" +
 	"\x17associated_template_ids\x18\x06 \x03(\tR\x15associatedTemplateIds\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\a \x01(\tR\tcreatedAt\x1a7\n" +
+	"created_at\x18\a \x01(\tR\tcreatedAt\x12*\n" +
+	"\x11source_machine_id\x18\b \x01(\tR\x0fsourceMachineId\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x19\n" +
