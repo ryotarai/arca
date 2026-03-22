@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/workflow"
 )
 
 var errStartCancelled = errors.New("machine start cancelled")
@@ -373,8 +374,7 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 		_ = w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusFailed, machine.DesiredStatus, machine.ContainerID, err.Error())
 		w.emitEvent(ctx, machine.ID, job.ID, "error", "job_failed", err.Error())
 
-		var termErr *terminalJobError
-		isTerminal := errors.As(err, &termErr)
+		isTerminal := workflow.IsTerminal(err)
 
 		if isTerminal || job.Attempt >= maxJobAttempts {
 			if isTerminal {
