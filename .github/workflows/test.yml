@@ -22,8 +22,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Create empty ui/dist for go:embed
-        run: mkdir -p internal/server/ui/dist
+      - name: Create stub ui/dist for go:embed
+        run: mkdir -p internal/server/ui/dist && touch internal/server/ui/dist/.gitkeep
 
       - name: Generate sqlc
         run: make sqlc
