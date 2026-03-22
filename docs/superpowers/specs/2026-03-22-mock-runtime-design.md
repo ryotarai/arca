@@ -20,6 +20,24 @@ Add `ProviderTypeMock = "mock"` to `internal/db/machine_profile_store.go` alongs
 
 Add `MACHINE_PROFILE_TYPE_MOCK = 4` to the `MachineProfileType` enum in `proto/arca/v1/machine_profile.proto`.
 
+Add a `MockProfileConfig` message and include it in the `MachineProfileConfig` oneof:
+
+```protobuf
+message MockProfileConfig {}
+
+message MachineProfileConfig {
+  oneof provider {
+    LibvirtProfileConfig libvirt = 1;
+    GceProfileConfig gce = 2;
+    LxdProfileConfig lxd = 4;
+    MockProfileConfig mock = 8;  // next available oneof field number
+  }
+  // ... existing fields unchanged
+}
+```
+
+This ensures mock profile configs survive proto round-trips and follow the same pattern as other providers.
+
 ### MockRuntime Implementation
 
 **File:** `internal/machine/mock_runtime.go`
@@ -36,14 +54,14 @@ type MockRuntime struct {
 }
 
 type MockRuntimeStore interface {
-    ReportMachineReadinessByMachineID(ctx context.Context, machineID string, ready bool) error
+    ReportMachineReadinessByMachineID(ctx context.Context, machineID string, ready bool, reason, containerID, arcadVersion string) (bool, error)
 }
 
 type mockMachine struct {
     status      string        // "running", "stopped"
     containerID string        // "mock-<machineID>"
     stubServer  *http.Server
-    stubAddr    string        // "127.0.0.1:<port>"
+    stubIP      string        // unique loopback IP (e.g., "127.0.0.2")
 }
 
 type MockBehavior struct {
@@ -58,11 +76,11 @@ The `Runtime` interface has 6 methods. MockRuntime implements all of them:
 
 | Method | Behavior |
 |--------|----------|
-| `EnsureRunning` | Check error injection → context-aware delay → start stub HTTP server on random port → report readiness to store → set status to `running` → return `containerID` (string `"mock-<machineID>"`) |
+| `EnsureRunning` | Check error injection → context-aware delay → allocate unique loopback IP → start stub HTTP server on `<ip>:21030` → report readiness to store → set status to `running` → return `containerID` (string `"mock-<machineID>"`) |
 | `EnsureStopped` | Check error injection → context-aware delay → stop stub server → set status to `stopped` |
 | `EnsureDeleted` | Check error injection → context-aware delay → stop stub server → remove from map |
 | `IsRunning` | Return in-memory status and `containerID` immediately (no delay, no error injection) |
-| `GetMachineInfo` | Return `RuntimeMachineInfo{PrivateIP: "<stubAddr IP>"}` from the stub server's bound address |
+| `GetMachineInfo` | Return `RuntimeMachineInfo{PrivateIP: "<unique-loopback-ip>"}` (IP only, no port) |
 | `CreateImage` | Return `ErrImageCreationNotSupported` (mock does not support image creation) |
 
 **Key detail: `EnsureRunning` return value.** Real runtimes return a container identifier (e.g., LXD returns `"arca-machine-xxx"`), not an IP address. The worker stores this as `machine.ContainerID`. IP resolution happens separately through `GetMachineInfo` → `RuntimeMachineInfo.PrivateIP`, which the proxy layer reads via `MachineIPCache`. MockRuntime follows this pattern: `EnsureRunning` returns `"mock-<machineID>"` as the container ID, and `GetMachineInfo` returns the stub server's address as `PrivateIP`.
@@ -73,9 +91,9 @@ The `Runtime` interface has 6 methods. MockRuntime implements all of them:
 
 After `EnsureRunning`, the worker calls `waitMachineReady`, which polls `GetMachineReadinessByMachineID` from the database. In real runtimes, arcad running inside the VM reports readiness back to the server. Mock machines have no arcad.
 
-**Solution:** `MockRuntime.EnsureRunning` directly calls `store.ReportMachineReadinessByMachineID(ctx, machineID, true)` after starting the stub server. This writes the readiness flag to the database before `EnsureRunning` returns, so `waitMachineReady` finds the machine ready on its first poll.
+**Solution:** `MockRuntime.EnsureRunning` directly calls `store.ReportMachineReadinessByMachineID(ctx, machineID, true, "", containerID, "")` after starting the stub server. The `reason` and `arcadVersion` parameters are empty strings (mock has no real arcad); `containerID` is `"mock-<machineID>"` to match the value returned by `EnsureRunning`. This writes the readiness flag to the database before `EnsureRunning` returns, so `waitMachineReady` finds the machine ready on its first poll.
 
-This requires `MockRuntime` to hold a `MockRuntimeStore` interface (a subset of `*db.Store`) for the readiness report call. The constructor is:
+This requires `MockRuntime` to hold a `MockRuntimeStore` interface (a subset of `*db.Store`) for the readiness report call. The interface matches the actual store signature: `ReportMachineReadinessByMachineID(ctx, machineID, ready, reason, containerID, arcadVersion) (bool, error)`. The constructor is:
 
 ```go
 func NewMockRuntime(store MockRuntimeStore) *MockRuntime
@@ -107,13 +125,25 @@ Context-aware delay uses the same `sleepContext` pattern as the existing worker 
 
 ### Stub HTTP Server
 
-Each mock machine runs a lightweight HTTP server on a random port when in `running` state:
+**Port constraint:** The proxy layer (`internal/server/machine_proxy.go:128-149`) resolves the upstream URL as `http://<PrivateIP>:21030` (hardcoded arcad port). `GetMachineInfo` returns only an IP address, not a `host:port` pair. This means each mock machine's stub server must listen on port 21030 at a unique IP.
 
-- `GET /` → `200 OK` with `Content-Type: application/json` and body `{"machine_id": "<id>", "status": "running"}`
-- All other paths → `200 OK` with same response (proxy may forward to arbitrary paths)
-- Server binds to `127.0.0.1:0` (OS-assigned port)
+**Unique loopback IPs:** On Linux, the entire `127.0.0.0/8` range is loopback. Each mock machine gets a unique loopback IP address (e.g., `127.0.0.2`, `127.0.0.3`, ...) via an atomic counter, and its stub server binds to `<unique-ip>:21030`. This avoids port conflicts between concurrent mock machines while being compatible with the existing proxy mechanism.
 
-The stub server's address is stored in `mockMachine.stubAddr` and exposed via `GetMachineInfo` → `RuntimeMachineInfo{PrivateIP: "<ip>"}`. The existing proxy mechanism reads this through `MachineIPCache` → `GetMachineInfo` and routes requests to the stub server without modification.
+```go
+var nextLoopbackSuffix atomic.Uint32 // starts at 2 to avoid 127.0.0.1
+
+func nextLoopbackIP() string {
+    n := nextLoopbackSuffix.Add(1)
+    return fmt.Sprintf("127.0.0.%d", n)  // wraps within /8 range
+}
+```
+
+Each mock machine runs a lightweight HTTP server when in `running` state:
+
+- All paths → `200 OK` with `Content-Type: application/json` and body `{"machine_id": "<id>", "status": "running"}`
+- Server binds to `<unique-loopback-ip>:21030`
+
+`GetMachineInfo` returns `RuntimeMachineInfo{PrivateIP: "<unique-loopback-ip>"}` (just the IP, no port). The existing proxy mechanism reads this through `MachineIPCache` → `GetMachineInfo` → `resolveUpstreamURL` which appends `:21030`, routing requests to the stub server without modification.
 
 The stub server is stopped when the machine is stopped or deleted.
 
@@ -191,7 +221,7 @@ func (rt *RoutingTemplate) RegisterMockFactory(mockRT *MockRuntime) {
 }
 ```
 
-**Config JSON handling:** The `runtimeForMachine` method has a guard (`providerType != "" && configJSON != "" && configJSON != "{}"`). To ensure mock machines pass this guard, mock profile config should include a non-empty body. Use `{"mock": true}` as the minimum config for mock profiles, and document this in the UI (auto-populate when Mock provider is selected).
+**Config JSON handling:** The `runtimeForMachine` method has a guard (`providerType != "" && configJSON != "" && configJSON != "{}"`). To ensure mock machines pass this guard, mock profile config should include a non-empty body. Use `{"mock": {}}` as the minimum config for mock profiles, and document this in the UI (auto-populate when Mock provider is selected).
 
 ### Server Initialization
 
@@ -215,7 +245,7 @@ Mock profiles use a minimal but non-empty config JSON to pass the RoutingTemplat
 
 ```json
 {
-  "mock": true
+  "mock": {}
 }
 ```
 
@@ -226,7 +256,7 @@ No infrastructure connection details are needed.
 In the profile creation form (`web/src/`):
 - Query the server for whether mock provider is enabled (via existing config/settings endpoint or a new field)
 - Conditionally show `Mock` in the provider type dropdown
-- When `Mock` is selected, auto-populate config with `{"mock": true}` and show minimal or empty configuration form
+- When `Mock` is selected, auto-populate config with `{"mock": {}}` and show minimal or empty configuration form
 
 The `typeMap` in `web/e2e/helpers/machine-profile.ts` needs to be updated with `mock: 4` to match the new proto enum value.
 
