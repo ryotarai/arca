@@ -258,9 +258,7 @@ function detectChanges(original: ProfileFormState, current: ProfileFormState): C
   }
 
   // New machines only
-  if (original.name !== current.name) {
-    changes.push({ label: `Name: ${original.name} \u2192 ${current.name}`, category: 'new_only' })
-  }
+  // Note: profile name changes are not listed here because they do not affect machine behavior.
   if (original.exposureConnectivity !== current.exposureConnectivity) {
     changes.push({ label: 'Connectivity changed', category: 'new_only' })
   }

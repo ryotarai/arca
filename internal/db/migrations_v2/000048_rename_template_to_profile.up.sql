@@ -41,11 +41,15 @@ SELECT id, name, template_id, template_type,
               json_remove(
                 json_remove(
                   json_remove(
-                    json_remove(template_config_json,
-                      '$.serverApiUrl'),
-                    '$.server_api_url'),
-                  '$.autoStopTimeoutSeconds'),
-                '$.auto_stop_timeout_seconds'),
+                    json_remove(
+                      json_remove(
+                        json_remove(template_config_json,
+                          '$.serverApiUrl'),
+                        '$.server_api_url'),
+                      '$.autoStopTimeoutSeconds'),
+                    '$.auto_stop_timeout_seconds'),
+                  '$.agentPrompt'),
+                '$.agent_prompt'),
               '$.libvirt.startup_script'),
             '$.libvirt.startupScript'),
           '$.gce.startup_script'),

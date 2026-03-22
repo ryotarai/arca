@@ -208,7 +208,7 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		}
 	}
 
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, profileID, currentSetupVersion(), optionsJSON, customImageID, profile.Type, infraConfigJSON)
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, profileID, currentSetupVersion(), optionsJSON, customImageID, profile.Type, infraConfigJSON, profile.BootConfigHash)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
@@ -713,7 +713,7 @@ func (s *machineConnectService) injectCustomImageOptions(ctx context.Context, cu
 	return string(data), nil
 }
 
-func (s *machineConnectService) validateCustomImage(ctx context.Context, templateID, customImageID string) error {
+func (s *machineConnectService) validateCustomImage(ctx context.Context, profileID, customImageID string) error {
 	if s.dbStore == nil {
 		return connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
 	}
@@ -727,30 +727,30 @@ func (s *machineConnectService) validateCustomImage(ctx context.Context, templat
 		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve custom image"))
 	}
 
-	// Verify image is associated with the specified template
-	templateIDs, err := s.dbStore.ListTemplateIDsByCustomImageID(ctx, customImageID)
+	// Verify image is associated with the specified profile
+	profileIDs, err := s.dbStore.ListTemplateIDsByCustomImageID(ctx, customImageID)
 	if err != nil {
-		slog.ErrorContext(ctx, "list template IDs for image failed", "error", err)
+		slog.ErrorContext(ctx, "list profile IDs for image failed", "error", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to verify image association"))
 	}
 	found := false
-	for _, tid := range templateIDs {
-		if tid == templateID {
+	for _, pid := range profileIDs {
+		if pid == profileID {
 			found = true
 			break
 		}
 	}
 	if !found {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image is not associated with the specified template"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image is not associated with the specified profile"))
 	}
 
-	// Verify template type matches
-	tmpl, err := s.store.GetMachineProfileByID(ctx, templateID)
+	// Verify profile type matches
+	profile, err := s.store.GetMachineProfileByID(ctx, profileID)
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve profile"))
 	}
-	if strings.ToLower(tmpl.Type) != strings.ToLower(img.ProviderType) {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image type does not match template"))
+	if strings.ToLower(profile.Type) != strings.ToLower(img.ProviderType) {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image type does not match profile"))
 	}
 
 	return nil
@@ -896,10 +896,10 @@ func (s *machineConnectService) ChangeMachineProfile(ctx context.Context, req *c
 
 // extractInfrastructureConfig removes dynamic/boot settings from a profile
 // config JSON so only infrastructure fields remain. Stripped settings:
-//   - Top-level: serverApiUrl, server_api_url, autoStopTimeoutSeconds, auto_stop_timeout_seconds
+//   - Top-level: serverApiUrl, server_api_url, autoStopTimeoutSeconds, auto_stop_timeout_seconds, agentPrompt, agent_prompt
 //   - Provider sub-objects: startup_script, startupScript (for libvirt, gce, lxd)
 //
-// This matches the migration (000047) that strips startup scripts from
+// This matches the migration (000048) that strips startup scripts from
 // existing machines' infrastructure_config_json.
 func extractInfrastructureConfig(configJSON string) (string, error) {
 	if configJSON == "" || configJSON == "{}" {
@@ -916,6 +916,8 @@ func extractInfrastructureConfig(configJSON string) (string, error) {
 	delete(raw, "server_api_url")
 	delete(raw, "autoStopTimeoutSeconds")
 	delete(raw, "auto_stop_timeout_seconds")
+	delete(raw, "agentPrompt")
+	delete(raw, "agent_prompt")
 
 	// Remove startup_script / startupScript from each provider sub-object
 	for _, provider := range []string{"libvirt", "gce", "lxd"} {

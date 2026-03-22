@@ -123,6 +123,7 @@ type CreateMachineOptions struct {
 	CustomImageID            string
 	ProviderType             string
 	InfrastructureConfigJSON string
+	AppliedBootConfigHash    string
 }
 
 func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, profileID, setupVersion string, extra ...string) (Machine, error) {
@@ -138,6 +139,9 @@ func (s *Store) CreateMachineWithOwner(ctx context.Context, userID, name, profil
 	}
 	if len(extra) > 3 {
 		opts.InfrastructureConfigJSON = strings.TrimSpace(extra[3])
+	}
+	if len(extra) > 4 {
+		opts.AppliedBootConfigHash = strings.TrimSpace(extra[4])
 	}
 	return s.createMachineWithOwnerOpts(ctx, userID, name, profileID, setupVersion, opts)
 }
@@ -169,7 +173,7 @@ func (s *Store) createMachineWithOwnerOpts(ctx context.Context, userID, name, pr
 	if infrastructureConfigJSON == "" {
 		infrastructureConfigJSON = "{}"
 	}
-	appliedBootConfigHash := computeBootConfigHash(infrastructureConfigJSON)
+	appliedBootConfigHash := opts.AppliedBootConfigHash
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {

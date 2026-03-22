@@ -128,6 +128,10 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 	if err := r.ensureDiskImage(ctx, workspace, baseImage); err != nil {
 		return "", err
 	}
+	// Backward compatibility: for pre-migration machines whose infrastructure
+	// config still contains startup_script, fall back to the runtime's baked-in
+	// script. For new machines, startup_script is always passed via opts from
+	// the live profile.
 	if opts.StartupScript == "" {
 		opts.StartupScript = r.startupScript
 	}

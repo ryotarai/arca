@@ -107,7 +107,7 @@ function StartupScriptCard({ userId }: { userId: string }) {
       <CardHeader className="space-y-2 p-6 pb-3">
         <CardTitle className="text-xl">Startup script</CardTitle>
         <CardDescription>
-          This script runs on every machine you create, after the template startup script. It executes as the arcauser user (sudo available).
+          This script runs on every machine you create, after the profile startup script. It executes as the arcauser user (sudo available).
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6 pt-3">
