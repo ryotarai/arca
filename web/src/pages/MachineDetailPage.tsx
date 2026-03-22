@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { Copy, Check, ExternalLink, Terminal, Bot } from 'lucide-react'
+import { Copy, Check, ExternalLink, Terminal, Bot, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SharingDialog } from '@/components/SharingDialog'
+import { CreateImageDialog } from '@/components/CreateImageDialog'
 import {
   getMachine,
   deleteMachine,
@@ -37,6 +38,7 @@ function machineHostname(prefix: string, machineName: string, baseDomain: string
 }
 
 const pollingIntervalMs = 60000
+const activePollingIntervalMs = 5000
 const pollingRequestTimeoutMs = 2500
 const restartWaitTimeoutMs = 60000
 const restartWaitIntervalMs = 1500
@@ -223,6 +225,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const [actionError, setActionError] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive'; onConfirm: () => void } | null>(null)
   const [sharingOpen, setSharingOpen] = useState(false)
+  const [createImageOpen, setCreateImageOpen] = useState(false)
   const [accessRequests, setAccessRequests] = useState<MachineAccessRequest[]>([])
   const [editingTags, setEditingTags] = useState(false)
   const [editTagsInput, setEditTagsInput] = useState('')
@@ -236,13 +239,17 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const isRunning = machine?.status === 'running'
   const isAdmin = machine?.userRole === 'admin'
   const isEditor = machine?.userRole === 'editor'
+  const isOwner = machine?.userRole === 'owner'
   const isTransitioning = machine?.status === 'starting' || machine?.status === 'stopping' || machine?.status === 'pending' || machine?.status === 'deleting'
+  const hasLockedOperation = machine?.lockedOperation != null && machine.lockedOperation !== ''
+  const isImaging = machine?.lockedOperation === 'create_image'
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
   }, [events])
 
   const pollingEnabled = user != null && machineID != null && machineID !== ''
+  const currentPollingInterval = hasLockedOperation || isTransitioning ? activePollingIntervalMs : pollingIntervalMs
 
   const { loading, error: pollingError } = usePolling(
     useCallback(async () => {
@@ -266,7 +273,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
         }
       }
     }, [machineID]),
-    { intervalMs: pollingIntervalMs, enabled: pollingEnabled },
+    { intervalMs: currentPollingInterval, enabled: pollingEnabled },
   )
 
   const error = actionError || pollingError
@@ -371,6 +378,12 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
             {machine != null && (
               <div className="mt-2 flex items-center gap-3">
                 <StatusBadge status={machine.status} />
+                {isImaging && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/15 px-2 py-0.5 text-xs font-medium uppercase tracking-[0.08em] text-violet-200">
+                    <Camera className="h-3 w-3 animate-pulse" />
+                    Creating Image...
+                  </span>
+                )}
                 <CopyableID id={machineID} />
               </div>
             )}
@@ -741,8 +754,8 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
               </CardContent>
             </Card>
 
-            {/* Lifecycle controls card (admin only) */}
-            {isAdmin && (
+            {/* Lifecycle controls card (admin/owner) */}
+            {(isAdmin || isOwner) && (
               <Card className="py-0 shadow-sm">
                 <CardHeader className="space-y-2 p-6 pb-3">
                   <CardTitle className="text-xl">Controls</CardTitle>
@@ -755,7 +768,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                       variant="secondary"
                       className="h-9 px-3"
                       onClick={() => void handleStart()}
-                      disabled={machine.desiredStatus === 'running' && machine.status !== 'failed'}
+                      disabled={hasLockedOperation || (machine.desiredStatus === 'running' && machine.status !== 'failed')}
                     >
                       Start
                     </Button>
@@ -764,7 +777,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                       variant="secondary"
                       className="h-9 px-3"
                       onClick={() => void handleStop()}
-                      disabled={machine.desiredStatus === 'stopped' && machine.status !== 'failed'}
+                      disabled={hasLockedOperation || (machine.desiredStatus === 'stopped' && machine.status !== 'failed')}
                     >
                       Stop
                     </Button>
@@ -773,9 +786,21 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                       variant="secondary"
                       className="h-9 px-3"
                       onClick={() => void handleRestart()}
-                      disabled={isTransitioning}
+                      disabled={hasLockedOperation || isTransitioning}
                     >
                       {machine.updateRequired && !isTransitioning ? 'Restart to update' : 'Restart'}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2 border-t border-border pt-4">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-9 px-3"
+                      onClick={() => setCreateImageOpen(true)}
+                      disabled={!isRunning || hasLockedOperation}
+                    >
+                      <Camera className="mr-1.5 h-4 w-4" />
+                      Create image
                     </Button>
                   </div>
                   <div className="border-t border-border pt-4">
@@ -784,7 +809,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                       variant="destructive"
                       className="h-9 px-3"
                       onClick={() => void handleDelete()}
-                      disabled={deleting}
+                      disabled={hasLockedOperation || deleting}
                     >
                       {deleting ? 'Deleting...' : 'Delete machine'}
                     </Button>
@@ -852,6 +877,19 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
           machineID={machineID}
           open={sharingOpen}
           onOpenChange={setSharingOpen}
+        />
+      )}
+
+      {(isAdmin || isOwner) && machine != null && (
+        <CreateImageDialog
+          machineId={machineID}
+          machineName={machine.name}
+          open={createImageOpen}
+          onOpenChange={setCreateImageOpen}
+          onSuccess={() => {
+            // Trigger a refresh by re-fetching machine state
+            void getMachine(machineID).then(setMachine)
+          }}
         />
       )}
 
