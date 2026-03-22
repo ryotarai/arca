@@ -5,8 +5,6 @@ BUF ?= buf
 WEB_DIR ?= web
 BIN_DIR ?= bin
 SERVER_BIN ?= $(BIN_DIR)/server
-GOCACHE ?= $(CURDIR)/.cache/go-build
-GOMODCACHE ?= $(CURDIR)/.cache/go-mod
 VERSION ?= dev
 VERSION_PKG := github.com/ryotarai/arca/internal/version
 LDFLAGS := -X $(VERSION_PKG).Version=$(VERSION)
@@ -22,12 +20,12 @@ build-frontend: proto
 	$(NPM) --prefix $(WEB_DIR) run build
 
 build-server: build-frontend sqlc
-	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
-	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -ldflags '$(LDFLAGS)' -o $(SERVER_BIN) ./cmd/server
+	mkdir -p $(BIN_DIR)
+	$(GO) build -ldflags '$(LDFLAGS)' -o $(SERVER_BIN) ./cmd/server
 
 build-server-dev:
-	mkdir -p $(BIN_DIR) $(GOCACHE) $(GOMODCACHE)
-	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) build -ldflags '$(LDFLAGS)' -o $(SERVER_BIN) ./cmd/server
+	mkdir -p $(BIN_DIR)
+	$(GO) build -ldflags '$(LDFLAGS)' -o $(SERVER_BIN) ./cmd/server
 
 proto:
 	@if command -v $(BUF) >/dev/null 2>&1; then \
@@ -44,7 +42,7 @@ sqlc:
 	fi
 
 vet:
-	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) vet ./...
+	$(GO) vet ./...
 
 test/backend: vet go/test
 
@@ -53,7 +51,7 @@ test/e2e: web/test-fast
 test/e2e-all: web/test
 
 go/test:
-	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) $(GO) test ./cmd/... ./internal/...
+	$(GO) test ./cmd/... ./internal/...
 
 web/test:
 	$(NPM) --prefix $(WEB_DIR) run e2e
