@@ -17,6 +17,7 @@ enum MachineProfileType {
   MACHINE_PROFILE_TYPE_LIBVIRT = 1;
   MACHINE_PROFILE_TYPE_GCE = 2;
   MACHINE_PROFILE_TYPE_LXD = 3;
+  MACHINE_PROFILE_TYPE_MOCK = 4;
 }
 
 enum MachineExposureMethod {
@@ -65,11 +66,14 @@ message LxdProfileConfig {
   string startup_script = 2;
 }
 
+message MockProfileConfig {}
+
 message MachineProfileConfig {
   oneof provider {
     LibvirtProfileConfig libvirt = 1;
     GceProfileConfig gce = 2;
     LxdProfileConfig lxd = 4;
+    MockProfileConfig mock = 8;
   }
   MachineExposureConfig exposure = 3;
   string server_api_url = 5;

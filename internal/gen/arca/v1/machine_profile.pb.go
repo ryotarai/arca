@@ -28,6 +28,7 @@ const (
 	MachineProfileType_MACHINE_PROFILE_TYPE_LIBVIRT     MachineProfileType = 1
 	MachineProfileType_MACHINE_PROFILE_TYPE_GCE         MachineProfileType = 2
 	MachineProfileType_MACHINE_PROFILE_TYPE_LXD         MachineProfileType = 3
+	MachineProfileType_MACHINE_PROFILE_TYPE_MOCK        MachineProfileType = 4
 )
 
 // Enum value maps for MachineProfileType.
@@ -37,12 +38,14 @@ var (
 		1: "MACHINE_PROFILE_TYPE_LIBVIRT",
 		2: "MACHINE_PROFILE_TYPE_GCE",
 		3: "MACHINE_PROFILE_TYPE_LXD",
+		4: "MACHINE_PROFILE_TYPE_MOCK",
 	}
 	MachineProfileType_value = map[string]int32{
 		"MACHINE_PROFILE_TYPE_UNSPECIFIED": 0,
 		"MACHINE_PROFILE_TYPE_LIBVIRT":     1,
 		"MACHINE_PROFILE_TYPE_GCE":         2,
 		"MACHINE_PROFILE_TYPE_LXD":         3,
+		"MACHINE_PROFILE_TYPE_MOCK":        4,
 	}
 )
 
@@ -440,6 +443,42 @@ func (x *LxdProfileConfig) GetStartupScript() string {
 	return ""
 }
 
+type MockProfileConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MockProfileConfig) Reset() {
+	*x = MockProfileConfig{}
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MockProfileConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MockProfileConfig) ProtoMessage() {}
+
+func (x *MockProfileConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MockProfileConfig.ProtoReflect.Descriptor instead.
+func (*MockProfileConfig) Descriptor() ([]byte, []int) {
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{4}
+}
+
 type MachineProfileConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Provider:
@@ -447,6 +486,7 @@ type MachineProfileConfig struct {
 	//	*MachineProfileConfig_Libvirt
 	//	*MachineProfileConfig_Gce
 	//	*MachineProfileConfig_Lxd
+	//	*MachineProfileConfig_Mock
 	Provider               isMachineProfileConfig_Provider `protobuf_oneof:"provider"`
 	Exposure               *MachineExposureConfig          `protobuf:"bytes,3,opt,name=exposure,proto3" json:"exposure,omitempty"`
 	ServerApiUrl           string                          `protobuf:"bytes,5,opt,name=server_api_url,json=serverApiUrl,proto3" json:"server_api_url,omitempty"`
@@ -458,7 +498,7 @@ type MachineProfileConfig struct {
 
 func (x *MachineProfileConfig) Reset() {
 	*x = MachineProfileConfig{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[4]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -470,7 +510,7 @@ func (x *MachineProfileConfig) String() string {
 func (*MachineProfileConfig) ProtoMessage() {}
 
 func (x *MachineProfileConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[4]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -483,7 +523,7 @@ func (x *MachineProfileConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineProfileConfig.ProtoReflect.Descriptor instead.
 func (*MachineProfileConfig) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{4}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *MachineProfileConfig) GetProvider() isMachineProfileConfig_Provider {
@@ -515,6 +555,15 @@ func (x *MachineProfileConfig) GetLxd() *LxdProfileConfig {
 	if x != nil {
 		if x, ok := x.Provider.(*MachineProfileConfig_Lxd); ok {
 			return x.Lxd
+		}
+	}
+	return nil
+}
+
+func (x *MachineProfileConfig) GetMock() *MockProfileConfig {
+	if x != nil {
+		if x, ok := x.Provider.(*MachineProfileConfig_Mock); ok {
+			return x.Mock
 		}
 	}
 	return nil
@@ -564,11 +613,17 @@ type MachineProfileConfig_Lxd struct {
 	Lxd *LxdProfileConfig `protobuf:"bytes,4,opt,name=lxd,proto3,oneof"`
 }
 
+type MachineProfileConfig_Mock struct {
+	Mock *MockProfileConfig `protobuf:"bytes,8,opt,name=mock,proto3,oneof"`
+}
+
 func (*MachineProfileConfig_Libvirt) isMachineProfileConfig_Provider() {}
 
 func (*MachineProfileConfig_Gce) isMachineProfileConfig_Provider() {}
 
 func (*MachineProfileConfig_Lxd) isMachineProfileConfig_Provider() {}
+
+func (*MachineProfileConfig_Mock) isMachineProfileConfig_Provider() {}
 
 type MachineProfile struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
@@ -587,7 +642,7 @@ type MachineProfile struct {
 
 func (x *MachineProfile) Reset() {
 	*x = MachineProfile{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[5]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -599,7 +654,7 @@ func (x *MachineProfile) String() string {
 func (*MachineProfile) ProtoMessage() {}
 
 func (x *MachineProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[5]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -612,7 +667,7 @@ func (x *MachineProfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineProfile.ProtoReflect.Descriptor instead.
 func (*MachineProfile) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{5}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *MachineProfile) GetId() string {
@@ -686,7 +741,7 @@ type ListMachineProfilesRequest struct {
 
 func (x *ListMachineProfilesRequest) Reset() {
 	*x = ListMachineProfilesRequest{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[6]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -698,7 +753,7 @@ func (x *ListMachineProfilesRequest) String() string {
 func (*ListMachineProfilesRequest) ProtoMessage() {}
 
 func (x *ListMachineProfilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[6]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -711,7 +766,7 @@ func (x *ListMachineProfilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMachineProfilesRequest.ProtoReflect.Descriptor instead.
 func (*ListMachineProfilesRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{6}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{7}
 }
 
 type ListMachineProfilesResponse struct {
@@ -723,7 +778,7 @@ type ListMachineProfilesResponse struct {
 
 func (x *ListMachineProfilesResponse) Reset() {
 	*x = ListMachineProfilesResponse{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[7]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -735,7 +790,7 @@ func (x *ListMachineProfilesResponse) String() string {
 func (*ListMachineProfilesResponse) ProtoMessage() {}
 
 func (x *ListMachineProfilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[7]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -748,7 +803,7 @@ func (x *ListMachineProfilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMachineProfilesResponse.ProtoReflect.Descriptor instead.
 func (*ListMachineProfilesResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{7}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListMachineProfilesResponse) GetProfiles() []*MachineProfile {
@@ -769,7 +824,7 @@ type CreateMachineProfileRequest struct {
 
 func (x *CreateMachineProfileRequest) Reset() {
 	*x = CreateMachineProfileRequest{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[8]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -781,7 +836,7 @@ func (x *CreateMachineProfileRequest) String() string {
 func (*CreateMachineProfileRequest) ProtoMessage() {}
 
 func (x *CreateMachineProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[8]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -794,7 +849,7 @@ func (x *CreateMachineProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMachineProfileRequest.ProtoReflect.Descriptor instead.
 func (*CreateMachineProfileRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{8}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateMachineProfileRequest) GetName() string {
@@ -827,7 +882,7 @@ type CreateMachineProfileResponse struct {
 
 func (x *CreateMachineProfileResponse) Reset() {
 	*x = CreateMachineProfileResponse{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[9]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -839,7 +894,7 @@ func (x *CreateMachineProfileResponse) String() string {
 func (*CreateMachineProfileResponse) ProtoMessage() {}
 
 func (x *CreateMachineProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[9]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -852,7 +907,7 @@ func (x *CreateMachineProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMachineProfileResponse.ProtoReflect.Descriptor instead.
 func (*CreateMachineProfileResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{9}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateMachineProfileResponse) GetProfile() *MachineProfile {
@@ -874,7 +929,7 @@ type UpdateMachineProfileRequest struct {
 
 func (x *UpdateMachineProfileRequest) Reset() {
 	*x = UpdateMachineProfileRequest{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[10]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +941,7 @@ func (x *UpdateMachineProfileRequest) String() string {
 func (*UpdateMachineProfileRequest) ProtoMessage() {}
 
 func (x *UpdateMachineProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[10]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +954,7 @@ func (x *UpdateMachineProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMachineProfileRequest.ProtoReflect.Descriptor instead.
 func (*UpdateMachineProfileRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{10}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateMachineProfileRequest) GetProfileId() string {
@@ -939,7 +994,7 @@ type UpdateMachineProfileResponse struct {
 
 func (x *UpdateMachineProfileResponse) Reset() {
 	*x = UpdateMachineProfileResponse{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[11]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -951,7 +1006,7 @@ func (x *UpdateMachineProfileResponse) String() string {
 func (*UpdateMachineProfileResponse) ProtoMessage() {}
 
 func (x *UpdateMachineProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[11]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -964,7 +1019,7 @@ func (x *UpdateMachineProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMachineProfileResponse.ProtoReflect.Descriptor instead.
 func (*UpdateMachineProfileResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{11}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateMachineProfileResponse) GetProfile() *MachineProfile {
@@ -983,7 +1038,7 @@ type DeleteMachineProfileRequest struct {
 
 func (x *DeleteMachineProfileRequest) Reset() {
 	*x = DeleteMachineProfileRequest{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[12]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -995,7 +1050,7 @@ func (x *DeleteMachineProfileRequest) String() string {
 func (*DeleteMachineProfileRequest) ProtoMessage() {}
 
 func (x *DeleteMachineProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[12]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1008,7 +1063,7 @@ func (x *DeleteMachineProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMachineProfileRequest.ProtoReflect.Descriptor instead.
 func (*DeleteMachineProfileRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{12}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeleteMachineProfileRequest) GetProfileId() string {
@@ -1026,7 +1081,7 @@ type DeleteMachineProfileResponse struct {
 
 func (x *DeleteMachineProfileResponse) Reset() {
 	*x = DeleteMachineProfileResponse{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[13]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1038,7 +1093,7 @@ func (x *DeleteMachineProfileResponse) String() string {
 func (*DeleteMachineProfileResponse) ProtoMessage() {}
 
 func (x *DeleteMachineProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[13]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1051,7 +1106,7 @@ func (x *DeleteMachineProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMachineProfileResponse.ProtoReflect.Descriptor instead.
 func (*DeleteMachineProfileResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{13}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{14}
 }
 
 type MachineProfileSummary struct {
@@ -1066,7 +1121,7 @@ type MachineProfileSummary struct {
 
 func (x *MachineProfileSummary) Reset() {
 	*x = MachineProfileSummary{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[14]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1078,7 +1133,7 @@ func (x *MachineProfileSummary) String() string {
 func (*MachineProfileSummary) ProtoMessage() {}
 
 func (x *MachineProfileSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[14]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1091,7 +1146,7 @@ func (x *MachineProfileSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MachineProfileSummary.ProtoReflect.Descriptor instead.
 func (*MachineProfileSummary) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{14}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *MachineProfileSummary) GetId() string {
@@ -1130,7 +1185,7 @@ type ListAvailableProfilesRequest struct {
 
 func (x *ListAvailableProfilesRequest) Reset() {
 	*x = ListAvailableProfilesRequest{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[15]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1142,7 +1197,7 @@ func (x *ListAvailableProfilesRequest) String() string {
 func (*ListAvailableProfilesRequest) ProtoMessage() {}
 
 func (x *ListAvailableProfilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[15]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1155,7 +1210,7 @@ func (x *ListAvailableProfilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAvailableProfilesRequest.ProtoReflect.Descriptor instead.
 func (*ListAvailableProfilesRequest) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{15}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{16}
 }
 
 type ListAvailableProfilesResponse struct {
@@ -1167,7 +1222,7 @@ type ListAvailableProfilesResponse struct {
 
 func (x *ListAvailableProfilesResponse) Reset() {
 	*x = ListAvailableProfilesResponse{}
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[16]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1179,7 +1234,7 @@ func (x *ListAvailableProfilesResponse) String() string {
 func (*ListAvailableProfilesResponse) ProtoMessage() {}
 
 func (x *ListAvailableProfilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_arca_v1_machine_profile_proto_msgTypes[16]
+	mi := &file_arca_v1_machine_profile_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1192,7 +1247,7 @@ func (x *ListAvailableProfilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAvailableProfilesResponse.ProtoReflect.Descriptor instead.
 func (*ListAvailableProfilesResponse) Descriptor() ([]byte, []int) {
-	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{16}
+	return file_arca_v1_machine_profile_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListAvailableProfilesResponse) GetProfiles() []*MachineProfileSummary {
@@ -1231,11 +1286,13 @@ const file_arca_v1_machine_profile_proto_rawDesc = "" +
 	"\x10\v\"U\n" +
 	"\x10LxdProfileConfig\x12\x1a\n" +
 	"\bendpoint\x18\x01 \x01(\tR\bendpoint\x12%\n" +
-	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\xfb\x02\n" +
+	"\x0estartup_script\x18\x02 \x01(\tR\rstartupScript\"\x13\n" +
+	"\x11MockProfileConfig\"\xad\x03\n" +
 	"\x14MachineProfileConfig\x129\n" +
 	"\alibvirt\x18\x01 \x01(\v2\x1d.arca.v1.LibvirtProfileConfigH\x00R\alibvirt\x12-\n" +
 	"\x03gce\x18\x02 \x01(\v2\x19.arca.v1.GceProfileConfigH\x00R\x03gce\x12-\n" +
-	"\x03lxd\x18\x04 \x01(\v2\x19.arca.v1.LxdProfileConfigH\x00R\x03lxd\x12:\n" +
+	"\x03lxd\x18\x04 \x01(\v2\x19.arca.v1.LxdProfileConfigH\x00R\x03lxd\x120\n" +
+	"\x04mock\x18\b \x01(\v2\x1a.arca.v1.MockProfileConfigH\x00R\x04mock\x12:\n" +
 	"\bexposure\x18\x03 \x01(\v2\x1e.arca.v1.MachineExposureConfigR\bexposure\x12$\n" +
 	"\x0eserver_api_url\x18\x05 \x01(\tR\fserverApiUrl\x129\n" +
 	"\x19auto_stop_timeout_seconds\x18\x06 \x01(\x03R\x16autoStopTimeoutSeconds\x12!\n" +
@@ -1282,12 +1339,13 @@ const file_arca_v1_machine_profile_proto_rawDesc = "" +
 	"\x15allowed_machine_types\x18\x04 \x03(\tR\x13allowedMachineTypes\"\x1e\n" +
 	"\x1cListAvailableProfilesRequest\"[\n" +
 	"\x1dListAvailableProfilesResponse\x12:\n" +
-	"\bprofiles\x18\x01 \x03(\v2\x1e.arca.v1.MachineProfileSummaryR\bprofiles*\x98\x01\n" +
+	"\bprofiles\x18\x01 \x03(\v2\x1e.arca.v1.MachineProfileSummaryR\bprofiles*\xb7\x01\n" +
 	"\x12MachineProfileType\x12$\n" +
 	" MACHINE_PROFILE_TYPE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cMACHINE_PROFILE_TYPE_LIBVIRT\x10\x01\x12\x1c\n" +
 	"\x18MACHINE_PROFILE_TYPE_GCE\x10\x02\x12\x1c\n" +
-	"\x18MACHINE_PROFILE_TYPE_LXD\x10\x03*t\n" +
+	"\x18MACHINE_PROFILE_TYPE_LXD\x10\x03\x12\x1d\n" +
+	"\x19MACHINE_PROFILE_TYPE_MOCK\x10\x04*t\n" +
 	"\x15MachineExposureMethod\x12'\n" +
 	"#MACHINE_EXPOSURE_METHOD_UNSPECIFIED\x10\x00\x12,\n" +
 	"(MACHINE_EXPOSURE_METHOD_PROXY_VIA_SERVER\x10\x02\"\x04\b\x01\x10\x01*\x84\x01\n" +
@@ -1316,7 +1374,7 @@ func file_arca_v1_machine_profile_proto_rawDescGZIP() []byte {
 }
 
 var file_arca_v1_machine_profile_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_arca_v1_machine_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_arca_v1_machine_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_arca_v1_machine_profile_proto_goTypes = []any{
 	(MachineProfileType)(0),               // 0: arca.v1.MachineProfileType
 	(MachineExposureMethod)(0),            // 1: arca.v1.MachineExposureMethod
@@ -1325,19 +1383,20 @@ var file_arca_v1_machine_profile_proto_goTypes = []any{
 	(*LibvirtProfileConfig)(nil),          // 4: arca.v1.LibvirtProfileConfig
 	(*GceProfileConfig)(nil),              // 5: arca.v1.GceProfileConfig
 	(*LxdProfileConfig)(nil),              // 6: arca.v1.LxdProfileConfig
-	(*MachineProfileConfig)(nil),          // 7: arca.v1.MachineProfileConfig
-	(*MachineProfile)(nil),                // 8: arca.v1.MachineProfile
-	(*ListMachineProfilesRequest)(nil),    // 9: arca.v1.ListMachineProfilesRequest
-	(*ListMachineProfilesResponse)(nil),   // 10: arca.v1.ListMachineProfilesResponse
-	(*CreateMachineProfileRequest)(nil),   // 11: arca.v1.CreateMachineProfileRequest
-	(*CreateMachineProfileResponse)(nil),  // 12: arca.v1.CreateMachineProfileResponse
-	(*UpdateMachineProfileRequest)(nil),   // 13: arca.v1.UpdateMachineProfileRequest
-	(*UpdateMachineProfileResponse)(nil),  // 14: arca.v1.UpdateMachineProfileResponse
-	(*DeleteMachineProfileRequest)(nil),   // 15: arca.v1.DeleteMachineProfileRequest
-	(*DeleteMachineProfileResponse)(nil),  // 16: arca.v1.DeleteMachineProfileResponse
-	(*MachineProfileSummary)(nil),         // 17: arca.v1.MachineProfileSummary
-	(*ListAvailableProfilesRequest)(nil),  // 18: arca.v1.ListAvailableProfilesRequest
-	(*ListAvailableProfilesResponse)(nil), // 19: arca.v1.ListAvailableProfilesResponse
+	(*MockProfileConfig)(nil),             // 7: arca.v1.MockProfileConfig
+	(*MachineProfileConfig)(nil),          // 8: arca.v1.MachineProfileConfig
+	(*MachineProfile)(nil),                // 9: arca.v1.MachineProfile
+	(*ListMachineProfilesRequest)(nil),    // 10: arca.v1.ListMachineProfilesRequest
+	(*ListMachineProfilesResponse)(nil),   // 11: arca.v1.ListMachineProfilesResponse
+	(*CreateMachineProfileRequest)(nil),   // 12: arca.v1.CreateMachineProfileRequest
+	(*CreateMachineProfileResponse)(nil),  // 13: arca.v1.CreateMachineProfileResponse
+	(*UpdateMachineProfileRequest)(nil),   // 14: arca.v1.UpdateMachineProfileRequest
+	(*UpdateMachineProfileResponse)(nil),  // 15: arca.v1.UpdateMachineProfileResponse
+	(*DeleteMachineProfileRequest)(nil),   // 16: arca.v1.DeleteMachineProfileRequest
+	(*DeleteMachineProfileResponse)(nil),  // 17: arca.v1.DeleteMachineProfileResponse
+	(*MachineProfileSummary)(nil),         // 18: arca.v1.MachineProfileSummary
+	(*ListAvailableProfilesRequest)(nil),  // 19: arca.v1.ListAvailableProfilesRequest
+	(*ListAvailableProfilesResponse)(nil), // 20: arca.v1.ListAvailableProfilesResponse
 }
 var file_arca_v1_machine_profile_proto_depIdxs = []int32{
 	1,  // 0: arca.v1.MachineExposureConfig.method:type_name -> arca.v1.MachineExposureMethod
@@ -1345,33 +1404,34 @@ var file_arca_v1_machine_profile_proto_depIdxs = []int32{
 	4,  // 2: arca.v1.MachineProfileConfig.libvirt:type_name -> arca.v1.LibvirtProfileConfig
 	5,  // 3: arca.v1.MachineProfileConfig.gce:type_name -> arca.v1.GceProfileConfig
 	6,  // 4: arca.v1.MachineProfileConfig.lxd:type_name -> arca.v1.LxdProfileConfig
-	3,  // 5: arca.v1.MachineProfileConfig.exposure:type_name -> arca.v1.MachineExposureConfig
-	0,  // 6: arca.v1.MachineProfile.type:type_name -> arca.v1.MachineProfileType
-	7,  // 7: arca.v1.MachineProfile.config:type_name -> arca.v1.MachineProfileConfig
-	8,  // 8: arca.v1.ListMachineProfilesResponse.profiles:type_name -> arca.v1.MachineProfile
-	0,  // 9: arca.v1.CreateMachineProfileRequest.type:type_name -> arca.v1.MachineProfileType
-	7,  // 10: arca.v1.CreateMachineProfileRequest.config:type_name -> arca.v1.MachineProfileConfig
-	8,  // 11: arca.v1.CreateMachineProfileResponse.profile:type_name -> arca.v1.MachineProfile
-	0,  // 12: arca.v1.UpdateMachineProfileRequest.type:type_name -> arca.v1.MachineProfileType
-	7,  // 13: arca.v1.UpdateMachineProfileRequest.config:type_name -> arca.v1.MachineProfileConfig
-	8,  // 14: arca.v1.UpdateMachineProfileResponse.profile:type_name -> arca.v1.MachineProfile
-	0,  // 15: arca.v1.MachineProfileSummary.type:type_name -> arca.v1.MachineProfileType
-	17, // 16: arca.v1.ListAvailableProfilesResponse.profiles:type_name -> arca.v1.MachineProfileSummary
-	9,  // 17: arca.v1.MachineProfileService.ListMachineProfiles:input_type -> arca.v1.ListMachineProfilesRequest
-	18, // 18: arca.v1.MachineProfileService.ListAvailableProfiles:input_type -> arca.v1.ListAvailableProfilesRequest
-	11, // 19: arca.v1.MachineProfileService.CreateMachineProfile:input_type -> arca.v1.CreateMachineProfileRequest
-	13, // 20: arca.v1.MachineProfileService.UpdateMachineProfile:input_type -> arca.v1.UpdateMachineProfileRequest
-	15, // 21: arca.v1.MachineProfileService.DeleteMachineProfile:input_type -> arca.v1.DeleteMachineProfileRequest
-	10, // 22: arca.v1.MachineProfileService.ListMachineProfiles:output_type -> arca.v1.ListMachineProfilesResponse
-	19, // 23: arca.v1.MachineProfileService.ListAvailableProfiles:output_type -> arca.v1.ListAvailableProfilesResponse
-	12, // 24: arca.v1.MachineProfileService.CreateMachineProfile:output_type -> arca.v1.CreateMachineProfileResponse
-	14, // 25: arca.v1.MachineProfileService.UpdateMachineProfile:output_type -> arca.v1.UpdateMachineProfileResponse
-	16, // 26: arca.v1.MachineProfileService.DeleteMachineProfile:output_type -> arca.v1.DeleteMachineProfileResponse
-	22, // [22:27] is the sub-list for method output_type
-	17, // [17:22] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	7,  // 5: arca.v1.MachineProfileConfig.mock:type_name -> arca.v1.MockProfileConfig
+	3,  // 6: arca.v1.MachineProfileConfig.exposure:type_name -> arca.v1.MachineExposureConfig
+	0,  // 7: arca.v1.MachineProfile.type:type_name -> arca.v1.MachineProfileType
+	8,  // 8: arca.v1.MachineProfile.config:type_name -> arca.v1.MachineProfileConfig
+	9,  // 9: arca.v1.ListMachineProfilesResponse.profiles:type_name -> arca.v1.MachineProfile
+	0,  // 10: arca.v1.CreateMachineProfileRequest.type:type_name -> arca.v1.MachineProfileType
+	8,  // 11: arca.v1.CreateMachineProfileRequest.config:type_name -> arca.v1.MachineProfileConfig
+	9,  // 12: arca.v1.CreateMachineProfileResponse.profile:type_name -> arca.v1.MachineProfile
+	0,  // 13: arca.v1.UpdateMachineProfileRequest.type:type_name -> arca.v1.MachineProfileType
+	8,  // 14: arca.v1.UpdateMachineProfileRequest.config:type_name -> arca.v1.MachineProfileConfig
+	9,  // 15: arca.v1.UpdateMachineProfileResponse.profile:type_name -> arca.v1.MachineProfile
+	0,  // 16: arca.v1.MachineProfileSummary.type:type_name -> arca.v1.MachineProfileType
+	18, // 17: arca.v1.ListAvailableProfilesResponse.profiles:type_name -> arca.v1.MachineProfileSummary
+	10, // 18: arca.v1.MachineProfileService.ListMachineProfiles:input_type -> arca.v1.ListMachineProfilesRequest
+	19, // 19: arca.v1.MachineProfileService.ListAvailableProfiles:input_type -> arca.v1.ListAvailableProfilesRequest
+	12, // 20: arca.v1.MachineProfileService.CreateMachineProfile:input_type -> arca.v1.CreateMachineProfileRequest
+	14, // 21: arca.v1.MachineProfileService.UpdateMachineProfile:input_type -> arca.v1.UpdateMachineProfileRequest
+	16, // 22: arca.v1.MachineProfileService.DeleteMachineProfile:input_type -> arca.v1.DeleteMachineProfileRequest
+	11, // 23: arca.v1.MachineProfileService.ListMachineProfiles:output_type -> arca.v1.ListMachineProfilesResponse
+	20, // 24: arca.v1.MachineProfileService.ListAvailableProfiles:output_type -> arca.v1.ListAvailableProfilesResponse
+	13, // 25: arca.v1.MachineProfileService.CreateMachineProfile:output_type -> arca.v1.CreateMachineProfileResponse
+	15, // 26: arca.v1.MachineProfileService.UpdateMachineProfile:output_type -> arca.v1.UpdateMachineProfileResponse
+	17, // 27: arca.v1.MachineProfileService.DeleteMachineProfile:output_type -> arca.v1.DeleteMachineProfileResponse
+	23, // [23:28] is the sub-list for method output_type
+	18, // [18:23] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_arca_v1_machine_profile_proto_init() }
@@ -1379,10 +1439,11 @@ func file_arca_v1_machine_profile_proto_init() {
 	if File_arca_v1_machine_profile_proto != nil {
 		return
 	}
-	file_arca_v1_machine_profile_proto_msgTypes[4].OneofWrappers = []any{
+	file_arca_v1_machine_profile_proto_msgTypes[5].OneofWrappers = []any{
 		(*MachineProfileConfig_Libvirt)(nil),
 		(*MachineProfileConfig_Gce)(nil),
 		(*MachineProfileConfig_Lxd)(nil),
+		(*MachineProfileConfig_Mock)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1390,7 +1451,7 @@ func file_arca_v1_machine_profile_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_arca_v1_machine_profile_proto_rawDesc), len(file_arca_v1_machine_profile_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   17,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
