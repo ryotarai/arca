@@ -372,13 +372,23 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 		)
 		_ = w.store.UpdateMachineRuntimeStateByMachineID(ctx, machine.ID, db.MachineStatusFailed, machine.DesiredStatus, machine.ContainerID, err.Error())
 		w.emitEvent(ctx, machine.ID, job.ID, "error", "job_failed", err.Error())
-		if job.Attempt >= maxJobAttempts {
-			w.emitEvent(ctx, machine.ID, job.ID, "error", "max_retries_exceeded", fmt.Sprintf("job exceeded maximum attempts (%d)", maxJobAttempts))
+
+		var termErr *terminalJobError
+		isTerminal := errors.As(err, &termErr)
+
+		if isTerminal || job.Attempt >= maxJobAttempts {
+			if isTerminal {
+				w.emitEvent(ctx, machine.ID, job.ID, "error", "terminal_failure", err.Error())
+			} else {
+				w.emitEvent(ctx, machine.ID, job.ID, "error", "max_retries_exceeded", fmt.Sprintf("job exceeded maximum attempts (%d)", maxJobAttempts))
+			}
 			_ = w.store.MarkMachineJobFailed(ctx, job.ID, err.Error(), nowUnix)
-			// When a create_image job is terminally failed, clear the lock
-			// so the machine is not permanently stuck.
 			if job.Kind == db.MachineJobCreateImage {
 				_ = w.store.ClearMachineLockedOperation(ctx, machine.ID)
+				// Best-effort restart: the machine may have been stopped
+				// during imaging. EnsureRunning is idempotent — if the
+				// machine is already running this is a no-op.
+				w.bestEffortRestartMachine(ctx, machine)
 			}
 		} else {
 			nextRunAt := nowUnix + retryDelaySeconds(job.Attempt)
@@ -708,6 +718,18 @@ func (w *Worker) dispatchNotification(machineID, eventType, message string) {
 		EventType:   eventType,
 		Message:     message,
 	})
+}
+
+// bestEffortRestartMachine attempts to restart a machine after a terminal job
+// failure. If the restart fails, the reconcile loop will eventually pick it up
+// (locked_operation is already cleared at this point).
+func (w *Worker) bestEffortRestartMachine(ctx context.Context, machine db.Machine) {
+	startOpts := w.buildStartOptions(ctx, machine)
+	restartCtx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+	if _, err := w.runtime.EnsureRunning(restartCtx, machine, startOpts); err != nil {
+		slog.Warn("best-effort restart failed after terminal job failure", "machine_id", machine.ID, "error", err)
+	}
 }
 
 func sleepContext(ctx context.Context, d time.Duration) error {

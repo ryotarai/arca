@@ -12,9 +12,34 @@ import (
 	"github.com/ryotarai/arca/internal/db"
 )
 
+// Image creation step constants. The step field in createImageMetadata tracks
+// which step to execute next, enabling reliable retry from the last checkpoint.
+// This is a lightweight "durable execution" pattern: each step persists its
+// completion to job metadata before advancing, so retries always resume from
+// the correct point regardless of process crashes or timeouts.
+const (
+	imageStepPrepare  = "prepare"  // call arcad prepare-for-image
+	imageStepStop     = "stop"     // shut down the machine
+	imageStepSnapshot = "snapshot" // create disk image
+	imageStepSave     = "save"     // persist custom_images DB record
+	imageStepRestart  = "restart"  // bring machine back up
+)
+
+// terminalJobError wraps errors that should not be retried by the job system.
+// For example, a 404 from arcad means the endpoint doesn't exist and retrying
+// will never succeed.
+type terminalJobError struct {
+	err error
+}
+
+func (e *terminalJobError) Error() string { return e.err.Error() }
+func (e *terminalJobError) Unwrap() error { return e.err }
+
 type createImageMetadata struct {
 	ImageName     string `json:"image_name"`
 	CustomImageID string `json:"custom_image_id,omitempty"`
+	Step          string `json:"step,omitempty"`
+	ImageData     string `json:"image_data,omitempty"`
 }
 
 func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job db.MachineJob) error {
@@ -25,96 +50,117 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 	if err := json.Unmarshal([]byte(job.MetadataJSON), &meta); err != nil {
 		return fmt.Errorf("parse job metadata: %w", err)
 	}
+	// Backward compat: jobs created before step tracking default to prepare.
+	if meta.Step == "" {
+		meta.Step = imageStepPrepare
+	}
 
-	// Deferred cleanup: on error after the machine was stopped, attempt
-	// restart so the user is not left with a stopped machine while retries
-	// proceed.  Do NOT restart if the stop itself failed — that would cause
-	// a stop→start loop visible in GCE audit logs.
-	// On success, clear the lock so other operations can proceed.
+	// Validate step to avoid silently skipping all steps on corrupted metadata.
+	switch meta.Step {
+	case imageStepPrepare, imageStepStop, imageStepSnapshot, imageStepSave, imageStepRestart:
+	default:
+		return &terminalJobError{err: fmt.Errorf("unknown image creation step: %q", meta.Step)}
+	}
+
+	// Deferred cleanup:
+	// - On success: clear locked_operation so other operations can proceed.
+	// - On failure: only emit the error event. Do NOT restart the machine here.
+	//   processJob handles retry/terminal logic and will restart the machine on
+	//   terminal failure. Keeping the machine stopped during retries avoids the
+	//   stop→start loop that previously cycled on every failed attempt.
 	var jobErr error
-	var machineStopped bool
 	defer func() {
 		if jobErr != nil {
 			w.emitEvent(ctx, machine.ID, job.ID, "error", "imaging_failed",
-				fmt.Sprintf("Image creation failed: %v", jobErr))
-			// Only restart if the machine was actually stopped by us; if the
-			// stop step itself failed, restarting would race with the pending
-			// GCE stop and create a stop/start loop.
-			if machineStopped {
-				startOpts := w.buildStartOptions(ctx, machine)
-				restartCtx, rCancel := context.WithTimeout(context.Background(), 4*time.Minute)
-				defer rCancel()
-				if _, restartErr := w.runtime.EnsureRunning(restartCtx, machine, startOpts); restartErr != nil {
-					w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
-						fmt.Sprintf("Failed to restart after imaging failure: %v", restartErr))
-				}
-			}
-			// Do NOT clear lock here - processJob will retry the job
+				fmt.Sprintf("Image creation failed at step %q: %v", meta.Step, jobErr))
 		} else {
-			// Success: clear lock
 			if clearErr := w.store.ClearMachineLockedOperation(ctx, machine.ID); clearErr != nil {
 				slog.Error("failed to clear locked_operation", "machine_id", machine.ID, "error", clearErr)
 			}
 		}
 	}()
 
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_started", "Image creation started")
+	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_started",
+		fmt.Sprintf("Image creation started (step: %s, attempt: %d)", meta.Step, job.Attempt))
 
-	// Step 1: Call arcad prepare-for-image (skip if machine already stopped on retry)
-	if machine.Status == db.MachineStatusRunning {
+	// Step: prepare — call arcad to clean up machine state before imaging.
+	if meta.Step == imageStepPrepare {
 		if jobErr = w.callArcadPrepareForImage(ctx, machine); jobErr != nil {
 			return jobErr
 		}
 		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_prepared", "Machine state cleaned for imaging")
+		meta.Step = imageStepStop
+		w.updateImageJobMeta(ctx, job.ID, meta)
 	}
 
-	// Step 2: Stop machine
-	stopCtx, stopCancel := context.WithTimeout(ctx, w.stopTTL)
-	defer stopCancel()
-	if jobErr = w.runtime.EnsureStopped(stopCtx, machine); jobErr != nil {
-		return jobErr
-	}
-	machineStopped = true
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_stopped", "Machine stopped")
-
-	// Step 3: Create image snapshot
-	snapshotCtx, snapshotCancel := context.WithTimeout(ctx, 10*time.Minute)
-	defer snapshotCancel()
-	imageRef, err := w.runtime.CreateImage(snapshotCtx, machine, meta.ImageName)
-	if err != nil {
-		jobErr = err
-		return jobErr
-	}
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_snapshot_created", "Snapshot created")
-
-	// Step 4: Create custom_images record (idempotent)
-	dataJSON, _ := json.Marshal(imageRef)
-	customImage, err := w.store.CreateCustomImageFromMachine(ctx,
-		meta.ImageName, machine.ProviderType, string(dataJSON),
-		job.Description, machine.ID, machine.ProfileID)
-	if err != nil {
-		jobErr = err
-		return jobErr
+	// Step: stop — shut down the machine for a clean disk snapshot.
+	if meta.Step == imageStepStop {
+		stopCtx, stopCancel := context.WithTimeout(ctx, w.stopTTL)
+		defer stopCancel()
+		if jobErr = w.runtime.EnsureStopped(stopCtx, machine); jobErr != nil {
+			return jobErr
+		}
+		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_stopped", "Machine stopped")
+		meta.Step = imageStepSnapshot
+		w.updateImageJobMeta(ctx, job.ID, meta)
 	}
 
-	// Step 5: Update job metadata with custom_image_id
-	meta.CustomImageID = customImage.ID
-	metaBytes, _ := json.Marshal(meta)
-	_ = w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(metaBytes))
+	// Step: snapshot — create the image from the stopped machine's disk.
+	if meta.Step == imageStepSnapshot {
+		snapshotCtx, snapshotCancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer snapshotCancel()
+		imageRef, err := w.runtime.CreateImage(snapshotCtx, machine, meta.ImageName)
+		if err != nil {
+			jobErr = err
+			return jobErr
+		}
+		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_snapshot_created", "Snapshot created")
+		dataJSON, _ := json.Marshal(imageRef)
+		meta.ImageData = string(dataJSON)
+		meta.Step = imageStepSave
+		w.updateImageJobMeta(ctx, job.ID, meta)
+	}
 
-	// Step 6: Restart machine
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_restarting", "Restarting machine")
-	startCtx, startCancel := context.WithTimeout(ctx, 4*time.Minute)
-	defer startCancel()
-	startOpts := w.buildStartOptions(ctx, machine)
-	if _, restartErr := w.runtime.EnsureRunning(startCtx, machine, startOpts); restartErr != nil {
-		w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
-			fmt.Sprintf("Failed to restart: %v", restartErr))
+	// Step: save — persist the custom image record in the database.
+	if meta.Step == imageStepSave {
+		customImage, err := w.store.CreateCustomImageFromMachine(ctx,
+			meta.ImageName, machine.ProviderType, meta.ImageData,
+			job.Description, machine.ID, machine.ProfileID)
+		if err != nil {
+			jobErr = err
+			return jobErr
+		}
+		meta.CustomImageID = customImage.ID
+		meta.Step = imageStepRestart
+		w.updateImageJobMeta(ctx, job.ID, meta)
+	}
+
+	// Step: restart — bring the machine back up. Failure is non-fatal
+	// because the image was already created successfully.
+	if meta.Step == imageStepRestart {
+		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_restarting", "Restarting machine")
+		startCtx, startCancel := context.WithTimeout(ctx, 4*time.Minute)
+		defer startCancel()
+		startOpts := w.buildStartOptions(ctx, machine)
+		if _, restartErr := w.runtime.EnsureRunning(startCtx, machine, startOpts); restartErr != nil {
+			w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
+				fmt.Sprintf("Failed to restart: %v", restartErr))
+		}
 	}
 
 	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_completed",
 		fmt.Sprintf("Image '%s' created successfully", meta.ImageName))
-	return nil // jobErr remains nil → deferred cleanup skips restart
+	return nil
+}
+
+// updateImageJobMeta persists the current step and intermediate data to job
+// metadata. This is best-effort: if it fails, the worst case is that the
+// current step re-executes on retry (each step is idempotent).
+func (w *Worker) updateImageJobMeta(ctx context.Context, jobID string, meta createImageMetadata) {
+	metaBytes, _ := json.Marshal(meta)
+	if err := w.store.UpdateMachineJobMetadataJSON(ctx, jobID, string(metaBytes)); err != nil {
+		slog.Warn("failed to update image job metadata", "job_id", jobID, "error", err)
+	}
 }
 
 // callArcadPrepareForImage calls the arcad prepare-for-image HTTP endpoint
@@ -147,7 +193,9 @@ func (w *Worker) callArcadPrepareForImage(ctx context.Context, machine db.Machin
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("arcad version does not support image creation (404); update arcad on the machine before retrying")
+		return &terminalJobError{
+			err: fmt.Errorf("arcad does not support image creation (404); update arcad on the machine"),
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
