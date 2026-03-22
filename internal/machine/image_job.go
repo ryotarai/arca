@@ -10,11 +10,14 @@ import (
 	"time"
 
 	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/workflow"
 )
 
 type createImageMetadata struct {
 	ImageName     string `json:"image_name"`
 	CustomImageID string `json:"custom_image_id,omitempty"`
+	Step          string `json:"step,omitempty"`
+	ImageData     string `json:"image_data,omitempty"`
 }
 
 func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job db.MachineJob) error {
@@ -26,95 +29,88 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 		return fmt.Errorf("parse job metadata: %w", err)
 	}
 
-	// Deferred cleanup: on error after the machine was stopped, attempt
-	// restart so the user is not left with a stopped machine while retries
-	// proceed.  Do NOT restart if the stop itself failed — that would cause
-	// a stop→start loop visible in GCE audit logs.
-	// On success, clear the lock so other operations can proceed.
+	// Deferred cleanup:
+	// - On success: clear locked_operation so other operations can proceed.
+	// - On failure: only emit the error event. Do NOT restart the machine
+	//   here. processJob handles retry/terminal logic and will restart the
+	//   machine on terminal failure. Keeping the machine stopped during
+	//   retries avoids the stop→start loop.
 	var jobErr error
-	var machineStopped bool
 	defer func() {
 		if jobErr != nil {
 			w.emitEvent(ctx, machine.ID, job.ID, "error", "imaging_failed",
 				fmt.Sprintf("Image creation failed: %v", jobErr))
-			// Only restart if the machine was actually stopped by us; if the
-			// stop step itself failed, restarting would race with the pending
-			// GCE stop and create a stop/start loop.
-			if machineStopped {
-				startOpts := w.buildStartOptions(ctx, machine)
-				restartCtx, rCancel := context.WithTimeout(context.Background(), 4*time.Minute)
-				defer rCancel()
-				if _, restartErr := w.runtime.EnsureRunning(restartCtx, machine, startOpts); restartErr != nil {
-					w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
-						fmt.Sprintf("Failed to restart after imaging failure: %v", restartErr))
-				}
-			}
-			// Do NOT clear lock here - processJob will retry the job
 		} else {
-			// Success: clear lock
 			if clearErr := w.store.ClearMachineLockedOperation(ctx, machine.ID); clearErr != nil {
 				slog.Error("failed to clear locked_operation", "machine_id", machine.ID, "error", clearErr)
 			}
 		}
 	}()
 
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_started", "Image creation started")
-
-	// Step 1: Call arcad prepare-for-image (skip if machine already stopped on retry)
-	if machine.Status == db.MachineStatusRunning {
-		if jobErr = w.callArcadPrepareForImage(ctx, machine); jobErr != nil {
-			return jobErr
+	// Checkpoint callback: persist the next step to job metadata so retries
+	// resume from the right point instead of re-executing completed steps.
+	checkpoint := func(nextStep string) {
+		meta.Step = nextStep
+		metaBytes, _ := json.Marshal(meta)
+		if err := w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(metaBytes)); err != nil {
+			slog.Warn("failed to checkpoint image job", "job_id", job.ID, "error", err)
 		}
-		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_prepared", "Machine state cleaned for imaging")
 	}
 
-	// Step 2: Stop machine
-	stopCtx, stopCancel := context.WithTimeout(ctx, w.stopTTL)
-	defer stopCancel()
-	if jobErr = w.runtime.EnsureStopped(stopCtx, machine); jobErr != nil {
-		return jobErr
+	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_started",
+		fmt.Sprintf("Image creation started (step: %s, attempt: %d)", meta.Step, job.Attempt))
+
+	jobErr = workflow.New(checkpoint).
+		Step("prepare", func(sCtx context.Context) error {
+			if err := w.callArcadPrepareForImage(sCtx, machine); err != nil {
+				return err
+			}
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_prepared", "Machine state cleaned for imaging")
+			return nil
+		}).
+		StepWithTimeout("stop", w.stopTTL, func(sCtx context.Context) error {
+			if err := w.runtime.EnsureStopped(sCtx, machine); err != nil {
+				return err
+			}
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_stopped", "Machine stopped")
+			return nil
+		}).
+		StepWithTimeout("snapshot", 10*time.Minute, func(sCtx context.Context) error {
+			imageRef, err := w.runtime.CreateImage(sCtx, machine, meta.ImageName)
+			if err != nil {
+				return err
+			}
+			dataJSON, _ := json.Marshal(imageRef)
+			meta.ImageData = string(dataJSON)
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_snapshot_created", "Snapshot created")
+			return nil
+		}).
+		Step("save", func(sCtx context.Context) error {
+			customImage, err := w.store.CreateCustomImageFromMachine(sCtx,
+				meta.ImageName, machine.ProviderType, meta.ImageData,
+				job.Description, machine.ID, machine.ProfileID)
+			if err != nil {
+				return err
+			}
+			meta.CustomImageID = customImage.ID
+			return nil
+		}).
+		StepWithTimeout("restart", 4*time.Minute, func(sCtx context.Context) error {
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_restarting", "Restarting machine")
+			startOpts := w.buildStartOptions(ctx, machine)
+			if _, restartErr := w.runtime.EnsureRunning(sCtx, machine, startOpts); restartErr != nil {
+				w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
+					fmt.Sprintf("Failed to restart: %v", restartErr))
+			}
+			return nil
+		}).
+		Run(ctx, meta.Step)
+
+	if jobErr == nil {
+		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_completed",
+			fmt.Sprintf("Image '%s' created successfully", meta.ImageName))
 	}
-	machineStopped = true
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_stopped", "Machine stopped")
-
-	// Step 3: Create image snapshot
-	snapshotCtx, snapshotCancel := context.WithTimeout(ctx, 10*time.Minute)
-	defer snapshotCancel()
-	imageRef, err := w.runtime.CreateImage(snapshotCtx, machine, meta.ImageName)
-	if err != nil {
-		jobErr = err
-		return jobErr
-	}
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_snapshot_created", "Snapshot created")
-
-	// Step 4: Create custom_images record (idempotent)
-	dataJSON, _ := json.Marshal(imageRef)
-	customImage, err := w.store.CreateCustomImageFromMachine(ctx,
-		meta.ImageName, machine.ProviderType, string(dataJSON),
-		job.Description, machine.ID, machine.ProfileID)
-	if err != nil {
-		jobErr = err
-		return jobErr
-	}
-
-	// Step 5: Update job metadata with custom_image_id
-	meta.CustomImageID = customImage.ID
-	metaBytes, _ := json.Marshal(meta)
-	_ = w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(metaBytes))
-
-	// Step 6: Restart machine
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_restarting", "Restarting machine")
-	startCtx, startCancel := context.WithTimeout(ctx, 4*time.Minute)
-	defer startCancel()
-	startOpts := w.buildStartOptions(ctx, machine)
-	if _, restartErr := w.runtime.EnsureRunning(startCtx, machine, startOpts); restartErr != nil {
-		w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
-			fmt.Sprintf("Failed to restart: %v", restartErr))
-	}
-
-	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_completed",
-		fmt.Sprintf("Image '%s' created successfully", meta.ImageName))
-	return nil // jobErr remains nil → deferred cleanup skips restart
+	return jobErr
 }
 
 // callArcadPrepareForImage calls the arcad prepare-for-image HTTP endpoint
@@ -147,7 +143,9 @@ func (w *Worker) callArcadPrepareForImage(ctx context.Context, machine db.Machin
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("arcad version does not support image creation (404); update arcad on the machine before retrying")
+		return workflow.Terminal(
+			fmt.Errorf("arcad does not support image creation (404); update arcad on the machine"),
+		)
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
