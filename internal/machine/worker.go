@@ -347,6 +347,8 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 		err = w.handleStop(ctx, machine, job.ID)
 	case db.MachineJobDelete:
 		err = w.handleDelete(ctx, machine, job.ID)
+	case db.MachineJobCreateImage:
+		err = w.handleCreateImage(ctx, machine, job)
 	default:
 		err = fmt.Errorf("unknown machine job kind: %s", job.Kind)
 	}
@@ -400,65 +402,14 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 	}
 	w.emitEvent(ctx, machine.ID, jobID, "info", "runtime_starting", "starting machine runtime")
 
-	// Fetch the machine's profile for live dynamic settings
-	var profile db.MachineProfile
-	if profileID := strings.TrimSpace(machine.ProfileID); profileID != "" {
-		p, pErr := w.store.GetMachineProfileByID(ctx, profileID)
-		if pErr != nil {
-			slog.Warn("fetch profile for machine start", "machine_id", machine.ID, "profile_id", profileID, "error", pErr)
-		} else {
-			profile = p
-		}
-	}
-
-	setup, err := w.store.GetSetupState(ctx)
-	if err != nil {
-		return fmt.Errorf("load setup state: %w", err)
-	}
-	controlPlaneURL := controlPlaneURLFromSetup(setup)
-	// Override control plane URL from profile (live) if available, else from frozen config
-	if profile.ConfigJSON != "" {
-		if override := db.GetProfileServerAPIURL(profile.ConfigJSON); override != "" {
-			controlPlaneURL = override
-		}
-	} else if override := db.GetProfileServerAPIURL(machine.InfrastructureConfigJSON); override != "" {
-		controlPlaneURL = override
-	}
-	if controlPlaneURL == "" {
+	startOpts := w.buildStartOptions(ctx, machine)
+	if startOpts.ControlPlaneURL == "" {
 		return fmt.Errorf("server domain is not configured")
-	}
-	// Compute the authorize URL from the public server domain so that arcad
-	// can redirect browsers even when the control-plane URL is an internal IP.
-	var authorizeURL string
-	if serverDomain := strings.TrimSpace(setup.ServerDomain); serverDomain != "" {
-		authorizeURL = "https://" + serverDomain + "/console/authorize"
-	}
-
-	// Read startup_script from the live profile (boot setting).
-	// This is NOT from the frozen infrastructure config — it comes from the
-	// current profile so that profile edits take effect on next start.
-	var profileStartupScript string
-	if profile.ConfigJSON != "" {
-		profileStartupScript = db.GetProfileStartupScript(profile.ConfigJSON)
-	}
-
-	// Fetch the machine owner's startup script.
-	var userStartupScript string
-	ownerUserID, ownerErr := w.store.GetMachineOwnerUserID(ctx, machine.ID)
-	if ownerErr == nil {
-		userStartupScript, _ = w.store.GetUserStartupScript(ctx, ownerUserID)
 	}
 
 	startCtx, startCancel := context.WithTimeout(ctx, w.startupTTL)
 	defer startCancel()
-	containerID, err := w.runtime.EnsureRunning(startCtx, machine, RuntimeStartOptions{
-		ControlPlaneURL:   controlPlaneURL,
-		AuthorizeURL:      authorizeURL,
-		MachineID:         machine.ID,
-		MachineToken:      machine.MachineToken,
-		StartupScript:     profileStartupScript,
-		UserStartupScript: userStartupScript,
-	})
+	containerID, err := w.runtime.EnsureRunning(startCtx, machine, startOpts)
 	if err != nil {
 		return err
 	}
@@ -548,6 +499,64 @@ func (w *Worker) waitMachineReady(ctx context.Context, machineID string) error {
 			return ctx.Err()
 		case <-ticker.C:
 		}
+	}
+}
+
+// buildStartOptions assembles RuntimeStartOptions from the machine's config and
+// setup state. It is used by handleStart and the create-image restart path.
+func (w *Worker) buildStartOptions(ctx context.Context, machine db.Machine) RuntimeStartOptions {
+	// Fetch the machine's profile for live dynamic settings
+	var profile db.MachineProfile
+	if profileID := strings.TrimSpace(machine.ProfileID); profileID != "" {
+		p, pErr := w.store.GetMachineProfileByID(ctx, profileID)
+		if pErr != nil {
+			slog.Warn("fetch profile for machine start", "machine_id", machine.ID, "profile_id", profileID, "error", pErr)
+		} else {
+			profile = p
+		}
+	}
+
+	setup, err := w.store.GetSetupState(ctx)
+	if err != nil {
+		slog.Warn("buildStartOptions: load setup state failed", "machine_id", machine.ID, "error", err)
+		return RuntimeStartOptions{}
+	}
+	controlPlaneURL := controlPlaneURLFromSetup(setup)
+	// Override control plane URL from profile (live) if available, else from frozen config
+	if profile.ConfigJSON != "" {
+		if override := db.GetProfileServerAPIURL(profile.ConfigJSON); override != "" {
+			controlPlaneURL = override
+		}
+	} else if override := db.GetProfileServerAPIURL(machine.InfrastructureConfigJSON); override != "" {
+		controlPlaneURL = override
+	}
+	// Compute the authorize URL from the public server domain so that arcad
+	// can redirect browsers even when the control-plane URL is an internal IP.
+	var authorizeURL string
+	if serverDomain := strings.TrimSpace(setup.ServerDomain); serverDomain != "" {
+		authorizeURL = "https://" + serverDomain + "/console/authorize"
+	}
+
+	// Read startup_script from the live profile (boot setting).
+	var profileStartupScript string
+	if profile.ConfigJSON != "" {
+		profileStartupScript = db.GetProfileStartupScript(profile.ConfigJSON)
+	}
+
+	// Fetch the machine owner's startup script.
+	var userStartupScript string
+	ownerUserID, ownerErr := w.store.GetMachineOwnerUserID(ctx, machine.ID)
+	if ownerErr == nil {
+		userStartupScript, _ = w.store.GetUserStartupScript(ctx, ownerUserID)
+	}
+
+	return RuntimeStartOptions{
+		ControlPlaneURL:   controlPlaneURL,
+		AuthorizeURL:      authorizeURL,
+		MachineID:         machine.ID,
+		MachineToken:      machine.MachineToken,
+		StartupScript:     profileStartupScript,
+		UserStartupScript: userStartupScript,
 	}
 }
 
