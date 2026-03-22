@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { EmptyState } from '@/components/EmptyState'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -275,7 +277,14 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : images.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No custom images yet.</p>
+          <EmptyState
+            icon={<ImageIcon className="size-6" />}
+            title="No custom images yet"
+            description="Custom images let you pre-configure machine environments. Create one or build from an existing machine."
+            action={
+              <Button onClick={handleCreate}>New image</Button>
+            }
+          />
         ) : (
           <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-sm">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,6 +15,7 @@ import {
   searchUsers,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { EmptyState } from '@/components/EmptyState'
 import type { User } from '@/lib/types'
 import type { UserGroup, UserGroupMember } from '@/gen/arca/v1/group_pb'
 
@@ -219,7 +221,11 @@ export function GroupsPage({ user }: GroupsPageProps) {
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading groups...</p>
             ) : groups.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No groups found.</p>
+              <EmptyState
+                icon={<Users className="size-6" />}
+                title="No groups yet"
+                description="Groups let you share machines with multiple users at once."
+              />
             ) : (
               <div className="space-y-3">
                 {groups.map((group) => (

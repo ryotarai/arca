@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { Cpu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -14,6 +15,7 @@ import {
 } from '@/lib/api'
 import type { ServerLLMModel } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { EmptyState } from '@/components/EmptyState'
 import type { User } from '@/lib/types'
 
 type ServerLLMModelsPageProps = {
@@ -180,7 +182,11 @@ export function ServerLLMModelsPage({ user }: ServerLLMModelsPageProps) {
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
             ) : models.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No server LLM models configured yet.</p>
+              <EmptyState
+                icon={<Cpu className="size-6" />}
+                title="No server LLM models configured yet"
+                description="Server-wide LLM models use token commands for dynamic credential retrieval."
+              />
             ) : (
               <div className="space-y-3">
                 {models.map((model) => (

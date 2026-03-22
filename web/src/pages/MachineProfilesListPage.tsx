@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Layers, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { listMachineProfiles } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { EmptyState } from '@/components/EmptyState'
 import type { MachineProfileItem, User } from '@/lib/types'
 
 type MachineProfilesListPageProps = {
@@ -75,7 +76,16 @@ export function MachineProfilesListPage({ user }: MachineProfilesListPageProps) 
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading profiles...</p>
             ) : profiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No profiles configured.</p>
+              <EmptyState
+                icon={<Layers className="size-6" />}
+                title="No profiles configured"
+                description="Profiles define the infrastructure settings for machines. Create one to get started."
+                action={
+                  <Button asChild>
+                    <Link to="/machine-profiles/new"><Plus className="mr-2 size-4" />New profile</Link>
+                  </Button>
+                }
+              />
             ) : (
               <div className="space-y-3">
                 {profiles.map((profile) => (
