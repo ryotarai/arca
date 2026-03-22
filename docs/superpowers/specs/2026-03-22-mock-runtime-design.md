@@ -18,24 +18,32 @@
 
 Add `ProviderTypeMock = "mock"` to `internal/db/machine_profile_store.go` alongside existing `lxd`, `libvirt`, and `gce` types.
 
+Add `MACHINE_PROFILE_TYPE_MOCK = 4` to the `MachineProfileType` enum in `proto/arca/v1/machine_profile.proto`.
+
 ### MockRuntime Implementation
 
 **File:** `internal/machine/mock_runtime.go`
 
-A single `MockRuntime` instance implements the `Runtime` interface and manages all mock machines in-memory.
+A single `MockRuntime` instance implements the `Runtime` interface and manages all mock machines in-memory. It also holds a reference to the store for reporting machine readiness.
 
 ```go
 type MockRuntime struct {
-    mu             sync.Mutex
-    machines       map[string]*mockMachine
+    mu              sync.Mutex
+    store           MockRuntimeStore  // for readiness reporting
+    machines        map[string]*mockMachine
     defaultBehavior MockBehavior
     machineBehaviors map[string]MockBehavior
 }
 
+type MockRuntimeStore interface {
+    ReportMachineReadinessByMachineID(ctx context.Context, machineID string, ready bool) error
+}
+
 type mockMachine struct {
-    status     string        // "running", "stopped"
-    stubServer *http.Server
-    stubAddr   string        // "127.0.0.1:<port>"
+    status      string        // "running", "stopped"
+    containerID string        // "mock-<machineID>"
+    stubServer  *http.Server
+    stubAddr    string        // "127.0.0.1:<port>"
 }
 
 type MockBehavior struct {
@@ -46,13 +54,32 @@ type MockBehavior struct {
 
 #### Runtime Interface Methods
 
+The `Runtime` interface has 6 methods. MockRuntime implements all of them:
+
 | Method | Behavior |
 |--------|----------|
-| `EnsureRunning` | Check error injection → wait configured delay → start stub HTTP server on random port → set status to `running` → return stub address |
-| `EnsureStopped` | Check error injection → wait delay → stop stub server → set status to `stopped` |
-| `EnsureDeleted` | Check error injection → wait delay → stop stub server → remove from map |
-| `IsRunning` | Return in-memory status immediately (no delay, no error injection) |
-| `GetMachineInfo` | Return stub address and basic info |
+| `EnsureRunning` | Check error injection → context-aware delay → start stub HTTP server on random port → report readiness to store → set status to `running` → return `containerID` (string `"mock-<machineID>"`) |
+| `EnsureStopped` | Check error injection → context-aware delay → stop stub server → set status to `stopped` |
+| `EnsureDeleted` | Check error injection → context-aware delay → stop stub server → remove from map |
+| `IsRunning` | Return in-memory status and `containerID` immediately (no delay, no error injection) |
+| `GetMachineInfo` | Return `RuntimeMachineInfo{PrivateIP: "<stubAddr IP>"}` from the stub server's bound address |
+| `CreateImage` | Return `ErrImageCreationNotSupported` (mock does not support image creation) |
+
+**Key detail: `EnsureRunning` return value.** Real runtimes return a container identifier (e.g., LXD returns `"arca-machine-xxx"`), not an IP address. The worker stores this as `machine.ContainerID`. IP resolution happens separately through `GetMachineInfo` → `RuntimeMachineInfo.PrivateIP`, which the proxy layer reads via `MachineIPCache`. MockRuntime follows this pattern: `EnsureRunning` returns `"mock-<machineID>"` as the container ID, and `GetMachineInfo` returns the stub server's address as `PrivateIP`.
+
+**Key detail: `IsRunning` return value.** The signature is `(bool, string, error)` where the string is the `containerID`. The reconcile loop compares this with the stored `ContainerID`. MockRuntime returns `(true, "mock-<machineID>", nil)` when running, `(false, "", nil)` when stopped, to avoid reconcile thrashing.
+
+#### Readiness Gate
+
+After `EnsureRunning`, the worker calls `waitMachineReady`, which polls `GetMachineReadinessByMachineID` from the database. In real runtimes, arcad running inside the VM reports readiness back to the server. Mock machines have no arcad.
+
+**Solution:** `MockRuntime.EnsureRunning` directly calls `store.ReportMachineReadinessByMachineID(ctx, machineID, true)` after starting the stub server. This writes the readiness flag to the database before `EnsureRunning` returns, so `waitMachineReady` finds the machine ready on its first poll.
+
+This requires `MockRuntime` to hold a `MockRuntimeStore` interface (a subset of `*db.Store`) for the readiness report call. The constructor is:
+
+```go
+func NewMockRuntime(store MockRuntimeStore) *MockRuntime
+```
 
 #### Behavior Resolution
 
@@ -68,17 +95,25 @@ resolve(machineID, operation):
   if behavior.ErrorOn[operation] is set:
     return error
   if behavior.Delay > 0:
-    sleep(delay)
+    sleepContext(ctx, delay)  // respect context cancellation
   proceed with operation
 ```
+
+Context-aware delay uses the same `sleepContext` pattern as the existing worker (`worker.go:710-720`), returning early if the context is cancelled during shutdown.
+
+#### Graceful Shutdown
+
+`MockRuntime` exposes a `Shutdown(ctx context.Context)` method that stops all running stub HTTP servers. Called during server shutdown in `cmd/server/main.go` to prevent port leaks in long-running dev sessions.
 
 ### Stub HTTP Server
 
 Each mock machine runs a lightweight HTTP server on a random port when in `running` state:
 
-- `GET /` → `200 OK` with JSON `{"machine_id": "<id>", "status": "running"}`
+- `GET /` → `200 OK` with `Content-Type: application/json` and body `{"machine_id": "<id>", "status": "running"}`
+- All other paths → `200 OK` with same response (proxy may forward to arbitrary paths)
 - Server binds to `127.0.0.1:0` (OS-assigned port)
-- The address is returned from `EnsureRunning` and stored in machine runtime state, so the existing proxy mechanism routes to it without modification
+
+The stub server's address is stored in `mockMachine.stubAddr` and exposed via `GetMachineInfo` → `RuntimeMachineInfo{PrivateIP: "<ip>"}`. The existing proxy mechanism reads this through `MachineIPCache` → `GetMachineInfo` and routes requests to the stub server without modification.
 
 The stub server is stopped when the machine is stopped or deleted.
 
@@ -96,13 +131,13 @@ service MockService {
   rpc SetDefaultBehavior(SetDefaultBehaviorRequest) returns (SetDefaultBehaviorResponse);
   // Set behavior for a specific machine (overrides default)
   rpc SetMachineBehavior(SetMachineBehaviorRequest) returns (SetMachineBehaviorResponse);
-  // Reset all behavior to defaults (no delay, no errors)
+  // Reset all behavior and clear in-memory machine state
   rpc ResetBehavior(ResetBehaviorRequest) returns (ResetBehaviorResponse);
 }
 
 message MockBehavior {
   // Delay in milliseconds before each operation completes
-  int32 delay_ms = 1;
+  int64 delay_ms = 1;
   // Map of operation name to error message. Operations: "EnsureRunning", "EnsureStopped", "EnsureDeleted"
   map<string, string> error_on = 2;
 }
@@ -122,7 +157,11 @@ message ResetBehaviorRequest {}
 message ResetBehaviorResponse {}
 ```
 
-The `MockService` handler holds a reference to the singleton `MockRuntime` and delegates directly to it.
+**Note:** `delay_ms` is `int64` for consistency with existing proto conventions (e.g., `auto_stop_timeout_seconds` in `machine_profile.proto`).
+
+**Note:** `ResetBehavior` resets both behavior configuration AND clears the in-memory machine map (stopping any running stub servers). This ensures clean state between tests even if a previous test leaked machines.
+
+The `MockService` handler holds a reference to the singleton `MockRuntime` and delegates directly to it. It requires the same authentication as other services (Bearer token via `authenticateAdmin`).
 
 ### Enablement Control
 
@@ -146,11 +185,13 @@ Register mock factory conditionally:
 
 ```go
 func (rt *RoutingTemplate) RegisterMockFactory(mockRT *MockRuntime) {
-    rt.factory[db.ProviderTypeMock] = func(config json.RawMessage) (*TemplateProfile, error) {
-        return &TemplateProfile{Runtime: mockRT}, nil
+    rt.factory[db.ProviderTypeMock] = func(profile db.MachineProfile) (Runtime, error) {
+        return mockRT, nil
     }
 }
 ```
+
+**Config JSON handling:** The `runtimeForMachine` method has a guard (`providerType != "" && configJSON != "" && configJSON != "{}"`). To ensure mock machines pass this guard, mock profile config should include a non-empty body. Use `{"mock": true}` as the minimum config for mock profiles, and document this in the UI (auto-populate when Mock provider is selected).
 
 ### Server Initialization
 
@@ -158,30 +199,36 @@ func (rt *RoutingTemplate) RegisterMockFactory(mockRT *MockRuntime) {
 
 ```go
 if os.Getenv("ARCA_ENABLE_MOCK") == "true" {
-    mockRT := machine.NewMockRuntime()
+    mockRT := machine.NewMockRuntime(store)
     runtime.RegisterMockFactory(mockRT)
     // Register MockService ConnectRPC handler
     mockHandler := server.NewMockServiceHandler(mockRT)
     mux.Handle(mockHandler...)
+    // Register shutdown hook
+    defer mockRT.Shutdown(context.Background())
 }
 ```
 
 ### Mock Profile Configuration
 
-Mock profiles require minimal configuration — no infrastructure connection details needed:
+Mock profiles use a minimal but non-empty config JSON to pass the RoutingTemplate's config guard:
 
 ```json
 {
-  "provider_type": "mock"
+  "mock": true
 }
 ```
+
+No infrastructure connection details are needed.
 
 ### UI Changes
 
 In the profile creation form (`web/src/`):
 - Query the server for whether mock provider is enabled (via existing config/settings endpoint or a new field)
 - Conditionally show `Mock` in the provider type dropdown
-- When `Mock` is selected, show minimal or empty configuration form
+- When `Mock` is selected, auto-populate config with `{"mock": true}` and show minimal or empty configuration form
+
+The `typeMap` in `web/e2e/helpers/machine-profile.ts` needs to be updated with `mock: 4` to match the new proto enum value.
 
 ## E2E Test Strategy
 
@@ -194,13 +241,16 @@ In the profile creation form (`web/src/`):
 
 ### Server Startup
 
-Playwright `webServer` starts the server with mock enabled:
+Playwright config adds `ARCA_ENABLE_MOCK` to the existing `env` map (not as a command prefix):
 
 ```typescript
 // playwright.config.ts
 webServer: {
-  command: 'ARCA_ENABLE_MOCK=true ./bin/server',
-  // ...
+  command: '...',
+  env: {
+    ...process.env,
+    ARCA_ENABLE_MOCK: 'true',
+  },
 }
 ```
 
@@ -213,9 +263,13 @@ webServer: {
 | `web/e2e/machine-errors.spec.ts` | Error injection: startup failure → Failed state display, stop failure handling |
 | `web/e2e/machine-proxy.spec.ts` | Proxy connection to stub HTTP server |
 
+New mock-based tests create mock-type profiles (not LXD profiles). Existing tests in `machines.spec.ts` that use `ensureLxdProfile` continue to work as-is; new lifecycle tests use a separate `ensureMockProfile` helper.
+
+None of the new file names match the `testIgnore` regex in playwright config (`/(?:lxd-provisioning|critical-user-journey)\.spec\.ts$/`), so they correctly run in the `fast` project.
+
 ### Test Cleanup
 
-Each test calls `resetBehavior()` in `afterEach` to ensure clean state between tests.
+Each test calls `resetBehavior()` in `afterEach` to ensure clean state between tests. `ResetBehavior` clears both behavior configuration and in-memory machine state (including stopping stub servers).
 
 ### Use Cases Covered by Fast Tests
 
@@ -234,18 +288,20 @@ Each test calls `resetBehavior()` in `afterEach` to ensure clean state between t
 | File | Change |
 |------|--------|
 | `proto/arca/v1/mock.proto` | New: MockService protobuf definition |
+| `proto/arca/v1/machine_profile.proto` | Add `MACHINE_PROFILE_TYPE_MOCK = 4` to enum |
 | `internal/machine/mock_runtime.go` | New: MockRuntime implementation |
 | `internal/machine/mock_runtime_test.go` | New: Unit tests |
 | `internal/db/machine_profile_store.go` | Add `ProviderTypeMock` constant |
 | `internal/machine/routing_template.go` | Add `RegisterMockFactory` method |
-| `cmd/server/main.go` | Conditional MockRuntime init and handler registration |
+| `cmd/server/main.go` | Conditional MockRuntime init, handler registration, shutdown hook |
 | `internal/server/server.go` | MockService handler routing |
-| `web/src/` (profile form) | Mock provider option (conditionally shown) |
+| `web/src/` (profile form) | Mock provider option (conditionally shown, auto-populate config) |
 | `web/e2e/helpers/mock.ts` | New: MockService test helpers |
-| `web/e2e/machines.spec.ts` | Expand with full lifecycle tests |
+| `web/e2e/helpers/machine-profile.ts` | Add `mock: 4` to typeMap |
+| `web/e2e/machines.spec.ts` | Expand with full lifecycle tests using mock profiles |
 | `web/e2e/machine-errors.spec.ts` | New: Error injection tests |
 | `web/e2e/machine-proxy.spec.ts` | New: Proxy connection tests |
-| `web/playwright.config.ts` | Add `ARCA_ENABLE_MOCK=true` to server command |
+| `web/playwright.config.ts` | Add `ARCA_ENABLE_MOCK: 'true'` to webServer env |
 
 ## Data Flow
 
@@ -261,10 +317,11 @@ E2E Test
   │                                        ▼                      │
   │                                   MockRuntime                 │
   │                                     │                         │
-  │                        ┌────────────┤                         │
-  │                        ▼            ▼                          │
-  │                  In-memory state  Stub HTTP Server             │
-  │                                     ▲                         │
-  │                                     │                         │
-  └── Proxy test ──────────────────────┘        (LXD/GCE/Libvirt)
+  │                        ┌────────────┼────────────┐            │
+  │                        ▼            ▼            ▼             │
+  │                  In-memory     Stub HTTP    Store.Report       │
+  │                  state         Server       Readiness          │
+  │                                  ▲                             │
+  │                                  │                             │
+  └── Proxy test ───────────────────┘          (LXD/GCE/Libvirt)
 ```
