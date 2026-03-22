@@ -199,7 +199,8 @@ test.describe('machine options', () => {
     await page.waitForSelector('#create-machine-profile')
 
     // Select the GCE profile
-    await page.selectOption('#create-machine-profile', runtime.id)
+    await page.locator('#create-machine-profile').click()
+    await page.getByRole('option', { name: new RegExp(runtime.name) }).click()
 
     // Machine type selector should appear
     const machineTypeField = page.locator('#create-machine-type')
@@ -213,7 +214,8 @@ test.describe('machine options', () => {
     await page.waitForSelector('#profile-type')
 
     // Select GCE type
-    await page.selectOption('#profile-type', 'gce')
+    await page.locator('#profile-type').click()
+    await page.getByRole('option', { name: 'Google Compute Engine (GCE)' }).click()
 
     // Check allowed machine types field is visible
     const allowedField = page.locator('#profile-gce-allowed-machine-types')

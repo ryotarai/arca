@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   createCustomImage,
   deleteCustomImage,
@@ -186,15 +187,19 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
 
               <div className="space-y-2">
                 <Label>Provider type</Label>
-                <select
+                <Select
                   value={form.templateType}
-                  onChange={(e) => setForm((p) => ({ ...p, templateType: e.target.value, data: {}, templateIds: [] }))}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                  onValueChange={(value) => setForm((p) => ({ ...p, templateType: value, data: {}, templateIds: [] }))}
                 >
-                  <option value="gce">GCE</option>
-                  <option value="lxd">LXD</option>
-                  <option value="libvirt">Libvirt</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gce">GCE</SelectItem>
+                    <SelectItem value="lxd">LXD</SelectItem>
+                    <SelectItem value="libvirt">Libvirt</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

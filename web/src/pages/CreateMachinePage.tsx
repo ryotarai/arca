@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createMachine, listAvailableImages, listAvailableProfiles } from '@/lib/api'
 import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
@@ -218,20 +219,22 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                 <Label htmlFor="create-machine-profile">
                   Profile
                 </Label>
-                <select
-                  id="create-machine-profile"
+                <Select
                   value={selectedProfileID}
-                  onChange={(event) => setSelectedProfileID(event.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                  onValueChange={setSelectedProfileID}
                   disabled={loadingProfiles || profiles.length === 0}
                 >
-                  {profiles.length === 0 && <option value="">No profile available</option>}
-                  {profiles.map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.name} ({profile.type})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="create-machine-profile" className="w-full">
+                    <SelectValue placeholder="No profile available" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.name} ({profile.type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {(() => {
@@ -242,18 +245,21 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                 return (
                   <div className="space-y-2">
                     <Label htmlFor="create-machine-type">Machine type</Label>
-                    <select
-                      id="create-machine-type"
+                    <Select
                       value={machineType || allowed[0]}
-                      onChange={(event) => setMachineType(event.target.value)}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                      onValueChange={setMachineType}
                     >
-                      {allowed.map((mt) => (
-                        <option key={mt} value={mt}>
-                          {mt}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger id="create-machine-type" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allowed.map((mt) => (
+                          <SelectItem key={mt} value={mt}>
+                            {mt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground">
                       Select a machine type for this GCE instance.
                     </p>
@@ -264,19 +270,22 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
               {availableImages.length > 0 && (
                 <div className="space-y-2">
                   <Label htmlFor="create-machine-image">Image</Label>
-                  <select
-                    id="create-machine-image"
-                    value={customImageId}
-                    onChange={(event) => setCustomImageId(event.target.value)}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                  <Select
+                    value={customImageId || '_default'}
+                    onValueChange={(value) => setCustomImageId(value === '_default' ? '' : value)}
                   >
-                    <option value="">Default</option>
-                    {availableImages.map((img) => (
-                      <option key={img.id} value={img.id}>
-                        {img.name}{img.description ? ` - ${img.description}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="create-machine-image" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_default">Default</SelectItem>
+                      {availableImages.map((img) => (
+                        <SelectItem key={img.id} value={img.id}>
+                          {img.name}{img.description ? ` - ${img.description}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
                     Select a custom image or use the profile default.
                   </p>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -442,24 +443,26 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
                       disabled
                     />
                   ) : (
-                    <select
-                      id="profile-type"
+                    <Select
                       value={form.type}
-                      onChange={(event) => {
-                        const val = event.target.value
-                        const t: MachineProfileType = val === 'gce' ? 'gce' : val === 'lxd' ? 'lxd' : 'libvirt'
+                      onValueChange={(value) => {
+                        const t = value as MachineProfileType
                         setForm((current) => ({
                           ...current,
                           type: t,
                           exposureConnectivity: (t === 'libvirt' || t === 'lxd') && current.exposureConnectivity === 'public_ip' ? '' : current.exposureConnectivity,
                         }))
                       }}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <option value="libvirt">Libvirt</option>
-                      <option value="gce">Google Compute Engine (GCE)</option>
-                      <option value="lxd">LXD</option>
-                    </select>
+                      <SelectTrigger id="profile-type" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="libvirt">Libvirt</SelectItem>
+                        <SelectItem value="gce">Google Compute Engine (GCE)</SelectItem>
+                        <SelectItem value="lxd">LXD</SelectItem>
+                      </SelectContent>
+                    </Select>
                   )}
                   {isEdit && (
                     <p className="text-xs text-muted-foreground">Provider type cannot be changed after creation.</p>
@@ -603,18 +606,21 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
                       Machine traffic is reverse-proxied through the Arca server.
                     </p>
                     <Label htmlFor="profile-exposure-connectivity">Connectivity</Label>
-                    <select
-                      id="profile-exposure-connectivity"
-                      value={form.exposureConnectivity}
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, exposureConnectivity: event.target.value as 'private_ip' | 'public_ip' | '' }))
+                    <Select
+                      value={form.exposureConnectivity || '_not_set'}
+                      onValueChange={(value) =>
+                        setForm((current) => ({ ...current, exposureConnectivity: (value === '_not_set' ? '' : value) as 'private_ip' | 'public_ip' | '' }))
                       }
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <option value="">Not set</option>
-                      <option value="private_ip">Private IP</option>
-                      {form.type === 'gce' && <option value="public_ip">Public IP</option>}
-                    </select>
+                      <SelectTrigger id="profile-exposure-connectivity" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_not_set">Not set</SelectItem>
+                        <SelectItem value="private_ip">Private IP</SelectItem>
+                        {form.type === 'gce' && <SelectItem value="public_ip">Public IP</SelectItem>}
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground">How the server reaches machine IPs for reverse proxying.</p>
                   </div>
                 </div>

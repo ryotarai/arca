@@ -29,7 +29,8 @@ test.describe('profile catalog', () => {
     await page.goto('/machine-profiles/new')
 
     await page.locator('#profile-name').fill(profileName)
-    await page.locator('#profile-type').selectOption('lxd')
+    await page.locator('#profile-type').click()
+    await page.getByRole('option', { name: 'LXD' }).click()
     await page.locator('#profile-lxd-endpoint').fill('https://localhost:8443')
 
     const submitButton = page.getByRole('button', { name: 'Create profile' })
@@ -105,7 +106,8 @@ test.describe('profile catalog', () => {
     await page.goto('/machine-profiles/new')
 
     await page.locator('#profile-name').fill(profileName)
-    await page.locator('#profile-type').selectOption('lxd')
+    await page.locator('#profile-type').click()
+    await page.getByRole('option', { name: 'LXD' }).click()
     await page.locator('#profile-lxd-endpoint').fill('https://localhost:8443')
     await page.getByRole('button', { name: 'Create profile' }).click()
 
@@ -141,9 +143,11 @@ test.describe('profile catalog', () => {
     await page.goto('/machine-profiles/new')
 
     await page.locator('#profile-name').fill(profileName)
-    await page.locator('#profile-type').selectOption('lxd')
+    await page.locator('#profile-type').click()
+    await page.getByRole('option', { name: 'LXD' }).click()
     await page.locator('#profile-lxd-endpoint').fill('https://localhost:8443')
-    await page.locator('#profile-exposure-connectivity').selectOption('private_ip')
+    await page.locator('#profile-exposure-connectivity').click()
+    await page.getByRole('option', { name: 'Private IP' }).click()
 
     await page.getByRole('button', { name: 'Create profile' }).click()
 
