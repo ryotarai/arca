@@ -66,7 +66,9 @@ func (r *LxdRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	}
 
 	if !exists {
-		opts.StartupScript = r.startupScript
+		if opts.StartupScript == "" {
+			opts.StartupScript = r.startupScript
+		}
 		cloudConfig := cloudInitUserData(machine, opts)
 		image := r.resolveImage(machine)
 

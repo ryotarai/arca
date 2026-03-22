@@ -240,7 +240,9 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	}
 
 	if !found {
-		opts.StartupScript = r.startupScript
+		if opts.StartupScript == "" {
+			opts.StartupScript = r.startupScript
+		}
 		cloudInit := cloudInitUserData(machine, opts)
 		imageProject, imageFamily := r.resolveImage(machine)
 		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit, effectiveMachineType, imageProject, imageFamily))

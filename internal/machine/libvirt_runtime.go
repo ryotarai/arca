@@ -128,7 +128,9 @@ func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, 
 	if err := r.ensureDiskImage(ctx, workspace, baseImage); err != nil {
 		return "", err
 	}
-	opts.StartupScript = r.startupScript
+	if opts.StartupScript == "" {
+		opts.StartupScript = r.startupScript
+	}
 	startupNonce := time.Now().UTC().Format("20060102T150405")
 	if err := r.ensureCloudInitSeed(ctx, machine, workspace, opts, startupNonce); err != nil {
 		return "", err

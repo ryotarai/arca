@@ -82,3 +82,37 @@ func GetProfileAutoStopTimeoutSeconds(configJSON string) int64 {
 	}
 	return v
 }
+
+// GetProfileStartupScript extracts the startup_script from a profile config
+// JSON by looking inside each provider sub-object (libvirt, gce, lxd).
+// It checks both camelCase (startupScript) and snake_case (startup_script)
+// keys. Returns empty string if not set.
+func GetProfileStartupScript(configJSON string) string {
+	if configJSON == "" || configJSON == "{}" {
+		return ""
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(configJSON), &raw); err != nil {
+		return ""
+	}
+	for _, provider := range []string{"libvirt", "gce", "lxd"} {
+		providerRaw, ok := raw[provider]
+		if !ok {
+			continue
+		}
+		var providerConfig map[string]json.RawMessage
+		if err := json.Unmarshal(providerRaw, &providerConfig); err != nil {
+			continue
+		}
+		// Check camelCase first, then snake_case
+		for _, key := range []string{"startupScript", "startup_script"} {
+			if scriptRaw, ok := providerConfig[key]; ok {
+				var script string
+				if err := json.Unmarshal(scriptRaw, &script); err == nil && strings.TrimSpace(script) != "" {
+					return script
+				}
+			}
+		}
+	}
+	return ""
+}

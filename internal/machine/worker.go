@@ -430,6 +430,14 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		authorizeURL = "https://" + serverDomain + "/console/authorize"
 	}
 
+	// Read startup_script from the live profile (boot setting).
+	// This is NOT from the frozen infrastructure config — it comes from the
+	// current profile so that profile edits take effect on next start.
+	var profileStartupScript string
+	if profile.ConfigJSON != "" {
+		profileStartupScript = db.GetProfileStartupScript(profile.ConfigJSON)
+	}
+
 	// Fetch the machine owner's startup script.
 	var userStartupScript string
 	ownerUserID, ownerErr := w.store.GetMachineOwnerUserID(ctx, machine.ID)
@@ -444,6 +452,7 @@ func (w *Worker) handleStart(ctx context.Context, machine db.Machine, jobID stri
 		AuthorizeURL:      authorizeURL,
 		MachineID:         machine.ID,
 		MachineToken:      machine.MachineToken,
+		StartupScript:     profileStartupScript,
 		UserStartupScript: userStartupScript,
 	})
 	if err != nil {
