@@ -28,6 +28,7 @@ export async function createMachineProfileViaAPI(
     libvirt: 1,
     gce: 2,
     lxd: 3,
+    mock: 4,
   }
 
   const response = await page.request.post('/arca.v1.MachineProfileService/CreateMachineProfile', {
@@ -140,6 +141,44 @@ export async function ensureLxdProfileWithProxyExposure(
         profiles?: Array<{ id?: string; name?: string; type?: string }>
       }
       const existing = listPayload.profiles?.find((r) => r.name === name)
+      if (existing) {
+        return {
+          id: existing.id ?? '',
+          name: existing.name ?? '',
+          type: existing.type ?? '',
+        }
+      }
+    }
+    throw error
+  }
+}
+
+export async function ensureMockProfile(page: Page): Promise<ProfileRecord> {
+  const serverPort = new URL(
+    process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080',
+  ).port
+  try {
+    return await createMachineProfileViaAPI(page, {
+      name: 'mock-e2e',
+      type: 'mock',
+      config: {
+        mock: {},
+        exposure: {
+          method: 2,
+          connectivity: 1,
+        },
+        serverApiUrl: `http://127.0.0.1:${serverPort}`,
+      },
+    })
+  } catch (error) {
+    if (String(error).includes('already_exists')) {
+      const listResp = await page.request.post('/arca.v1.MachineProfileService/ListMachineProfiles', {
+        data: {},
+      })
+      const listPayload = (await listResp.json()) as {
+        profiles?: Array<{ id?: string; name?: string; type?: string }>
+      }
+      const existing = listPayload.profiles?.find((r) => r.name === 'mock-e2e')
       if (existing) {
         return {
           id: existing.id ?? '',
