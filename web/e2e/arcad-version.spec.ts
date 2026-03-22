@@ -4,12 +4,12 @@ import {
   bestEffortDeleteMachine,
   createMachineWithTokenViaAPI,
 } from './helpers/machine'
-import { ensureLxdProfile } from './helpers/machine-profile'
+import { ensureMockProfile } from './helpers/machine-profile'
 
 test.describe('arcad version', () => {
   test('GET /arcad/version returns version with valid machine token', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machine = await createMachineWithTokenViaAPI(page, `ver-${Date.now()}`, runtime.id)
 
     try {
@@ -35,7 +35,7 @@ test.describe('arcad version', () => {
 
   test('ReportMachineReadiness stores arcad_version', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machine = await createMachineWithTokenViaAPI(page, `rpt-${Date.now()}`, runtime.id)
 
     try {
@@ -72,7 +72,7 @@ test.describe('arcad version', () => {
 
   test('ReportMachineReadiness without arcad_version preserves existing', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machine = await createMachineWithTokenViaAPI(page, `compat-${Date.now()}`, runtime.id)
 
     try {

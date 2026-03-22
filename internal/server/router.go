@@ -16,6 +16,7 @@ import (
 	"github.com/ryotarai/arca/internal/crypto"
 	"github.com/ryotarai/arca/internal/db"
 	"github.com/ryotarai/arca/internal/gen/arca/v1/arcav1connect"
+	"github.com/ryotarai/arca/internal/machine"
 	"github.com/ryotarai/arca/internal/notification"
 )
 
@@ -29,6 +30,7 @@ type Dependencies struct {
 	Encryptor        *crypto.Encryptor
 	LLMTokenExecutor *LLMTokenExecutor
 	RateLimiter      *RateLimiter
+	MockRuntime      *machine.MockRuntime
 }
 
 type HealthChecker interface {
@@ -122,6 +124,10 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Mount(path, handler)
 
 		path, handler = arcav1connect.NewImageServiceHandler(newImageConnectService(deps.Store, deps.Authenticator))
+		r.Mount(path, handler)
+	}
+	if deps.MockRuntime != nil && deps.Authenticator != nil {
+		path, handler := arcav1connect.NewMockServiceHandler(newMockConnectService(deps.MockRuntime, deps.Authenticator, deps.Store))
 		r.Mount(path, handler)
 	}
 	if deps.Store != nil && deps.Authenticator != nil {

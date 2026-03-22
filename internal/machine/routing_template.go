@@ -51,6 +51,13 @@ func NewRoutingTemplateWithCatalog(store ProfileCatalogStore, runtimes map[strin
 	}
 }
 
+// RegisterMockFactory registers the mock provider factory.
+func (r *RoutingTemplate) RegisterMockFactory(mockRT *MockRuntime) {
+	r.factory[db.ProviderTypeMock] = func(_ db.MachineProfile) (Runtime, error) {
+		return mockRT, nil
+	}
+}
+
 func (r *RoutingTemplate) EnsureRunning(ctx context.Context, machine db.Machine, opts RuntimeStartOptions) (string, error) {
 	runtime, err := r.runtimeForMachine(ctx, machine)
 	if err != nil {

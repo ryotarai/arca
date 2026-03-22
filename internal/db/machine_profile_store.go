@@ -19,6 +19,7 @@ const (
 	ProviderTypeLibvirt = "libvirt"
 	ProviderTypeGCE     = "gce"
 	ProviderTypeLXD     = "lxd"
+	ProviderTypeMock    = "mock"
 )
 
 type MachineProfile struct {

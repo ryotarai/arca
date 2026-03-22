@@ -85,16 +85,19 @@ const (
 	maxJobAttempts    = 10
 )
 
-func NewWorker(store *db.Store, runtime Runtime, workerID string, ipCache *MachineIPCache, maxConcurrency int) *Worker {
+func NewWorker(store *db.Store, runtime Runtime, workerID string, ipCache *MachineIPCache, maxConcurrency int, pollInterval time.Duration) *Worker {
 	if maxConcurrency <= 0 {
 		maxConcurrency = 4
+	}
+	if pollInterval <= 0 {
+		pollInterval = 2 * time.Second
 	}
 	return &Worker{
 		store:          store,
 		runtime:        runtime,
 		ipCache:        ipCache,
 		workerID:       workerID,
-		pollInterval:   2 * time.Second,
+		pollInterval:   pollInterval,
 		leaseTTL:       30 * time.Second,
 		reconcileTTL:   15 * time.Second,
 		startupTTL:     4 * time.Minute,

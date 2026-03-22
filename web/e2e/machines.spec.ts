@@ -5,8 +5,10 @@ import {
   bestEffortDeleteMachine,
   createMachineViaAPI,
   waitForMachineByName,
+  waitForMachineStatus,
 } from './helpers/machine'
-import { ensureLxdProfile } from './helpers/machine-profile'
+import { ensureMockProfile } from './helpers/machine-profile'
+import { resetBehavior, setDefaultBehavior } from './helpers/mock'
 
 test.describe('machine list', () => {
   test('machines page shows heading and create button', async ({ page }) => {
@@ -20,7 +22,7 @@ test.describe('machine list', () => {
 
   test('machine created via API appears in list with name and status badge', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `list-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -38,7 +40,7 @@ test.describe('machine list', () => {
 
   test('machine list does not show inline Start/Stop/Delete buttons', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `no-inline-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -57,7 +59,7 @@ test.describe('machine list', () => {
 
   test('machine list shows profile name', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `rt-name-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -76,7 +78,7 @@ test.describe('machine list', () => {
   }) => {
     const machineName = `restart-list-${Date.now()}`
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     await waitForMachineByName(page, machineName)
 
@@ -101,7 +103,7 @@ test.describe('machine list', () => {
 test.describe('machine creation', () => {
   test('create form shows Name and Profile selector', async ({ page }) => {
     await loginAsAdmin(page)
-    await ensureLxdProfile(page)
+    await ensureMockProfile(page)
 
     await page.goto('/machines/create')
     await expect(page.getByRole('heading', { name: 'Create machine' })).toBeVisible()
@@ -111,7 +113,7 @@ test.describe('machine creation', () => {
 
   test('machine creation redirects to detail page', async ({ page }) => {
     await loginAsAdmin(page)
-    await ensureLxdProfile(page)
+    await ensureMockProfile(page)
     const machineName = `create-${Date.now()}`
 
     await page.goto('/machines/create')
@@ -137,7 +139,7 @@ test.describe('machine creation', () => {
 test.describe('machine detail', () => {
   test('detail page shows machine name and status', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `detail-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -155,7 +157,7 @@ test.describe('machine detail', () => {
   test('admin sees Start/Stop/Delete/Share buttons', async ({ page }) => {
     test.setTimeout(90_000)
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `admin-btns-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -173,7 +175,7 @@ test.describe('machine detail', () => {
 
   test('Stop button changes machine status', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `stop-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -192,7 +194,7 @@ test.describe('machine detail', () => {
 
   test('Delete button redirects to machine list', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `del-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -212,7 +214,7 @@ test.describe('machine detail', () => {
 
   test('profile link navigates to profile detail', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `rt-link-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -236,7 +238,7 @@ test.describe('machine detail', () => {
 
   test('events section is visible', async ({ page }) => {
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineName = `events-${Date.now()}`
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
 
@@ -254,7 +256,7 @@ test.describe('machine detail', () => {
   }) => {
     const machineName = `restart-detail-${Date.now()}`
     await loginAsAdmin(page)
-    const runtime = await ensureLxdProfile(page)
+    const runtime = await ensureMockProfile(page)
     const machineID = await createMachineViaAPI(page, machineName, runtime.id)
     await waitForMachineByName(page, machineName)
 
@@ -271,5 +273,51 @@ test.describe('machine detail', () => {
     } finally {
       await bestEffortDeleteMachine(page, machineID)
     }
+  })
+})
+
+test.describe('mock runtime lifecycle', () => {
+  let profileId: string
+
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page)
+    const profile = await ensureMockProfile(page)
+    profileId = profile.id
+  })
+
+  test.afterEach(async ({ page }) => {
+    await resetBehavior(page)
+  })
+
+  test('create machine and wait for running', async ({ page }) => {
+    const machineId = await createMachineViaAPI(page, `mock-test-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['running'])
+  })
+
+  test('stop and restart machine', async ({ page }) => {
+    const machineId = await createMachineViaAPI(page, `mock-stop-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['running'])
+
+    await page.request.post('/arca.v1.MachineService/StopMachine', {
+      data: { machineId },
+    })
+    await waitForMachineStatus(page, machineId, ['stopped'])
+
+    await page.request.post('/arca.v1.MachineService/StartMachine', {
+      data: { machineId },
+    })
+    await waitForMachineStatus(page, machineId, ['running'])
+  })
+
+  test('delete machine', async ({ page }) => {
+    const machineId = await createMachineViaAPI(page, `mock-del-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['running'])
+    await bestEffortDeleteMachine(page, machineId)
+  })
+
+  test('shows starting state with delay', async ({ page }) => {
+    await setDefaultBehavior(page, { delayMs: 3000 })
+    const machineId = await createMachineViaAPI(page, `mock-slow-${Date.now()}`, profileId)
+    await waitForMachineStatus(page, machineId, ['starting', 'running'])
   })
 })

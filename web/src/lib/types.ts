@@ -54,7 +54,7 @@ export type MachineExposureConfig = {
   connectivity: 'private_ip' | 'public_ip' | ''
 }
 
-export type MachineProfileType = 'libvirt' | 'gce' | 'lxd'
+export type MachineProfileType = 'libvirt' | 'gce' | 'lxd' | 'mock'
 
 export type MachineProfileConfig =
   | {
@@ -80,6 +80,7 @@ export type MachineProfileConfig =
       endpoint: string
       startupScript: string
     }
+  | { type: 'mock' }
 
 export type MachineProfileSummary = {
   id: string

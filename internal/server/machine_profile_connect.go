@@ -390,6 +390,21 @@ func validateProfileRequest(name string, profileType arcav1.MachineProfileType, 
 				AutoStopTimeoutSeconds: autoStopTimeoutSeconds,
 			},
 		}, nil
+	case arcav1.MachineProfileType_MACHINE_PROFILE_TYPE_MOCK:
+		mock := config.GetMock()
+		if mock == nil {
+			return validatedProfileRequest{}, errors.New("mock profile requires mock config")
+		}
+		return validatedProfileRequest{
+			name:        normalizedName,
+			profileType: db.ProviderTypeMock,
+			config: &arcav1.MachineProfileConfig{
+				Provider:               &arcav1.MachineProfileConfig_Mock{Mock: &arcav1.MockProfileConfig{}},
+				Exposure:               exposureConfig,
+				ServerApiUrl:           serverApiUrl,
+				AutoStopTimeoutSeconds: autoStopTimeoutSeconds,
+			},
+		}, nil
 	default:
 		return validatedProfileRequest{}, errors.New("profile type is unsupported")
 	}
@@ -445,6 +460,8 @@ func profileTypeFromDB(profileType string) (arcav1.MachineProfileType, error) {
 		return arcav1.MachineProfileType_MACHINE_PROFILE_TYPE_GCE, nil
 	case db.ProviderTypeLXD:
 		return arcav1.MachineProfileType_MACHINE_PROFILE_TYPE_LXD, nil
+	case db.ProviderTypeMock:
+		return arcav1.MachineProfileType_MACHINE_PROFILE_TYPE_MOCK, nil
 	default:
 		return arcav1.MachineProfileType_MACHINE_PROFILE_TYPE_UNSPECIFIED, errors.New("unknown profile type")
 	}
