@@ -12,6 +12,7 @@ import {
   listAvailableProfiles,
   listMachineAccessRequests,
   resolveMachineAccessRequest,
+  changeMachineProfile,
   startMachine,
   stopMachine,
   updateMachineOptions,
@@ -226,6 +227,9 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
   const [editingTags, setEditingTags] = useState(false)
   const [editTagsInput, setEditTagsInput] = useState('')
   const [savingTags, setSavingTags] = useState(false)
+  const [changingProfile, setChangingProfile] = useState(false)
+  const [selectedProfileId, setSelectedProfileId] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
   const endpointURL = machine == null || machine.name === '' || baseDomain === '' ? null : `https://${machineHostname(domainPrefix, machine.name, baseDomain)}`
   const ttydURL = endpointURL != null ? `${endpointURL}/__arca/ttyd` : null
   const shelleyURL = endpointURL != null ? `${endpointURL}/__arca/shelley` : null
@@ -436,15 +440,77 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                 {isAdmin && (
                   <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">Profile</p>
-                    {machine.profileId === '' ? (
-                      <p className="text-sm text-foreground">Unassigned</p>
+                    {changingProfile ? (
+                      <div className="space-y-2">
+                        <select
+                          value={selectedProfileId}
+                          onChange={(e) => setSelectedProfileId(e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                          disabled={savingProfile}
+                        >
+                          <option value="">Select a profile...</option>
+                          {profiles
+                            .filter((p) => !machine.providerType || p.type === machine.providerType)
+                            .map((p) => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={savingProfile || selectedProfileId === '' || selectedProfileId === machine.profileId}
+                            onClick={() => {
+                              const doChange = async () => {
+                                setSavingProfile(true)
+                                setActionError('')
+                                try {
+                                  const updated = await changeMachineProfile(machineID, selectedProfileId)
+                                  setMachine(updated)
+                                  setChangingProfile(false)
+                                } catch (e) {
+                                  setActionError(messageFromError(e))
+                                } finally {
+                                  setSavingProfile(false)
+                                }
+                              }
+                              void doChange()
+                            }}
+                          >
+                            {savingProfile ? 'Saving...' : 'Save'}
+                          </Button>
+                          <Button type="button" variant="secondary" size="sm" disabled={savingProfile} onClick={() => setChangingProfile(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
-                      <Link
-                        to={`/machine-profiles/${machine.profileId}`}
-                        className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
-                      >
-                        {profiles.find((r) => r.id === machine.profileId)?.name ?? machine.profileId}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        {machine.profileId === '' ? (
+                          <p className="text-sm text-foreground">Unassigned</p>
+                        ) : (
+                          <Link
+                            to={`/machine-profiles/${machine.profileId}`}
+                            className="text-sm text-sky-300 underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-200"
+                          >
+                            {profiles.find((r) => r.id === machine.profileId)?.name ?? machine.profileId}
+                          </Link>
+                        )}
+                        {machine.status === 'stopped' && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => {
+                              setSelectedProfileId(machine.profileId)
+                              setChangingProfile(true)
+                            }}
+                          >
+                            Change
+                          </Button>
+                        )}
+                      </div>
                     )}
                     {machine.providerType && (
                       <p className="text-xs text-muted-foreground">Provider: {machine.providerType}</p>
@@ -584,6 +650,64 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                           )}
                         </div>
                       )}
+                    </div>
+                  )
+                })()}
+                {/* Configuration with source labels (admin only) */}
+                {isAdmin && machine.profileId !== '' && (() => {
+                  let infraConfig: Record<string, unknown> = {}
+                  try {
+                    infraConfig = machine.infrastructureConfigJson ? JSON.parse(machine.infrastructureConfigJson) : {}
+                  } catch { /* ignore */ }
+                  const providerConfig = (infraConfig.libvirt ?? infraConfig.gce ?? infraConfig.lxd ?? {}) as Record<string, unknown>
+
+                  type ConfigEntry = { label: string; value: string; source: 'profile' | 'machine' | 'fixed' }
+                  const entries: ConfigEntry[] = []
+
+                  // Machine-level (per-machine)
+                  if (machine.providerType === 'gce' && machine.options?.['machine_type']) {
+                    entries.push({ label: 'Machine type', value: machine.options['machine_type'], source: 'machine' })
+                  }
+
+                  // Fixed (frozen at creation from infrastructure config snapshot)
+                  if (machine.providerType === 'gce') {
+                    if (providerConfig.project) entries.push({ label: 'Project', value: String(providerConfig.project), source: 'fixed' })
+                    if (providerConfig.zone) entries.push({ label: 'Zone', value: String(providerConfig.zone), source: 'fixed' })
+                    if (providerConfig.network) entries.push({ label: 'Network', value: String(providerConfig.network), source: 'fixed' })
+                  } else if (machine.providerType === 'lxd') {
+                    if (providerConfig.endpoint) entries.push({ label: 'Endpoint', value: String(providerConfig.endpoint), source: 'fixed' })
+                  } else if (machine.providerType === 'libvirt') {
+                    if (providerConfig.uri) entries.push({ label: 'URI', value: String(providerConfig.uri), source: 'fixed' })
+                    if (providerConfig.network) entries.push({ label: 'Network', value: String(providerConfig.network), source: 'fixed' })
+                  }
+
+                  if (entries.length === 0) return null
+
+                  const sourceBadge = (source: 'profile' | 'machine' | 'fixed') => {
+                    switch (source) {
+                      case 'profile':
+                        return <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-300">Profile</span>
+                      case 'machine':
+                        return <span className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">Machine</span>
+                      case 'fixed':
+                        return <span className="inline-flex items-center rounded-full border border-slate-400/30 bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-medium text-slate-300">Fixed</span>
+                    }
+                  }
+
+                  return (
+                    <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+                      <p className="text-sm text-muted-foreground">Configuration</p>
+                      <div className="space-y-1.5">
+                        {entries.map((entry) => (
+                          <div key={entry.label} className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs text-muted-foreground shrink-0">{entry.label}</span>
+                              {sourceBadge(entry.source)}
+                            </div>
+                            <span className="text-xs font-medium text-foreground truncate text-right">{entry.value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )
                 })()}
