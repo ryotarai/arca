@@ -1,30 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { loginAsAdmin } from './helpers/auth'
-import { createMachineProfileViaAPI } from './helpers/machine-profile'
+import { createMachineProfileViaAPI, ensureMockProfile } from './helpers/machine-profile'
 
 test.describe('machine options', () => {
   test('create machine with options via API and read them back', async ({ page }) => {
     await loginAsAdmin(page)
 
-    // Create a GCE runtime with allowed machine types
-    const runtime = await createMachineProfileViaAPI(page, {
-      name: `gce-opts-${Date.now()}`,
-      type: 'gce',
-      config: {
-        gce: {
-          project: 'test-project',
-          zone: 'us-central1-a',
-          network: 'default',
-          subnetwork: 'default',
-          serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
-          allowedMachineTypes: ['e2-medium', 'e2-standard-2', 'e2-standard-4'],
-        },
-        exposure: {
-          method: 2,
-          connectivity: 1,
-        },
-      },
-    })
+    // Use mock profile — no real cloud credentials needed in CI
+    const runtime = await ensureMockProfile(page)
 
     // Create machine with machine_type option
     const createResp = await page.request.post('/arca.v1.MachineService/CreateMachine', {
@@ -56,24 +39,8 @@ test.describe('machine options', () => {
   test('update machine options requires stopped status', async ({ page }) => {
     await loginAsAdmin(page)
 
-    const runtime = await createMachineProfileViaAPI(page, {
-      name: `gce-upd-${Date.now()}`,
-      type: 'gce',
-      config: {
-        gce: {
-          project: 'test-project',
-          zone: 'us-central1-a',
-          network: 'default',
-          subnetwork: 'default',
-          serviceAccountEmail: 'test@test.iam.gserviceaccount.com',
-          allowedMachineTypes: ['e2-medium', 'e2-standard-2'],
-        },
-        exposure: {
-          method: 2,
-          connectivity: 1,
-        },
-      },
-    })
+    // Use mock profile — no real cloud credentials needed in CI
+    const runtime = await ensureMockProfile(page)
 
     // Create machine (starts in pending state)
     const createResp = await page.request.post('/arca.v1.MachineService/CreateMachine', {
