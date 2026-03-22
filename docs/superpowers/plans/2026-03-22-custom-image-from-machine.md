@@ -42,7 +42,7 @@
 | `cmd/arcad/main.go` | Register prepare-for-image handler |
 | `web/src/lib/api.ts` | createImageFromMachine API function |
 | `web/src/pages/MachineDetailPage.tsx` | Create Image button, imaging state display |
-| `web/src/lib/types.ts` | locked_operation field on Machine type |
+| `web/src/lib/types.ts` | locked_operation field on Machine type (if manually mapped) |
 
 ---
 
@@ -182,6 +182,9 @@ VALUES (
 
 -- name: UpdateMachineJobMetadataJSON :exec
 UPDATE machine_jobs SET metadata_json = sqlc.arg(metadata_json), updated_at = sqlc.arg(now_unix) WHERE id = sqlc.arg(id);
+
+-- name: HasActiveCreateImageJob :one
+SELECT COUNT(*) > 0 FROM machine_jobs WHERE machine_id = sqlc.arg(machine_id) AND kind = 'create_image' AND status IN ('queued', 'running');
 ```
 
 Update `ListMachinesByDesiredStatus` to exclude locked machines:
@@ -408,11 +411,29 @@ Add `cloud.google.com/go/compute/apiv1` and `computepb` imports. Add a method th
 4. Waits for the operation to complete.
 5. Returns `{"image_project": project, "image_name": imageName}`.
 
-Also extend `resolveImage()` to handle `custom_image_image_name`:
-- If `custom_image_image_name` is set, return `projects/{project}/global/images/{name}`.
-- If `custom_image_image_family` is set (existing), return `projects/{project}/global/images/family/{family}`.
+Also refactor `resolveImage()` to return a full source image URL string instead of `(string, string)`:
 
-Update `instanceSpec()` to use the full image URL from `resolveImage()` directly.
+```go
+// Before: func (r *GceRuntime) resolveImage(machine db.Machine) (string, string)
+// After:  func (r *GceRuntime) resolveImage(machine db.Machine) string
+func (r *GceRuntime) resolveImage(machine db.Machine) string {
+    opts := parseMachineOptionsMap(machine)
+    if opts != nil {
+        proj := strings.TrimSpace(opts["custom_image_image_project"])
+        if proj == "" { proj = defaultGceImageProject }
+        if name := strings.TrimSpace(opts["custom_image_image_name"]); name != "" {
+            return fmt.Sprintf("projects/%s/global/images/%s", proj, name)
+        }
+        if fam := strings.TrimSpace(opts["custom_image_image_family"]); fam != "" {
+            return fmt.Sprintf("projects/%s/global/images/family/%s", proj, fam)
+        }
+    }
+    return fmt.Sprintf("projects/%s/global/images/family/%s",
+        defaultGceImageProject, defaultGceImageFamily)
+}
+```
+
+Update `instanceSpec()` to accept the full `sourceImage` URL string directly (instead of separate `imageProject`/`imageFamily` params). Update all callers accordingly.
 
 - [ ] **Step 4: Add Libvirt stub**
 
@@ -593,12 +614,32 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
         return fmt.Errorf("parse job metadata: %w", err)
     }
 
+    // Deferred cleanup: on ANY error, attempt restart and clear lock.
+    // This avoids modifying the shared error path in processJob.
+    var jobErr error
+    defer func() {
+        if jobErr != nil {
+            w.emitEvent(ctx, machine.ID, job.ID, "error", "imaging_failed",
+                fmt.Sprintf("Image creation failed: %v", jobErr))
+            // Best-effort restart
+            startOpts := w.buildStartOptions(machine)
+            restartCtx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+            defer cancel()
+            if _, err := w.runtime.EnsureRunning(restartCtx, machine, startOpts); err != nil {
+                w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
+                    fmt.Sprintf("Failed to restart after imaging failure: %v", err))
+            }
+        }
+        // Always clear lock (success or failure)
+        _ = w.store.ClearMachineLockedOperation(ctx, machine.ID)
+    }()
+
     w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_started", "Image creation started")
 
     // Step 1: Call arcad prepare-for-image (skip if machine already stopped)
     if machine.Status == db.MachineStatusRunning {
-        if err := w.callArcadPrepareForImage(ctx, machine); err != nil {
-            return fmt.Errorf("arcad prepare-for-image: %w", err)
+        if jobErr = w.callArcadPrepareForImage(ctx, machine); jobErr != nil {
+            return jobErr
         }
         w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_prepared", "Machine state cleaned for imaging")
     }
@@ -606,8 +647,8 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
     // Step 2: Stop machine
     stopCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
     defer cancel()
-    if err := w.runtime.EnsureStopped(stopCtx, machine); err != nil {
-        return fmt.Errorf("stop machine: %w", err)
+    if jobErr = w.runtime.EnsureStopped(stopCtx, machine); jobErr != nil {
+        return jobErr
     }
     w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_stopped", "Machine stopped")
 
@@ -616,15 +657,19 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
     defer cancel2()
     imageRef, err := w.runtime.CreateImage(snapshotCtx, machine, meta.ImageName)
     if err != nil {
-        return fmt.Errorf("create image: %w", err)
+        jobErr = err
+        return jobErr
     }
     w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_snapshot_created", "Snapshot created")
 
     // Step 4: Create custom_images record (idempotent)
     dataJSON, _ := json.Marshal(imageRef)
-    customImage, err := w.store.CreateCustomImageFromMachine(ctx, meta.ImageName, machine.TemplateType, string(dataJSON), job.Description, machine.ID, machine.TemplateID)
+    customImage, err := w.store.CreateCustomImageFromMachine(ctx,
+        meta.ImageName, machine.TemplateType, string(dataJSON),
+        job.Description, machine.ID, machine.TemplateID)
     if err != nil {
-        return fmt.Errorf("create custom image record: %w", err)
+        jobErr = err
+        return jobErr
     }
 
     // Step 5: Update job metadata with custom_image_id
@@ -638,17 +683,13 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
     defer cancel3()
     startOpts := w.buildStartOptions(machine)
     if _, err := w.runtime.EnsureRunning(startCtx, machine, startOpts); err != nil {
-        // Log but don't fail the job — image was created successfully
-        w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed", fmt.Sprintf("Failed to restart: %v", err))
+        w.emitEvent(ctx, machine.ID, job.ID, "warn", "imaging_restart_failed",
+            fmt.Sprintf("Failed to restart: %v", err))
     }
 
-    // Step 7: Clear lock
-    if err := w.store.ClearMachineLockedOperation(ctx, machine.ID); err != nil {
-        return fmt.Errorf("clear locked_operation: %w", err)
-    }
-
-    w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_completed", fmt.Sprintf("Image '%s' created successfully", meta.ImageName))
-    return nil
+    w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_completed",
+        fmt.Sprintf("Image '%s' created successfully", meta.ImageName))
+    return nil  // jobErr remains nil → deferred cleanup skips restart
 }
 ```
 
@@ -660,16 +701,13 @@ In the same file, add a method that:
 3. 60s timeout.
 4. Returns error on non-200 response (special message for 404 — old arcad version).
 
-Note: arcad listens on port 21030 (from `cfg.ListenAddr` default `:21030` in config.go).
+Note: arcad listens on port 21032 per spec. Verify against actual arcad config (`internal/arcad/config.go` ListenAddr default is `:21030`, but ShelleyPort is `21032` — the spec says 21032, so confirm which port serves the API).
 
-- [ ] **Step 4: Update handleJobResult for create_image failure recovery**
+- [ ] **Step 4: Extract buildStartOptions helper**
 
-When a create_image job fails, the worker must:
-1. Attempt to restart the machine (`EnsureRunning`).
-2. Clear `locked_operation`.
-3. Emit `imaging_failed` event.
+The existing `handleStart` builds `RuntimeStartOptions` inline (reading setup state, template config, user startup script). Extract this logic into a shared `buildStartOptions(machine db.Machine) RuntimeStartOptions` method on `Worker` so both `handleStart` and `handleCreateImage` can use it. This is a refactor-only step with no behavior change.
 
-Modify the error handling path in the worker's main job loop to handle this for `MachineJobCreateImage` jobs.
+Note: The `handleCreateImage` method uses a deferred function for error recovery (restart + clear lock), so the generic error path in `processJob` does NOT need modification for `create_image` jobs.
 
 - [ ] **Step 5: Write tests**
 
@@ -751,9 +789,9 @@ git commit -m "Add CreateImageFromMachine API handler with exclusion control"
 - Create: `web/src/components/CreateImageDialog.tsx`
 - Modify: `web/src/pages/MachineDetailPage.tsx`
 
-- [ ] **Step 1: Add locked_operation to types**
+- [ ] **Step 1: Verify locked_operation in generated types**
 
-In `web/src/lib/types.ts`, add `lockedOperation` to the Machine type (should be auto-generated from proto, but verify).
+After `make proto` (Task 4), the `lockedOperation` field should be auto-generated in `web/src/gen/arca/v1/machine_pb.ts`. Verify it exists. If the `Machine` type in `web/src/lib/types.ts` is a manual mapping (not generated), add `lockedOperation` there too.
 
 - [ ] **Step 2: Add createImageFromMachine API function**
 
@@ -810,7 +848,7 @@ git commit -m "Add Create Image UI to machine detail page"
 ## Task 10: Custom Images List — source machine link
 
 **Files:**
-- Modify: custom images list page (find exact path)
+- Modify: `web/src/pages/CustomImagesPage.tsx`
 
 - [ ] **Step 1: Show source machine link**
 
