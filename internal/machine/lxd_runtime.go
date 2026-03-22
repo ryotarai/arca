@@ -66,7 +66,13 @@ func (r *LxdRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	}
 
 	if !exists {
-		opts.StartupScript = r.startupScript
+		// Backward compatibility: for pre-migration machines whose infrastructure
+		// config still contains startup_script, fall back to the runtime's baked-in
+		// script. For new machines, startup_script is always passed via opts from
+		// the live profile.
+		if opts.StartupScript == "" {
+			opts.StartupScript = r.startupScript
+		}
 		cloudConfig := cloudInitUserData(machine, opts)
 		image := r.resolveImage(machine)
 

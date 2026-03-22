@@ -240,7 +240,13 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 	}
 
 	if !found {
-		opts.StartupScript = r.startupScript
+		// Backward compatibility: for pre-migration machines whose infrastructure
+		// config still contains startup_script, fall back to the runtime's baked-in
+		// script. For new machines, startup_script is always passed via opts from
+		// the live profile.
+		if opts.StartupScript == "" {
+			opts.StartupScript = r.startupScript
+		}
 		cloudInit := cloudInitUserData(machine, opts)
 		imageProject, imageFamily := r.resolveImage(machine)
 		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit, effectiveMachineType, imageProject, imageFamily))

@@ -6,12 +6,12 @@ import {
   waitForMachineStatus,
   waitForTTYDAccess,
 } from './helpers/machine'
-import { ensureLxdTemplate } from './helpers/machine-template'
+import { ensureLxdProfile } from './helpers/machine-profile'
 
 test.describe('critical user journey', () => {
   test('login -> create machine -> running readiness -> ttyd is reachable', async ({ page }) => {
     await loginAsAdmin(page)
-    await ensureLxdTemplate(page)
+    await ensureLxdProfile(page)
 
     const machineName = `critical-${Date.now().toString(36)}`
     let machineID = ''
@@ -53,8 +53,8 @@ test.describe('critical user journey', () => {
       await expect(page.getByText('running', { exact: false })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Delete machine' })).toBeVisible()
 
-      await page.getByRole('link', { name: 'Machine Templates' }).click()
-      await expect(page).toHaveURL('/machine-templates')
+      await page.getByRole('link', { name: 'Machine Profiles' }).click()
+      await expect(page).toHaveURL('/machine-profiles')
       await expect(page.getByPlaceholder('edge-libvirt')).toHaveCount(0)
       await expect(page.getByPlaceholder('main-libvirt')).toBeVisible()
 

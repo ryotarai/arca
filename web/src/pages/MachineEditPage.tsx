@@ -1,11 +1,29 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { EndpointVisibility } from '@/gen/arca/v1/tunnel_pb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getSetupStatus, listMachineExposures, updateMachineExposureVisibility } from '@/lib/api'
+import { getSetupStatus, listMachineExposures } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import type { MachineExposure, User } from '@/lib/types'
+
+// EndpointVisibility enum values (previously from tunnel_pb, now inlined)
+const EndpointVisibility = {
+  OWNER_ONLY: 0,
+  SELECTED_USERS: 1,
+  ALL_ARCA_USERS: 2,
+  INTERNET_PUBLIC: 3,
+} as const
+type EndpointVisibility = (typeof EndpointVisibility)[keyof typeof EndpointVisibility]
+
+// Stub: updateMachineExposureVisibility is no longer available via proto
+async function updateMachineExposureVisibility(
+  _machineID: string,
+  _name: string,
+  _visibility: EndpointVisibility,
+  _selectedUserIDs: string[],
+): Promise<void> {
+  throw new Error('Endpoint visibility management has moved to the sharing dialog.')
+}
 
 type MachineEditPageProps = {
   user: User | null
@@ -46,8 +64,8 @@ export function MachineEditPage({ user, onLogout }: MachineEditPageProps) {
         }
         const defaultItem = exposureItems.find((item) => item.name === 'default') ?? null
         setDefaultExposure(defaultItem)
-        setExposureVisibility(defaultItem?.visibility ?? EndpointVisibility.OWNER_ONLY)
-        setSelectedUserIDsInput((defaultItem?.selectedUserIds ?? []).join(', '))
+        setExposureVisibility(((defaultItem as unknown as { visibility?: EndpointVisibility })?.visibility ?? EndpointVisibility.OWNER_ONLY) as EndpointVisibility)
+        setSelectedUserIDsInput(((defaultItem as unknown as { selectedUserIds?: string[] })?.selectedUserIds ?? []).join(', '))
         setInternetPublicExposureDisabled(setupStatus.internetPublicExposureDisabled)
       } catch (e) {
         if (!cancelled) {

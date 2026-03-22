@@ -3,11 +3,11 @@ import { Link, Navigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { listMachineTemplates } from '@/lib/api'
+import { listMachineProfiles } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { MachineTemplateItem, User } from '@/lib/types'
+import type { MachineProfileItem, User } from '@/lib/types'
 
-type MachineTemplatesListPageProps = {
+type MachineProfilesListPageProps = {
   user: User | null
   onLogout: () => Promise<void>
 }
@@ -23,8 +23,8 @@ function exposureLabel(_method: string): string {
   return 'proxy via server'
 }
 
-export function MachineTemplatesListPage({ user }: MachineTemplatesListPageProps) {
-  const [templates, setTemplates] = useState<MachineTemplateItem[]>([])
+export function MachineProfilesListPage({ user }: MachineProfilesListPageProps) {
+  const [profiles, setProfiles] = useState<MachineProfileItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -33,7 +33,7 @@ export function MachineTemplatesListPage({ user }: MachineTemplatesListPageProps
       setLoading(true)
       setError('')
       try {
-        setTemplates(await listMachineTemplates())
+        setProfiles(await listMachineProfiles())
       } catch (err) {
         setError(messageFromError(err))
       } finally {
@@ -55,43 +55,53 @@ export function MachineTemplatesListPage({ user }: MachineTemplatesListPageProps
       <section className="mx-auto w-full max-w-4xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Machine Templates</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Manage machine template entries and type-specific configuration.</p>
+            <h1 className="text-2xl font-semibold text-foreground">Machine Profiles</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage machine profile entries and provider-specific configuration.</p>
           </div>
           <Button asChild>
-            <Link to="/machine-templates/new">
+            <Link to="/machine-profiles/new">
               <Plus className="mr-2 h-4 w-4" />
-              New template
+              New profile
             </Link>
           </Button>
         </div>
 
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
-            <CardTitle className="text-xl">Template catalog</CardTitle>
-            <CardDescription>View, create, or edit template definitions.</CardDescription>
+            <CardTitle className="text-xl">Profile catalog</CardTitle>
+            <CardDescription>View, create, or edit profile definitions.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading templates...</p>
-            ) : templates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No templates configured.</p>
+              <p className="text-sm text-muted-foreground">Loading profiles...</p>
+            ) : profiles.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No profiles configured.</p>
             ) : (
               <div className="space-y-3">
-                {templates.map((template) => (
+                {profiles.map((profile) => (
                   <Link
-                    key={template.id}
-                    to={`/machine-templates/${template.id}`}
+                    key={profile.id}
+                    to={`/machine-profiles/${profile.id}`}
                     className="block rounded-lg border border-border bg-muted/20 p-4 transition-colors hover:bg-muted/40"
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">{template.name}</p>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{template.type}</p>
+                        <p className="text-sm font-medium text-foreground">{profile.name}</p>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{profile.type}</p>
                         <p className="text-xs text-muted-foreground">
-                          Exposure: {exposureLabel(template.exposure.method)}
+                          Exposure: {exposureLabel(profile.exposure.method)}
                         </p>
-                        <p className="text-xs text-muted-foreground">Created {formatUnix(template.createdAt)}</p>
+                        <p className="text-xs text-muted-foreground">Created {formatUnix(profile.createdAt)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center rounded-full border border-border bg-muted/30 px-2 py-0.5 font-medium">
+                          {profile.machineCount} {profile.machineCount === 1 ? 'machine' : 'machines'}
+                        </span>
+                        {profile.runningMachineCount > 0 && (
+                          <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-200">
+                            {profile.runningMachineCount} running
+                          </span>
+                        )}
                       </div>
                     </div>
                   </Link>

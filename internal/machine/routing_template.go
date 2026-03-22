@@ -12,33 +12,41 @@ import (
 	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
 )
 
-type TemplateCatalogStore interface {
-	GetMachineTemplateByID(context.Context, string) (db.MachineTemplate, error)
+type ProfileCatalogStore interface {
+	GetMachineProfileByID(context.Context, string) (db.MachineProfile, error)
 }
 
-type TemplateFactory func(db.MachineTemplate) (Runtime, error)
+// TemplateCatalogStore is an alias for backward compatibility.
+// Deprecated: Use ProfileCatalogStore instead.
+type TemplateCatalogStore = ProfileCatalogStore
+
+type ProfileFactory func(db.MachineProfile) (Runtime, error)
+
+// TemplateFactory is an alias for backward compatibility.
+// Deprecated: Use ProfileFactory instead.
+type TemplateFactory = ProfileFactory
 
 type RoutingTemplate struct {
 	runtimes map[string]Runtime
-	store    TemplateCatalogStore
-	factory  map[string]TemplateFactory
+	store    ProfileCatalogStore
+	factory  map[string]ProfileFactory
 }
 
 func NewRoutingTemplate(runtimes map[string]Runtime) *RoutingTemplate {
 	return NewRoutingTemplateWithCatalog(nil, runtimes)
 }
 
-func NewRoutingTemplateWithCatalog(store TemplateCatalogStore, runtimes map[string]Runtime) *RoutingTemplate {
+func NewRoutingTemplateWithCatalog(store ProfileCatalogStore, runtimes map[string]Runtime) *RoutingTemplate {
 	if runtimes == nil {
 		runtimes = map[string]Runtime{}
 	}
 	return &RoutingTemplate{
 		runtimes: runtimes,
 		store:    store,
-		factory: map[string]TemplateFactory{
-			db.TemplateTypeLibvirt: templateFromLibvirtConfig,
-			db.TemplateTypeGCE:    templateFromGceConfig,
-			db.TemplateTypeLXD:    templateFromLxdConfig,
+		factory: map[string]ProfileFactory{
+			db.ProviderTypeLibvirt: profileFromLibvirtConfig,
+			db.ProviderTypeGCE:    profileFromGceConfig,
+			db.ProviderTypeLXD:    profileFromLxdConfig,
 		},
 	}
 }
@@ -84,81 +92,81 @@ func (r *RoutingTemplate) GetMachineInfo(ctx context.Context, machine db.Machine
 }
 
 // runtimeForMachine resolves a Runtime using the machine's snapshotted
-// template type and config. Falls back to template lookup when
-// the snapshot is empty (pre-migration machines).
+// provider type and infrastructure config. Falls back to profile lookup
+// when the snapshot is empty (pre-migration machines).
 func (r *RoutingTemplate) runtimeForMachine(ctx context.Context, machine db.Machine) (Runtime, error) {
-	templateID := strings.TrimSpace(machine.TemplateID)
-	if templateID == "" {
-		return nil, fmt.Errorf("template is not specified")
+	profileID := strings.TrimSpace(machine.ProfileID)
+	if profileID == "" {
+		return nil, fmt.Errorf("profile is not specified")
 	}
 
 	// Check static runtimes first (used in tests)
-	runtime, ok := r.runtimes[templateID]
+	runtime, ok := r.runtimes[profileID]
 	if ok && runtime != nil {
 		return runtime, nil
 	}
 
-	// Prefer machine's snapshotted template type and config
-	templateType := strings.TrimSpace(machine.TemplateType)
-	configJSON := strings.TrimSpace(machine.TemplateConfigJSON)
-	if templateType != "" && configJSON != "" && configJSON != "{}" {
-		factory := r.factory[templateType]
+	// Prefer machine's snapshotted provider type and infrastructure config
+	providerType := strings.TrimSpace(machine.ProviderType)
+	configJSON := strings.TrimSpace(machine.InfrastructureConfigJSON)
+	if providerType != "" && configJSON != "" && configJSON != "{}" {
+		factory := r.factory[providerType]
 		if factory == nil {
-			return nil, fmt.Errorf("template type %q is not supported", templateType)
+			return nil, fmt.Errorf("provider type %q is not supported", providerType)
 		}
-		rt, err := factory(db.MachineTemplate{
-			ID:         templateID,
-			Type:       templateType,
+		rt, err := factory(db.MachineProfile{
+			ID:         profileID,
+			Type:       providerType,
 			ConfigJSON: configJSON,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("resolve template %q from snapshot: %w", templateID, err)
+			return nil, fmt.Errorf("resolve profile %q from snapshot: %w", profileID, err)
 		}
 		if rt == nil {
-			return nil, fmt.Errorf("template %q is not configured", templateID)
+			return nil, fmt.Errorf("profile %q is not configured", profileID)
 		}
 		return rt, nil
 	}
 
-	// Fallback: look up from template catalog (pre-migration machines)
+	// Fallback: look up from profile catalog (pre-migration machines)
 	if r.store == nil {
-		return nil, fmt.Errorf("template %q is not configured", templateID)
+		return nil, fmt.Errorf("profile %q is not configured", profileID)
 	}
 
-	catalogTemplate, err := r.store.GetMachineTemplateByID(ctx, templateID)
+	catalogProfile, err := r.store.GetMachineProfileByID(ctx, profileID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("template %q not found", templateID)
+			return nil, fmt.Errorf("profile %q not found", profileID)
 		}
-		return nil, fmt.Errorf("load template %q: %w", templateID, err)
+		return nil, fmt.Errorf("load profile %q: %w", profileID, err)
 	}
 
-	factory := r.factory[catalogTemplate.Type]
+	factory := r.factory[catalogProfile.Type]
 	if factory == nil {
-		return nil, fmt.Errorf("template type %q is not supported", catalogTemplate.Type)
+		return nil, fmt.Errorf("provider type %q is not supported", catalogProfile.Type)
 	}
 
-	rt, err := factory(catalogTemplate)
+	rt, err := factory(catalogProfile)
 	if err != nil {
-		return nil, fmt.Errorf("resolve template %q: %w", templateID, err)
+		return nil, fmt.Errorf("resolve profile %q: %w", profileID, err)
 	}
 	if rt == nil {
-		return nil, fmt.Errorf("template %q is not configured", templateID)
+		return nil, fmt.Errorf("profile %q is not configured", profileID)
 	}
 	return rt, nil
 }
 
-var templateConfigUnmarshaler = protojson.UnmarshalOptions{DiscardUnknown: true}
+var profileConfigUnmarshaler = protojson.UnmarshalOptions{DiscardUnknown: true}
 
-func templateFromLibvirtConfig(catalogTemplate db.MachineTemplate) (Runtime, error) {
-	config := &arcav1.MachineTemplateConfig{}
-	if err := templateConfigUnmarshaler.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
-		return nil, fmt.Errorf("decode template config: %w", err)
+func profileFromLibvirtConfig(profile db.MachineProfile) (Runtime, error) {
+	config := &arcav1.MachineProfileConfig{}
+	if err := profileConfigUnmarshaler.Unmarshal([]byte(profile.ConfigJSON), config); err != nil {
+		return nil, fmt.Errorf("decode profile config: %w", err)
 	}
 
 	libvirt := config.GetLibvirt()
 	if libvirt == nil {
-		return nil, fmt.Errorf("libvirt template config is missing")
+		return nil, fmt.Errorf("libvirt profile config is missing")
 	}
 
 	return NewLibvirtRuntimeWithOptions(LibvirtRuntimeOptions{
@@ -169,15 +177,15 @@ func templateFromLibvirtConfig(catalogTemplate db.MachineTemplate) (Runtime, err
 	}), nil
 }
 
-func templateFromGceConfig(catalogTemplate db.MachineTemplate) (Runtime, error) {
-	config := &arcav1.MachineTemplateConfig{}
-	if err := templateConfigUnmarshaler.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
-		return nil, fmt.Errorf("decode template config: %w", err)
+func profileFromGceConfig(profile db.MachineProfile) (Runtime, error) {
+	config := &arcav1.MachineProfileConfig{}
+	if err := profileConfigUnmarshaler.Unmarshal([]byte(profile.ConfigJSON), config); err != nil {
+		return nil, fmt.Errorf("decode profile config: %w", err)
 	}
 
 	gce := config.GetGce()
 	if gce == nil {
-		return nil, fmt.Errorf("gce template config is missing")
+		return nil, fmt.Errorf("gce profile config is missing")
 	}
 
 	runtime, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
@@ -195,15 +203,15 @@ func templateFromGceConfig(catalogTemplate db.MachineTemplate) (Runtime, error) 
 	return runtime, nil
 }
 
-func templateFromLxdConfig(catalogTemplate db.MachineTemplate) (Runtime, error) {
-	config := &arcav1.MachineTemplateConfig{}
-	if err := templateConfigUnmarshaler.Unmarshal([]byte(catalogTemplate.ConfigJSON), config); err != nil {
-		return nil, fmt.Errorf("decode template config: %w", err)
+func profileFromLxdConfig(profile db.MachineProfile) (Runtime, error) {
+	config := &arcav1.MachineProfileConfig{}
+	if err := profileConfigUnmarshaler.Unmarshal([]byte(profile.ConfigJSON), config); err != nil {
+		return nil, fmt.Errorf("decode profile config: %w", err)
 	}
 
 	lxd := config.GetLxd()
 	if lxd == nil {
-		return nil, fmt.Errorf("lxd template config is missing")
+		return nil, fmt.Errorf("lxd profile config is missing")
 	}
 
 	return NewLxdRuntimeWithOptions(LxdRuntimeOptions{

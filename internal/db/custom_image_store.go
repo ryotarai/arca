@@ -14,7 +14,7 @@ import (
 type CustomImage struct {
 	ID          string
 	Name        string
-	TemplateType string
+	ProviderType string
 	DataJSON    string
 	Description string
 	CreatedAt   time.Time
@@ -35,7 +35,7 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				TemplateType: row.TemplateType,
+				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -53,7 +53,7 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				TemplateType: row.TemplateType,
+				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -76,7 +76,7 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 		return CustomImage{
 			ID:          row.ID,
 			Name:        row.Name,
-			TemplateType: row.TemplateType,
+			ProviderType: row.ProviderType,
 			DataJSON:    row.DataJson,
 			Description: row.Description,
 			CreatedAt:   row.CreatedAt,
@@ -90,7 +90,7 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 		return CustomImage{
 			ID:          row.ID,
 			Name:        row.Name,
-			TemplateType: row.TemplateType,
+			ProviderType: row.ProviderType,
 			DataJSON:    row.DataJson,
 			Description: row.Description,
 			CreatedAt:   row.CreatedAt,
@@ -110,7 +110,7 @@ func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJS
 	item := CustomImage{
 		ID:          id,
 		Name:        strings.TrimSpace(name),
-		TemplateType: strings.TrimSpace(runtimeType),
+		ProviderType: strings.TrimSpace(runtimeType),
 		DataJSON:    dataJSON,
 		Description: strings.TrimSpace(description),
 		CreatedAt:   now,
@@ -122,7 +122,7 @@ func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJS
 		err = s.sqliteQueries.CreateCustomImage(ctx, sqlitesqlc.CreateCustomImageParams{
 			ID:          item.ID,
 			Name:        item.Name,
-			TemplateType: item.TemplateType,
+			ProviderType: item.ProviderType,
 			DataJson:    item.DataJSON,
 			Description: item.Description,
 			CreatedAt:   item.CreatedAt,
@@ -132,7 +132,7 @@ func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJS
 		err = s.pgQueries.CreateCustomImage(ctx, postgresqlsqlc.CreateCustomImageParams{
 			ID:          item.ID,
 			Name:        item.Name,
-			TemplateType: item.TemplateType,
+			ProviderType: item.ProviderType,
 			DataJson:    item.DataJSON,
 			Description: item.Description,
 			CreatedAt:   item.CreatedAt,
@@ -161,7 +161,7 @@ func (s *Store) UpdateCustomImage(ctx context.Context, id, name, runtimeType, da
 		updated, err = s.sqliteQueries.UpdateCustomImage(ctx, sqlitesqlc.UpdateCustomImageParams{
 			ID:          id,
 			Name:        strings.TrimSpace(name),
-			TemplateType: strings.TrimSpace(runtimeType),
+			ProviderType: strings.TrimSpace(runtimeType),
 			DataJson:    dataJSON,
 			Description: strings.TrimSpace(description),
 			UpdatedAt:   now,
@@ -170,7 +170,7 @@ func (s *Store) UpdateCustomImage(ctx context.Context, id, name, runtimeType, da
 		updated, err = s.pgQueries.UpdateCustomImage(ctx, postgresqlsqlc.UpdateCustomImageParams{
 			ID:          id,
 			Name:        strings.TrimSpace(name),
-			TemplateType: strings.TrimSpace(runtimeType),
+			ProviderType: strings.TrimSpace(runtimeType),
 			DataJson:    dataJSON,
 			Description: strings.TrimSpace(description),
 			UpdatedAt:   now,
@@ -207,10 +207,10 @@ func (s *Store) DeleteCustomImage(ctx context.Context, id string) (bool, error) 
 	}
 }
 
-func (s *Store) ListCustomImagesByTemplateID(ctx context.Context, runtimeID string) ([]CustomImage, error) {
+func (s *Store) ListCustomImagesByProfileID(ctx context.Context, profileID string) ([]CustomImage, error) {
 	switch s.driver {
 	case DriverSQLite:
-		rows, err := s.sqliteQueries.ListCustomImagesByTemplateID(ctx, runtimeID)
+		rows, err := s.sqliteQueries.ListCustomImagesByProfileID(ctx, profileID)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +219,7 @@ func (s *Store) ListCustomImagesByTemplateID(ctx context.Context, runtimeID stri
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				TemplateType: row.TemplateType,
+				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -228,7 +228,7 @@ func (s *Store) ListCustomImagesByTemplateID(ctx context.Context, runtimeID stri
 		}
 		return items, nil
 	case DriverPostgres:
-		rows, err := s.pgQueries.ListCustomImagesByTemplateID(ctx, runtimeID)
+		rows, err := s.pgQueries.ListCustomImagesByProfileID(ctx, profileID)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +237,7 @@ func (s *Store) ListCustomImagesByTemplateID(ctx context.Context, runtimeID stri
 			items = append(items, CustomImage{
 				ID:          row.ID,
 				Name:        row.Name,
-				TemplateType: row.TemplateType,
+				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
 				CreatedAt:   row.CreatedAt,
@@ -250,16 +250,22 @@ func (s *Store) ListCustomImagesByTemplateID(ctx context.Context, runtimeID stri
 	}
 }
 
-func (s *Store) AssociateTemplateCustomImage(ctx context.Context, runtimeID, customImageID string) error {
+// ListCustomImagesByTemplateID is an alias for backward compatibility.
+// Deprecated: Use ListCustomImagesByProfileID instead.
+func (s *Store) ListCustomImagesByTemplateID(ctx context.Context, profileID string) ([]CustomImage, error) {
+	return s.ListCustomImagesByProfileID(ctx, profileID)
+}
+
+func (s *Store) AssociateProfileCustomImage(ctx context.Context, profileID, customImageID string) error {
 	switch s.driver {
 	case DriverSQLite:
-		return s.sqliteQueries.AssociateTemplateCustomImage(ctx, sqlitesqlc.AssociateTemplateCustomImageParams{
-			TemplateID:    runtimeID,
+		return s.sqliteQueries.AssociateProfileCustomImage(ctx, sqlitesqlc.AssociateProfileCustomImageParams{
+			ProfileID:     profileID,
 			CustomImageID: customImageID,
 		})
 	case DriverPostgres:
-		return s.pgQueries.AssociateTemplateCustomImage(ctx, postgresqlsqlc.AssociateTemplateCustomImageParams{
-			TemplateID:    runtimeID,
+		return s.pgQueries.AssociateProfileCustomImage(ctx, postgresqlsqlc.AssociateProfileCustomImageParams{
+			ProfileID:     profileID,
 			CustomImageID: customImageID,
 		})
 	default:
@@ -267,17 +273,23 @@ func (s *Store) AssociateTemplateCustomImage(ctx context.Context, runtimeID, cus
 	}
 }
 
-func (s *Store) DisassociateTemplateCustomImage(ctx context.Context, runtimeID, customImageID string) (bool, error) {
+// AssociateTemplateCustomImage is an alias for backward compatibility.
+// Deprecated: Use AssociateProfileCustomImage instead.
+func (s *Store) AssociateTemplateCustomImage(ctx context.Context, profileID, customImageID string) error {
+	return s.AssociateProfileCustomImage(ctx, profileID, customImageID)
+}
+
+func (s *Store) DisassociateProfileCustomImage(ctx context.Context, profileID, customImageID string) (bool, error) {
 	switch s.driver {
 	case DriverSQLite:
-		n, err := s.sqliteQueries.DisassociateTemplateCustomImage(ctx, sqlitesqlc.DisassociateTemplateCustomImageParams{
-			TemplateID:    runtimeID,
+		n, err := s.sqliteQueries.DisassociateProfileCustomImage(ctx, sqlitesqlc.DisassociateProfileCustomImageParams{
+			ProfileID:     profileID,
 			CustomImageID: customImageID,
 		})
 		return n > 0, err
 	case DriverPostgres:
-		n, err := s.pgQueries.DisassociateTemplateCustomImage(ctx, postgresqlsqlc.DisassociateTemplateCustomImageParams{
-			TemplateID:    runtimeID,
+		n, err := s.pgQueries.DisassociateProfileCustomImage(ctx, postgresqlsqlc.DisassociateProfileCustomImageParams{
+			ProfileID:     profileID,
 			CustomImageID: customImageID,
 		})
 		return n > 0, err
@@ -286,26 +298,44 @@ func (s *Store) DisassociateTemplateCustomImage(ctx context.Context, runtimeID, 
 	}
 }
 
-func (s *Store) DisassociateAllTemplatesFromCustomImage(ctx context.Context, customImageID string) error {
+// DisassociateTemplateCustomImage is an alias for backward compatibility.
+// Deprecated: Use DisassociateProfileCustomImage instead.
+func (s *Store) DisassociateTemplateCustomImage(ctx context.Context, profileID, customImageID string) (bool, error) {
+	return s.DisassociateProfileCustomImage(ctx, profileID, customImageID)
+}
+
+func (s *Store) DisassociateAllProfilesFromCustomImage(ctx context.Context, customImageID string) error {
 	switch s.driver {
 	case DriverSQLite:
-		return s.sqliteQueries.DisassociateAllTemplatesFromCustomImage(ctx, customImageID)
+		return s.sqliteQueries.DisassociateAllProfilesFromCustomImage(ctx, customImageID)
 	case DriverPostgres:
-		return s.pgQueries.DisassociateAllTemplatesFromCustomImage(ctx, customImageID)
+		return s.pgQueries.DisassociateAllProfilesFromCustomImage(ctx, customImageID)
 	default:
 		return unsupportedDriverError(s.driver)
 	}
 }
 
-func (s *Store) ListTemplateIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
+// DisassociateAllTemplatesFromCustomImage is an alias for backward compatibility.
+// Deprecated: Use DisassociateAllProfilesFromCustomImage instead.
+func (s *Store) DisassociateAllTemplatesFromCustomImage(ctx context.Context, customImageID string) error {
+	return s.DisassociateAllProfilesFromCustomImage(ctx, customImageID)
+}
+
+func (s *Store) ListProfileIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
 	switch s.driver {
 	case DriverSQLite:
-		return s.sqliteQueries.ListTemplateIDsByCustomImageID(ctx, customImageID)
+		return s.sqliteQueries.ListProfileIDsByCustomImageID(ctx, customImageID)
 	case DriverPostgres:
-		return s.pgQueries.ListTemplateIDsByCustomImageID(ctx, customImageID)
+		return s.pgQueries.ListProfileIDsByCustomImageID(ctx, customImageID)
 	default:
 		return nil, unsupportedDriverError(s.driver)
 	}
+}
+
+// ListTemplateIDsByCustomImageID is an alias for backward compatibility.
+// Deprecated: Use ListProfileIDsByCustomImageID instead.
+func (s *Store) ListTemplateIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
+	return s.ListProfileIDsByCustomImageID(ctx, customImageID)
 }
 
 func isCustomImageNameUniqueConstraintError(err error) bool {

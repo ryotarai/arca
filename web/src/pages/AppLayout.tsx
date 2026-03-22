@@ -32,7 +32,7 @@ const navItems = [
 ]
 
 const adminNavItems = [
-  { to: '/machine-templates', label: 'Machine Templates', icon: Blocks },
+  { to: '/machine-profiles', label: 'Machine Profiles', icon: Blocks },
   { to: '/admin/images', label: 'Images', icon: Image },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/groups', label: 'Groups', icon: Group },

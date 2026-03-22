@@ -27,19 +27,19 @@ func (q *Queries) AddUserGroupMember(ctx context.Context, arg AddUserGroupMember
 	return err
 }
 
-const associateTemplateCustomImage = `-- name: AssociateTemplateCustomImage :exec
-INSERT INTO template_custom_images (template_id, custom_image_id)
+const associateProfileCustomImage = `-- name: AssociateProfileCustomImage :exec
+INSERT INTO profile_custom_images (profile_id, custom_image_id)
 VALUES (?1, ?2)
-ON CONFLICT (template_id, custom_image_id) DO NOTHING
+ON CONFLICT (profile_id, custom_image_id) DO NOTHING
 `
 
-type AssociateTemplateCustomImageParams struct {
-	TemplateID    string
+type AssociateProfileCustomImageParams struct {
+	ProfileID     string
 	CustomImageID string
 }
 
-func (q *Queries) AssociateTemplateCustomImage(ctx context.Context, arg AssociateTemplateCustomImageParams) error {
-	_, err := q.db.ExecContext(ctx, associateTemplateCustomImage, arg.TemplateID, arg.CustomImageID)
+func (q *Queries) AssociateProfileCustomImage(ctx context.Context, arg AssociateProfileCustomImageParams) error {
+	_, err := q.db.ExecContext(ctx, associateProfileCustomImage, arg.ProfileID, arg.CustomImageID)
 	return err
 }
 
@@ -117,6 +117,35 @@ func (q *Queries) CountAuditLogsFiltered(ctx context.Context, arg CountAuditLogs
 	return total_count, err
 }
 
+const countMachinesByProfileID = `-- name: CountMachinesByProfileID :one
+SELECT COUNT(*) FROM machines WHERE profile_id = ?1
+`
+
+func (q *Queries) CountMachinesByProfileID(ctx context.Context, profileID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMachinesByProfileID, profileID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countMachinesByProfileIDAndMachineType = `-- name: CountMachinesByProfileIDAndMachineType :one
+SELECT COUNT(*) FROM machines
+WHERE profile_id = ?1
+AND json_extract(options_json, '$.machine_type') = ?2
+`
+
+type CountMachinesByProfileIDAndMachineTypeParams struct {
+	ProfileID   string
+	MachineType string
+}
+
+func (q *Queries) CountMachinesByProfileIDAndMachineType(ctx context.Context, arg CountMachinesByProfileIDAndMachineTypeParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMachinesByProfileIDAndMachineType, arg.ProfileID, arg.MachineType)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countRateLimitEntries = `-- name: CountRateLimitEntries :one
 SELECT COUNT(*) FROM rate_limit_entries WHERE key = ?1 AND timestamp_unix > ?2
 `
@@ -157,6 +186,19 @@ func (q *Queries) CountRecentJobsByStatus(ctx context.Context, arg CountRecentJo
 	var i CountRecentJobsByStatusRow
 	err := row.Scan(&i.Succeeded, &i.Failed, &i.Stuck)
 	return i, err
+}
+
+const countRunningMachinesByProfileID = `-- name: CountRunningMachinesByProfileID :one
+SELECT COUNT(*) FROM machines m
+JOIN machine_states ms ON ms.machine_id = m.id
+WHERE m.profile_id = ?1 AND ms.status = 'running'
+`
+
+func (q *Queries) CountRunningMachinesByProfileID(ctx context.Context, profileID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRunningMachinesByProfileID, profileID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const createArcadExchangeToken = `-- name: CreateArcadExchangeToken :exec
@@ -307,7 +349,7 @@ func (q *Queries) CreateAuthTicket(ctx context.Context, arg CreateAuthTicketPara
 }
 
 const createCustomImage = `-- name: CreateCustomImage :exec
-INSERT INTO custom_images (id, name, template_type, data_json, description, created_at, updated_at)
+INSERT INTO custom_images (id, name, provider_type, data_json, description, created_at, updated_at)
 VALUES (
   ?1,
   ?2,
@@ -322,7 +364,7 @@ VALUES (
 type CreateCustomImageParams struct {
 	ID           string
 	Name         string
-	TemplateType string
+	ProviderType string
 	DataJson     string
 	Description  string
 	CreatedAt    time.Time
@@ -333,7 +375,7 @@ func (q *Queries) CreateCustomImage(ctx context.Context, arg CreateCustomImagePa
 	_, err := q.db.ExecContext(ctx, createCustomImage,
 		arg.ID,
 		arg.Name,
-		arg.TemplateType,
+		arg.ProviderType,
 		arg.DataJson,
 		arg.Description,
 		arg.CreatedAt,
@@ -343,28 +385,30 @@ func (q *Queries) CreateCustomImage(ctx context.Context, arg CreateCustomImagePa
 }
 
 const createMachine = `-- name: CreateMachine :exec
-INSERT INTO machines (id, name, template_id, template_type, template_config_json, setup_version, options_json, custom_image_id)
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+INSERT INTO machines (id, name, profile_id, provider_type, infrastructure_config_json, applied_boot_config_hash, setup_version, options_json, custom_image_id)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
 `
 
 type CreateMachineParams struct {
-	ID                 string
-	Name               string
-	TemplateID         string
-	TemplateType       string
-	TemplateConfigJson string
-	SetupVersion       string
-	OptionsJson        string
-	CustomImageID      string
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJson string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJson              string
+	CustomImageID            string
 }
 
 func (q *Queries) CreateMachine(ctx context.Context, arg CreateMachineParams) error {
 	_, err := q.db.ExecContext(ctx, createMachine,
 		arg.ID,
 		arg.Name,
-		arg.TemplateID,
-		arg.TemplateType,
-		arg.TemplateConfigJson,
+		arg.ProfileID,
+		arg.ProviderType,
+		arg.InfrastructureConfigJson,
+		arg.AppliedBootConfigHash,
 		arg.SetupVersion,
 		arg.OptionsJson,
 		arg.CustomImageID,
@@ -442,6 +486,42 @@ func (q *Queries) CreateMachineEvent(ctx context.Context, arg CreateMachineEvent
 	return err
 }
 
+const createMachineProfile = `-- name: CreateMachineProfile :exec
+INSERT INTO machine_profiles (id, name, type, config_json, boot_config_hash, created_at, updated_at)
+VALUES (
+  ?1,
+  ?2,
+  ?3,
+  ?4,
+  ?5,
+  ?6,
+  ?7
+)
+`
+
+type CreateMachineProfileParams struct {
+	ID             string
+	Name           string
+	Type           string
+	ConfigJson     string
+	BootConfigHash string
+	CreatedAt      int64
+	UpdatedAt      int64
+}
+
+func (q *Queries) CreateMachineProfile(ctx context.Context, arg CreateMachineProfileParams) error {
+	_, err := q.db.ExecContext(ctx, createMachineProfile,
+		arg.ID,
+		arg.Name,
+		arg.Type,
+		arg.ConfigJson,
+		arg.BootConfigHash,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const createMachineState = `-- name: CreateMachineState :exec
 INSERT INTO machine_states (machine_id, status, desired_status, ready, ready_reported_at, ready_reason, updated_at)
 VALUES (
@@ -467,39 +547,6 @@ func (q *Queries) CreateMachineState(ctx context.Context, arg CreateMachineState
 		arg.MachineID,
 		arg.Status,
 		arg.DesiredStatus,
-		arg.UpdatedAt,
-	)
-	return err
-}
-
-const createMachineTemplate = `-- name: CreateMachineTemplate :exec
-INSERT INTO machine_templates (id, name, type, config_json, created_at, updated_at)
-VALUES (
-  ?1,
-  ?2,
-  ?3,
-  ?4,
-  ?5,
-  ?6
-)
-`
-
-type CreateMachineTemplateParams struct {
-	ID         string
-	Name       string
-	Type       string
-	ConfigJson string
-	CreatedAt  int64
-	UpdatedAt  int64
-}
-
-func (q *Queries) CreateMachineTemplate(ctx context.Context, arg CreateMachineTemplateParams) error {
-	_, err := q.db.ExecContext(ctx, createMachineTemplate,
-		arg.ID,
-		arg.Name,
-		arg.Type,
-		arg.ConfigJson,
-		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
 	return err
@@ -788,6 +835,19 @@ func (q *Queries) DeleteMachineIfNoUsers(ctx context.Context, machineID string) 
 	return err
 }
 
+const deleteMachineProfileByID = `-- name: DeleteMachineProfileByID :execrows
+DELETE FROM machine_profiles
+WHERE id = ?1
+`
+
+func (q *Queries) DeleteMachineProfileByID(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteMachineProfileByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteMachineTagsByMachineID = `-- name: DeleteMachineTagsByMachineID :exec
 DELETE FROM machine_tags WHERE machine_id = ?1
 `
@@ -795,19 +855,6 @@ DELETE FROM machine_tags WHERE machine_id = ?1
 func (q *Queries) DeleteMachineTagsByMachineID(ctx context.Context, machineID string) error {
 	_, err := q.db.ExecContext(ctx, deleteMachineTagsByMachineID, machineID)
 	return err
-}
-
-const deleteMachineTemplateByID = `-- name: DeleteMachineTemplateByID :execrows
-DELETE FROM machine_templates
-WHERE id = ?1
-`
-
-func (q *Queries) DeleteMachineTemplateByID(ctx context.Context, id string) (int64, error) {
-	result, err := q.db.ExecContext(ctx, deleteMachineTemplateByID, id)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
 }
 
 const deleteServerLLMModel = `-- name: DeleteServerLLMModel :execrows
@@ -894,29 +941,29 @@ func (q *Queries) DeleteUserMachineByMachineIDForOwner(ctx context.Context, arg 
 	return result.RowsAffected()
 }
 
-const disassociateAllTemplatesFromCustomImage = `-- name: DisassociateAllTemplatesFromCustomImage :exec
-DELETE FROM template_custom_images
+const disassociateAllProfilesFromCustomImage = `-- name: DisassociateAllProfilesFromCustomImage :exec
+DELETE FROM profile_custom_images
 WHERE custom_image_id = ?1
 `
 
-func (q *Queries) DisassociateAllTemplatesFromCustomImage(ctx context.Context, customImageID string) error {
-	_, err := q.db.ExecContext(ctx, disassociateAllTemplatesFromCustomImage, customImageID)
+func (q *Queries) DisassociateAllProfilesFromCustomImage(ctx context.Context, customImageID string) error {
+	_, err := q.db.ExecContext(ctx, disassociateAllProfilesFromCustomImage, customImageID)
 	return err
 }
 
-const disassociateTemplateCustomImage = `-- name: DisassociateTemplateCustomImage :execrows
-DELETE FROM template_custom_images
-WHERE template_id = ?1
+const disassociateProfileCustomImage = `-- name: DisassociateProfileCustomImage :execrows
+DELETE FROM profile_custom_images
+WHERE profile_id = ?1
   AND custom_image_id = ?2
 `
 
-type DisassociateTemplateCustomImageParams struct {
-	TemplateID    string
+type DisassociateProfileCustomImageParams struct {
+	ProfileID     string
 	CustomImageID string
 }
 
-func (q *Queries) DisassociateTemplateCustomImage(ctx context.Context, arg DisassociateTemplateCustomImageParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, disassociateTemplateCustomImage, arg.TemplateID, arg.CustomImageID)
+func (q *Queries) DisassociateProfileCustomImage(ctx context.Context, arg DisassociateProfileCustomImageParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, disassociateProfileCustomImage, arg.ProfileID, arg.CustomImageID)
 	if err != nil {
 		return 0, err
 	}
@@ -1066,7 +1113,7 @@ func (q *Queries) GetAdminViewMode(ctx context.Context, userID string) (string, 
 }
 
 const getCustomImage = `-- name: GetCustomImage :one
-SELECT id, name, template_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, created_at, updated_at
 FROM custom_images
 WHERE id = ?1
 LIMIT 1
@@ -1078,7 +1125,7 @@ func (q *Queries) GetCustomImage(ctx context.Context, id string) (CustomImage, e
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.TemplateType,
+		&i.ProviderType,
 		&i.DataJson,
 		&i.Description,
 		&i.CreatedAt,
@@ -1142,7 +1189,7 @@ func (q *Queries) GetMachineAccessRequestByID(ctx context.Context, id string) (G
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -1151,23 +1198,24 @@ LIMIT 1
 `
 
 type GetMachineByIDRow struct {
-	ID                 string
-	Name               string
-	TemplateID         string
-	TemplateType       string
-	TemplateConfigJson string
-	SetupVersion       string
-	OptionsJson        string
-	CustomImageID      string
-	Status             string
-	DesiredStatus      string
-	ContainerID        string
-	LastError          string
-	Ready              bool
-	ReadyReportedAt    int64
-	ReadyReason        string
-	ArcadVersion       string
-	MachineToken       string
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJson string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJson              string
+	CustomImageID            string
+	Status                   string
+	DesiredStatus            string
+	ContainerID              string
+	LastError                string
+	Ready                    bool
+	ReadyReportedAt          int64
+	ReadyReason              string
+	ArcadVersion             string
+	MachineToken             string
 }
 
 func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMachineByIDRow, error) {
@@ -1176,9 +1224,10 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.TemplateID,
-		&i.TemplateType,
-		&i.TemplateConfigJson,
+		&i.ProfileID,
+		&i.ProviderType,
+		&i.InfrastructureConfigJson,
+		&i.AppliedBootConfigHash,
 		&i.SetupVersion,
 		&i.OptionsJson,
 		&i.CustomImageID,
@@ -1196,7 +1245,7 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -1211,22 +1260,23 @@ type GetMachineByIDForUserParams struct {
 }
 
 type GetMachineByIDForUserRow struct {
-	ID                 string
-	Name               string
-	TemplateID         string
-	TemplateType       string
-	TemplateConfigJson string
-	SetupVersion       string
-	OptionsJson        string
-	CustomImageID      string
-	Status             string
-	DesiredStatus      string
-	ContainerID        string
-	LastError          string
-	Ready              bool
-	ReadyReportedAt    int64
-	ReadyReason        string
-	ArcadVersion       string
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJson string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJson              string
+	CustomImageID            string
+	Status                   string
+	DesiredStatus            string
+	ContainerID              string
+	LastError                string
+	Ready                    bool
+	ReadyReportedAt          int64
+	ReadyReason              string
+	ArcadVersion             string
 }
 
 func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDForUserParams) (GetMachineByIDForUserRow, error) {
@@ -1235,9 +1285,10 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.TemplateID,
-		&i.TemplateType,
-		&i.TemplateConfigJson,
+		&i.ProfileID,
+		&i.ProviderType,
+		&i.InfrastructureConfigJson,
+		&i.AppliedBootConfigHash,
 		&i.SetupVersion,
 		&i.OptionsJson,
 		&i.CustomImageID,
@@ -1254,7 +1305,7 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 }
 
 const getMachineByName = `-- name: GetMachineByName :one
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.name = ?1
@@ -1262,22 +1313,23 @@ LIMIT 1
 `
 
 type GetMachineByNameRow struct {
-	ID                 string
-	Name               string
-	TemplateID         string
-	TemplateType       string
-	TemplateConfigJson string
-	SetupVersion       string
-	OptionsJson        string
-	CustomImageID      string
-	Status             string
-	DesiredStatus      string
-	ContainerID        string
-	LastError          string
-	Ready              bool
-	ReadyReportedAt    int64
-	ReadyReason        string
-	ArcadVersion       string
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJson string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJson              string
+	CustomImageID            string
+	Status                   string
+	DesiredStatus            string
+	ContainerID              string
+	LastError                string
+	Ready                    bool
+	ReadyReportedAt          int64
+	ReadyReason              string
+	ArcadVersion             string
 }
 
 func (q *Queries) GetMachineByName(ctx context.Context, name string) (GetMachineByNameRow, error) {
@@ -1286,9 +1338,10 @@ func (q *Queries) GetMachineByName(ctx context.Context, name string) (GetMachine
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.TemplateID,
-		&i.TemplateType,
-		&i.TemplateConfigJson,
+		&i.ProfileID,
+		&i.ProviderType,
+		&i.InfrastructureConfigJson,
+		&i.AppliedBootConfigHash,
 		&i.SetupVersion,
 		&i.OptionsJson,
 		&i.CustomImageID,
@@ -1361,6 +1414,39 @@ func (q *Queries) GetMachineOwnerUserID(ctx context.Context, machineID string) (
 	return user_id, err
 }
 
+const getMachineProfileByID = `-- name: GetMachineProfileByID :one
+SELECT id, name, type, config_json, boot_config_hash, created_at, updated_at
+FROM machine_profiles
+WHERE id = ?1
+LIMIT 1
+`
+
+func (q *Queries) GetMachineProfileByID(ctx context.Context, id string) (MachineProfile, error) {
+	row := q.db.QueryRowContext(ctx, getMachineProfileByID, id)
+	var i MachineProfile
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Type,
+		&i.ConfigJson,
+		&i.BootConfigHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMachineProfileByIDForBootHash = `-- name: GetMachineProfileByIDForBootHash :one
+SELECT boot_config_hash FROM machine_profiles WHERE id = ?1
+`
+
+func (q *Queries) GetMachineProfileByIDForBootHash(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getMachineProfileByIDForBootHash, id)
+	var boot_config_hash string
+	err := row.Scan(&boot_config_hash)
+	return boot_config_hash, err
+}
+
 const getMachineReadinessByMachineID = `-- name: GetMachineReadinessByMachineID :one
 SELECT ready, ready_reported_at, desired_status
 FROM machine_states
@@ -1395,27 +1481,6 @@ func (q *Queries) GetMachineSharingByMachineID(ctx context.Context, machineID st
 		&i.MachineID,
 		&i.GeneralAccessScope,
 		&i.GeneralAccessRole,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getMachineTemplateByID = `-- name: GetMachineTemplateByID :one
-SELECT id, name, type, config_json, created_at, updated_at
-FROM machine_templates
-WHERE id = ?1
-LIMIT 1
-`
-
-func (q *Queries) GetMachineTemplateByID(ctx context.Context, id string) (MachineTemplate, error) {
-	row := q.db.QueryRowContext(ctx, getMachineTemplateByID, id)
-	var i MachineTemplate
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Type,
-		&i.ConfigJson,
-		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -2081,7 +2146,7 @@ func (q *Queries) ListAuditLogsFiltered(ctx context.Context, arg ListAuditLogsFi
 }
 
 const listCustomImages = `-- name: ListCustomImages :many
-SELECT id, name, template_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, created_at, updated_at
 FROM custom_images
 ORDER BY created_at DESC
 `
@@ -2098,7 +2163,46 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.TemplateType,
+			&i.ProviderType,
+			&i.DataJson,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCustomImagesByProfileID = `-- name: ListCustomImagesByProfileID :many
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
+FROM custom_images ci
+JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
+WHERE pci.profile_id = ?1
+ORDER BY ci.name ASC
+`
+
+func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID string) ([]CustomImage, error) {
+	rows, err := q.db.QueryContext(ctx, listCustomImagesByProfileID, profileID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CustomImage
+	for rows.Next() {
+		var i CustomImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
 			&i.CreatedAt,
@@ -2118,14 +2222,14 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 }
 
 const listCustomImagesByRuntimeType = `-- name: ListCustomImagesByRuntimeType :many
-SELECT id, name, template_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, created_at, updated_at
 FROM custom_images
-WHERE template_type = ?1
+WHERE provider_type = ?1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, templateType string) ([]CustomImage, error) {
-	rows, err := q.db.QueryContext(ctx, listCustomImagesByRuntimeType, templateType)
+func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, providerType string) ([]CustomImage, error) {
+	rows, err := q.db.QueryContext(ctx, listCustomImagesByRuntimeType, providerType)
 	if err != nil {
 		return nil, err
 	}
@@ -2136,46 +2240,7 @@ func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, templateTyp
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.TemplateType,
-			&i.DataJson,
-			&i.Description,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listCustomImagesByTemplateID = `-- name: ListCustomImagesByTemplateID :many
-SELECT ci.id, ci.name, ci.template_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
-FROM custom_images ci
-JOIN template_custom_images tci ON tci.custom_image_id = ci.id
-WHERE tci.template_id = ?1
-ORDER BY ci.name ASC
-`
-
-func (q *Queries) ListCustomImagesByTemplateID(ctx context.Context, templateID string) ([]CustomImage, error) {
-	rows, err := q.db.QueryContext(ctx, listCustomImagesByTemplateID, templateID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CustomImage
-	for rows.Next() {
-		var i CustomImage
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.TemplateType,
+			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
 			&i.CreatedAt,
@@ -2328,6 +2393,43 @@ func (q *Queries) ListMachineGroupAccess(ctx context.Context, machineID string) 
 	return items, nil
 }
 
+const listMachineProfiles = `-- name: ListMachineProfiles :many
+SELECT id, name, type, config_json, boot_config_hash, created_at, updated_at
+FROM machine_profiles
+ORDER BY created_at ASC
+`
+
+func (q *Queries) ListMachineProfiles(ctx context.Context) ([]MachineProfile, error) {
+	rows, err := q.db.QueryContext(ctx, listMachineProfiles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MachineProfile
+	for rows.Next() {
+		var i MachineProfile
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Type,
+			&i.ConfigJson,
+			&i.BootConfigHash,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMachineTagsByMachineID = `-- name: ListMachineTagsByMachineID :many
 SELECT tag FROM machine_tags WHERE machine_id = ?1 ORDER BY tag
 `
@@ -2355,44 +2457,8 @@ func (q *Queries) ListMachineTagsByMachineID(ctx context.Context, machineID stri
 	return items, nil
 }
 
-const listMachineTemplates = `-- name: ListMachineTemplates :many
-SELECT id, name, type, config_json, created_at, updated_at
-FROM machine_templates
-ORDER BY created_at ASC
-`
-
-func (q *Queries) ListMachineTemplates(ctx context.Context) ([]MachineTemplate, error) {
-	rows, err := q.db.QueryContext(ctx, listMachineTemplates)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []MachineTemplate
-	for rows.Next() {
-		var i MachineTemplate
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Type,
-			&i.ConfigJson,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -2407,24 +2473,25 @@ ORDER BY m.created_at DESC
 `
 
 type ListMachinesAccessibleByUserRow struct {
-	ID                 string
-	Name               string
-	TemplateID         string
-	TemplateType       string
-	TemplateConfigJson string
-	SetupVersion       string
-	OptionsJson        string
-	CustomImageID      string
-	Status             string
-	DesiredStatus      string
-	ContainerID        string
-	LastError          string
-	Ready              bool
-	ReadyReportedAt    int64
-	ReadyReason        string
-	ArcadVersion       string
-	UserRole           string
-	CreatedAt          time.Time
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJson string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJson              string
+	CustomImageID            string
+	Status                   string
+	DesiredStatus            string
+	ContainerID              string
+	LastError                string
+	Ready                    bool
+	ReadyReportedAt          int64
+	ReadyReason              string
+	ArcadVersion             string
+	UserRole                 string
+	CreatedAt                time.Time
 }
 
 func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID string) ([]ListMachinesAccessibleByUserRow, error) {
@@ -2439,9 +2506,10 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.TemplateID,
-			&i.TemplateType,
-			&i.TemplateConfigJson,
+			&i.ProfileID,
+			&i.ProviderType,
+			&i.InfrastructureConfigJson,
+			&i.AppliedBootConfigHash,
 			&i.SetupVersion,
 			&i.OptionsJson,
 			&i.CustomImageID,
@@ -2470,7 +2538,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.template_id, m.template_type, m.template_config_json, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = ?1
@@ -2484,23 +2552,24 @@ type ListMachinesByDesiredStatusParams struct {
 }
 
 type ListMachinesByDesiredStatusRow struct {
-	ID                 string
-	Name               string
-	TemplateID         string
-	TemplateType       string
-	TemplateConfigJson string
-	SetupVersion       string
-	OptionsJson        string
-	CustomImageID      string
-	Status             string
-	DesiredStatus      string
-	ContainerID        string
-	LastError          string
-	Ready              bool
-	ReadyReportedAt    int64
-	ReadyReason        string
-	ArcadVersion       string
-	LastActivityAt     int64
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJson string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJson              string
+	CustomImageID            string
+	Status                   string
+	DesiredStatus            string
+	ContainerID              string
+	LastError                string
+	Ready                    bool
+	ReadyReportedAt          int64
+	ReadyReason              string
+	ArcadVersion             string
+	LastActivityAt           int64
 }
 
 func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachinesByDesiredStatusParams) ([]ListMachinesByDesiredStatusRow, error) {
@@ -2515,9 +2584,10 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.TemplateID,
-			&i.TemplateType,
-			&i.TemplateConfigJson,
+			&i.ProfileID,
+			&i.ProviderType,
+			&i.InfrastructureConfigJson,
+			&i.AppliedBootConfigHash,
 			&i.SetupVersion,
 			&i.OptionsJson,
 			&i.CustomImageID,
@@ -2632,6 +2702,36 @@ func (q *Queries) ListPendingMachineAccessRequestsByMachineID(ctx context.Contex
 	return items, nil
 }
 
+const listProfileIDsByCustomImageID = `-- name: ListProfileIDsByCustomImageID :many
+SELECT profile_id
+FROM profile_custom_images
+WHERE custom_image_id = ?1
+ORDER BY profile_id ASC
+`
+
+func (q *Queries) ListProfileIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listProfileIDsByCustomImageID, customImageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var profile_id string
+		if err := rows.Scan(&profile_id); err != nil {
+			return nil, err
+		}
+		items = append(items, profile_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRunnableMachineJobs = `-- name: ListRunnableMachineJobs :many
 SELECT mj.id, mj.machine_id, mj.kind, mj.attempt
 FROM machine_jobs mj
@@ -2713,36 +2813,6 @@ func (q *Queries) ListServerLLMModels(ctx context.Context) ([]ServerLlmModel, er
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listTemplateIDsByCustomImageID = `-- name: ListTemplateIDsByCustomImageID :many
-SELECT template_id
-FROM template_custom_images
-WHERE custom_image_id = ?1
-ORDER BY template_id ASC
-`
-
-func (q *Queries) ListTemplateIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listTemplateIDsByCustomImageID, customImageID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var template_id string
-		if err := rows.Scan(&template_id); err != nil {
-			return nil, err
-		}
-		items = append(items, template_id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -3444,7 +3514,7 @@ func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmail
 const updateCustomImage = `-- name: UpdateCustomImage :execrows
 UPDATE custom_images
 SET name = ?1,
-    template_type = ?2,
+    provider_type = ?2,
     data_json = ?3,
     description = ?4,
     updated_at = ?5
@@ -3453,7 +3523,7 @@ WHERE id = ?6
 
 type UpdateCustomImageParams struct {
 	Name         string
-	TemplateType string
+	ProviderType string
 	DataJson     string
 	Description  string
 	UpdatedAt    time.Time
@@ -3463,7 +3533,7 @@ type UpdateCustomImageParams struct {
 func (q *Queries) UpdateCustomImage(ctx context.Context, arg UpdateCustomImageParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateCustomImage,
 		arg.Name,
-		arg.TemplateType,
+		arg.ProviderType,
 		arg.DataJson,
 		arg.Description,
 		arg.UpdatedAt,
@@ -3473,6 +3543,35 @@ func (q *Queries) UpdateCustomImage(ctx context.Context, arg UpdateCustomImagePa
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const updateMachineAppliedBootConfigHash = `-- name: UpdateMachineAppliedBootConfigHash :exec
+UPDATE machines SET applied_boot_config_hash = ?1 WHERE id = ?2
+`
+
+type UpdateMachineAppliedBootConfigHashParams struct {
+	AppliedBootConfigHash string
+	MachineID             string
+}
+
+func (q *Queries) UpdateMachineAppliedBootConfigHash(ctx context.Context, arg UpdateMachineAppliedBootConfigHashParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineAppliedBootConfigHash, arg.AppliedBootConfigHash, arg.MachineID)
+	return err
+}
+
+const updateMachineInfrastructureConfig = `-- name: UpdateMachineInfrastructureConfig :exec
+UPDATE machines SET provider_type = ?1, infrastructure_config_json = ?2 WHERE id = ?3
+`
+
+type UpdateMachineInfrastructureConfigParams struct {
+	ProviderType             string
+	InfrastructureConfigJson string
+	MachineID                string
+}
+
+func (q *Queries) UpdateMachineInfrastructureConfig(ctx context.Context, arg UpdateMachineInfrastructureConfigParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineInfrastructureConfig, arg.ProviderType, arg.InfrastructureConfigJson, arg.MachineID)
+	return err
 }
 
 const updateMachineLastActivityAt = `-- name: UpdateMachineLastActivityAt :exec
@@ -3536,6 +3635,54 @@ func (q *Queries) UpdateMachineOptionsByID(ctx context.Context, arg UpdateMachin
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const updateMachineProfileByID = `-- name: UpdateMachineProfileByID :execrows
+UPDATE machine_profiles
+SET name = ?1,
+    type = ?2,
+    config_json = ?3,
+    boot_config_hash = ?4,
+    updated_at = ?5
+WHERE id = ?6
+`
+
+type UpdateMachineProfileByIDParams struct {
+	Name           string
+	Type           string
+	ConfigJson     string
+	BootConfigHash string
+	UpdatedAt      int64
+	ID             string
+}
+
+func (q *Queries) UpdateMachineProfileByID(ctx context.Context, arg UpdateMachineProfileByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateMachineProfileByID,
+		arg.Name,
+		arg.Type,
+		arg.ConfigJson,
+		arg.BootConfigHash,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateMachineProfileID = `-- name: UpdateMachineProfileID :exec
+UPDATE machines SET profile_id = ?1 WHERE id = ?2
+`
+
+type UpdateMachineProfileIDParams struct {
+	ProfileID string
+	MachineID string
+}
+
+func (q *Queries) UpdateMachineProfileID(ctx context.Context, arg UpdateMachineProfileIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineProfileID, arg.ProfileID, arg.MachineID)
+	return err
 }
 
 const updateMachineRuntimeStateByMachineID = `-- name: UpdateMachineRuntimeStateByMachineID :exec
@@ -3603,37 +3750,6 @@ func (q *Queries) UpdateMachineStateForOwner(ctx context.Context, arg UpdateMach
 		arg.UpdatedAt,
 		arg.MachineID,
 		arg.UserID,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-const updateMachineTemplateByID = `-- name: UpdateMachineTemplateByID :execrows
-UPDATE machine_templates
-SET name = ?1,
-    type = ?2,
-    config_json = ?3,
-    updated_at = ?4
-WHERE id = ?5
-`
-
-type UpdateMachineTemplateByIDParams struct {
-	Name       string
-	Type       string
-	ConfigJson string
-	UpdatedAt  int64
-	ID         string
-}
-
-func (q *Queries) UpdateMachineTemplateByID(ctx context.Context, arg UpdateMachineTemplateByIDParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateMachineTemplateByID,
-		arg.Name,
-		arg.Type,
-		arg.ConfigJson,
-		arg.UpdatedAt,
-		arg.ID,
 	)
 	if err != nil {
 		return 0, err

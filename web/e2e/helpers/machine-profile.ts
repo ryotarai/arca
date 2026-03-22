@@ -8,29 +8,29 @@ async function parseJSONSafe(response: APIResponse): Promise<Record<string, unkn
   }
 }
 
-type TemplateRecord = {
+type ProfileRecord = {
   id: string
   name: string
   type: string
 }
 
-type CreateTemplateOptions = {
+type CreateProfileOptions = {
   name: string
   type: string
   config: Record<string, unknown>
 }
 
-export async function createMachineTemplateViaAPI(
+export async function createMachineProfileViaAPI(
   page: Page,
-  options: CreateTemplateOptions,
-): Promise<TemplateRecord> {
+  options: CreateProfileOptions,
+): Promise<ProfileRecord> {
   const typeMap: Record<string, number> = {
     libvirt: 1,
     gce: 2,
     lxd: 3,
   }
 
-  const response = await page.request.post('/arca.v1.MachineTemplateService/CreateMachineTemplate', {
+  const response = await page.request.post('/arca.v1.MachineProfileService/CreateMachineProfile', {
     data: {
       name: options.name,
       type: typeMap[options.type] ?? 0,
@@ -40,22 +40,22 @@ export async function createMachineTemplateViaAPI(
 
   if (!response.ok()) {
     const payload = await parseJSONSafe(response)
-    throw new Error(`CreateMachineTemplate failed: ${response.status()} ${JSON.stringify(payload)}`)
+    throw new Error(`CreateMachineProfile failed: ${response.status()} ${JSON.stringify(payload)}`)
   }
 
   const payload = (await response.json()) as {
-    template?: { id?: string; name?: string; type?: string }
+    profile?: { id?: string; name?: string; type?: string }
   }
   return {
-    id: payload.template?.id?.trim() ?? '',
-    name: payload.template?.name?.trim() ?? '',
-    type: payload.template?.type?.trim() ?? '',
+    id: payload.profile?.id?.trim() ?? '',
+    name: payload.profile?.name?.trim() ?? '',
+    type: payload.profile?.type?.trim() ?? '',
   }
 }
 
-export async function deleteMachineTemplateViaAPI(page: Page, templateId: string) {
-  const response = await page.request.post('/arca.v1.MachineTemplateService/DeleteMachineTemplate', {
-    data: { templateId },
+export async function deleteMachineProfileViaAPI(page: Page, profileId: string) {
+  const response = await page.request.post('/arca.v1.MachineProfileService/DeleteMachineProfile', {
+    data: { profileId },
     failOnStatusCode: false,
   })
 
@@ -65,18 +65,18 @@ export async function deleteMachineTemplateViaAPI(page: Page, templateId: string
     if (code.includes('not_found')) {
       return
     }
-    throw new Error(`DeleteMachineTemplate failed: ${response.status()} ${JSON.stringify(payload)}`)
+    throw new Error(`DeleteMachineProfile failed: ${response.status()} ${JSON.stringify(payload)}`)
   }
 }
 
-export async function ensureLxdTemplate(
+export async function ensureLxdProfile(
   page: Page,
-): Promise<TemplateRecord> {
+): Promise<ProfileRecord> {
   const serverPort = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080',
   ).port
   try {
-    return await createMachineTemplateViaAPI(page, {
+    return await createMachineProfileViaAPI(page, {
       name: 'lxd-e2e',
       type: 'lxd',
       config: {
@@ -90,13 +90,13 @@ export async function ensureLxdTemplate(
     })
   } catch (error) {
     if (String(error).includes('already_exists')) {
-      const listResp = await page.request.post('/arca.v1.MachineTemplateService/ListMachineTemplates', {
+      const listResp = await page.request.post('/arca.v1.MachineProfileService/ListMachineProfiles', {
         data: {},
       })
       const listPayload = (await listResp.json()) as {
-        templates?: Array<{ id?: string; name?: string; type?: string }>
+        profiles?: Array<{ id?: string; name?: string; type?: string }>
       }
-      const existing = listPayload.templates?.find((r) => r.name === 'lxd-e2e')
+      const existing = listPayload.profiles?.find((r) => r.name === 'lxd-e2e')
       if (existing) {
         return {
           id: existing.id ?? '',
@@ -109,17 +109,17 @@ export async function ensureLxdTemplate(
   }
 }
 
-export async function ensureLxdTemplateWithProxyExposure(
+export async function ensureLxdProfileWithProxyExposure(
   page: Page,
   opts?: { name?: string },
-): Promise<TemplateRecord> {
+): Promise<ProfileRecord> {
   const name = opts?.name ?? 'lxd-proxy-e2e'
   const serverPort = new URL(
     process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:18080',
   ).port
 
   try {
-    return await createMachineTemplateViaAPI(page, {
+    return await createMachineProfileViaAPI(page, {
       name,
       type: 'lxd',
       config: {
@@ -133,13 +133,13 @@ export async function ensureLxdTemplateWithProxyExposure(
     })
   } catch (error) {
     if (String(error).includes('already_exists')) {
-      const listResp = await page.request.post('/arca.v1.MachineTemplateService/ListMachineTemplates', {
+      const listResp = await page.request.post('/arca.v1.MachineProfileService/ListMachineProfiles', {
         data: {},
       })
       const listPayload = (await listResp.json()) as {
-        templates?: Array<{ id?: string; name?: string; type?: string }>
+        profiles?: Array<{ id?: string; name?: string; type?: string }>
       }
-      const existing = listPayload.templates?.find((r) => r.name === name)
+      const existing = listPayload.profiles?.find((r) => r.name === name)
       if (existing) {
         return {
           id: existing.id ?? '',

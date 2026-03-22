@@ -30,7 +30,7 @@ const ACTION_PREFIXES = [
   { value: '', label: 'All actions' },
   { value: 'machine.', label: 'machine.*' },
   { value: 'user.', label: 'user.*' },
-  { value: 'template.', label: 'template.*' },
+  { value: 'profile.', label: 'profile.*' },
   { value: 'image.', label: 'image.*' },
   { value: 'group.', label: 'group.*' },
   { value: 'sharing.', label: 'sharing.*' },
@@ -46,7 +46,8 @@ function resourceLink(resourceType: string, resourceId: string): string | null {
     case 'machine':
       return `/machines/${resourceId}`
     case 'template':
-      return `/machine-templates/${resourceId}`
+    case 'profile':
+      return `/machine-profiles/${resourceId}`
     default:
       return null
   }

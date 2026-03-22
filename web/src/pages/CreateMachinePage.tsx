@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createMachine, listAvailableImages, listAvailableMachineTemplates } from '@/lib/api'
+import { createMachine, listAvailableImages, listAvailableProfiles } from '@/lib/api'
 import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
-import type { MachineTemplateSummary, User } from '@/lib/types'
+import type { MachineProfileSummary, User } from '@/lib/types'
 
 type CreateMachinePageProps = {
   user: User | null
@@ -41,12 +41,12 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
   const [nameTouched, setNameTouched] = useState(false)
-  const [selectedTemplateID, setSelectedTemplateID] = useState('')
-  const [templates, setTemplates] = useState<MachineTemplateSummary[]>([])
+  const [selectedProfileID, setSelectedProfileID] = useState('')
+  const [profiles, setProfiles] = useState<MachineProfileSummary[]>([])
   const [machineType, setMachineType] = useState('')
   const [customImageId, setCustomImageId] = useState('')
   const [availableImages, setAvailableImages] = useState<CustomImage[]>([])
-  const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [loadingProfiles, setLoadingProfiles] = useState(true)
   const [tagsInput, setTagsInput] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -59,16 +59,16 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     let cancelled = false
 
     const run = async () => {
-      setLoadingTemplates(true)
+      setLoadingProfiles(true)
       setError('')
       try {
-        const items = await listAvailableMachineTemplates()
+        const items = await listAvailableProfiles()
         if (cancelled) {
           return
         }
-        setTemplates(items)
-        setSelectedTemplateID((current) => {
-          if (current !== '' && items.some((template) => template.id === current)) {
+        setProfiles(items)
+        setSelectedProfileID((current) => {
+          if (current !== '' && items.some((profile) => profile.id === current)) {
             return current
           }
           return items[0]?.id ?? ''
@@ -79,7 +79,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
         }
       } finally {
         if (!cancelled) {
-          setLoadingTemplates(false)
+          setLoadingProfiles(false)
         }
       }
     }
@@ -91,9 +91,9 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     }
   }, [user])
 
-  // Fetch available images when template changes
+  // Fetch available images when profile changes
   useEffect(() => {
-    if (selectedTemplateID === '') {
+    if (selectedProfileID === '') {
       setAvailableImages([])
       setCustomImageId('')
       return
@@ -101,7 +101,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     let cancelled = false
     const fetchImages = async () => {
       try {
-        const imgs = await listAvailableImages(selectedTemplateID)
+        const imgs = await listAvailableImages(selectedProfileID)
         if (!cancelled) {
           setAvailableImages(imgs)
           setCustomImageId('')
@@ -114,7 +114,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     }
     void fetchImages()
     return () => { cancelled = true }
-  }, [selectedTemplateID])
+  }, [selectedProfileID])
 
   if (user == null) {
     return <Navigate to="/login" replace />
@@ -129,8 +129,8 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       setNameError(nameValidationError)
       return
     }
-    if (selectedTemplateID.trim() === '') {
-      setError('Template is required.')
+    if (selectedProfileID.trim() === '') {
+      setError('Profile is required.')
       return
     }
 
@@ -138,10 +138,10 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
     setError('')
     try {
       const options: Record<string, string> = {}
-      const selectedTemplate = templates.find((r) => r.id === selectedTemplateID)
+      const selectedProfile = profiles.find((r) => r.id === selectedProfileID)
       const effectiveMachineType = machineType.trim() ||
-        (selectedTemplate?.type === 'gce'
-          ? (selectedTemplate.allowedMachineTypes ?? [])[0] ?? ''
+        (selectedProfile?.type === 'gce'
+          ? (selectedProfile.allowedMachineTypes ?? [])[0] ?? ''
           : '')
       if (effectiveMachineType !== '') {
         options.machine_type = effectiveMachineType
@@ -149,7 +149,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
       const tags = tagsInput.split(',').map((t) => t.trim()).filter((t) => t !== '')
       const created = await createMachine(
         trimmedName,
-        selectedTemplateID,
+        selectedProfileID,
         Object.keys(options).length > 0 ? options : undefined,
         customImageId || undefined,
         tags.length > 0 ? tags : undefined,
@@ -169,7 +169,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Arca</p>
             <h1 className="mt-2 text-2xl font-semibold text-foreground">Create machine</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Create a machine from an existing template.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Create a machine from an existing profile.</p>
           </div>
           <div className="flex items-center gap-3">
             <Button asChild type="button" variant="secondary">
@@ -184,7 +184,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
         <Card className="py-0 shadow-sm">
           <CardHeader className="space-y-2 p-6 pb-3">
             <CardTitle className="text-xl">Machine settings</CardTitle>
-            <CardDescription>Choose template and machine name before creation.</CardDescription>
+            <CardDescription>Choose profile and machine name before creation.</CardDescription>
           </CardHeader>
           <CardContent className="p-6 pt-3">
             <form className="space-y-4" onSubmit={handleSubmit}>
@@ -215,29 +215,29 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-machine-template">
-                  Template
+                <Label htmlFor="create-machine-profile">
+                  Profile
                 </Label>
                 <select
-                  id="create-machine-template"
-                  value={selectedTemplateID}
-                  onChange={(event) => setSelectedTemplateID(event.target.value)}
+                  id="create-machine-profile"
+                  value={selectedProfileID}
+                  onChange={(event) => setSelectedProfileID(event.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-                  disabled={loadingTemplates || templates.length === 0}
+                  disabled={loadingProfiles || profiles.length === 0}
                 >
-                  {templates.length === 0 && <option value="">No template available</option>}
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name} ({template.type})
+                  {profiles.length === 0 && <option value="">No profile available</option>}
+                  {profiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name} ({profile.type})
                     </option>
                   ))}
                 </select>
               </div>
 
               {(() => {
-                const selectedTemplate = templates.find((r) => r.id === selectedTemplateID)
-                if (selectedTemplate == null || selectedTemplate.type !== 'gce') return null
-                const allowed = selectedTemplate.allowedMachineTypes ?? []
+                const selectedProfile = profiles.find((r) => r.id === selectedProfileID)
+                if (selectedProfile == null || selectedProfile.type !== 'gce') return null
+                const allowed = selectedProfile.allowedMachineTypes ?? []
                 if (allowed.length === 0) return null
                 return (
                   <div className="space-y-2">
@@ -278,7 +278,7 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                     ))}
                   </select>
                   <p className="text-xs text-muted-foreground">
-                    Select a custom image or use the template default.
+                    Select a custom image or use the profile default.
                   </p>
                 </div>
               )}
@@ -297,14 +297,14 @@ export function CreateMachinePage({ user, onLogout }: CreateMachinePageProps) {
                 </p>
               </div>
 
-              {templates.length === 0 && !loadingTemplates && (
-                <p className="text-sm text-amber-300">Create at least one template before creating machines.</p>
+              {profiles.length === 0 && !loadingProfiles && (
+                <p className="text-sm text-amber-300">Create at least one profile before creating machines.</p>
               )}
 
               <Button
                 type="submit"
                 className="h-10 px-5"
-                disabled={creating || loadingTemplates || templates.length === 0}
+                disabled={creating || loadingProfiles || profiles.length === 0}
               >
                 {creating ? 'Creating...' : 'Create machine'}
               </Button>

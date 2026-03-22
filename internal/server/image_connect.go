@@ -268,7 +268,7 @@ func (s *imageConnectService) authenticateAdmin(ctx context.Context, header http
 }
 
 func (s *imageConnectService) validateTemplateTypeMatch(ctx context.Context, templateID, expectedType string) error {
-	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	tmpl, err := s.store.GetMachineProfileByID(ctx, templateID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found: "+templateID))
@@ -289,7 +289,7 @@ func toCustomImageMessage(img db.CustomImage, templateIDs []string) *arcav1.Cust
 	return &arcav1.CustomImage{
 		Id:                    img.ID,
 		Name:                  img.Name,
-		TemplateType:          img.TemplateType,
+		TemplateType:          img.ProviderType,
 		Data:                  data,
 		Description:           img.Description,
 		AssociatedTemplateIds: templateIDs,

@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ryotarai/arca/internal/auth"
 	"github.com/ryotarai/arca/internal/db"
@@ -83,7 +82,9 @@ func (s *machineConnectService) ListMachines(ctx context.Context, req *connect.R
 		if allTags != nil {
 			machine.Tags = allTags[machine.ID]
 		}
-		items = append(items, toMachineMessageWithAdmin(machine, isAdmin))
+		msg := toMachineMessageWithAdmin(machine, isAdmin)
+		msg.RestartNeeded = s.computeRestartNeeded(ctx, machine)
+		items = append(items, msg)
 	}
 
 	return connect.NewResponse(&arcav1.ListMachinesResponse{Machines: items}), nil
@@ -116,7 +117,9 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 				if mErr == nil {
 					m.UserRole = role
 					s.populateMachineTags(ctx, &m)
-					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(m, isAdmin)}), nil
+					msg := toMachineMessageWithAdmin(m, isAdmin)
+					msg.RestartNeeded = s.computeRestartNeeded(ctx, m)
+					return connect.NewResponse(&arcav1.GetMachineResponse{Machine: msg}), nil
 				}
 			}
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
@@ -127,7 +130,9 @@ func (s *machineConnectService) GetMachine(ctx context.Context, req *connect.Req
 	machine.UserRole = role
 	s.populateMachineTags(ctx, &machine)
 
-	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: toMachineMessageWithAdmin(machine, isAdmin)}), nil
+	msg := toMachineMessageWithAdmin(machine, isAdmin)
+	msg.RestartNeeded = s.computeRestartNeeded(ctx, machine)
+	return connect.NewResponse(&arcav1.GetMachineResponse{Machine: msg}), nil
 }
 
 func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.Request[arcav1.CreateMachineRequest]) (*connect.Response[arcav1.CreateMachineResponse], error) {
@@ -142,23 +147,30 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	templateID, err := s.resolveCreateTemplateID(ctx, req.Msg.GetTemplateId())
+	profileID, err := s.resolveCreateProfileID(ctx, req.Msg.GetProfileId())
 	if err != nil {
 		return nil, err
 	}
 
-	// Snapshot template config at creation time
-	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	// Snapshot profile config at creation time
+	profile, err := s.store.GetMachineProfileByID(ctx, profileID)
 	if err != nil {
-		slog.ErrorContext(ctx, "get template for snapshot failed", "error", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
+		slog.ErrorContext(ctx, "get profile for snapshot failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve profile"))
+	}
+
+	// Extract infrastructure-only config (remove dynamic settings)
+	infraConfigJSON, err := extractInfrastructureConfig(profile.ConfigJSON)
+	if err != nil {
+		slog.ErrorContext(ctx, "extract infrastructure config failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to process profile config"))
 	}
 
 	options := req.Msg.GetOptions()
 	optionsJSON := "{}"
 	if len(options) > 0 {
 		if machineType := strings.TrimSpace(options["machine_type"]); machineType != "" {
-			if err := s.validateMachineType(ctx, templateID, machineType); err != nil {
+			if err := s.validateMachineType(ctx, profileID, machineType); err != nil {
 				return nil, err
 			}
 		}
@@ -171,10 +183,10 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 
 	customImageID := strings.TrimSpace(req.Msg.GetCustomImageId())
 	if customImageID != "" {
-		if err := s.validateCustomImage(ctx, templateID, customImageID); err != nil {
+		if err := s.validateCustomImage(ctx, profileID, customImageID); err != nil {
 			return nil, err
 		}
-		// Inject custom image data into options so templates can resolve images
+		// Inject custom image data into options so profiles can resolve images
 		optionsJSON, err = s.injectCustomImageOptions(ctx, customImageID, optionsJSON)
 		if err != nil {
 			return nil, err
@@ -196,7 +208,7 @@ func (s *machineConnectService) CreateMachine(ctx context.Context, req *connect.
 		}
 	}
 
-	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, templateID, currentSetupVersion(), optionsJSON, customImageID, tmpl.Type, tmpl.ConfigJSON)
+	machine, err := s.store.CreateMachineWithOwner(ctx, userID, name, profileID, currentSetupVersion(), optionsJSON, customImageID, profile.Type, infraConfigJSON, profile.BootConfigHash)
 	if err != nil {
 		if errors.Is(err, db.ErrMachineNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("machine name already exists"))
@@ -258,7 +270,7 @@ func (s *machineConnectService) UpdateMachine(ctx context.Context, req *connect.
 
 	// Validate machine_type if provided
 	if machineType := strings.TrimSpace(options["machine_type"]); machineType != "" {
-		if err := s.validateMachineType(ctx, machine.TemplateID, machineType); err != nil {
+		if err := s.validateMachineType(ctx, machine.ProfileID, machineType); err != nil {
 			return nil, err
 		}
 	}
@@ -342,35 +354,35 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 	return connect.NewResponse(&arcav1.StartMachineResponse{Machine: toMachineMessage(machine)}), nil
 }
 
-func (s *machineConnectService) resolveCreateTemplateID(ctx context.Context, requestedTemplateID string) (string, error) {
-	templateID := strings.TrimSpace(requestedTemplateID)
-	if templateID == "" {
-		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("template id is required"))
+func (s *machineConnectService) resolveCreateProfileID(ctx context.Context, requestedProfileID string) (string, error) {
+	profileID := strings.TrimSpace(requestedProfileID)
+	if profileID == "" {
+		return "", connect.NewError(connect.CodeInvalidArgument, errors.New("profile id is required"))
 	}
 
-	if err := s.validateTemplateExists(ctx, templateID); err != nil {
+	if err := s.validateProfileExists(ctx, profileID); err != nil {
 		return "", err
 	}
 
-	return templateID, nil
+	return profileID, nil
 }
 
-func (s *machineConnectService) validateTemplateExists(ctx context.Context, templateID string) error {
-	templateID = strings.TrimSpace(templateID)
-	if templateID == "" {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("template id is required"))
+func (s *machineConnectService) validateProfileExists(ctx context.Context, profileID string) error {
+	profileID = strings.TrimSpace(profileID)
+	if profileID == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("profile id is required"))
 	}
 
-	_, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	_, err := s.store.GetMachineProfileByID(ctx, profileID)
 	if err == nil {
 		return nil
 	}
 	if errors.Is(err, sql.ErrNoRows) {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("profile not found"))
 	}
 
-	slog.ErrorContext(ctx, "get template failed", "error", err)
-	return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
+	slog.ErrorContext(ctx, "get profile failed", "error", err)
+	return connect.NewError(connect.CodeInternal, errors.New("failed to resolve profile"))
 }
 
 func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Request[arcav1.StopMachineRequest]) (*connect.Response[arcav1.StopMachineResponse], error) {
@@ -612,25 +624,49 @@ func toMachineMessage(machine db.Machine) *arcav1.Machine {
 
 func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.Machine {
 	msg := &arcav1.Machine{
-		Id:            machine.ID,
-		Name:          machine.Name,
-		Status:        machine.Status,
-		DesiredStatus: machine.DesiredStatus,
-		LastError:     machine.LastError,
-		TemplateId:    machine.TemplateID,
+		Id:              machine.ID,
+		Name:            machine.Name,
+		Status:          machine.Status,
+		DesiredStatus:   machine.DesiredStatus,
+		LastError:       machine.LastError,
+		ProfileId:       machine.ProfileID,
 		UpdateRequired:  machineUpdateRequired(machine),
 		Ready:           machine.Ready,
 		ReadyReportedAt: machine.ReadyReportedAt,
 		UserRole:        machine.UserRole,
 		ArcadVersion:    machine.ArcadVersion,
 		Options:         parseMachineOptions(machine.OptionsJSON),
-		TemplateType:    machine.TemplateType,
+		ProviderType:    machine.ProviderType,
 		Tags:            machine.Tags,
 	}
 	if includeConfig {
-		msg.TemplateConfigJson = machine.TemplateConfigJSON
+		msg.InfrastructureConfigJson = machine.InfrastructureConfigJSON
 	}
 	return msg
+}
+
+// computeRestartNeeded checks whether a machine's applied boot config hash
+// differs from its profile's current boot config hash. Returns true only
+// when the machine is running and a restart is needed to pick up profile changes.
+func (s *machineConnectService) computeRestartNeeded(ctx context.Context, machine db.Machine) bool {
+	if machine.Status != db.MachineStatusRunning {
+		return false
+	}
+	if s.dbStore == nil {
+		return false
+	}
+	profileID := strings.TrimSpace(machine.ProfileID)
+	if profileID == "" {
+		return false
+	}
+	profile, err := s.dbStore.GetMachineProfileByID(ctx, profileID)
+	if err != nil {
+		return false
+	}
+	if profile.BootConfigHash == "" || machine.AppliedBootConfigHash == "" {
+		return false
+	}
+	return machine.AppliedBootConfigHash != profile.BootConfigHash
 }
 
 func parseMachineOptions(optionsJSON string) map[string]string {
@@ -677,7 +713,7 @@ func (s *machineConnectService) injectCustomImageOptions(ctx context.Context, cu
 	return string(data), nil
 }
 
-func (s *machineConnectService) validateCustomImage(ctx context.Context, templateID, customImageID string) error {
+func (s *machineConnectService) validateCustomImage(ctx context.Context, profileID, customImageID string) error {
 	if s.dbStore == nil {
 		return connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
 	}
@@ -691,63 +727,62 @@ func (s *machineConnectService) validateCustomImage(ctx context.Context, templat
 		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve custom image"))
 	}
 
-	// Verify image is associated with the specified template
-	templateIDs, err := s.dbStore.ListTemplateIDsByCustomImageID(ctx, customImageID)
+	// Verify image is associated with the specified profile
+	profileIDs, err := s.dbStore.ListTemplateIDsByCustomImageID(ctx, customImageID)
 	if err != nil {
-		slog.ErrorContext(ctx, "list template IDs for image failed", "error", err)
+		slog.ErrorContext(ctx, "list profile IDs for image failed", "error", err)
 		return connect.NewError(connect.CodeInternal, errors.New("failed to verify image association"))
 	}
 	found := false
-	for _, tid := range templateIDs {
-		if tid == templateID {
+	for _, pid := range profileIDs {
+		if pid == profileID {
 			found = true
 			break
 		}
 	}
 	if !found {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image is not associated with the specified template"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image is not associated with the specified profile"))
 	}
 
-	// Verify template type matches
-	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
+	// Verify profile type matches
+	profile, err := s.store.GetMachineProfileByID(ctx, profileID)
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve profile"))
 	}
-	if strings.ToLower(tmpl.Type) != strings.ToLower(img.TemplateType) {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image type does not match template"))
+	if strings.ToLower(profile.Type) != strings.ToLower(img.ProviderType) {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("custom image type does not match profile"))
 	}
 
 	return nil
 }
 
-func (s *machineConnectService) validateMachineType(ctx context.Context, templateID, machineType string) error {
-	tmpl, err := s.store.GetMachineTemplateByID(ctx, templateID)
+func (s *machineConnectService) validateMachineType(ctx context.Context, profileID, machineType string) error {
+	profile, err := s.store.GetMachineProfileByID(ctx, profileID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("template not found"))
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("profile not found"))
 		}
-		slog.ErrorContext(ctx, "get template failed", "error", err)
-		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve template"))
+		slog.ErrorContext(ctx, "get profile failed", "error", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to resolve profile"))
 	}
 
-	config := &arcav1.MachineTemplateConfig{}
-	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
-	if err := unmarshaler.Unmarshal([]byte(tmpl.ConfigJSON), config); err != nil {
-		slog.ErrorContext(ctx, "decode template config failed", "error", err)
-		return connect.NewError(connect.CodeInternal, errors.New("failed to decode template config"))
+	config, err := unmarshalProfileConfigJSON(profile.ConfigJSON)
+	if err != nil {
+		slog.ErrorContext(ctx, "decode profile config failed", "error", err)
+		return connect.NewError(connect.CodeInternal, errors.New("failed to decode profile config"))
 	}
 
 	gce := config.GetGce()
 	if gce == nil {
-		return nil // non-GCE template, no validation needed
+		return nil // non-GCE profile, no validation needed
 	}
 
 	allowed := gce.GetAllowedMachineTypes()
 	if len(allowed) == 0 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("template has no allowed machine types configured"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("profile has no allowed machine types configured"))
 	}
 	if !slices.Contains(allowed, machineType) {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("machine type is not allowed for this template"))
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("machine type is not allowed for this profile"))
 	}
 	return nil
 }
@@ -762,6 +797,152 @@ func toMachineEventMessage(event db.MachineEvent) *arcav1.MachineEvent {
 		Message:   event.Message,
 		CreatedAt: event.CreatedAt,
 	}
+}
+
+func (s *machineConnectService) ChangeMachineProfile(ctx context.Context, req *connect.Request[arcav1.ChangeMachineProfileRequest]) (*connect.Response[arcav1.ChangeMachineProfileResponse], error) {
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+	userID := authResult.UserID
+
+	// Only admins can change a machine's profile
+	if authResult.Role != db.UserRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("only admin can change machine profile"))
+	}
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	newProfileID := strings.TrimSpace(req.Msg.GetProfileId())
+	if newProfileID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("profile id is required"))
+	}
+
+	if role := s.resolveMachineRole(ctx, userID, machineID); role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
+	// Verify machine is stopped
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		slog.ErrorContext(ctx, "get machine failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
+	}
+	if machine.Status != db.MachineStatusStopped {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("machine must be stopped to change profile"))
+	}
+
+	// Fetch new profile
+	newProfile, err := s.store.GetMachineProfileByID(ctx, newProfileID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("profile not found"))
+		}
+		slog.ErrorContext(ctx, "get new profile failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to resolve profile"))
+	}
+
+	// Verify same provider type
+	if machine.ProviderType != "" && machine.ProviderType != newProfile.Type {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cannot change provider type from %q to %q", machine.ProviderType, newProfile.Type))
+	}
+
+	// Verify machine_type is in the new profile's allowed list (for GCE)
+	opts := parseMachineOptions(machine.OptionsJSON)
+	if machineType := strings.TrimSpace(opts["machine_type"]); machineType != "" {
+		if newProfile.Type == db.ProviderTypeGCE {
+			config, cfgErr := unmarshalProfileConfigJSON(newProfile.ConfigJSON)
+			if cfgErr == nil {
+				if gce := config.GetGce(); gce != nil {
+					allowed := gce.GetAllowedMachineTypes()
+					if len(allowed) > 0 && !slices.Contains(allowed, machineType) {
+						return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("machine type %q is not allowed in the new profile", machineType))
+					}
+				}
+			}
+		}
+	}
+
+	// Update only the machine's profile_id. The infrastructure_config_json
+	// remains frozen from original creation — it is NOT updated when
+	// changing profiles.
+	if s.dbStore == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
+	}
+
+	if err := s.dbStore.UpdateMachineProfileID(ctx, machineID, newProfileID); err != nil {
+		slog.ErrorContext(ctx, "update machine profile failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to update machine profile"))
+	}
+
+	updated, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		slog.ErrorContext(ctx, "fetch updated machine failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
+	}
+	updated.UserRole = db.MachineRoleAdmin
+
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.change_profile", "machine", machineID, fmt.Sprintf(`{"profile_id":%q}`, newProfileID))
+
+	isAdmin := authResult.Role == "admin"
+	return connect.NewResponse(&arcav1.ChangeMachineProfileResponse{Machine: toMachineMessageWithAdmin(updated, isAdmin)}), nil
+}
+
+// extractInfrastructureConfig removes dynamic/boot settings from a profile
+// config JSON so only infrastructure fields remain. Stripped settings:
+//   - Top-level: serverApiUrl, server_api_url, autoStopTimeoutSeconds, auto_stop_timeout_seconds, agentPrompt, agent_prompt
+//   - Provider sub-objects: startup_script, startupScript (for libvirt, gce, lxd)
+//
+// This matches the migration (000048) that strips startup scripts from
+// existing machines' infrastructure_config_json.
+func extractInfrastructureConfig(configJSON string) (string, error) {
+	if configJSON == "" || configJSON == "{}" {
+		return configJSON, nil
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(configJSON), &raw); err != nil {
+		return configJSON, err
+	}
+
+	// Remove top-level dynamic settings
+	delete(raw, "serverApiUrl")
+	delete(raw, "server_api_url")
+	delete(raw, "autoStopTimeoutSeconds")
+	delete(raw, "auto_stop_timeout_seconds")
+	delete(raw, "agentPrompt")
+	delete(raw, "agent_prompt")
+
+	// Remove startup_script / startupScript from each provider sub-object
+	for _, provider := range []string{"libvirt", "gce", "lxd"} {
+		providerRaw, ok := raw[provider]
+		if !ok {
+			continue
+		}
+		var providerConfig map[string]json.RawMessage
+		if err := json.Unmarshal(providerRaw, &providerConfig); err != nil {
+			continue
+		}
+		delete(providerConfig, "startup_script")
+		delete(providerConfig, "startupScript")
+		updated, err := json.Marshal(providerConfig)
+		if err != nil {
+			continue
+		}
+		raw[provider] = updated
+	}
+
+	result, err := json.Marshal(raw)
+	if err != nil {
+		return configJSON, err
+	}
+	return string(result), nil
 }
 
 func validateMachineName(name string) error {

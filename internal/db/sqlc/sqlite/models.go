@@ -67,7 +67,7 @@ type AuthTicket struct {
 type CustomImage struct {
 	ID           string
 	Name         string
-	TemplateType string
+	ProviderType string
 	DataJson     string
 	Description  string
 	CreatedAt    time.Time
@@ -75,15 +75,16 @@ type CustomImage struct {
 }
 
 type Machine struct {
-	ID                 string
-	Name               string
-	TemplateID         string
-	TemplateType       string
-	TemplateConfigJson string
-	SetupVersion       string
-	OptionsJson        string
-	CustomImageID      string
-	CreatedAt          time.Time
+	ID                       string
+	Name                     string
+	ProfileID                string
+	ProviderType             string
+	InfrastructureConfigJson string
+	AppliedBootConfigHash    string
+	SetupVersion             string
+	OptionsJson              string
+	CustomImageID            string
+	CreatedAt                time.Time
 }
 
 type MachineAccessRequest struct {
@@ -129,6 +130,16 @@ type MachineJob struct {
 	UpdatedAt  int64
 }
 
+type MachineProfile struct {
+	ID             string
+	Name           string
+	Type           string
+	ConfigJson     string
+	BootConfigHash string
+	CreatedAt      int64
+	UpdatedAt      int64
+}
+
 type MachineSharing struct {
 	MachineID          string
 	GeneralAccessScope string
@@ -155,15 +166,6 @@ type MachineTag struct {
 	Tag       string
 }
 
-type MachineTemplate struct {
-	ID         string
-	Name       string
-	Type       string
-	ConfigJson string
-	CreatedAt  int64
-	UpdatedAt  int64
-}
-
 type MachineToken struct {
 	ID        string
 	MachineID string
@@ -171,6 +173,11 @@ type MachineToken struct {
 	Token     string
 	CreatedAt int64
 	RevokedAt sql.NullInt64
+}
+
+type ProfileCustomImage struct {
+	ProfileID     string
+	CustomImageID string
 }
 
 type RateLimitEntry struct {
@@ -205,11 +212,6 @@ type SetupState struct {
 	BaseDomain   string
 	DomainPrefix string
 	UpdatedAt    int64
-}
-
-type TemplateCustomImage struct {
-	TemplateID    string
-	CustomImageID string
 }
 
 type User struct {

@@ -116,7 +116,7 @@ func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
 		t.Fatalf("new runtime: %v", err)
 	}
 
-	machine := db.Machine{ID: "machine-123456789abc", TemplateID: "rt-gce", OptionsJSON: `{"machine_type":"e2-standard-2"}`}
+	machine := db.Machine{ID: "machine-123456789abc", ProfileID: "rt-gce", OptionsJSON: `{"machine_type":"e2-standard-2"}`}
 	instanceID, err := runtime.EnsureRunning(context.Background(), machine, RuntimeStartOptions{})
 	if err != nil {
 		t.Fatalf("ensure running: %v", err)
@@ -314,7 +314,7 @@ func TestGceRuntime_EnsureRunningUsesOptionsMachineType(t *testing.T) {
 
 	machine := db.Machine{
 		ID:          "machine-opttest12345",
-		TemplateID:   "rt-gce",
+		ProfileID:   "rt-gce",
 		OptionsJSON: `{"machine_type":"e2-medium"}`,
 	}
 	_, err = runtime.EnsureRunning(context.Background(), machine, RuntimeStartOptions{})

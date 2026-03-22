@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -159,6 +160,123 @@ func TestGetMachinePropagatesUpdateRequired(t *testing.T) {
 	}
 }
 
+func TestExtractInfrastructureConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		input     string
+		wantErr   bool
+		checkFunc func(t *testing.T, result string)
+	}{
+		{
+			name:  "empty string passthrough",
+			input: "",
+			checkFunc: func(t *testing.T, result string) {
+				if result != "" {
+					t.Fatalf("expected empty, got %q", result)
+				}
+			},
+		},
+		{
+			name:  "empty object passthrough",
+			input: "{}",
+			checkFunc: func(t *testing.T, result string) {
+				if result != "{}" {
+					t.Fatalf("expected {}, got %q", result)
+				}
+			},
+		},
+		{
+			name:  "strips top-level serverApiUrl",
+			input: `{"serverApiUrl":"http://example.com","libvirt":{"uri":"qemu:///system"}}`,
+			checkFunc: func(t *testing.T, result string) {
+				if strings.Contains(result, "serverApiUrl") {
+					t.Fatalf("expected serverApiUrl to be stripped, got %q", result)
+				}
+				if !strings.Contains(result, "libvirt") {
+					t.Fatalf("expected libvirt to be preserved, got %q", result)
+				}
+			},
+		},
+		{
+			name:  "strips top-level autoStopTimeoutSeconds",
+			input: `{"autoStopTimeoutSeconds":"3600","gce":{"project":"my-proj"}}`,
+			checkFunc: func(t *testing.T, result string) {
+				if strings.Contains(result, "autoStopTimeoutSeconds") {
+					t.Fatalf("expected autoStopTimeoutSeconds to be stripped, got %q", result)
+				}
+			},
+		},
+		{
+			name:  "strips libvirt startupScript",
+			input: `{"libvirt":{"uri":"qemu:///system","startupScript":"#!/bin/bash\necho hi"}}`,
+			checkFunc: func(t *testing.T, result string) {
+				if strings.Contains(result, "startupScript") {
+					t.Fatalf("expected startupScript to be stripped, got %q", result)
+				}
+				if !strings.Contains(result, "uri") {
+					t.Fatalf("expected uri to be preserved, got %q", result)
+				}
+			},
+		},
+		{
+			name:  "strips gce startup_script snake_case",
+			input: `{"gce":{"project":"my-proj","startup_script":"#!/bin/bash"}}`,
+			checkFunc: func(t *testing.T, result string) {
+				if strings.Contains(result, "startup_script") {
+					t.Fatalf("expected startup_script to be stripped, got %q", result)
+				}
+				if !strings.Contains(result, "project") {
+					t.Fatalf("expected project to be preserved, got %q", result)
+				}
+			},
+		},
+		{
+			name:  "strips lxd startupScript",
+			input: `{"lxd":{"endpoint":"https://localhost:8443","startupScript":"#!/bin/bash"}}`,
+			checkFunc: func(t *testing.T, result string) {
+				if strings.Contains(result, "startupScript") {
+					t.Fatalf("expected startupScript to be stripped, got %q", result)
+				}
+				if !strings.Contains(result, "endpoint") {
+					t.Fatalf("expected endpoint to be preserved, got %q", result)
+				}
+			},
+		},
+		{
+			name:  "strips all dynamic fields at once",
+			input: `{"serverApiUrl":"http://x","autoStopTimeoutSeconds":"300","libvirt":{"uri":"qemu:///system","startupScript":"echo"}}`,
+			checkFunc: func(t *testing.T, result string) {
+				if strings.Contains(result, "serverApiUrl") || strings.Contains(result, "autoStopTimeoutSeconds") || strings.Contains(result, "startupScript") {
+					t.Fatalf("expected all dynamic fields stripped, got %q", result)
+				}
+				if !strings.Contains(result, "uri") {
+					t.Fatalf("expected uri to be preserved, got %q", result)
+				}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := extractInfrastructureConfig(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			tc.checkFunc(t, result)
+		})
+	}
+}
+
 type authenticatorStub struct {
 	authenticateFunc func(context.Context, string) (string, string, string, error)
 }
@@ -271,6 +389,6 @@ func (s *machineStoreStub) DeleteMachineByID(context.Context, string) (bool, err
 	panic("DeleteMachineByID should not be called in this test")
 }
 
-func (s *machineStoreStub) GetMachineTemplateByID(context.Context, string) (db.MachineTemplate, error) {
-	panic("GetMachineTemplateByID should not be called in this test")
+func (s *machineStoreStub) GetMachineProfileByID(context.Context, string) (db.MachineProfile, error) {
+	panic("GetMachineProfileByID should not be called in this test")
 }

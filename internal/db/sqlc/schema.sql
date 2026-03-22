@@ -69,20 +69,22 @@ CREATE INDEX IF NOT EXISTS idx_arcad_sessions_expires_at ON arcad_sessions(expir
 CREATE TABLE IF NOT EXISTS machines (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
-  template_id TEXT NOT NULL DEFAULT 'libvirt',
-  template_type TEXT NOT NULL DEFAULT '',
-  template_config_json TEXT NOT NULL DEFAULT '{}',
+  profile_id TEXT NOT NULL DEFAULT 'libvirt' REFERENCES machine_profiles(id) ON DELETE RESTRICT,
+  provider_type TEXT NOT NULL DEFAULT '',
+  infrastructure_config_json TEXT NOT NULL DEFAULT '{}',
+  applied_boot_config_hash TEXT NOT NULL DEFAULT '',
   setup_version TEXT NOT NULL DEFAULT '',
   options_json TEXT NOT NULL DEFAULT '{}',
   custom_image_id TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS machine_templates (
+CREATE TABLE IF NOT EXISTS machine_profiles (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   type TEXT NOT NULL,
   config_json TEXT NOT NULL DEFAULT '{}',
+  boot_config_hash TEXT NOT NULL DEFAULT '',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
@@ -249,20 +251,20 @@ CREATE INDEX IF NOT EXISTS idx_user_llm_models_user_id ON user_llm_models(user_i
 CREATE TABLE IF NOT EXISTS custom_images (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  template_type TEXT NOT NULL,
+  provider_type TEXT NOT NULL,
   data_json TEXT NOT NULL DEFAULT '{}',
   description TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(name, template_type)
+  UNIQUE(name, provider_type)
 );
 
-CREATE TABLE IF NOT EXISTS template_custom_images (
-  template_id TEXT NOT NULL REFERENCES machine_templates(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS profile_custom_images (
+  profile_id TEXT NOT NULL REFERENCES machine_profiles(id) ON DELETE CASCADE,
   custom_image_id TEXT NOT NULL REFERENCES custom_images(id) ON DELETE CASCADE,
-  PRIMARY KEY (template_id, custom_image_id)
+  PRIMARY KEY (profile_id, custom_image_id)
 );
-CREATE INDEX IF NOT EXISTS idx_template_custom_images_image ON template_custom_images(custom_image_id);
+CREATE INDEX IF NOT EXISTS idx_profile_custom_images_image ON profile_custom_images(custom_image_id);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,
