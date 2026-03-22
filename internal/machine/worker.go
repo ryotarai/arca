@@ -3,7 +3,6 @@ package machine
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -642,19 +641,11 @@ func (w *Worker) handleRestart(ctx context.Context, machine db.Machine, job db.M
 	// Restart uses step-tracked execution so that if the stop succeeds but
 	// the start fails, the retry resumes from the start step instead of
 	// stopping the (already stopped) machine again.
-	type restartMeta struct {
-		Step string `json:"step,omitempty"`
-	}
-	var meta restartMeta
-	_ = json.Unmarshal([]byte(job.MetadataJSON), &meta)
+	store := workflow.StoreFunc(func(ctx context.Context, data []byte) error {
+		return w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(data))
+	})
 
-	checkpoint := func(nextStep string) {
-		meta.Step = nextStep
-		metaBytes, _ := json.Marshal(meta)
-		_ = w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(metaBytes))
-	}
-
-	return workflow.New(checkpoint).
+	return workflow.New(store).
 		StepWithTimeout("stop", w.stopTTL, func(sCtx context.Context) error {
 			if err := w.store.UpdateMachineRuntimeStateByMachineID(
 				ctx, machine.ID, db.MachineStatusStopping, db.MachineDesiredRunning, machine.ContainerID, "",
@@ -714,7 +705,7 @@ func (w *Worker) handleRestart(ctx context.Context, machine db.Machine, job db.M
 			w.emitEvent(ctx, machine.ID, job.ID, "info", "ready", "machine is ready")
 			return nil
 		}).
-		Run(ctx, meta.Step)
+		Run(ctx, []byte(job.MetadataJSON))
 }
 
 func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID string) error {
