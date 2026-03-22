@@ -92,7 +92,7 @@ export function CreateImageDialog({
           <DialogDescription>
             Create a custom image from the current state of this machine.
           </DialogDescription>
-          <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
+          <div className="rounded-md bg-yellow-600 px-3 py-2 text-sm text-white">
             The machine will be stopped before the image is created and restarted afterward.
           </div>
         </DialogHeader>
