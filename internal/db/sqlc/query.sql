@@ -905,18 +905,21 @@ WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) ||
   AND (sqlc.arg(actor_email) = '' OR u1.email = sqlc.arg(actor_email));
 
 -- name: ListCustomImages :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+
 FROM custom_images
 ORDER BY created_at DESC;
 
 -- name: ListCustomImagesByRuntimeType :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+
 FROM custom_images
 WHERE provider_type = sqlc.arg(provider_type)
 ORDER BY created_at DESC;
 
 -- name: GetCustomImage :one
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+
 FROM custom_images
 WHERE id = sqlc.arg(id)
 LIMIT 1;
@@ -933,6 +936,10 @@ VALUES (
   sqlc.arg(updated_at)
 );
 
+-- name: InsertCustomImageWithSource :exec
+INSERT INTO custom_images (id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at)
+VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(provider_type), sqlc.arg(data_json), sqlc.arg(description), sqlc.arg(source_machine_id), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
 -- name: UpdateCustomImage :execrows
 UPDATE custom_images
 SET name = sqlc.arg(name),
@@ -947,7 +954,8 @@ DELETE FROM custom_images
 WHERE id = sqlc.arg(id);
 
 -- name: ListCustomImagesByProfileID :many
-SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, source_machine_id, ci.created_at, ci.updated_at
+
 FROM custom_images ci
 JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
 WHERE pci.profile_id = sqlc.arg(profile_id)

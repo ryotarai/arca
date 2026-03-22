@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"time"
@@ -12,13 +13,14 @@ import (
 )
 
 type CustomImage struct {
-	ID          string
-	Name        string
-	ProviderType string
-	DataJSON    string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID              string
+	Name            string
+	ProviderType    string
+	DataJSON        string
+	Description     string
+	SourceMachineID string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 var ErrCustomImageNameAlreadyExists = errors.New("custom image name already exists")
@@ -38,6 +40,7 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
 				CreatedAt:   row.CreatedAt,
 				UpdatedAt:   row.UpdatedAt,
 			})
@@ -56,6 +59,7 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
 				CreatedAt:   row.CreatedAt,
 				UpdatedAt:   row.UpdatedAt,
 			})
@@ -79,6 +83,7 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 			ProviderType: row.ProviderType,
 			DataJSON:    row.DataJson,
 			Description: row.Description,
+			SourceMachineID: row.SourceMachineID.String,
 			CreatedAt:   row.CreatedAt,
 			UpdatedAt:   row.UpdatedAt,
 		}, nil
@@ -93,6 +98,7 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 			ProviderType: row.ProviderType,
 			DataJSON:    row.DataJson,
 			Description: row.Description,
+			SourceMachineID: row.SourceMachineID.String,
 			CreatedAt:   row.CreatedAt,
 			UpdatedAt:   row.UpdatedAt,
 		}, nil
@@ -222,6 +228,7 @@ func (s *Store) ListCustomImagesByProfileID(ctx context.Context, profileID strin
 				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
 				CreatedAt:   row.CreatedAt,
 				UpdatedAt:   row.UpdatedAt,
 			})
@@ -240,6 +247,7 @@ func (s *Store) ListCustomImagesByProfileID(ctx context.Context, profileID strin
 				ProviderType: row.ProviderType,
 				DataJSON:    row.DataJson,
 				Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
 				CreatedAt:   row.CreatedAt,
 				UpdatedAt:   row.UpdatedAt,
 			})
@@ -337,6 +345,83 @@ func (s *Store) ListProfileIDsByCustomImageID(ctx context.Context, customImageID
 func (s *Store) ListTemplateIDsByCustomImageID(ctx context.Context, customImageID string) ([]string, error) {
 	return s.ListProfileIDsByCustomImageID(ctx, customImageID)
 }
+
+func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, providerType, dataJSON, description, sourceMachineID, profileID string) (*CustomImage, error) {
+	id, err := randomID()
+	if err != nil {
+		return nil, err
+	}
+
+	switch s.driver {
+	case DriverSQLite:
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		q := s.sqliteQueries.WithTx(tx)
+		if err := q.InsertCustomImageWithSource(ctx, sqlitesqlc.InsertCustomImageWithSourceParams{
+			ID:              id,
+			Name:            strings.TrimSpace(name),
+			ProviderType:    strings.TrimSpace(providerType),
+			DataJson:        dataJSON,
+			Description:     strings.TrimSpace(description),
+			SourceMachineID: sql.NullString{String: sourceMachineID, Valid: sourceMachineID != ""},
+		}); err != nil {
+			if isCustomImageNameUniqueConstraintError(err) {
+				return nil, ErrCustomImageNameAlreadyExists
+			}
+			return nil, err
+		}
+		if err := q.AssociateProfileCustomImage(ctx, sqlitesqlc.AssociateProfileCustomImageParams{
+			ProfileID:    profileID,
+			CustomImageID: id,
+		}); err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+	case DriverPostgres:
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		q := s.pgQueries.WithTx(tx)
+		if err := q.InsertCustomImageWithSource(ctx, postgresqlsqlc.InsertCustomImageWithSourceParams{
+			ID:              id,
+			Name:            strings.TrimSpace(name),
+			ProviderType:    strings.TrimSpace(providerType),
+			DataJson:        dataJSON,
+			Description:     strings.TrimSpace(description),
+			SourceMachineID: sql.NullString{String: sourceMachineID, Valid: sourceMachineID != ""},
+		}); err != nil {
+			if isCustomImageNameUniqueConstraintError(err) {
+				return nil, ErrCustomImageNameAlreadyExists
+			}
+			return nil, err
+		}
+		if err := q.AssociateProfileCustomImage(ctx, postgresqlsqlc.AssociateProfileCustomImageParams{
+			ProfileID:    profileID,
+			CustomImageID: id,
+		}); err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+
+	img, err := s.GetCustomImage(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &img, nil
+}
+
 
 func isCustomImageNameUniqueConstraintError(err error) bool {
 	if err == nil {

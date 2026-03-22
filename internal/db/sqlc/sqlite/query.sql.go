@@ -1168,31 +1168,23 @@ func (q *Queries) GetAdminViewMode(ctx context.Context, userID string) (string, 
 }
 
 const getCustomImage = `-- name: GetCustomImage :one
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+
 FROM custom_images
 WHERE id = ?1
 LIMIT 1
 `
 
-type GetCustomImageRow struct {
-	ID           string
-	Name         string
-	ProviderType string
-	DataJson     string
-	Description  string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-}
-
-func (q *Queries) GetCustomImage(ctx context.Context, id string) (GetCustomImageRow, error) {
+func (q *Queries) GetCustomImage(ctx context.Context, id string) (CustomImage, error) {
 	row := q.db.QueryRowContext(ctx, getCustomImage, id)
-	var i GetCustomImageRow
+	var i CustomImage
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.ProviderType,
 		&i.DataJson,
 		&i.Description,
+		&i.SourceMachineID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1983,6 +1975,32 @@ func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
 	return column_1, err
 }
 
+const insertCustomImageWithSource = `-- name: InsertCustomImageWithSource :exec
+INSERT INTO custom_images (id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+`
+
+type InsertCustomImageWithSourceParams struct {
+	ID              string
+	Name            string
+	ProviderType    string
+	DataJson        string
+	Description     string
+	SourceMachineID sql.NullString
+}
+
+func (q *Queries) InsertCustomImageWithSource(ctx context.Context, arg InsertCustomImageWithSourceParams) error {
+	_, err := q.db.ExecContext(ctx, insertCustomImageWithSource,
+		arg.ID,
+		arg.Name,
+		arg.ProviderType,
+		arg.DataJson,
+		arg.Description,
+		arg.SourceMachineID,
+	)
+	return err
+}
+
 const insertMachineTag = `-- name: InsertMachineTag :exec
 INSERT INTO machine_tags (machine_id, tag) VALUES (?1, ?2)
 ON CONFLICT (machine_id, tag) DO NOTHING
@@ -2222,36 +2240,28 @@ func (q *Queries) ListAuditLogsFiltered(ctx context.Context, arg ListAuditLogsFi
 }
 
 const listCustomImages = `-- name: ListCustomImages :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+
 FROM custom_images
 ORDER BY created_at DESC
 `
 
-type ListCustomImagesRow struct {
-	ID           string
-	Name         string
-	ProviderType string
-	DataJson     string
-	Description  string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-}
-
-func (q *Queries) ListCustomImages(ctx context.Context) ([]ListCustomImagesRow, error) {
+func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomImages)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListCustomImagesRow
+	var items []CustomImage
 	for rows.Next() {
-		var i ListCustomImagesRow
+		var i CustomImage
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
+			&i.SourceMachineID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2269,7 +2279,8 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]ListCustomImagesRow, 
 }
 
 const listCustomImagesByProfileID = `-- name: ListCustomImagesByProfileID :many
-SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, source_machine_id, ci.created_at, ci.updated_at
+
 FROM custom_images ci
 JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
 WHERE pci.profile_id = ?1
@@ -2277,13 +2288,15 @@ ORDER BY ci.name ASC
 `
 
 type ListCustomImagesByProfileIDRow struct {
-	ID           string
-	Name         string
-	ProviderType string
-	DataJson     string
-	Description  string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID                string
+	Name              string
+	ProviderType      string
+	DataJson          string
+	Description       string
+	SourceMachineID   sql.NullString
+	SourceMachineID_2 sql.NullString
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID string) ([]ListCustomImagesByProfileIDRow, error) {
@@ -2301,6 +2314,8 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
+			&i.SourceMachineID,
+			&i.SourceMachineID_2,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2318,37 +2333,29 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 }
 
 const listCustomImagesByRuntimeType = `-- name: ListCustomImagesByRuntimeType :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+
 FROM custom_images
 WHERE provider_type = ?1
 ORDER BY created_at DESC
 `
 
-type ListCustomImagesByRuntimeTypeRow struct {
-	ID           string
-	Name         string
-	ProviderType string
-	DataJson     string
-	Description  string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-}
-
-func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, providerType string) ([]ListCustomImagesByRuntimeTypeRow, error) {
+func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, providerType string) ([]CustomImage, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomImagesByRuntimeType, providerType)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListCustomImagesByRuntimeTypeRow
+	var items []CustomImage
 	for rows.Next() {
-		var i ListCustomImagesByRuntimeTypeRow
+		var i CustomImage
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
+			&i.SourceMachineID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
