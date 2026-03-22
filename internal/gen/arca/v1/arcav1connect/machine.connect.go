@@ -57,6 +57,9 @@ const (
 	// MachineServiceStopMachineProcedure is the fully-qualified name of the MachineService's
 	// StopMachine RPC.
 	MachineServiceStopMachineProcedure = "/arca.v1.MachineService/StopMachine"
+	// MachineServiceRestartMachineProcedure is the fully-qualified name of the MachineService's
+	// RestartMachine RPC.
+	MachineServiceRestartMachineProcedure = "/arca.v1.MachineService/RestartMachine"
 	// MachineServiceDeleteMachineProcedure is the fully-qualified name of the MachineService's
 	// DeleteMachine RPC.
 	MachineServiceDeleteMachineProcedure = "/arca.v1.MachineService/DeleteMachine"
@@ -78,6 +81,7 @@ type MachineServiceClient interface {
 	ChangeMachineProfile(context.Context, *connect.Request[v1.ChangeMachineProfileRequest]) (*connect.Response[v1.ChangeMachineProfileResponse], error)
 	StartMachine(context.Context, *connect.Request[v1.StartMachineRequest]) (*connect.Response[v1.StartMachineResponse], error)
 	StopMachine(context.Context, *connect.Request[v1.StopMachineRequest]) (*connect.Response[v1.StopMachineResponse], error)
+	RestartMachine(context.Context, *connect.Request[v1.RestartMachineRequest]) (*connect.Response[v1.RestartMachineResponse], error)
 	DeleteMachine(context.Context, *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error)
 	ListMachineEvents(context.Context, *connect.Request[v1.ListMachineEventsRequest]) (*connect.Response[v1.ListMachineEventsResponse], error)
 	CreateImageFromMachine(context.Context, *connect.Request[v1.CreateImageFromMachineRequest]) (*connect.Response[v1.CreateImageFromMachineResponse], error)
@@ -142,6 +146,12 @@ func NewMachineServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(machineServiceMethods.ByName("StopMachine")),
 			connect.WithClientOptions(opts...),
 		),
+		restartMachine: connect.NewClient[v1.RestartMachineRequest, v1.RestartMachineResponse](
+			httpClient,
+			baseURL+MachineServiceRestartMachineProcedure,
+			connect.WithSchema(machineServiceMethods.ByName("RestartMachine")),
+			connect.WithClientOptions(opts...),
+		),
 		deleteMachine: connect.NewClient[v1.DeleteMachineRequest, v1.DeleteMachineResponse](
 			httpClient,
 			baseURL+MachineServiceDeleteMachineProcedure,
@@ -173,6 +183,7 @@ type machineServiceClient struct {
 	changeMachineProfile   *connect.Client[v1.ChangeMachineProfileRequest, v1.ChangeMachineProfileResponse]
 	startMachine           *connect.Client[v1.StartMachineRequest, v1.StartMachineResponse]
 	stopMachine            *connect.Client[v1.StopMachineRequest, v1.StopMachineResponse]
+	restartMachine         *connect.Client[v1.RestartMachineRequest, v1.RestartMachineResponse]
 	deleteMachine          *connect.Client[v1.DeleteMachineRequest, v1.DeleteMachineResponse]
 	listMachineEvents      *connect.Client[v1.ListMachineEventsRequest, v1.ListMachineEventsResponse]
 	createImageFromMachine *connect.Client[v1.CreateImageFromMachineRequest, v1.CreateImageFromMachineResponse]
@@ -218,6 +229,11 @@ func (c *machineServiceClient) StopMachine(ctx context.Context, req *connect.Req
 	return c.stopMachine.CallUnary(ctx, req)
 }
 
+// RestartMachine calls arca.v1.MachineService.RestartMachine.
+func (c *machineServiceClient) RestartMachine(ctx context.Context, req *connect.Request[v1.RestartMachineRequest]) (*connect.Response[v1.RestartMachineResponse], error) {
+	return c.restartMachine.CallUnary(ctx, req)
+}
+
 // DeleteMachine calls arca.v1.MachineService.DeleteMachine.
 func (c *machineServiceClient) DeleteMachine(ctx context.Context, req *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error) {
 	return c.deleteMachine.CallUnary(ctx, req)
@@ -243,6 +259,7 @@ type MachineServiceHandler interface {
 	ChangeMachineProfile(context.Context, *connect.Request[v1.ChangeMachineProfileRequest]) (*connect.Response[v1.ChangeMachineProfileResponse], error)
 	StartMachine(context.Context, *connect.Request[v1.StartMachineRequest]) (*connect.Response[v1.StartMachineResponse], error)
 	StopMachine(context.Context, *connect.Request[v1.StopMachineRequest]) (*connect.Response[v1.StopMachineResponse], error)
+	RestartMachine(context.Context, *connect.Request[v1.RestartMachineRequest]) (*connect.Response[v1.RestartMachineResponse], error)
 	DeleteMachine(context.Context, *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error)
 	ListMachineEvents(context.Context, *connect.Request[v1.ListMachineEventsRequest]) (*connect.Response[v1.ListMachineEventsResponse], error)
 	CreateImageFromMachine(context.Context, *connect.Request[v1.CreateImageFromMachineRequest]) (*connect.Response[v1.CreateImageFromMachineResponse], error)
@@ -303,6 +320,12 @@ func NewMachineServiceHandler(svc MachineServiceHandler, opts ...connect.Handler
 		connect.WithSchema(machineServiceMethods.ByName("StopMachine")),
 		connect.WithHandlerOptions(opts...),
 	)
+	machineServiceRestartMachineHandler := connect.NewUnaryHandler(
+		MachineServiceRestartMachineProcedure,
+		svc.RestartMachine,
+		connect.WithSchema(machineServiceMethods.ByName("RestartMachine")),
+		connect.WithHandlerOptions(opts...),
+	)
 	machineServiceDeleteMachineHandler := connect.NewUnaryHandler(
 		MachineServiceDeleteMachineProcedure,
 		svc.DeleteMachine,
@@ -339,6 +362,8 @@ func NewMachineServiceHandler(svc MachineServiceHandler, opts ...connect.Handler
 			machineServiceStartMachineHandler.ServeHTTP(w, r)
 		case MachineServiceStopMachineProcedure:
 			machineServiceStopMachineHandler.ServeHTTP(w, r)
+		case MachineServiceRestartMachineProcedure:
+			machineServiceRestartMachineHandler.ServeHTTP(w, r)
 		case MachineServiceDeleteMachineProcedure:
 			machineServiceDeleteMachineHandler.ServeHTTP(w, r)
 		case MachineServiceListMachineEventsProcedure:
@@ -384,6 +409,10 @@ func (UnimplementedMachineServiceHandler) StartMachine(context.Context, *connect
 
 func (UnimplementedMachineServiceHandler) StopMachine(context.Context, *connect.Request[v1.StopMachineRequest]) (*connect.Response[v1.StopMachineResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.MachineService.StopMachine is not implemented"))
+}
+
+func (UnimplementedMachineServiceHandler) RestartMachine(context.Context, *connect.Request[v1.RestartMachineRequest]) (*connect.Response[v1.RestartMachineResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.MachineService.RestartMachine is not implemented"))
 }
 
 func (UnimplementedMachineServiceHandler) DeleteMachine(context.Context, *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error) {

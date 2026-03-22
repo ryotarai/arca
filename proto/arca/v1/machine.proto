@@ -13,6 +13,7 @@ service MachineService {
   rpc ChangeMachineProfile(ChangeMachineProfileRequest) returns (ChangeMachineProfileResponse);
   rpc StartMachine(StartMachineRequest) returns (StartMachineResponse);
   rpc StopMachine(StopMachineRequest) returns (StopMachineResponse);
+  rpc RestartMachine(RestartMachineRequest) returns (RestartMachineResponse);
   rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
   rpc ListMachineEvents(ListMachineEventsRequest) returns (ListMachineEventsResponse);
   rpc CreateImageFromMachine(CreateImageFromMachineRequest) returns (CreateImageFromMachineResponse);
@@ -99,6 +100,14 @@ message StopMachineRequest {
 }
 
 message StopMachineResponse {
+  Machine machine = 1;
+}
+
+message RestartMachineRequest {
+  string machine_id = 1;
+}
+
+message RestartMachineResponse {
   Machine machine = 1;
 }
 

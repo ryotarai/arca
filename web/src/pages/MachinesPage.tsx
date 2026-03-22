@@ -4,11 +4,11 @@ import { Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  getMachine,
   listAvailableProfiles,
   listMachines,
   startMachine,
   stopMachine,
+  restartMachine,
 } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
 import { usePolling } from '@/hooks/use-polling'
@@ -29,9 +29,6 @@ function machineHostname(prefix: string, machineName: string, baseDomain: string
 
 const pollingIntervalMs = 60000
 const pollingRequestTimeoutMs = 2500
-const restartWaitTimeoutMs = 60000
-const restartWaitIntervalMs = 1500
-
 function statusTone(status: string): string {
   switch (status) {
     case 'running':
@@ -95,20 +92,7 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
         setConfirmAction(null)
         setActionError('')
         try {
-          await stopMachine(machineID)
-
-          const startedAt = Date.now()
-          while (Date.now() < startedAt + restartWaitTimeoutMs) {
-            const machine = await getMachine(machineID)
-            if (machine.status === 'stopped') {
-              break
-            }
-            await new Promise<void>((resolve) => {
-              window.setTimeout(resolve, restartWaitIntervalMs)
-            })
-          }
-
-          const updated = await startMachine(machineID)
+          const updated = await restartMachine(machineID)
           setMachines((prev) => prev.map((machine) => (machine.id === machineID ? updated : machine)))
         } catch (e) {
           setActionError(messageFromError(e))

@@ -443,6 +443,59 @@ func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Re
 	return connect.NewResponse(&arcav1.StopMachineResponse{Machine: toMachineMessage(machine)}), nil
 }
 
+func (s *machineConnectService) RestartMachine(ctx context.Context, req *connect.Request[arcav1.RestartMachineRequest]) (*connect.Response[arcav1.RestartMachineResponse], error) {
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+	userID := authResult.UserID
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	if role := s.resolveMachineRole(ctx, userID, machineID); role != db.MachineRoleAdmin {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
+	}
+
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		slog.ErrorContext(ctx, "get machine failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
+	}
+
+	if machine.LockedOperation != "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("machine is locked by operation: %s", machine.LockedOperation))
+	}
+
+	updated, err := s.store.RequestRestartMachineByIDForOwner(ctx, userID, machineID)
+	if err != nil {
+		slog.ErrorContext(ctx, "restart machine failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to restart machine"))
+	}
+	if !updated {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+	}
+
+	machine, err = s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		slog.ErrorContext(ctx, "fetch restarting machine failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to fetch machine"))
+	}
+
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.restart", "machine", machineID, "{}")
+
+	return connect.NewResponse(&arcav1.RestartMachineResponse{Machine: toMachineMessage(machine)}), nil
+}
+
 func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.Request[arcav1.DeleteMachineRequest]) (*connect.Response[arcav1.DeleteMachineResponse], error) {
 	authResult, err := s.authenticateWithResult(ctx, req.Header())
 	if err != nil {

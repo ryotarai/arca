@@ -488,7 +488,7 @@ SELECT COUNT(1)
 FROM machine_jobs
 WHERE machine_id = sqlc.arg(machine_id)
   AND status IN ('queued', 'running')
-  AND kind IN ('start', 'reconcile');
+  AND kind IN ('start', 'reconcile', 'restart');
 
 -- name: GetSetupState :one
 SELECT completed, base_domain, domain_prefix, updated_at

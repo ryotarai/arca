@@ -16,6 +16,7 @@ import {
   changeMachineProfile,
   startMachine,
   stopMachine,
+  restartMachine,
   updateMachineOptions,
   updateMachineTags,
 } from '@/lib/api'
@@ -40,8 +41,6 @@ function machineHostname(prefix: string, machineName: string, baseDomain: string
 const pollingIntervalMs = 60000
 const activePollingIntervalMs = 5000
 const pollingRequestTimeoutMs = 2500
-const restartWaitTimeoutMs = 60000
-const restartWaitIntervalMs = 1500
 const eventLimit = 100
 
 function statusTone(status: string): string {
@@ -324,19 +323,7 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
         setConfirmAction(null)
         setActionError('')
         try {
-          await stopMachine(machineID)
-          const startedAt = Date.now()
-          while (Date.now() < startedAt + restartWaitTimeoutMs) {
-            const current = await getMachine(machineID)
-            setMachine(current)
-            if (current.status === 'stopped') {
-              break
-            }
-            await new Promise<void>((resolve) => {
-              window.setTimeout(resolve, restartWaitIntervalMs)
-            })
-          }
-          const updated = await startMachine(machineID)
+          const updated = await restartMachine(machineID)
           setMachine(updated)
         } catch (e) {
           setActionError(messageFromError(e))
