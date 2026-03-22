@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -360,13 +361,15 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
       const autoStopTimeoutSeconds = autoStopHours > 0 ? Math.round(autoStopHours * 3600) : 0
       if (form.id === '') {
         const created = await createMachineProfile(profileName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds || undefined)
+        toast.success('Profile created.')
         navigate(`/machine-profiles/${created.id}`)
       } else {
         await updateMachineProfile(form.id, profileName, form.type, config, exposure, serverApiUrl, autoStopTimeoutSeconds)
+        toast.success('Profile updated.')
         navigate(`/machine-profiles/${form.id}`)
       }
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     } finally {
       setSaving(false)
     }

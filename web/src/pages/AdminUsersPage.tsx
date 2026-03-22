@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -34,17 +35,15 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
   const [refreshingUserID, setRefreshingUserID] = useState('')
   const [togglingRoleUserID, setTogglingRoleUserID] = useState('')
   const [tokenResult, setTokenResult] = useState<TokenResult | null>(null)
-  const [error, setError] = useState('')
   const setupBaseURL = useMemo(() => `${window.location.origin}/users/setup`, [])
 
   useEffect(() => {
     const run = async () => {
       setLoading(true)
-      setError('')
       try {
         setUsers(await listManagedUsers())
       } catch (err) {
-        setError(messageFromError(err))
+        toast.error(messageFromError(err))
       } finally {
         setLoading(false)
       }
@@ -65,7 +64,6 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
     setSaving(true)
     try {
       const created = await createManagedUser(email.trim())
@@ -75,30 +73,30 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
         setupTokenExpiresAt: created.setupTokenExpiresAt,
       })
       setEmail('')
+      toast.success('User created.')
       await reloadUsers()
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     } finally {
       setSaving(false)
     }
   }
 
   const handleToggleRole = async (target: ManagedUser) => {
-    setError('')
     setTogglingRoleUserID(target.id)
     try {
       const newRole = target.role === 'admin' ? 'user' : 'admin'
       const updated = await updateUserRole(target.id, newRole)
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+      toast.success(`Role updated to ${newRole}.`)
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     } finally {
       setTogglingRoleUserID('')
     }
   }
 
   const handleIssueToken = async (target: ManagedUser) => {
-    setError('')
     setRefreshingUserID(target.id)
     try {
       const result = await issueManagedUserSetupToken(target.id)
@@ -109,7 +107,7 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
       })
       await reloadUsers()
     } catch (err) {
-      setError(messageFromError(err))
+      toast.error(messageFromError(err))
     } finally {
       setRefreshingUserID('')
     }
@@ -237,7 +235,6 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
           </CardContent>
         </Card>
 
-        {error !== '' && <p className="text-sm text-red-300">{error}</p>}
       </section>
     </main>
   )

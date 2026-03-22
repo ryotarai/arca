@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -33,8 +34,6 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
   const [oidcAllowedEmailDomainsText, setOidcAllowedEmailDomainsText] = useState(setupStatus.oidcAllowedEmailDomains.join('\n'))
   const [agentPrompt, setAgentPrompt] = useState(setupStatus.agentPrompt ?? '')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     setServerDomain(setupStatus.serverDomain)
@@ -62,8 +61,6 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setError('')
-    setSaved(false)
     setLoading(true)
     try {
       await updateDomainSettings(
@@ -110,9 +107,9 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
         agentPrompt,
       })
       setOidcClientSecret('')
-      setSaved(true)
+      toast.success('Settings updated.')
     } catch (e) {
-      setError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setLoading(false)
     }
@@ -360,8 +357,6 @@ export function AdminSettingsPage({ user, setupStatus, onSetupStatusChange, onLo
                 {loading ? 'Saving...' : 'Save settings'}
               </Button>
             </form>
-            {saved && <p className="mt-3 text-sm text-emerald-300">Settings updated.</p>}
-            {error !== '' && <p className="mt-3 text-sm text-red-300">{error}</p>}
           </CardContent>
         </Card>
 
@@ -417,9 +412,6 @@ function SlackSettingsCard() {
   const [slackLoading, setSlackLoading] = useState(true)
   const [slackSaving, setSlackSaving] = useState(false)
   const [slackTesting, setSlackTesting] = useState(false)
-  const [slackError, setSlackError] = useState('')
-  const [slackSaved, setSlackSaved] = useState(false)
-  const [slackTestResult, setSlackTestResult] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -431,7 +423,7 @@ function SlackSettingsCard() {
         setSlackDefaultChannelId(config.defaultChannelId)
         setSlackBotTokenConfigured(config.botTokenConfigured)
       } catch (e) {
-        if (!cancelled) setSlackError(messageFromError(e))
+        if (!cancelled) toast.error(messageFromError(e))
       } finally {
         if (!cancelled) setSlackLoading(false)
       }
@@ -442,8 +434,6 @@ function SlackSettingsCard() {
 
   const submitSlack = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setSlackError('')
-    setSlackSaved(false)
     setSlackSaving(true)
     try {
       const result = await updateSlackConfig({
@@ -455,22 +445,21 @@ function SlackSettingsCard() {
       setSlackDefaultChannelId(result.defaultChannelId)
       setSlackEnabled(result.enabled)
       setSlackBotToken('')
-      setSlackSaved(true)
+      toast.success('Slack settings updated.')
     } catch (e) {
-      setSlackError(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setSlackSaving(false)
     }
   }
 
   const handleTestSlack = async () => {
-    setSlackTestResult('')
     setSlackTesting(true)
     try {
       await testSlackNotification(slackDefaultChannelId.trim())
-      setSlackTestResult('Test notification sent successfully.')
+      toast.success('Test notification sent successfully.')
     } catch (e) {
-      setSlackTestResult(messageFromError(e))
+      toast.error(messageFromError(e))
     } finally {
       setSlackTesting(false)
     }
@@ -543,13 +532,6 @@ function SlackSettingsCard() {
               </Button>
             </div>
           </form>
-        )}
-        {slackSaved && <p className="mt-3 text-sm text-emerald-300">Slack settings updated.</p>}
-        {slackError !== '' && <p className="mt-3 text-sm text-red-300">{slackError}</p>}
-        {slackTestResult !== '' && (
-          <p className={`mt-3 text-sm ${slackTestResult.startsWith('Test notification') ? 'text-emerald-300' : 'text-red-300'}`}>
-            {slackTestResult}
-          </p>
         )}
       </CardContent>
     </Card>
