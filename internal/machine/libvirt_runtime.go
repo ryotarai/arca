@@ -113,6 +113,10 @@ func (r *LibvirtRuntime) resolveBaseImage(machine db.Machine) string {
 	return r.baseImage
 }
 
+func (r *LibvirtRuntime) CreateImage(ctx context.Context, machine db.Machine, imageName string) (map[string]string, error) {
+	return nil, ErrImageCreationNotSupported
+}
+
 func (r *LibvirtRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts RuntimeStartOptions) (string, error) {
 	baseImage := r.resolveBaseImage(machine)
 	if _, err := os.Stat(baseImage); err != nil {

@@ -99,6 +99,18 @@ func (f *fakeGceComputeClient) WaitZoneOperation(_ context.Context, _, _, operat
 	return &gceOperation{Name: operation, Status: "DONE"}, nil
 }
 
+func (f *fakeGceComputeClient) GetImage(_ context.Context, _, _ string) (map[string]interface{}, error) {
+	return nil, &gceAPIError{StatusCode: 404, Message: "not found"}
+}
+
+func (f *fakeGceComputeClient) InsertImage(_ context.Context, _, _, _ string) (string, error) {
+	return "op-insert-image", nil
+}
+
+func (f *fakeGceComputeClient) WaitGlobalOperation(_ context.Context, _, _ string) error {
+	return nil
+}
+
 func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
 	t.Parallel()
 

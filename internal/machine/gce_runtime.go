@@ -85,6 +85,9 @@ type gceComputeClient interface {
 	DeleteInstance(context.Context, string, string, string) (*gceOperation, error)
 	SetMachineType(context.Context, string, string, string, string) (*gceOperation, error)
 	WaitZoneOperation(context.Context, string, string, string) (*gceOperation, error)
+	GetImage(ctx context.Context, project, imageName string) (map[string]interface{}, error)
+	InsertImage(ctx context.Context, project, imageName, sourceDisk string) (string, error)
+	WaitGlobalOperation(ctx context.Context, project, operationName string) error
 }
 
 type gceRESTClient struct {
@@ -101,6 +104,10 @@ type gceInstance struct {
 			NatIP string `json:"natIP"`
 		} `json:"accessConfigs"`
 	} `json:"networkInterfaces"`
+	Disks []struct {
+		Boot   bool   `json:"boot"`
+		Source string `json:"source"`
+	} `json:"disks"`
 }
 
 func (i *gceInstance) PrivateIP() string {
@@ -248,8 +255,8 @@ func (r *GceRuntime) EnsureRunning(ctx context.Context, machine db.Machine, opts
 			opts.StartupScript = r.startupScript
 		}
 		cloudInit := cloudInitUserData(machine, opts)
-		imageProject, imageFamily := r.resolveImage(machine)
-		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit, effectiveMachineType, imageProject, imageFamily))
+		sourceImage := r.resolveImage(machine)
+		insertOp, err := client.InsertInstance(ctx, r.project, r.zone, r.instanceSpec(instanceName, cloudInit, effectiveMachineType, sourceImage))
 		if err != nil {
 			return "", fmt.Errorf("create gce instance %q: %w", instanceName, err)
 		}
@@ -369,6 +376,53 @@ func (r *GceRuntime) GetMachineInfo(ctx context.Context, machine db.Machine) (*R
 		PrivateIP: instance.PrivateIP(),
 		PublicIP:  instance.PublicIP(),
 	}, nil
+}
+
+func (r *GceRuntime) CreateImage(ctx context.Context, machine db.Machine, imageName string) (map[string]string, error) {
+	client, err := r.computeClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Idempotency: check if image already exists
+	if _, err := client.GetImage(ctx, r.project, imageName); err == nil {
+		return map[string]string{"image_project": r.project, "image_name": imageName}, nil
+	}
+
+	// Get instance to find boot disk
+	instanceName := r.instanceName(machine)
+	instance, found, err := r.getInstance(ctx, client, instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("get instance for boot disk: %w", err)
+	}
+	if !found {
+		return nil, fmt.Errorf("instance %s not found", instanceName)
+	}
+
+	// Extract boot disk from instance disks
+	bootDisk := ""
+	for _, d := range instance.Disks {
+		if d.Boot {
+			bootDisk = d.Source
+			break
+		}
+	}
+	if bootDisk == "" {
+		return nil, fmt.Errorf("no boot disk found for instance %s", instanceName)
+	}
+
+	// Create image from boot disk
+	opName, err := client.InsertImage(ctx, r.project, imageName, bootDisk)
+	if err != nil {
+		return nil, fmt.Errorf("insert image: %w", err)
+	}
+
+	// Wait for operation (it's a global operation)
+	if err := client.WaitGlobalOperation(ctx, r.project, opName); err != nil {
+		return nil, fmt.Errorf("wait for image creation: %w", err)
+	}
+
+	return map[string]string{"image_project": r.project, "image_name": imageName}, nil
 }
 
 func (r *GceRuntime) instanceName(machine db.Machine) string {
@@ -491,20 +545,25 @@ func (r *GceRuntime) setMachineTypeIfNeeded(ctx context.Context, client gceCompu
 	return r.waitOperation(ctx, client, op, "setMachineType")
 }
 
-func (r *GceRuntime) resolveImage(machine db.Machine) (string, string) {
+func (r *GceRuntime) resolveImage(machine db.Machine) string {
 	opts := parseMachineOptionsMap(machine)
 	if opts != nil {
-		if proj := strings.TrimSpace(opts["custom_image_image_project"]); proj != "" {
-			fam := strings.TrimSpace(opts["custom_image_image_family"])
-			if fam != "" {
-				return proj, fam
-			}
+		proj := strings.TrimSpace(opts["custom_image_image_project"])
+		if proj == "" {
+			proj = defaultGceImageProject
+		}
+		// Specific image name takes precedence over family
+		if name := strings.TrimSpace(opts["custom_image_image_name"]); name != "" {
+			return fmt.Sprintf("projects/%s/global/images/%s", proj, name)
+		}
+		if fam := strings.TrimSpace(opts["custom_image_image_family"]); fam != "" {
+			return fmt.Sprintf("projects/%s/global/images/family/%s", proj, fam)
 		}
 	}
-	return defaultGceImageProject, defaultGceImageFamily
+	return fmt.Sprintf("projects/%s/global/images/family/%s", defaultGceImageProject, defaultGceImageFamily)
 }
 
-func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType, imageProject, imageFamily string) *gceInsertInstanceRequest {
+func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType, sourceImage string) *gceInsertInstanceRequest {
 	req := &gceInsertInstanceRequest{
 		Name:        instanceName,
 		MachineType: fmt.Sprintf("zones/%s/machineTypes/%s", r.zone, machineType),
@@ -526,7 +585,7 @@ func (r *GceRuntime) instanceSpec(instanceName, cloudInit, machineType, imagePro
 				SourceImage string `json:"sourceImage"`
 				DiskSizeGb  int64  `json:"diskSizeGb"`
 			}{
-				SourceImage: fmt.Sprintf("projects/%s/global/images/family/%s", imageProject, imageFamily),
+				SourceImage: sourceImage,
 				DiskSizeGb:  r.diskSizeGB,
 			},
 		},
@@ -643,6 +702,51 @@ func (c *gceRESTClient) WaitZoneOperation(ctx context.Context, project, zone, op
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (c *gceRESTClient) GetImage(ctx context.Context, project, imageName string) (map[string]interface{}, error) {
+	var out map[string]interface{}
+	err := c.doJSON(ctx, http.MethodGet, fmt.Sprintf("/compute/v1/projects/%s/global/images/%s", url.PathEscape(project), url.PathEscape(imageName)), nil, &out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gceRESTClient) InsertImage(ctx context.Context, project, imageName, sourceDisk string) (string, error) {
+	body := map[string]string{
+		"name":       imageName,
+		"sourceDisk": sourceDisk,
+	}
+	var out gceOperation
+	err := c.doJSON(ctx, http.MethodPost, fmt.Sprintf("/compute/v1/projects/%s/global/images", url.PathEscape(project)), body, &out)
+	if err != nil {
+		return "", err
+	}
+	return out.Name, nil
+}
+
+func (c *gceRESTClient) WaitGlobalOperation(ctx context.Context, project, operationName string) error {
+	var out gceOperation
+	err := c.doJSON(ctx, http.MethodPost, fmt.Sprintf("/compute/v1/projects/%s/global/operations/%s/wait", url.PathEscape(project), url.PathEscape(operationName)), nil, &out)
+	if err != nil {
+		return err
+	}
+	if out.Error != nil && len(out.Error.Errors) > 0 {
+		messages := make([]string, 0, len(out.Error.Errors))
+		for _, item := range out.Error.Errors {
+			if strings.TrimSpace(item.Message) != "" {
+				messages = append(messages, item.Message)
+			} else if strings.TrimSpace(item.Code) != "" {
+				messages = append(messages, item.Code)
+			}
+		}
+		if len(messages) > 0 {
+			return fmt.Errorf("global operation %q failed: %s", operationName, strings.Join(messages, "; "))
+		}
+		return fmt.Errorf("global operation %q failed", operationName)
+	}
+	return nil
 }
 
 func (c *gceRESTClient) doJSON(ctx context.Context, method, path string, body any, out any) error {

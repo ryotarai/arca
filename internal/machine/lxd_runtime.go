@@ -2,6 +2,7 @@ package machine
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -190,6 +191,41 @@ func (r *LxdRuntime) GetMachineInfo(ctx context.Context, machine db.Machine) (*R
 		}
 	}
 	return info, nil
+}
+
+func (r *LxdRuntime) CreateImage(ctx context.Context, machine db.Machine, imageName string) (map[string]string, error) {
+	name := r.containerName(machine)
+
+	// Check if image already exists (idempotency)
+	checkCmd := exec.CommandContext(ctx, "lxc", "image", "info", imageName, "--format=json")
+	if checkOut, err := checkCmd.Output(); err == nil {
+		var info struct{ Fingerprint string }
+		if json.Unmarshal(checkOut, &info) == nil && info.Fingerprint != "" {
+			return map[string]string{"image_alias": imageName, "image_fingerprint": info.Fingerprint}, nil
+		}
+	}
+
+	// Publish container as image
+	publishCmd := exec.CommandContext(ctx, "lxc", "publish", name, "--alias", imageName)
+	if out, err := publishCmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("lxc publish failed: %s: %w", string(out), err)
+	}
+
+	// Retrieve fingerprint reliably via JSON
+	infoCmd := exec.CommandContext(ctx, "lxc", "image", "info", imageName, "--format=json")
+	infoOut, err := infoCmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("lxc image info failed: %w", err)
+	}
+	var info struct{ Fingerprint string }
+	if err := json.Unmarshal(infoOut, &info); err != nil {
+		return nil, fmt.Errorf("parse image info failed: %w", err)
+	}
+
+	return map[string]string{
+		"image_alias":       imageName,
+		"image_fingerprint": info.Fingerprint,
+	}, nil
 }
 
 func (r *LxdRuntime) containerName(machine db.Machine) string {

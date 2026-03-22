@@ -45,6 +45,10 @@ func (r *fakeRuntime) GetMachineInfo(context.Context, db.Machine) (*RuntimeMachi
 	return &RuntimeMachineInfo{}, nil
 }
 
+func (r *fakeRuntime) CreateImage(context.Context, db.Machine, string) (map[string]string, error) {
+	return nil, ErrImageCreationNotSupported
+}
+
 func TestRoutingTemplate_ResolvesCatalogProfileIDsAcrossTypes(t *testing.T) {
 	t.Parallel()
 

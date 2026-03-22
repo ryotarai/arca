@@ -17,6 +17,9 @@ import (
 
 var errStartCancelled = errors.New("machine start cancelled")
 
+// ErrImageCreationNotSupported is returned by runtimes that do not support creating images.
+var ErrImageCreationNotSupported = errors.New("image creation not supported for this runtime")
+
 type RuntimeMachineInfo struct {
 	PrivateIP string
 	PublicIP  string
@@ -28,6 +31,7 @@ type Runtime interface {
 	EnsureDeleted(context.Context, db.Machine) error
 	IsRunning(context.Context, db.Machine) (bool, string, error)
 	GetMachineInfo(context.Context, db.Machine) (*RuntimeMachineInfo, error)
+	CreateImage(ctx context.Context, machine db.Machine, imageName string) (map[string]string, error)
 }
 
 type RuntimeStartOptions struct {
