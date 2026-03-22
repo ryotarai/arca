@@ -681,6 +681,13 @@ export function MachineDetailPage({ user, baseDomain = '', domainPrefix = '' }: 
                     if (providerConfig.network) entries.push({ label: 'Network', value: String(providerConfig.network), source: 'fixed' })
                   }
 
+                  // Profile-sourced dynamic settings (read live from profile on each start)
+                  const profileName = profiles.find((r) => r.id === machine.profileId)?.name
+                  const profileLabel = profileName ? `From profile "${profileName}"` : 'From profile'
+                  entries.push({ label: 'Startup script', value: profileLabel, source: 'profile' })
+                  entries.push({ label: 'Auto-stop timeout', value: profileLabel, source: 'profile' })
+                  entries.push({ label: 'Server API URL', value: profileLabel, source: 'profile' })
+
                   if (entries.length === 0) return null
 
                   const sourceBadge = (source: 'profile' | 'machine' | 'fixed') => {
