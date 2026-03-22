@@ -277,3 +277,9 @@ type UserSetupToken struct {
 	UsedAt          sql.NullInt64
 	CreatedAt       int64
 }
+
+type WorkflowState struct {
+	ID        string
+	Data      string
+	UpdatedAt int64
+}
