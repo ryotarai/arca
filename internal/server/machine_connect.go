@@ -331,6 +331,11 @@ func (s *machineConnectService) StartMachine(ctx context.Context, req *connect.R
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
 	}
 
+	if machine.LockedOperation != "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("machine is locked by operation: %s", machine.LockedOperation))
+	}
+
 	updated, err := s.store.RequestStartMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
 		slog.ErrorContext(ctx, "start machine failed", "error", err)
@@ -401,6 +406,20 @@ func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
 	}
 
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		slog.ErrorContext(ctx, "get machine failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
+	}
+
+	if machine.LockedOperation != "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("machine is locked by operation: %s", machine.LockedOperation))
+	}
+
 	updated, err := s.store.RequestStopMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
 		slog.ErrorContext(ctx, "stop machine failed", "error", err)
@@ -410,7 +429,7 @@ func (s *machineConnectService) StopMachine(ctx context.Context, req *connect.Re
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
 	}
 
-	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	machine, err = s.store.GetMachineByIDForUser(ctx, userID, machineID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
@@ -440,6 +459,20 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin access required"))
 	}
 
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+		}
+		slog.ErrorContext(ctx, "get machine failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
+	}
+
+	if machine.LockedOperation != "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("machine is locked by operation: %s", machine.LockedOperation))
+	}
+
 	requested, err := s.store.RequestDeleteMachineByIDForOwner(ctx, userID, machineID)
 	if err != nil {
 		slog.ErrorContext(ctx, "request machine delete failed", "error", err)
@@ -452,6 +485,128 @@ func (s *machineConnectService) DeleteMachine(ctx context.Context, req *connect.
 	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.delete", "machine", machineID, "{}")
 
 	return connect.NewResponse(&arcav1.DeleteMachineResponse{}), nil
+}
+
+var imageNamePattern = regexp.MustCompile(`^[a-z](?:[-a-z0-9]*[a-z0-9])?$`)
+
+func (s *machineConnectService) CreateImageFromMachine(ctx context.Context, req *connect.Request[arcav1.CreateImageFromMachineRequest]) (*connect.Response[arcav1.CreateImageFromMachineResponse], error) {
+	authResult, err := s.authenticateWithResult(ctx, req.Header())
+	if err != nil {
+		return nil, err
+	}
+	userID := authResult.UserID
+
+	machineID := strings.TrimSpace(req.Msg.GetMachineId())
+	if machineID == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("machine id is required"))
+	}
+
+	// Must be admin or owner
+	role := s.resolveMachineRole(ctx, userID, machineID)
+	if role != db.MachineRoleAdmin && role != db.MachineRoleOwner {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("admin or owner access required"))
+	}
+
+	machine, err := s.store.GetMachineByIDForUser(ctx, userID, machineID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			if s.dbStore != nil {
+				m, mErr := s.dbStore.GetMachineByID(ctx, machineID)
+				if mErr == nil {
+					machine = m
+				} else {
+					return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+				}
+			} else {
+				return nil, connect.NewError(connect.CodeNotFound, errors.New("machine not found"))
+			}
+		} else {
+			slog.ErrorContext(ctx, "get machine failed", "error", err)
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get machine"))
+		}
+	}
+
+	// Validate machine state: must be running with desired running and not locked
+	if machine.Status != db.MachineStatusRunning {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("machine must be running"))
+	}
+	if machine.DesiredStatus != db.MachineDesiredRunning {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("machine desired status must be running"))
+	}
+	if machine.LockedOperation != "" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("machine is locked by operation: %s", machine.LockedOperation))
+	}
+
+	// Validate image name
+	imageName := strings.TrimSpace(req.Msg.GetName())
+	if imageName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("image name is required"))
+	}
+	if !imageNamePattern.MatchString(imageName) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("image name must start with a lowercase letter, and contain only lowercase letters, digits, and hyphens"))
+	}
+
+	if s.dbStore == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("store unavailable"))
+	}
+
+	// Check image name uniqueness for the template type
+	existingImages, err := s.dbStore.ListCustomImages(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "list custom images failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to check image name uniqueness"))
+	}
+	for _, img := range existingImages {
+		if img.Name == imageName && strings.EqualFold(img.TemplateType, machine.TemplateType) {
+			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("image with this name already exists for this template type"))
+		}
+	}
+
+	// Check no existing active create_image job for this machine
+	hasActive, err := s.dbStore.HasActiveCreateImageJob(ctx, machineID)
+	if err != nil {
+		slog.ErrorContext(ctx, "check active create image job failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to check active jobs"))
+	}
+	if hasActive {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("an image creation job is already in progress for this machine"))
+	}
+
+	// Set locked_operation = 'create_image'
+	if err := s.dbStore.SetMachineLockedOperation(ctx, machineID, "create_image"); err != nil {
+		slog.ErrorContext(ctx, "set machine locked operation failed", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to lock machine for image creation"))
+	}
+
+	// Build metadata JSON
+	description := strings.TrimSpace(req.Msg.GetDescription())
+	metadata := map[string]string{"image_name": imageName}
+	if description != "" {
+		metadata["image_description"] = description
+	}
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encode metadata"))
+	}
+
+	// Enqueue create_image job
+	jobID, err := s.dbStore.EnqueueCreateImageJob(ctx, machineID, description, string(metadataJSON))
+	if err != nil {
+		slog.ErrorContext(ctx, "enqueue create image job failed", "error", err)
+		// Attempt to unlock the machine since job creation failed
+		if unlockErr := s.dbStore.SetMachineLockedOperation(ctx, machineID, ""); unlockErr != nil {
+			slog.ErrorContext(ctx, "failed to unlock machine after job enqueue failure", "error", unlockErr)
+		}
+		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to enqueue image creation job"))
+	}
+
+	writeAuditLogFromAuth(ctx, s.dbStore, authResult, "machine.create_image", "machine", machineID,
+		fmt.Sprintf(`{"image_name":%q,"job_id":%q}`, imageName, jobID))
+
+	return connect.NewResponse(&arcav1.CreateImageFromMachineResponse{
+		JobId: jobID,
+	}), nil
 }
 
 func (s *machineConnectService) ListMachineEvents(ctx context.Context, req *connect.Request[arcav1.ListMachineEventsRequest]) (*connect.Response[arcav1.ListMachineEventsResponse], error) {
@@ -638,6 +793,7 @@ func toMachineMessageWithAdmin(machine db.Machine, includeConfig bool) *arcav1.M
 		Options:         parseMachineOptions(machine.OptionsJSON),
 		ProviderType:    machine.ProviderType,
 		Tags:            machine.Tags,
+		LockedOperation: machine.LockedOperation,
 	}
 	if includeConfig {
 		msg.InfrastructureConfigJson = machine.InfrastructureConfigJSON
