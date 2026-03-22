@@ -341,7 +341,7 @@ func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, r
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to authorize machine"))
 	}
 
-	// 2. Get machine record (includes template_config_json)
+	// 2. Get machine record
 	m, err := s.store.GetMachineByID(ctx, machineID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -351,8 +351,12 @@ func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, r
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to load machine"))
 	}
 
-	// 3. Parse agentPrompt from template config JSON
-	templatePrompt := db.GetTemplateAgentPrompt(m.TemplateConfigJSON)
+	// 3. Parse agentPrompt from live profile config
+	var profilePrompt string
+	profile, err := s.store.GetMachineProfileByID(ctx, m.ProfileID)
+	if err == nil {
+		profilePrompt = db.GetProfileAgentPrompt(profile.ConfigJSON)
+	}
 
 	// 4. Get global agent prompt from setup state
 	setup, err := s.store.GetSetupState(ctx)
@@ -382,7 +386,7 @@ func (s *exposureConnectService) GetMachineAgentGuideline(ctx context.Context, r
 	endpointURL := "https://" + hostname
 
 	// 7. Assemble and return
-	guideline := machine.AssembleAgentGuideline(endpointURL, globalPrompt, templatePrompt, userPrompt)
+	guideline := machine.AssembleAgentGuideline(endpointURL, globalPrompt, profilePrompt, userPrompt)
 
 	return connect.NewResponse(&arcav1.GetMachineAgentGuidelineResponse{
 		Guideline: guideline,
