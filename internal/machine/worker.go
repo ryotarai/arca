@@ -641,11 +641,7 @@ func (w *Worker) handleRestart(ctx context.Context, machine db.Machine, job db.M
 	// Restart uses step-tracked execution so that if the stop succeeds but
 	// the start fails, the retry resumes from the start step instead of
 	// stopping the (already stopped) machine again.
-	store := workflow.StoreFunc(func(ctx context.Context, data []byte) error {
-		return w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(data))
-	})
-
-	return workflow.New(store).
+	return workflow.NewRunner(w.store, job.ID).
 		StepWithTimeout("stop", w.stopTTL, func(sCtx context.Context) error {
 			if err := w.store.UpdateMachineRuntimeStateByMachineID(
 				ctx, machine.ID, db.MachineStatusStopping, db.MachineDesiredRunning, machine.ContainerID, "",
@@ -705,7 +701,7 @@ func (w *Worker) handleRestart(ctx context.Context, machine db.Machine, job db.M
 			w.emitEvent(ctx, machine.ID, job.ID, "info", "ready", "machine is ready")
 			return nil
 		}).
-		Run(ctx, []byte(job.MetadataJSON))
+		Run(ctx)
 }
 
 func (w *Worker) handleDelete(ctx context.Context, machine db.Machine, jobID string) error {

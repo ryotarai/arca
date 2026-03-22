@@ -17,10 +17,6 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	defer cancel()
 
-	store := workflow.StoreFunc(func(ctx context.Context, data []byte) error {
-		return w.store.UpdateMachineJobMetadataJSON(ctx, job.ID, string(data))
-	})
-
 	// Deferred cleanup:
 	// - On success: clear locked_operation so other operations can proceed.
 	// - On failure: only emit the error event. Do NOT restart the machine
@@ -39,10 +35,19 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 		}
 	}()
 
-	runner := workflow.New(store)
+	// Read initial params from job metadata.
+	var params struct {
+		ImageName string `json:"image_name"`
+	}
+	if err := json.Unmarshal([]byte(job.MetadataJSON), &params); err != nil {
+		return fmt.Errorf("parse job metadata: %w", err)
+	}
+
+	runner := workflow.NewRunner(w.store, job.ID)
+	runner.Set("image_name", params.ImageName)
 
 	w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_started",
-		fmt.Sprintf("Image creation started (step: %s, attempt: %d)", runner.Get("step"), job.Attempt))
+		fmt.Sprintf("Image creation started (attempt: %d)", job.Attempt))
 
 	jobErr = runner.
 		Step("prepare", func(sCtx context.Context) error {
@@ -88,7 +93,7 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 			}
 			return nil
 		}).
-		Run(ctx, []byte(job.MetadataJSON))
+		Run(ctx)
 
 	if jobErr == nil {
 		w.emitEvent(ctx, machine.ID, job.ID, "info", "imaging_completed",
