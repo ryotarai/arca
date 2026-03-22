@@ -376,6 +376,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				ReadyReportedAt:          row.ReadyReportedAt,
 				ReadyReason:              row.ReadyReason,
 				ArcadVersion:             row.ArcadVersion,
+				LockedOperation:          row.LockedOperation.String,
 				UserRole:                 userRole,
 			})
 		}
@@ -411,6 +412,7 @@ func (s *Store) ListMachinesByUser(ctx context.Context, userID string) ([]Machin
 				ReadyReportedAt:          row.ReadyReportedAt,
 				ReadyReason:              row.ReadyReason,
 				ArcadVersion:             row.ArcadVersion,
+				LockedOperation:          row.LockedOperation.String,
 				UserRole:                 userRole,
 			})
 		}
@@ -667,6 +669,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			ReadyReportedAt:          row.ReadyReportedAt,
 			ReadyReason:              row.ReadyReason,
 			ArcadVersion:             row.ArcadVersion,
+			LockedOperation:          row.LockedOperation.String,
 			MachineToken:             row.MachineToken,
 		}, nil
 	case DriverPostgres:
@@ -692,6 +695,7 @@ func (s *Store) GetMachineByID(ctx context.Context, machineID string) (Machine, 
 			ReadyReportedAt:          row.ReadyReportedAt,
 			ReadyReason:              row.ReadyReason,
 			ArcadVersion:             row.ArcadVersion,
+			LockedOperation:          row.LockedOperation.String,
 			MachineToken:             row.MachineToken,
 		}, nil
 	default:
@@ -727,6 +731,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			ReadyReportedAt:          row.ReadyReportedAt,
 			ReadyReason:              row.ReadyReason,
 			ArcadVersion:             row.ArcadVersion,
+			LockedOperation:          row.LockedOperation.String,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByIDForUser(ctx, postgresqlsqlc.GetMachineByIDForUserParams{
@@ -754,6 +759,7 @@ func (s *Store) GetMachineByIDForUser(ctx context.Context, userID, machineID str
 			ReadyReportedAt:          row.ReadyReportedAt,
 			ReadyReason:              row.ReadyReason,
 			ArcadVersion:             row.ArcadVersion,
+			LockedOperation:          row.LockedOperation.String,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -785,6 +791,7 @@ func (s *Store) GetMachineByName(ctx context.Context, name string) (Machine, err
 			ReadyReportedAt:          row.ReadyReportedAt,
 			ReadyReason:              row.ReadyReason,
 			ArcadVersion:             row.ArcadVersion,
+			LockedOperation:          row.LockedOperation.String,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetMachineByName(ctx, name)
@@ -809,6 +816,7 @@ func (s *Store) GetMachineByName(ctx context.Context, name string) (Machine, err
 			ReadyReportedAt:          row.ReadyReportedAt,
 			ReadyReason:              row.ReadyReason,
 			ArcadVersion:             row.ArcadVersion,
+			LockedOperation:          row.LockedOperation.String,
 		}, nil
 	default:
 		return Machine{}, unsupportedDriverError(s.driver)
@@ -923,6 +931,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				ReadyReportedAt:          row.ReadyReportedAt,
 				ReadyReason:              row.ReadyReason,
 				ArcadVersion:             row.ArcadVersion,
+				LockedOperation:          row.LockedOperation.String,
 				LastActivityAt:           row.LastActivityAt,
 			})
 		}
@@ -954,6 +963,7 @@ func (s *Store) ListMachinesByDesiredStatus(ctx context.Context, desiredStatus s
 				ReadyReportedAt:          row.ReadyReportedAt,
 				ReadyReason:              row.ReadyReason,
 				ArcadVersion:             row.ArcadVersion,
+				LockedOperation:          row.LockedOperation.String,
 				LastActivityAt:           row.LastActivityAt,
 			})
 		}
@@ -2091,6 +2101,72 @@ func (s *Store) EnqueueCreateImageJob(ctx context.Context, machineID, descriptio
 		return "", unsupportedDriverError(s.driver)
 	}
 	if err != nil {
+		return "", err
+	}
+	return jobID, nil
+}
+
+// LockMachineAndEnqueueCreateImageJob atomically sets locked_operation on the
+// machine and enqueues a create_image job inside a single transaction.
+func (s *Store) LockMachineAndEnqueueCreateImageJob(ctx context.Context, machineID, operation, description, metadataJSON string) (string, error) {
+	jobID, err := randomID()
+	if err != nil {
+		return "", err
+	}
+	nowUnix := time.Now().Unix()
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	switch s.driver {
+	case DriverSQLite:
+		q := s.sqliteQueries.WithTx(tx)
+		if err := q.SetMachineLockedOperation(ctx, sqlitesqlc.SetMachineLockedOperationParams{
+			LockedOperation: sql.NullString{String: operation, Valid: true},
+			NowUnix:         nowUnix,
+			MachineID:       machineID,
+		}); err != nil {
+			return "", err
+		}
+		if err := q.EnqueueMachineJobWithMeta(ctx, sqlitesqlc.EnqueueMachineJobWithMetaParams{
+			ID:           jobID,
+			MachineID:    machineID,
+			Kind:         MachineJobCreateImage,
+			NextRunAt:    nowUnix,
+			Description:  sql.NullString{String: description, Valid: description != ""},
+			MetadataJson: sql.NullString{String: metadataJSON, Valid: metadataJSON != ""},
+			NowUnix:      nowUnix,
+		}); err != nil {
+			return "", err
+		}
+	case DriverPostgres:
+		q := s.pgQueries.WithTx(tx)
+		if err := q.SetMachineLockedOperation(ctx, postgresqlsqlc.SetMachineLockedOperationParams{
+			LockedOperation: sql.NullString{String: operation, Valid: true},
+			NowUnix:         nowUnix,
+			MachineID:       machineID,
+		}); err != nil {
+			return "", err
+		}
+		if err := q.EnqueueMachineJobWithMeta(ctx, postgresqlsqlc.EnqueueMachineJobWithMetaParams{
+			ID:           jobID,
+			MachineID:    machineID,
+			Kind:         MachineJobCreateImage,
+			NextRunAt:    nowUnix,
+			Description:  sql.NullString{String: description, Valid: description != ""},
+			MetadataJson: sql.NullString{String: metadataJSON, Valid: metadataJSON != ""},
+			NowUnix:      nowUnix,
+		}); err != nil {
+			return "", err
+		}
+	default:
+		return "", unsupportedDriverError(s.driver)
+	}
+
+	if err := tx.Commit(); err != nil {
 		return "", err
 	}
 	return jobID, nil

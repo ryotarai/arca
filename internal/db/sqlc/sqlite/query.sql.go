@@ -1169,7 +1169,6 @@ func (q *Queries) GetAdminViewMode(ctx context.Context, userID string) (string, 
 
 const getCustomImage = `-- name: GetCustomImage :one
 SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
-
 FROM custom_images
 WHERE id = ?1
 LIMIT 1
@@ -1177,6 +1176,34 @@ LIMIT 1
 
 func (q *Queries) GetCustomImage(ctx context.Context, id string) (CustomImage, error) {
 	row := q.db.QueryRowContext(ctx, getCustomImage, id)
+	var i CustomImage
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ProviderType,
+		&i.DataJson,
+		&i.Description,
+		&i.SourceMachineID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCustomImageByNameAndProviderType = `-- name: GetCustomImageByNameAndProviderType :one
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+FROM custom_images
+WHERE name = ?1 AND provider_type = ?2
+LIMIT 1
+`
+
+type GetCustomImageByNameAndProviderTypeParams struct {
+	Name         string
+	ProviderType string
+}
+
+func (q *Queries) GetCustomImageByNameAndProviderType(ctx context.Context, arg GetCustomImageByNameAndProviderTypeParams) (CustomImage, error) {
+	row := q.db.QueryRowContext(ctx, getCustomImageByNameAndProviderType, arg.Name, arg.ProviderType)
 	var i CustomImage
 	err := row.Scan(
 		&i.ID,
@@ -1246,7 +1273,7 @@ func (q *Queries) GetMachineAccessRequestByID(ctx context.Context, id string) (G
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -1272,6 +1299,7 @@ type GetMachineByIDRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 	MachineToken             string
 }
 
@@ -1296,13 +1324,14 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
 		&i.ArcadVersion,
+		&i.LockedOperation,
 		&i.MachineToken,
 	)
 	return i, err
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -1334,6 +1363,7 @@ type GetMachineByIDForUserRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 }
 
 func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDForUserParams) (GetMachineByIDForUserRow, error) {
@@ -1357,12 +1387,13 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
 		&i.ArcadVersion,
+		&i.LockedOperation,
 	)
 	return i, err
 }
 
 const getMachineByName = `-- name: GetMachineByName :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.name = ?1
@@ -1387,6 +1418,7 @@ type GetMachineByNameRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 }
 
 func (q *Queries) GetMachineByName(ctx context.Context, name string) (GetMachineByNameRow, error) {
@@ -1410,6 +1442,7 @@ func (q *Queries) GetMachineByName(ctx context.Context, name string) (GetMachine
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
 		&i.ArcadVersion,
+		&i.LockedOperation,
 	)
 	return i, err
 }
@@ -2241,7 +2274,6 @@ func (q *Queries) ListAuditLogsFiltered(ctx context.Context, arg ListAuditLogsFi
 
 const listCustomImages = `-- name: ListCustomImages :many
 SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
-
 FROM custom_images
 ORDER BY created_at DESC
 `
@@ -2279,35 +2311,22 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 }
 
 const listCustomImagesByProfileID = `-- name: ListCustomImagesByProfileID :many
-SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, source_machine_id, ci.created_at, ci.updated_at
-
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, ci.created_at, ci.updated_at
 FROM custom_images ci
 JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
 WHERE pci.profile_id = ?1
 ORDER BY ci.name ASC
 `
 
-type ListCustomImagesByProfileIDRow struct {
-	ID                string
-	Name              string
-	ProviderType      string
-	DataJson          string
-	Description       string
-	SourceMachineID   sql.NullString
-	SourceMachineID_2 sql.NullString
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-}
-
-func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID string) ([]ListCustomImagesByProfileIDRow, error) {
+func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID string) ([]CustomImage, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomImagesByProfileID, profileID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListCustomImagesByProfileIDRow
+	var items []CustomImage
 	for rows.Next() {
-		var i ListCustomImagesByProfileIDRow
+		var i CustomImage
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -2315,7 +2334,6 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 			&i.DataJson,
 			&i.Description,
 			&i.SourceMachineID,
-			&i.SourceMachineID_2,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2334,7 +2352,6 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 
 const listCustomImagesByRuntimeType = `-- name: ListCustomImagesByRuntimeType :many
 SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
-
 FROM custom_images
 WHERE provider_type = ?1
 ORDER BY created_at DESC
@@ -2571,7 +2588,7 @@ func (q *Queries) ListMachineTagsByMachineID(ctx context.Context, machineID stri
 }
 
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -2603,6 +2620,7 @@ type ListMachinesAccessibleByUserRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 	UserRole                 string
 	CreatedAt                time.Time
 }
@@ -2634,6 +2652,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
 			&i.ArcadVersion,
+			&i.LockedOperation,
 			&i.UserRole,
 			&i.CreatedAt,
 		); err != nil {
@@ -2651,7 +2670,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = ?1
@@ -2683,6 +2702,7 @@ type ListMachinesByDesiredStatusRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 	LastActivityAt           int64
 }
 
@@ -2713,6 +2733,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
 			&i.ArcadVersion,
+			&i.LockedOperation,
 			&i.LastActivityAt,
 		); err != nil {
 			return nil, err

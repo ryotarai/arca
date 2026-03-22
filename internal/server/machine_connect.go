@@ -573,31 +573,18 @@ func (s *machineConnectService) CreateImageFromMachine(ctx context.Context, req 
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("an image creation job is already in progress for this machine"))
 	}
 
-	// Set locked_operation = 'create_image'
-	if err := s.dbStore.SetMachineLockedOperation(ctx, machineID, "create_image"); err != nil {
-		slog.ErrorContext(ctx, "set machine locked operation failed", "error", err)
-		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to lock machine for image creation"))
-	}
-
 	// Build metadata JSON
 	description := strings.TrimSpace(req.Msg.GetDescription())
 	metadata := map[string]string{"image_name": imageName}
-	if description != "" {
-		metadata["image_description"] = description
-	}
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encode metadata"))
 	}
 
-	// Enqueue create_image job
-	jobID, err := s.dbStore.EnqueueCreateImageJob(ctx, machineID, description, string(metadataJSON))
+	// Atomically set locked_operation and enqueue create_image job
+	jobID, err := s.dbStore.LockMachineAndEnqueueCreateImageJob(ctx, machineID, "create_image", description, string(metadataJSON))
 	if err != nil {
-		slog.ErrorContext(ctx, "enqueue create image job failed", "error", err)
-		// Attempt to unlock the machine since job creation failed
-		if unlockErr := s.dbStore.ClearMachineLockedOperation(ctx, machineID); unlockErr != nil {
-			slog.ErrorContext(ctx, "failed to unlock machine after job enqueue failure", "error", unlockErr)
-		}
+		slog.ErrorContext(ctx, "lock machine and enqueue create image job failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to enqueue image creation job"))
 	}
 

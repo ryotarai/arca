@@ -271,7 +271,7 @@ VALUES (
 );
 
 -- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -285,7 +285,7 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -300,7 +300,7 @@ WHERE um.machine_id = sqlc.arg(machine_id)
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -475,7 +475,7 @@ SET lease_until = sqlc.arg(lease_until), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND status = 'running' AND lease_owner = sqlc.arg(lease_owner);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)
@@ -563,7 +563,7 @@ WHERE id = sqlc.arg(id)
   AND used_at IS NULL;
 
 -- name: GetMachineByName :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.name = sqlc.arg(name)
@@ -906,22 +906,25 @@ WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) ||
 
 -- name: ListCustomImages :many
 SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
-
 FROM custom_images
 ORDER BY created_at DESC;
 
 -- name: ListCustomImagesByRuntimeType :many
 SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
-
 FROM custom_images
 WHERE provider_type = sqlc.arg(provider_type)
 ORDER BY created_at DESC;
 
 -- name: GetCustomImage :one
 SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
-
 FROM custom_images
 WHERE id = sqlc.arg(id)
+LIMIT 1;
+
+-- name: GetCustomImageByNameAndProviderType :one
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+FROM custom_images
+WHERE name = sqlc.arg(name) AND provider_type = sqlc.arg(provider_type)
 LIMIT 1;
 
 -- name: CreateCustomImage :exec
@@ -954,8 +957,7 @@ DELETE FROM custom_images
 WHERE id = sqlc.arg(id);
 
 -- name: ListCustomImagesByProfileID :many
-SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, source_machine_id, ci.created_at, ci.updated_at
-
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, ci.created_at, ci.updated_at
 FROM custom_images ci
 JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
 WHERE pci.profile_id = sqlc.arg(profile_id)

@@ -107,6 +107,49 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 	}
 }
 
+func (s *Store) GetCustomImageByNameAndProviderType(ctx context.Context, name, providerType string) (CustomImage, error) {
+	switch s.driver {
+	case DriverSQLite:
+		row, err := s.sqliteQueries.GetCustomImageByNameAndProviderType(ctx, sqlitesqlc.GetCustomImageByNameAndProviderTypeParams{
+			Name:         name,
+			ProviderType: providerType,
+		})
+		if err != nil {
+			return CustomImage{}, err
+		}
+		return CustomImage{
+			ID:              row.ID,
+			Name:            row.Name,
+			ProviderType:    row.ProviderType,
+			DataJSON:        row.DataJson,
+			Description:     row.Description,
+			SourceMachineID: row.SourceMachineID.String,
+			CreatedAt:       row.CreatedAt,
+			UpdatedAt:       row.UpdatedAt,
+		}, nil
+	case DriverPostgres:
+		row, err := s.pgQueries.GetCustomImageByNameAndProviderType(ctx, postgresqlsqlc.GetCustomImageByNameAndProviderTypeParams{
+			Name:         name,
+			ProviderType: providerType,
+		})
+		if err != nil {
+			return CustomImage{}, err
+		}
+		return CustomImage{
+			ID:              row.ID,
+			Name:            row.Name,
+			ProviderType:    row.ProviderType,
+			DataJSON:        row.DataJson,
+			Description:     row.Description,
+			SourceMachineID: row.SourceMachineID.String,
+			CreatedAt:       row.CreatedAt,
+			UpdatedAt:       row.UpdatedAt,
+		}, nil
+	default:
+		return CustomImage{}, unsupportedDriverError(s.driver)
+	}
+}
+
 func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJSON, description string) (CustomImage, error) {
 	id, err := randomID()
 	if err != nil {
@@ -369,7 +412,11 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 			SourceMachineID: sql.NullString{String: sourceMachineID, Valid: sourceMachineID != ""},
 		}); err != nil {
 			if isCustomImageNameUniqueConstraintError(err) {
-				return nil, ErrCustomImageNameAlreadyExists
+				existing, fetchErr := s.GetCustomImageByNameAndProviderType(ctx, strings.TrimSpace(name), strings.TrimSpace(providerType))
+				if fetchErr != nil {
+					return nil, ErrCustomImageNameAlreadyExists
+				}
+				return &existing, nil
 			}
 			return nil, err
 		}
@@ -398,7 +445,11 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 			SourceMachineID: sql.NullString{String: sourceMachineID, Valid: sourceMachineID != ""},
 		}); err != nil {
 			if isCustomImageNameUniqueConstraintError(err) {
-				return nil, ErrCustomImageNameAlreadyExists
+				existing, fetchErr := s.GetCustomImageByNameAndProviderType(ctx, strings.TrimSpace(name), strings.TrimSpace(providerType))
+				if fetchErr != nil {
+					return nil, ErrCustomImageNameAlreadyExists
+				}
+				return &existing, nil
 			}
 			return nil, err
 		}

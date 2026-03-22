@@ -1,3 +1,6 @@
+ALTER TABLE machine_states DROP COLUMN locked_operation;
+ALTER TABLE custom_images DROP COLUMN source_machine_id;
+
 -- Recreate machine_jobs without new columns and with old CHECK
 CREATE TABLE machine_jobs_old (
   id TEXT PRIMARY KEY,
