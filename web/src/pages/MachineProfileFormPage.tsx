@@ -96,6 +96,8 @@ function validateProfileForm(form: ProfileFormState): string | null {
     return 'Name must use lowercase letters, digits, and hyphens only.'
   }
 
+  if (form.type === 'mock') return null
+
   if (form.type === 'gce') {
     if (utf8ByteLength(form.gceStartupScript) > maxStartupScriptBytes) {
       return 'GCE startup script must be 8KB or less.'
@@ -163,6 +165,9 @@ function toConfig(form: ProfileFormState): MachineProfileConfig {
       startupScript: form.lxdStartupScript,
     }
   }
+  if (form.type === 'mock') {
+    return { type: 'mock' }
+  }
   return {
     type: 'libvirt',
     uri: form.libvirtURI.trim(),
@@ -212,6 +217,15 @@ function fillFormFromProfile(profile: MachineProfileItem): ProfileFormState {
       type: 'lxd',
       lxdEndpoint: cfg.endpoint,
       lxdStartupScript: cfg.startupScript,
+      ...exposureFields,
+    }
+  }
+  if (cfg.type === 'mock') {
+    return {
+      ...emptyProfileForm(),
+      id: profile.id,
+      name: profile.name,
+      type: 'mock',
       ...exposureFields,
     }
   }
@@ -437,7 +451,7 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
                   {isEdit ? (
                     <Input
                       id="profile-type"
-                      value={form.type === 'gce' ? 'Google Compute Engine (GCE)' : form.type === 'lxd' ? 'LXD' : 'Libvirt'}
+                      value={form.type === 'gce' ? 'Google Compute Engine (GCE)' : form.type === 'lxd' ? 'LXD' : form.type === 'mock' ? 'Mock' : 'Libvirt'}
                       className="h-10"
                       disabled
                     />
@@ -447,7 +461,7 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
                       value={form.type}
                       onChange={(event) => {
                         const val = event.target.value
-                        const t: MachineProfileType = val === 'gce' ? 'gce' : val === 'lxd' ? 'lxd' : 'libvirt'
+                        const t: MachineProfileType = val === 'gce' ? 'gce' : val === 'lxd' ? 'lxd' : val === 'mock' ? 'mock' : 'libvirt'
                         setForm((current) => ({
                           ...current,
                           type: t,
@@ -459,6 +473,7 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
                       <option value="libvirt">Libvirt</option>
                       <option value="gce">Google Compute Engine (GCE)</option>
                       <option value="lxd">LXD</option>
+                      <option value="mock">Mock</option>
                     </select>
                   )}
                   {isEdit && (
@@ -504,7 +519,9 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
                   <p className="text-sm font-medium text-foreground">Applies on next start</p>
                   <p className="text-xs text-muted-foreground">Running machines will pick up these changes after a restart.</p>
 
-                  {form.type === 'gce' ? (
+                  {form.type === 'mock' ? (
+                    <p className="text-sm text-muted-foreground">Mock profiles do not require a startup script.</p>
+                  ) : form.type === 'gce' ? (
                     <div className="space-y-2">
                       <Label htmlFor="profile-gce-startup-script">Startup script (Bash, optional)</Label>
                       <textarea
@@ -548,7 +565,9 @@ export function MachineProfileFormPage({ user }: MachineProfileFormPageProps) {
                   <p className="text-sm font-medium text-foreground">New machines only</p>
                   <p className="text-xs text-muted-foreground">These infrastructure settings only apply to newly created machines.</p>
 
-                  {form.type === 'gce' ? (
+                  {form.type === 'mock' ? (
+                    <p className="text-sm text-muted-foreground">Mock profiles do not require infrastructure configuration.</p>
+                  ) : form.type === 'gce' ? (
                     <>
                       <div className="space-y-2">
                         <Label htmlFor="profile-gce-project">Project</Label>
