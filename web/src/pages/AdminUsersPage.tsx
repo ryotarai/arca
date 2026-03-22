@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createManagedUser, issueManagedUserSetupToken, listManagedUsers, updateUserRole } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { EmptyState } from '@/components/EmptyState'
 import type { ManagedUser, User } from '@/lib/types'
 
 type AdminUsersPageProps = {
@@ -185,7 +187,11 @@ export function AdminUsersPage({ user, onLogout }: AdminUsersPageProps) {
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading users...</p>
             ) : users.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No users found.</p>
+              <EmptyState
+                icon={<UserPlus className="size-6" />}
+                title="No users yet"
+                description="Provision a user above to get started."
+              />
             ) : (
               <div className="space-y-3">
                 {users.map((managedUser) => (

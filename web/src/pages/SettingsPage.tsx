@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { Cpu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -21,6 +22,7 @@ import {
 } from '@/lib/api'
 import type { LLMModel } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { EmptyState } from '@/components/EmptyState'
 import type { User } from '@/lib/types'
 
 type SettingsPageProps = {
@@ -368,7 +370,11 @@ function LLMModelsCard({ userId }: { userId: string }) {
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
           ) : models.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No LLM models configured yet.</p>
+            <EmptyState
+              icon={<Cpu className="size-6" />}
+              title="No LLM models configured yet"
+              description="Add an LLM model endpoint to use AI features on your machines."
+            />
           ) : (
             <div className="space-y-3">
               {models.map((model) => (

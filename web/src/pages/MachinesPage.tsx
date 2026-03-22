@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Terminal, Bot } from 'lucide-react'
+import { Monitor, Terminal, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -13,6 +13,7 @@ import {
 import { messageFromError } from '@/lib/errors'
 import { usePolling } from '@/hooks/use-polling'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { EmptyState } from '@/components/EmptyState'
 import { ListSkeleton } from '@/components/ListSkeleton'
 import type { Machine, MachineProfileSummary, User } from '@/lib/types'
 
@@ -144,7 +145,16 @@ export function MachinesPage({ user, onLogout, baseDomain = '', domainPrefix = '
             {loading ? (
               <ListSkeleton />
             ) : machines.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No machines yet.</p>
+              <EmptyState
+                icon={<Monitor className="size-6" />}
+                title="No machines yet"
+                description="Create your first machine to get started with a cloud development environment."
+                action={
+                  <Button asChild>
+                    <Link to="/machines/new">Create machine</Link>
+                  </Button>
+                }
+              />
             ) : (
               <ul className="space-y-3">
                 {machines.map((machine) => {
