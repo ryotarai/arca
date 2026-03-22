@@ -19,11 +19,16 @@ ALTER TABLE user_machines_new RENAME TO user_machines;
 CREATE INDEX IF NOT EXISTS idx_user_machines_machine_id ON user_machines(machine_id);
 
 -- Promote the earliest admin per machine to owner.
+-- Use ROW_NUMBER() window function instead of rowid for PostgreSQL compatibility.
 UPDATE user_machines
 SET role = 'owner'
-WHERE rowid IN (
-  SELECT MIN(sub.rowid)
-  FROM user_machines sub
-  WHERE sub.role = 'admin'
-  GROUP BY sub.machine_id
+WHERE (user_id, machine_id) IN (
+  SELECT user_id, machine_id
+  FROM (
+    SELECT user_id, machine_id,
+           ROW_NUMBER() OVER (PARTITION BY machine_id ORDER BY created_at ASC) AS rn
+    FROM user_machines
+    WHERE role = 'admin'
+  ) ranked
+  WHERE rn = 1
 );
