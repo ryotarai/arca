@@ -62,7 +62,7 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 	}
 
 	// Step 2: Stop machine
-	stopCtx, stopCancel := context.WithTimeout(ctx, 90*time.Second)
+	stopCtx, stopCancel := context.WithTimeout(ctx, w.stopTTL)
 	defer stopCancel()
 	if jobErr = w.runtime.EnsureStopped(stopCtx, machine); jobErr != nil {
 		return jobErr
