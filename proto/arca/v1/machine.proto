@@ -15,6 +15,7 @@ service MachineService {
   rpc StopMachine(StopMachineRequest) returns (StopMachineResponse);
   rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
   rpc ListMachineEvents(ListMachineEventsRequest) returns (ListMachineEventsResponse);
+  rpc CreateImageFromMachine(CreateImageFromMachineRequest) returns (CreateImageFromMachineResponse);
 }
 
 message Machine {
@@ -35,6 +36,7 @@ message Machine {
   string infrastructure_config_json = 15;
   repeated string tags = 16;
   bool restart_needed = 17;
+  string locked_operation = 18;
 }
 
 message ListMachinesRequest {}
@@ -132,4 +134,14 @@ message UpdateMachineTagsResponse {
 
 message ListMachineEventsResponse {
   repeated MachineEvent events = 1;
+}
+
+message CreateImageFromMachineRequest {
+  string machine_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message CreateImageFromMachineResponse {
+  string job_id = 1;
 }

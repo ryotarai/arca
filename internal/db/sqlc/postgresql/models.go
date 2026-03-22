@@ -65,13 +65,14 @@ type AuthTicket struct {
 }
 
 type CustomImage struct {
-	ID           string
-	Name         string
-	ProviderType string
-	DataJson     string
-	Description  string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID              string
+	Name            string
+	ProviderType    string
+	DataJson        string
+	Description     string
+	SourceMachineID sql.NullString
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type Machine struct {
@@ -117,17 +118,19 @@ type MachineGroupAccess struct {
 }
 
 type MachineJob struct {
-	ID         string
-	MachineID  string
-	Kind       string
-	Status     string
-	Attempt    int32
-	NextRunAt  int64
-	LeaseOwner sql.NullString
-	LeaseUntil sql.NullInt64
-	LastError  sql.NullString
-	CreatedAt  int64
-	UpdatedAt  int64
+	ID           string
+	MachineID    string
+	Kind         string
+	Status       string
+	Attempt      int32
+	NextRunAt    int64
+	LeaseOwner   sql.NullString
+	LeaseUntil   sql.NullInt64
+	LastError    sql.NullString
+	Description  sql.NullString
+	MetadataJson sql.NullString
+	CreatedAt    int64
+	UpdatedAt    int64
 }
 
 type MachineProfile struct {
@@ -159,6 +162,7 @@ type MachineState struct {
 	UpdatedAt       int64
 	LastActivityAt  int64
 	ArcadVersion    string
+	LockedOperation sql.NullString
 }
 
 type MachineTag struct {

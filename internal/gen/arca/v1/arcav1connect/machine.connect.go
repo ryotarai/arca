@@ -63,6 +63,9 @@ const (
 	// MachineServiceListMachineEventsProcedure is the fully-qualified name of the MachineService's
 	// ListMachineEvents RPC.
 	MachineServiceListMachineEventsProcedure = "/arca.v1.MachineService/ListMachineEvents"
+	// MachineServiceCreateImageFromMachineProcedure is the fully-qualified name of the MachineService's
+	// CreateImageFromMachine RPC.
+	MachineServiceCreateImageFromMachineProcedure = "/arca.v1.MachineService/CreateImageFromMachine"
 )
 
 // MachineServiceClient is a client for the arca.v1.MachineService service.
@@ -77,6 +80,7 @@ type MachineServiceClient interface {
 	StopMachine(context.Context, *connect.Request[v1.StopMachineRequest]) (*connect.Response[v1.StopMachineResponse], error)
 	DeleteMachine(context.Context, *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error)
 	ListMachineEvents(context.Context, *connect.Request[v1.ListMachineEventsRequest]) (*connect.Response[v1.ListMachineEventsResponse], error)
+	CreateImageFromMachine(context.Context, *connect.Request[v1.CreateImageFromMachineRequest]) (*connect.Response[v1.CreateImageFromMachineResponse], error)
 }
 
 // NewMachineServiceClient constructs a client for the arca.v1.MachineService service. By default,
@@ -150,21 +154,28 @@ func NewMachineServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(machineServiceMethods.ByName("ListMachineEvents")),
 			connect.WithClientOptions(opts...),
 		),
+		createImageFromMachine: connect.NewClient[v1.CreateImageFromMachineRequest, v1.CreateImageFromMachineResponse](
+			httpClient,
+			baseURL+MachineServiceCreateImageFromMachineProcedure,
+			connect.WithSchema(machineServiceMethods.ByName("CreateImageFromMachine")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // machineServiceClient implements MachineServiceClient.
 type machineServiceClient struct {
-	listMachines         *connect.Client[v1.ListMachinesRequest, v1.ListMachinesResponse]
-	getMachine           *connect.Client[v1.GetMachineRequest, v1.GetMachineResponse]
-	createMachine        *connect.Client[v1.CreateMachineRequest, v1.CreateMachineResponse]
-	updateMachine        *connect.Client[v1.UpdateMachineRequest, v1.UpdateMachineResponse]
-	updateMachineTags    *connect.Client[v1.UpdateMachineTagsRequest, v1.UpdateMachineTagsResponse]
-	changeMachineProfile *connect.Client[v1.ChangeMachineProfileRequest, v1.ChangeMachineProfileResponse]
-	startMachine         *connect.Client[v1.StartMachineRequest, v1.StartMachineResponse]
-	stopMachine          *connect.Client[v1.StopMachineRequest, v1.StopMachineResponse]
-	deleteMachine        *connect.Client[v1.DeleteMachineRequest, v1.DeleteMachineResponse]
-	listMachineEvents    *connect.Client[v1.ListMachineEventsRequest, v1.ListMachineEventsResponse]
+	listMachines           *connect.Client[v1.ListMachinesRequest, v1.ListMachinesResponse]
+	getMachine             *connect.Client[v1.GetMachineRequest, v1.GetMachineResponse]
+	createMachine          *connect.Client[v1.CreateMachineRequest, v1.CreateMachineResponse]
+	updateMachine          *connect.Client[v1.UpdateMachineRequest, v1.UpdateMachineResponse]
+	updateMachineTags      *connect.Client[v1.UpdateMachineTagsRequest, v1.UpdateMachineTagsResponse]
+	changeMachineProfile   *connect.Client[v1.ChangeMachineProfileRequest, v1.ChangeMachineProfileResponse]
+	startMachine           *connect.Client[v1.StartMachineRequest, v1.StartMachineResponse]
+	stopMachine            *connect.Client[v1.StopMachineRequest, v1.StopMachineResponse]
+	deleteMachine          *connect.Client[v1.DeleteMachineRequest, v1.DeleteMachineResponse]
+	listMachineEvents      *connect.Client[v1.ListMachineEventsRequest, v1.ListMachineEventsResponse]
+	createImageFromMachine *connect.Client[v1.CreateImageFromMachineRequest, v1.CreateImageFromMachineResponse]
 }
 
 // ListMachines calls arca.v1.MachineService.ListMachines.
@@ -217,6 +228,11 @@ func (c *machineServiceClient) ListMachineEvents(ctx context.Context, req *conne
 	return c.listMachineEvents.CallUnary(ctx, req)
 }
 
+// CreateImageFromMachine calls arca.v1.MachineService.CreateImageFromMachine.
+func (c *machineServiceClient) CreateImageFromMachine(ctx context.Context, req *connect.Request[v1.CreateImageFromMachineRequest]) (*connect.Response[v1.CreateImageFromMachineResponse], error) {
+	return c.createImageFromMachine.CallUnary(ctx, req)
+}
+
 // MachineServiceHandler is an implementation of the arca.v1.MachineService service.
 type MachineServiceHandler interface {
 	ListMachines(context.Context, *connect.Request[v1.ListMachinesRequest]) (*connect.Response[v1.ListMachinesResponse], error)
@@ -229,6 +245,7 @@ type MachineServiceHandler interface {
 	StopMachine(context.Context, *connect.Request[v1.StopMachineRequest]) (*connect.Response[v1.StopMachineResponse], error)
 	DeleteMachine(context.Context, *connect.Request[v1.DeleteMachineRequest]) (*connect.Response[v1.DeleteMachineResponse], error)
 	ListMachineEvents(context.Context, *connect.Request[v1.ListMachineEventsRequest]) (*connect.Response[v1.ListMachineEventsResponse], error)
+	CreateImageFromMachine(context.Context, *connect.Request[v1.CreateImageFromMachineRequest]) (*connect.Response[v1.CreateImageFromMachineResponse], error)
 }
 
 // NewMachineServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -298,6 +315,12 @@ func NewMachineServiceHandler(svc MachineServiceHandler, opts ...connect.Handler
 		connect.WithSchema(machineServiceMethods.ByName("ListMachineEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
+	machineServiceCreateImageFromMachineHandler := connect.NewUnaryHandler(
+		MachineServiceCreateImageFromMachineProcedure,
+		svc.CreateImageFromMachine,
+		connect.WithSchema(machineServiceMethods.ByName("CreateImageFromMachine")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/arca.v1.MachineService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MachineServiceListMachinesProcedure:
@@ -320,6 +343,8 @@ func NewMachineServiceHandler(svc MachineServiceHandler, opts ...connect.Handler
 			machineServiceDeleteMachineHandler.ServeHTTP(w, r)
 		case MachineServiceListMachineEventsProcedure:
 			machineServiceListMachineEventsHandler.ServeHTTP(w, r)
+		case MachineServiceCreateImageFromMachineProcedure:
+			machineServiceCreateImageFromMachineHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -367,4 +392,8 @@ func (UnimplementedMachineServiceHandler) DeleteMachine(context.Context, *connec
 
 func (UnimplementedMachineServiceHandler) ListMachineEvents(context.Context, *connect.Request[v1.ListMachineEventsRequest]) (*connect.Response[v1.ListMachineEventsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.MachineService.ListMachineEvents is not implemented"))
+}
+
+func (UnimplementedMachineServiceHandler) CreateImageFromMachine(context.Context, *connect.Request[v1.CreateImageFromMachineRequest]) (*connect.Response[v1.CreateImageFromMachineResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("arca.v1.MachineService.CreateImageFromMachine is not implemented"))
 }

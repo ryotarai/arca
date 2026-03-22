@@ -82,6 +82,20 @@ func (q *Queries) CleanupRateLimitEntries(ctx context.Context, cutoff int64) err
 	return err
 }
 
+const clearMachineLockedOperation = `-- name: ClearMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = NULL, updated_at = ?1 WHERE machine_id = ?2
+`
+
+type ClearMachineLockedOperationParams struct {
+	NowUnix   int64
+	MachineID string
+}
+
+func (q *Queries) ClearMachineLockedOperation(ctx context.Context, arg ClearMachineLockedOperationParams) error {
+	_, err := q.db.ExecContext(ctx, clearMachineLockedOperation, arg.NowUnix, arg.MachineID)
+	return err
+}
+
 const countActiveStartOrReconcileJobsByMachineID = `-- name: CountActiveStartOrReconcileJobsByMachineID :one
 SELECT COUNT(1)
 FROM machine_jobs
@@ -1005,6 +1019,47 @@ func (q *Queries) EnqueueMachineJob(ctx context.Context, arg EnqueueMachineJobPa
 	return err
 }
 
+const enqueueMachineJobWithMeta = `-- name: EnqueueMachineJobWithMeta :exec
+INSERT INTO machine_jobs (
+  id, machine_id, kind, status, attempt, next_run_at, description, metadata_json, created_at, updated_at
+)
+VALUES (
+  ?1,
+  ?2,
+  ?3,
+  'queued',
+  0,
+  ?4,
+  ?5,
+  ?6,
+  ?7,
+  ?7
+)
+`
+
+type EnqueueMachineJobWithMetaParams struct {
+	ID           string
+	MachineID    string
+	Kind         string
+	NextRunAt    int64
+	Description  sql.NullString
+	MetadataJson sql.NullString
+	NowUnix      int64
+}
+
+func (q *Queries) EnqueueMachineJobWithMeta(ctx context.Context, arg EnqueueMachineJobWithMetaParams) error {
+	_, err := q.db.ExecContext(ctx, enqueueMachineJobWithMeta,
+		arg.ID,
+		arg.MachineID,
+		arg.Kind,
+		arg.NextRunAt,
+		arg.Description,
+		arg.MetadataJson,
+		arg.NowUnix,
+	)
+	return err
+}
+
 const extendMachineJobLease = `-- name: ExtendMachineJobLease :execrows
 UPDATE machine_jobs
 SET lease_until = ?1, updated_at = ?2
@@ -1113,7 +1168,7 @@ func (q *Queries) GetAdminViewMode(ctx context.Context, userID string) (string, 
 }
 
 const getCustomImage = `-- name: GetCustomImage :one
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
 FROM custom_images
 WHERE id = ?1
 LIMIT 1
@@ -1128,6 +1183,35 @@ func (q *Queries) GetCustomImage(ctx context.Context, id string) (CustomImage, e
 		&i.ProviderType,
 		&i.DataJson,
 		&i.Description,
+		&i.SourceMachineID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCustomImageByNameAndProviderType = `-- name: GetCustomImageByNameAndProviderType :one
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+FROM custom_images
+WHERE name = ?1 AND provider_type = ?2
+LIMIT 1
+`
+
+type GetCustomImageByNameAndProviderTypeParams struct {
+	Name         string
+	ProviderType string
+}
+
+func (q *Queries) GetCustomImageByNameAndProviderType(ctx context.Context, arg GetCustomImageByNameAndProviderTypeParams) (CustomImage, error) {
+	row := q.db.QueryRowContext(ctx, getCustomImageByNameAndProviderType, arg.Name, arg.ProviderType)
+	var i CustomImage
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ProviderType,
+		&i.DataJson,
+		&i.Description,
+		&i.SourceMachineID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1189,7 +1273,7 @@ func (q *Queries) GetMachineAccessRequestByID(ctx context.Context, id string) (G
 }
 
 const getMachineByID = `-- name: GetMachineByID :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -1215,6 +1299,7 @@ type GetMachineByIDRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 	MachineToken             string
 }
 
@@ -1239,13 +1324,14 @@ func (q *Queries) GetMachineByID(ctx context.Context, machineID string) (GetMach
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
 		&i.ArcadVersion,
+		&i.LockedOperation,
 		&i.MachineToken,
 	)
 	return i, err
 }
 
 const getMachineByIDForUser = `-- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -1277,6 +1363,7 @@ type GetMachineByIDForUserRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 }
 
 func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDForUserParams) (GetMachineByIDForUserRow, error) {
@@ -1300,12 +1387,13 @@ func (q *Queries) GetMachineByIDForUser(ctx context.Context, arg GetMachineByIDF
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
 		&i.ArcadVersion,
+		&i.LockedOperation,
 	)
 	return i, err
 }
 
 const getMachineByName = `-- name: GetMachineByName :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.name = ?1
@@ -1330,6 +1418,7 @@ type GetMachineByNameRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 }
 
 func (q *Queries) GetMachineByName(ctx context.Context, name string) (GetMachineByNameRow, error) {
@@ -1353,6 +1442,7 @@ func (q *Queries) GetMachineByName(ctx context.Context, name string) (GetMachine
 		&i.ReadyReportedAt,
 		&i.ReadyReason,
 		&i.ArcadVersion,
+		&i.LockedOperation,
 	)
 	return i, err
 }
@@ -1893,6 +1983,17 @@ func (q *Queries) GetValidUserSetupTokenByHash(ctx context.Context, arg GetValid
 	return i, err
 }
 
+const hasActiveCreateImageJob = `-- name: HasActiveCreateImageJob :one
+SELECT COUNT(*) > 0 FROM machine_jobs WHERE machine_id = ?1 AND kind = 'create_image' AND status IN ('queued', 'running')
+`
+
+func (q *Queries) HasActiveCreateImageJob(ctx context.Context, machineID string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, hasActiveCreateImageJob, machineID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const hasAdminUser = `-- name: HasAdminUser :one
 SELECT COUNT(1) > 0
 FROM users
@@ -1905,6 +2006,32 @@ func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const insertCustomImageWithSource = `-- name: InsertCustomImageWithSource :exec
+INSERT INTO custom_images (id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+`
+
+type InsertCustomImageWithSourceParams struct {
+	ID              string
+	Name            string
+	ProviderType    string
+	DataJson        string
+	Description     string
+	SourceMachineID sql.NullString
+}
+
+func (q *Queries) InsertCustomImageWithSource(ctx context.Context, arg InsertCustomImageWithSourceParams) error {
+	_, err := q.db.ExecContext(ctx, insertCustomImageWithSource,
+		arg.ID,
+		arg.Name,
+		arg.ProviderType,
+		arg.DataJson,
+		arg.Description,
+		arg.SourceMachineID,
+	)
+	return err
 }
 
 const insertMachineTag = `-- name: InsertMachineTag :exec
@@ -2146,7 +2273,7 @@ func (q *Queries) ListAuditLogsFiltered(ctx context.Context, arg ListAuditLogsFi
 }
 
 const listCustomImages = `-- name: ListCustomImages :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
 FROM custom_images
 ORDER BY created_at DESC
 `
@@ -2166,6 +2293,7 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
+			&i.SourceMachineID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2183,7 +2311,7 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 }
 
 const listCustomImagesByProfileID = `-- name: ListCustomImagesByProfileID :many
-SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, ci.created_at, ci.updated_at
 FROM custom_images ci
 JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
 WHERE pci.profile_id = ?1
@@ -2205,6 +2333,7 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
+			&i.SourceMachineID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2222,7 +2351,7 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 }
 
 const listCustomImagesByRuntimeType = `-- name: ListCustomImagesByRuntimeType :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
 FROM custom_images
 WHERE provider_type = ?1
 ORDER BY created_at DESC
@@ -2243,6 +2372,7 @@ func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, providerTyp
 			&i.ProviderType,
 			&i.DataJson,
 			&i.Description,
+			&i.SourceMachineID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2458,7 +2588,7 @@ func (q *Queries) ListMachineTagsByMachineID(ctx context.Context, machineID stri
 }
 
 const listMachinesAccessibleByUser = `-- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -2490,6 +2620,7 @@ type ListMachinesAccessibleByUserRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 	UserRole                 string
 	CreatedAt                time.Time
 }
@@ -2521,6 +2652,7 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
 			&i.ArcadVersion,
+			&i.LockedOperation,
 			&i.UserRole,
 			&i.CreatedAt,
 		); err != nil {
@@ -2538,10 +2670,11 @@ func (q *Queries) ListMachinesAccessibleByUser(ctx context.Context, userID strin
 }
 
 const listMachinesByDesiredStatus = `-- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = ?1
+  AND ms.locked_operation IS NULL
 ORDER BY ms.updated_at ASC
 LIMIT ?2
 `
@@ -2569,6 +2702,7 @@ type ListMachinesByDesiredStatusRow struct {
 	ReadyReportedAt          int64
 	ReadyReason              string
 	ArcadVersion             string
+	LockedOperation          sql.NullString
 	LastActivityAt           int64
 }
 
@@ -2599,6 +2733,7 @@ func (q *Queries) ListMachinesByDesiredStatus(ctx context.Context, arg ListMachi
 			&i.ReadyReportedAt,
 			&i.ReadyReason,
 			&i.ArcadVersion,
+			&i.LockedOperation,
 			&i.LastActivityAt,
 		); err != nil {
 			return nil, err
@@ -2733,7 +2868,7 @@ func (q *Queries) ListProfileIDsByCustomImageID(ctx context.Context, customImage
 }
 
 const listRunnableMachineJobs = `-- name: ListRunnableMachineJobs :many
-SELECT mj.id, mj.machine_id, mj.kind, mj.attempt
+SELECT mj.id, mj.machine_id, mj.kind, mj.attempt, mj.description, mj.metadata_json
 FROM machine_jobs mj
 WHERE mj.status = 'queued'
   AND mj.next_run_at <= ?1
@@ -2750,10 +2885,12 @@ type ListRunnableMachineJobsParams struct {
 }
 
 type ListRunnableMachineJobsRow struct {
-	ID        string
-	MachineID string
-	Kind      string
-	Attempt   int64
+	ID           string
+	MachineID    string
+	Kind         string
+	Attempt      int64
+	Description  sql.NullString
+	MetadataJson sql.NullString
 }
 
 func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableMachineJobsParams) ([]ListRunnableMachineJobsRow, error) {
@@ -2770,6 +2907,8 @@ func (q *Queries) ListRunnableMachineJobs(ctx context.Context, arg ListRunnableM
 			&i.MachineID,
 			&i.Kind,
 			&i.Attempt,
+			&i.Description,
+			&i.MetadataJson,
 		); err != nil {
 			return nil, err
 		}
@@ -3511,6 +3650,21 @@ func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmail
 	return items, nil
 }
 
+const setMachineLockedOperation = `-- name: SetMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = ?1, updated_at = ?2 WHERE machine_id = ?3
+`
+
+type SetMachineLockedOperationParams struct {
+	LockedOperation sql.NullString
+	NowUnix         int64
+	MachineID       string
+}
+
+func (q *Queries) SetMachineLockedOperation(ctx context.Context, arg SetMachineLockedOperationParams) error {
+	_, err := q.db.ExecContext(ctx, setMachineLockedOperation, arg.LockedOperation, arg.NowUnix, arg.MachineID)
+	return err
+}
+
 const updateCustomImage = `-- name: UpdateCustomImage :execrows
 UPDATE custom_images
 SET name = ?1,
@@ -3571,6 +3725,21 @@ type UpdateMachineInfrastructureConfigParams struct {
 
 func (q *Queries) UpdateMachineInfrastructureConfig(ctx context.Context, arg UpdateMachineInfrastructureConfigParams) error {
 	_, err := q.db.ExecContext(ctx, updateMachineInfrastructureConfig, arg.ProviderType, arg.InfrastructureConfigJson, arg.MachineID)
+	return err
+}
+
+const updateMachineJobMetadataJSON = `-- name: UpdateMachineJobMetadataJSON :exec
+UPDATE machine_jobs SET metadata_json = ?1, updated_at = ?2 WHERE id = ?3
+`
+
+type UpdateMachineJobMetadataJSONParams struct {
+	MetadataJson sql.NullString
+	NowUnix      int64
+	ID           string
+}
+
+func (q *Queries) UpdateMachineJobMetadataJSON(ctx context.Context, arg UpdateMachineJobMetadataJSONParams) error {
+	_, err := q.db.ExecContext(ctx, updateMachineJobMetadataJSON, arg.MetadataJson, arg.NowUnix, arg.ID)
 	return err
 }
 

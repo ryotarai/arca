@@ -271,7 +271,7 @@ VALUES (
 );
 
 -- name: ListMachinesAccessibleByUser :many
-SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version,
+SELECT DISTINCT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation,
   COALESCE(um.role, '') AS user_role, m.created_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
@@ -285,7 +285,7 @@ WHERE um.user_id = sqlc.arg(user_id)
 ORDER BY m.created_at DESC;
 
 -- name: GetMachineByID :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, COALESCE(mt.token, '') AS machine_token
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, COALESCE(mt.token, '') AS machine_token
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 LEFT JOIN machine_tokens mt ON mt.machine_id = m.id AND mt.revoked_at IS NULL
@@ -300,7 +300,7 @@ WHERE um.machine_id = sqlc.arg(machine_id)
 LIMIT 1;
 
 -- name: GetMachineByIDForUser :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 JOIN user_machines um ON um.machine_id = m.id
@@ -411,7 +411,7 @@ VALUES (
 );
 
 -- name: ListRunnableMachineJobs :many
-SELECT mj.id, mj.machine_id, mj.kind, mj.attempt
+SELECT mj.id, mj.machine_id, mj.kind, mj.attempt, mj.description, mj.metadata_json
 FROM machine_jobs mj
 WHERE mj.status = 'queued'
   AND mj.next_run_at <= sqlc.arg(now_unix)
@@ -475,10 +475,11 @@ SET lease_until = sqlc.arg(lease_until), updated_at = sqlc.arg(updated_at)
 WHERE id = sqlc.arg(id) AND status = 'running' AND lease_owner = sqlc.arg(lease_owner);
 
 -- name: ListMachinesByDesiredStatus :many
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.last_activity_at
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation, ms.last_activity_at
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE ms.desired_status = sqlc.arg(desired_status)
+  AND ms.locked_operation IS NULL
 ORDER BY ms.updated_at ASC
 LIMIT sqlc.arg(limit_n);
 
@@ -562,7 +563,7 @@ WHERE id = sqlc.arg(id)
   AND used_at IS NULL;
 
 -- name: GetMachineByName :one
-SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version
+SELECT m.id, m.name, m.profile_id, m.provider_type, m.infrastructure_config_json, m.applied_boot_config_hash, m.setup_version, m.options_json, m.custom_image_id, ms.status, ms.desired_status, ms.container_id, ms.last_error, ms.ready, ms.ready_reported_at, ms.ready_reason, ms.arcad_version, ms.locked_operation
 FROM machines m
 JOIN machine_states ms ON ms.machine_id = m.id
 WHERE m.name = sqlc.arg(name)
@@ -904,20 +905,26 @@ WHERE (sqlc.arg(action_prefix) = '' OR al.action LIKE sqlc.arg(action_prefix) ||
   AND (sqlc.arg(actor_email) = '' OR u1.email = sqlc.arg(actor_email));
 
 -- name: ListCustomImages :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
 FROM custom_images
 ORDER BY created_at DESC;
 
 -- name: ListCustomImagesByRuntimeType :many
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
 FROM custom_images
 WHERE provider_type = sqlc.arg(provider_type)
 ORDER BY created_at DESC;
 
 -- name: GetCustomImage :one
-SELECT id, name, provider_type, data_json, description, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
 FROM custom_images
 WHERE id = sqlc.arg(id)
+LIMIT 1;
+
+-- name: GetCustomImageByNameAndProviderType :one
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+FROM custom_images
+WHERE name = sqlc.arg(name) AND provider_type = sqlc.arg(provider_type)
 LIMIT 1;
 
 -- name: CreateCustomImage :exec
@@ -931,6 +938,10 @@ VALUES (
   sqlc.arg(created_at),
   sqlc.arg(updated_at)
 );
+
+-- name: InsertCustomImageWithSource :exec
+INSERT INTO custom_images (id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at)
+VALUES (sqlc.arg(id), sqlc.arg(name), sqlc.arg(provider_type), sqlc.arg(data_json), sqlc.arg(description), sqlc.arg(source_machine_id), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- name: UpdateCustomImage :execrows
 UPDATE custom_images
@@ -946,7 +957,7 @@ DELETE FROM custom_images
 WHERE id = sqlc.arg(id);
 
 -- name: ListCustomImagesByProfileID :many
-SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.created_at, ci.updated_at
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, ci.created_at, ci.updated_at
 FROM custom_images ci
 JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
 WHERE pci.profile_id = sqlc.arg(profile_id)
@@ -1033,6 +1044,35 @@ ON CONFLICT (machine_id, tag) DO NOTHING;
 
 -- name: ListAllMachineTags :many
 SELECT machine_id, tag FROM machine_tags ORDER BY machine_id, tag;
+
+-- name: SetMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = sqlc.arg(locked_operation), updated_at = sqlc.arg(now_unix) WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: ClearMachineLockedOperation :exec
+UPDATE machine_states SET locked_operation = NULL, updated_at = sqlc.arg(now_unix) WHERE machine_id = sqlc.arg(machine_id);
+
+-- name: EnqueueMachineJobWithMeta :exec
+INSERT INTO machine_jobs (
+  id, machine_id, kind, status, attempt, next_run_at, description, metadata_json, created_at, updated_at
+)
+VALUES (
+  sqlc.arg(id),
+  sqlc.arg(machine_id),
+  sqlc.arg(kind),
+  'queued',
+  0,
+  sqlc.arg(next_run_at),
+  sqlc.arg(description),
+  sqlc.arg(metadata_json),
+  sqlc.arg(now_unix),
+  sqlc.arg(now_unix)
+);
+
+-- name: UpdateMachineJobMetadataJSON :exec
+UPDATE machine_jobs SET metadata_json = sqlc.arg(metadata_json), updated_at = sqlc.arg(now_unix) WHERE id = sqlc.arg(id);
+
+-- name: HasActiveCreateImageJob :one
+SELECT COUNT(*) > 0 FROM machine_jobs WHERE machine_id = sqlc.arg(machine_id) AND kind = 'create_image' AND status IN ('queued', 'running');
 
 -- name: CountRecentJobsByStatus :one
 SELECT

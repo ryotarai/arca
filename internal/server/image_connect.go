@@ -294,6 +294,7 @@ func toCustomImageMessage(img db.CustomImage, templateIDs []string) *arcav1.Cust
 		Description:           img.Description,
 		AssociatedTemplateIds: templateIDs,
 		CreatedAt:             img.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		SourceMachineId:       img.SourceMachineID,
 	}
 }
 

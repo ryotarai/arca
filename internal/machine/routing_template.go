@@ -91,6 +91,14 @@ func (r *RoutingTemplate) GetMachineInfo(ctx context.Context, machine db.Machine
 	return runtime.GetMachineInfo(ctx, machine)
 }
 
+func (r *RoutingTemplate) CreateImage(ctx context.Context, machine db.Machine, imageName string) (map[string]string, error) {
+	runtime, err := r.runtimeForMachine(ctx, machine)
+	if err != nil {
+		return nil, err
+	}
+	return runtime.CreateImage(ctx, machine, imageName)
+}
+
 // runtimeForMachine resolves a Runtime using the machine's snapshotted
 // provider type and infrastructure config. Falls back to profile lookup
 // when the snapshot is empty (pre-migration machines).
