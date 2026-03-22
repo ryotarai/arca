@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/PageHeader'
 import {
   Select,
   SelectContent,
@@ -136,8 +137,13 @@ export function AuditLogPage({ user }: AuditLogPageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-6 md:p-8">
-      <h1 className="mb-6 text-2xl font-semibold">Audit Logs</h1>
+    <main className="min-h-dvh px-6 py-10">
+      <section className="mx-auto w-full max-w-6xl space-y-6">
+      <PageHeader
+        label="Admin"
+        title="Audit Logs"
+        description="View user and system activity across the workspace."
+      />
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -268,6 +274,7 @@ export function AuditLogPage({ user }: AuditLogPageProps) {
           </div>
         </>
       )}
+      </section>
     </main>
   )
 }

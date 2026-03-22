@@ -14,6 +14,7 @@ import {
 } from '@/lib/api'
 import type { CustomImage } from '@/lib/api'
 import { messageFromError } from '@/lib/errors'
+import { PageHeader } from '@/components/PageHeader'
 import type { MachineProfileItem, User } from '@/lib/types'
 
 type CustomImagesPageProps = {
@@ -158,14 +159,12 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
   return (
     <main className="min-h-dvh px-6 py-10">
       <section className="mx-auto w-full max-w-5xl space-y-6">
-        <header className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-6">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Admin</p>
-            <h1 className="mt-2 text-2xl font-semibold text-foreground">Custom Images</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Manage custom machine images for profiles.</p>
-          </div>
-          <Button onClick={handleCreate}>New image</Button>
-        </header>
+        <PageHeader
+          label="Admin"
+          title="Custom Images"
+          description="Manage custom machine images for profiles."
+          actions={<Button onClick={handleCreate}>New image</Button>}
+        />
 
         {error && (
           <p role="alert" className="rounded-md border border-red-400/30 bg-red-500/12 px-3 py-2 text-sm text-red-200">
