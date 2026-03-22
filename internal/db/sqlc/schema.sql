@@ -110,19 +110,22 @@ CREATE TABLE IF NOT EXISTS machine_states (
   ready_reason TEXT NOT NULL DEFAULT '',
   updated_at BIGINT NOT NULL,
   last_activity_at BIGINT NOT NULL DEFAULT 0,
-  arcad_version TEXT NOT NULL DEFAULT ''
+  arcad_version TEXT NOT NULL DEFAULT '',
+  locked_operation TEXT
 );
 
 CREATE TABLE IF NOT EXISTS machine_jobs (
   id TEXT PRIMARY KEY,
   machine_id TEXT NOT NULL REFERENCES machines(id) ON DELETE CASCADE,
-  kind TEXT NOT NULL CHECK (kind IN ('start', 'stop', 'delete', 'reconcile')),
+  kind TEXT NOT NULL CHECK (kind IN ('start', 'stop', 'delete', 'reconcile', 'create_image')),
   status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
   attempt INTEGER NOT NULL DEFAULT 0,
   next_run_at BIGINT NOT NULL,
   lease_owner TEXT,
   lease_until BIGINT,
   last_error TEXT,
+  description TEXT,
+  metadata_json TEXT,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
@@ -254,6 +257,7 @@ CREATE TABLE IF NOT EXISTS custom_images (
   provider_type TEXT NOT NULL,
   data_json TEXT NOT NULL DEFAULT '{}',
   description TEXT NOT NULL DEFAULT '',
+  source_machine_id TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(name, provider_type)

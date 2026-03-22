@@ -1119,9 +1119,19 @@ WHERE id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetCustomImage(ctx context.Context, id string) (CustomImage, error) {
+type GetCustomImageRow struct {
+	ID           string
+	Name         string
+	ProviderType string
+	DataJson     string
+	Description  string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (q *Queries) GetCustomImage(ctx context.Context, id string) (GetCustomImageRow, error) {
 	row := q.db.QueryRowContext(ctx, getCustomImage, id)
-	var i CustomImage
+	var i GetCustomImageRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -2151,15 +2161,25 @@ FROM custom_images
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
+type ListCustomImagesRow struct {
+	ID           string
+	Name         string
+	ProviderType string
+	DataJson     string
+	Description  string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (q *Queries) ListCustomImages(ctx context.Context) ([]ListCustomImagesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomImages)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CustomImage
+	var items []ListCustomImagesRow
 	for rows.Next() {
-		var i CustomImage
+		var i ListCustomImagesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -2190,15 +2210,25 @@ WHERE pci.profile_id = $1
 ORDER BY ci.name ASC
 `
 
-func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID string) ([]CustomImage, error) {
+type ListCustomImagesByProfileIDRow struct {
+	ID           string
+	Name         string
+	ProviderType string
+	DataJson     string
+	Description  string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID string) ([]ListCustomImagesByProfileIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomImagesByProfileID, profileID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CustomImage
+	var items []ListCustomImagesByProfileIDRow
 	for rows.Next() {
-		var i CustomImage
+		var i ListCustomImagesByProfileIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -2228,15 +2258,25 @@ WHERE provider_type = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, providerType string) ([]CustomImage, error) {
+type ListCustomImagesByRuntimeTypeRow struct {
+	ID           string
+	Name         string
+	ProviderType string
+	DataJson     string
+	Description  string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, providerType string) ([]ListCustomImagesByRuntimeTypeRow, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomImagesByRuntimeType, providerType)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CustomImage
+	var items []ListCustomImagesByRuntimeTypeRow
 	for rows.Next() {
-		var i CustomImage
+		var i ListCustomImagesByRuntimeTypeRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
