@@ -2,11 +2,14 @@ package machine
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/workflow"
 )
 
 type fakeGceComputeClient struct {
@@ -18,6 +21,11 @@ type fakeGceComputeClient struct {
 	stopped          []string
 	deleted          []string
 	machineTypesCalls []struct{ instance, machineType string }
+
+	// Image operation overrides for testing CreateImage.
+	insertImageErr         error
+	waitGlobalOperationErr error
+	insertedImages         []string
 }
 
 func newFakeGceComputeClient() *fakeGceComputeClient {
@@ -103,12 +111,16 @@ func (f *fakeGceComputeClient) GetImage(_ context.Context, _, _ string) (map[str
 	return nil, &gceAPIError{StatusCode: 404, Message: "not found"}
 }
 
-func (f *fakeGceComputeClient) InsertImage(_ context.Context, _, _, _ string) (string, error) {
+func (f *fakeGceComputeClient) InsertImage(_ context.Context, _, imageName, _ string) (string, error) {
+	f.insertedImages = append(f.insertedImages, imageName)
+	if f.insertImageErr != nil {
+		return "", f.insertImageErr
+	}
 	return "op-insert-image", nil
 }
 
 func (f *fakeGceComputeClient) WaitGlobalOperation(_ context.Context, _, _ string) error {
-	return nil
+	return f.waitGlobalOperationErr
 }
 
 func TestGceRuntime_EnsureRunningCreatesInstanceWhenMissing(t *testing.T) {
@@ -472,5 +484,132 @@ func TestGceRuntime_EnsureDeletedMissingInstanceIsNoop(t *testing.T) {
 	}
 	if !reflect.DeepEqual(fakeClient.deleted, []string{"instance-missing"}) {
 		t.Fatalf("delete calls = %#v", fakeClient.deleted)
+	}
+}
+
+func newGceRuntimeWithFakeClient(fakeClient *fakeGceComputeClient) *GceRuntime {
+	rt, err := NewGceRuntimeWithOptions(GceRuntimeOptions{
+		Project:             "project-a",
+		Zone:                "us-central1-a",
+		Network:             "main",
+		Subnetwork:          "main-subnet",
+		ServiceAccountEmail: "svc@example.iam.gserviceaccount.com",
+		Client:              fakeClient,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return rt
+}
+
+func TestGceRuntime_CreateImagePrefixesName(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	fakeClient.instances["instance-a"] = &gceInstance{
+		Name:   "instance-a",
+		Status: "TERMINATED",
+		Disks: []struct {
+			Boot   bool   `json:"boot"`
+			Source string `json:"source"`
+		}{{Boot: true, Source: "projects/project-a/zones/us-central1-a/disks/instance-a"}},
+	}
+
+	rt := newGceRuntimeWithFakeClient(fakeClient)
+	machine := db.Machine{ID: "machine", ContainerID: "instance-a"}
+
+	result, err := rt.CreateImage(context.Background(), machine, "my-image")
+	if err != nil {
+		t.Fatalf("CreateImage: %v", err)
+	}
+	if result["image_name"] != "arca-user-my-image" {
+		t.Fatalf("image_name = %q, want %q", result["image_name"], "arca-user-my-image")
+	}
+	if result["image_project"] != "project-a" {
+		t.Fatalf("image_project = %q", result["image_project"])
+	}
+	if len(fakeClient.insertedImages) != 1 || fakeClient.insertedImages[0] != "arca-user-my-image" {
+		t.Fatalf("insertedImages = %v, want [arca-user-my-image]", fakeClient.insertedImages)
+	}
+}
+
+func TestGceRuntime_CreateImage409IsTerminal(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	fakeClient.instances["instance-a"] = &gceInstance{
+		Name:   "instance-a",
+		Status: "TERMINATED",
+		Disks: []struct {
+			Boot   bool   `json:"boot"`
+			Source string `json:"source"`
+		}{{Boot: true, Source: "projects/project-a/zones/us-central1-a/disks/instance-a"}},
+	}
+	fakeClient.insertImageErr = &gceAPIError{StatusCode: http.StatusConflict, Message: "already exists"}
+
+	rt := newGceRuntimeWithFakeClient(fakeClient)
+	machine := db.Machine{ID: "machine", ContainerID: "instance-a"}
+
+	_, err := rt.CreateImage(context.Background(), machine, "my-image")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !workflow.IsTerminal(err) {
+		t.Fatalf("expected terminal error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("error should mention already exists: %v", err)
+	}
+}
+
+func TestGceRuntime_CreateImage403IsTerminal(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	fakeClient.instances["instance-a"] = &gceInstance{
+		Name:   "instance-a",
+		Status: "TERMINATED",
+		Disks: []struct {
+			Boot   bool   `json:"boot"`
+			Source string `json:"source"`
+		}{{Boot: true, Source: "projects/project-a/zones/us-central1-a/disks/instance-a"}},
+	}
+	fakeClient.waitGlobalOperationErr = &gceAPIError{StatusCode: http.StatusForbidden, Message: "permission denied"}
+
+	rt := newGceRuntimeWithFakeClient(fakeClient)
+	machine := db.Machine{ID: "machine", ContainerID: "instance-a"}
+
+	_, err := rt.CreateImage(context.Background(), machine, "my-image")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !workflow.IsTerminal(err) {
+		t.Fatalf("expected terminal error, got: %v", err)
+	}
+}
+
+func TestGceRuntime_CreateImageNonAPIErrorIsNotTerminal(t *testing.T) {
+	t.Parallel()
+
+	fakeClient := newFakeGceComputeClient()
+	fakeClient.instances["instance-a"] = &gceInstance{
+		Name:   "instance-a",
+		Status: "TERMINATED",
+		Disks: []struct {
+			Boot   bool   `json:"boot"`
+			Source string `json:"source"`
+		}{{Boot: true, Source: "projects/project-a/zones/us-central1-a/disks/instance-a"}},
+	}
+	fakeClient.waitGlobalOperationErr = errors.New("network timeout")
+
+	rt := newGceRuntimeWithFakeClient(fakeClient)
+	machine := db.Machine{ID: "machine", ContainerID: "instance-a"}
+
+	_, err := rt.CreateImage(context.Background(), machine, "my-image")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if workflow.IsTerminal(err) {
+		t.Fatalf("expected non-terminal error, got: %v", err)
 	}
 }

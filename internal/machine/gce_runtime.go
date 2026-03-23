@@ -16,6 +16,7 @@ import (
 	"golang.org/x/oauth2/google"
 
 	"github.com/ryotarai/arca/internal/db"
+	"github.com/ryotarai/arca/internal/workflow"
 )
 
 func machineTypeFromOptions(machine db.Machine) (string, error) {
@@ -384,10 +385,8 @@ func (r *GceRuntime) CreateImage(ctx context.Context, machine db.Machine, imageN
 		return nil, err
 	}
 
-	// Idempotency: check if image already exists
-	if _, err := client.GetImage(ctx, r.project, imageName); err == nil {
-		return map[string]string{"image_project": r.project, "image_name": imageName}, nil
-	}
+	// Prefix the GCE image name to avoid collisions with other images in the project.
+	gceImageName := "arca-user-" + imageName
 
 	// Get instance to find boot disk
 	instanceName := r.instanceName(machine)
@@ -412,17 +411,25 @@ func (r *GceRuntime) CreateImage(ctx context.Context, machine db.Machine, imageN
 	}
 
 	// Create image from boot disk
-	opName, err := client.InsertImage(ctx, r.project, imageName, bootDisk)
+	opName, err := client.InsertImage(ctx, r.project, gceImageName, bootDisk)
 	if err != nil {
+		var apiErr *gceAPIError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusConflict {
+			return nil, workflow.Terminal(fmt.Errorf("image %q already exists in GCE project %q; delete it or use a different name", gceImageName, r.project))
+		}
 		return nil, fmt.Errorf("insert image: %w", err)
 	}
 
 	// Wait for operation (it's a global operation)
 	if err := client.WaitGlobalOperation(ctx, r.project, opName); err != nil {
+		var apiErr *gceAPIError
+		if errors.As(err, &apiErr) && (apiErr.StatusCode == http.StatusForbidden || apiErr.StatusCode == http.StatusUnauthorized) {
+			return nil, workflow.Terminal(fmt.Errorf("wait for image creation: %w", err))
+		}
 		return nil, fmt.Errorf("wait for image creation: %w", err)
 	}
 
-	return map[string]string{"image_project": r.project, "image_name": imageName}, nil
+	return map[string]string{"image_project": r.project, "image_name": gceImageName}, nil
 }
 
 func (r *GceRuntime) instanceName(machine db.Machine) string {
