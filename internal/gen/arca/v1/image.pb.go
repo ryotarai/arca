@@ -31,6 +31,8 @@ type CustomImage struct {
 	AssociatedTemplateIds []string               `protobuf:"bytes,6,rep,name=associated_template_ids,json=associatedTemplateIds,proto3" json:"associated_template_ids,omitempty"`
 	CreatedAt             string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	SourceMachineId       string                 `protobuf:"bytes,8,opt,name=source_machine_id,json=sourceMachineId,proto3" json:"source_machine_id,omitempty"`
+	CreatedByUserId       string                 `protobuf:"bytes,9,opt,name=created_by_user_id,json=createdByUserId,proto3" json:"created_by_user_id,omitempty"`
+	Visibility            string                 `protobuf:"bytes,10,opt,name=visibility,proto3" json:"visibility,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -117,6 +119,20 @@ func (x *CustomImage) GetCreatedAt() string {
 func (x *CustomImage) GetSourceMachineId() string {
 	if x != nil {
 		return x.SourceMachineId
+	}
+	return ""
+}
+
+func (x *CustomImage) GetCreatedByUserId() string {
+	if x != nil {
+		return x.CreatedByUserId
+	}
+	return ""
+}
+
+func (x *CustomImage) GetVisibility() string {
+	if x != nil {
+		return x.Visibility
 	}
 	return ""
 }
@@ -329,6 +345,7 @@ type UpdateCustomImageRequest struct {
 	Data          map[string]string      `protobuf:"bytes,4,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	TemplateIds   []string               `protobuf:"bytes,6,rep,name=template_ids,json=templateIds,proto3" json:"template_ids,omitempty"`
+	Visibility    string                 `protobuf:"bytes,7,opt,name=visibility,proto3" json:"visibility,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -403,6 +420,13 @@ func (x *UpdateCustomImageRequest) GetTemplateIds() []string {
 		return x.TemplateIds
 	}
 	return nil
+}
+
+func (x *UpdateCustomImageRequest) GetVisibility() string {
+	if x != nil {
+		return x.Visibility
+	}
+	return ""
 }
 
 type UpdateCustomImageResponse struct {
@@ -621,7 +645,7 @@ var File_arca_v1_image_proto protoreflect.FileDescriptor
 
 const file_arca_v1_image_proto_rawDesc = "" +
 	"\n" +
-	"\x13arca/v1/image.proto\x12\aarca.v1\"\xe8\x02\n" +
+	"\x13arca/v1/image.proto\x12\aarca.v1\"\xb5\x03\n" +
 	"\vCustomImage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
@@ -631,7 +655,12 @@ const file_arca_v1_image_proto_rawDesc = "" +
 	"\x17associated_template_ids\x18\x06 \x03(\tR\x15associatedTemplateIds\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12*\n" +
-	"\x11source_machine_id\x18\b \x01(\tR\x0fsourceMachineId\x1a7\n" +
+	"\x11source_machine_id\x18\b \x01(\tR\x0fsourceMachineId\x12+\n" +
+	"\x12created_by_user_id\x18\t \x01(\tR\x0fcreatedByUserId\x12\x1e\n" +
+	"\n" +
+	"visibility\x18\n" +
+	" \x01(\tR\n" +
+	"visibility\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x19\n" +
@@ -648,14 +677,17 @@ const file_arca_v1_image_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"G\n" +
 	"\x19CreateCustomImageResponse\x12*\n" +
-	"\x05image\x18\x01 \x01(\v2\x14.arca.v1.CustomImageR\x05image\"\xa2\x02\n" +
+	"\x05image\x18\x01 \x01(\v2\x14.arca.v1.CustomImageR\x05image\"\xc2\x02\n" +
 	"\x18UpdateCustomImageRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
 	"\rtemplate_type\x18\x03 \x01(\tR\ftemplateType\x12?\n" +
 	"\x04data\x18\x04 \x03(\v2+.arca.v1.UpdateCustomImageRequest.DataEntryR\x04data\x12 \n" +
 	"\vdescription\x18\x05 \x01(\tR\vdescription\x12!\n" +
-	"\ftemplate_ids\x18\x06 \x03(\tR\vtemplateIds\x1a7\n" +
+	"\ftemplate_ids\x18\x06 \x03(\tR\vtemplateIds\x12\x1e\n" +
+	"\n" +
+	"visibility\x18\a \x01(\tR\n" +
+	"visibility\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"G\n" +
