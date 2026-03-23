@@ -298,12 +298,8 @@ func (s *imageConnectService) ListAvailableImages(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("runtime_id is required"))
 	}
 
-	var images []db.CustomImage
-	if result.Role == db.UserRoleAdmin {
-		images, err = s.store.ListCustomImagesByTemplateID(ctx, runtimeID)
-	} else {
-		images, err = s.store.ListCustomImagesByUserOrSharedAndProfileID(ctx, result.UserID, runtimeID)
-	}
+	// All users (including admin) see only their own private + shared images
+	images, err := s.store.ListCustomImagesByUserOrSharedAndProfileID(ctx, result.UserID, runtimeID)
 	if err != nil {
 		slog.ErrorContext(ctx, "list available images failed", "error", err)
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to list available images"))
