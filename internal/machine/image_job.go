@@ -77,7 +77,7 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 		Step("save", func(sCtx context.Context) error {
 			customImage, err := w.store.CreateCustomImageFromMachine(sCtx,
 				runner.Get("image_name"), machine.ProviderType, runner.Get("image_data"),
-				job.Description, machine.ID, machine.ProfileID)
+				job.Description, machine.ID, machine.ProfileID, "")
 			if err != nil {
 				return err
 			}

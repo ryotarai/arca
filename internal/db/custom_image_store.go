@@ -19,6 +19,8 @@ type CustomImage struct {
 	DataJSON        string
 	Description     string
 	SourceMachineID string
+	CreatedByUserID string
+	Visibility      string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -35,14 +37,16 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 		items := make([]CustomImage, 0, len(rows))
 		for _, row := range rows {
 			items = append(items, CustomImage{
-				ID:          row.ID,
-				Name:        row.Name,
-				ProviderType: row.ProviderType,
-				DataJSON:    row.DataJson,
-				Description: row.Description,
+				ID:              row.ID,
+				Name:            row.Name,
+				ProviderType:    row.ProviderType,
+				DataJSON:        row.DataJson,
+				Description:     row.Description,
 				SourceMachineID: row.SourceMachineID.String,
-				CreatedAt:   row.CreatedAt,
-				UpdatedAt:   row.UpdatedAt,
+				CreatedByUserID: row.CreatedByUserID,
+				Visibility:      row.Visibility,
+				CreatedAt:       row.CreatedAt,
+				UpdatedAt:       row.UpdatedAt,
 			})
 		}
 		return items, nil
@@ -54,14 +58,16 @@ func (s *Store) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 		items := make([]CustomImage, 0, len(rows))
 		for _, row := range rows {
 			items = append(items, CustomImage{
-				ID:          row.ID,
-				Name:        row.Name,
-				ProviderType: row.ProviderType,
-				DataJSON:    row.DataJson,
-				Description: row.Description,
+				ID:              row.ID,
+				Name:            row.Name,
+				ProviderType:    row.ProviderType,
+				DataJSON:        row.DataJson,
+				Description:     row.Description,
 				SourceMachineID: row.SourceMachineID.String,
-				CreatedAt:   row.CreatedAt,
-				UpdatedAt:   row.UpdatedAt,
+				CreatedByUserID: row.CreatedByUserID,
+				Visibility:      row.Visibility,
+				CreatedAt:       row.CreatedAt,
+				UpdatedAt:       row.UpdatedAt,
 			})
 		}
 		return items, nil
@@ -78,14 +84,16 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 			return CustomImage{}, err
 		}
 		return CustomImage{
-			ID:          row.ID,
-			Name:        row.Name,
-			ProviderType: row.ProviderType,
-			DataJSON:    row.DataJson,
-			Description: row.Description,
+			ID:              row.ID,
+			Name:            row.Name,
+			ProviderType:    row.ProviderType,
+			DataJSON:        row.DataJson,
+			Description:     row.Description,
 			SourceMachineID: row.SourceMachineID.String,
-			CreatedAt:   row.CreatedAt,
-			UpdatedAt:   row.UpdatedAt,
+			CreatedByUserID: row.CreatedByUserID,
+			Visibility:      row.Visibility,
+			CreatedAt:       row.CreatedAt,
+			UpdatedAt:       row.UpdatedAt,
 		}, nil
 	case DriverPostgres:
 		row, err := s.pgQueries.GetCustomImage(ctx, id)
@@ -93,14 +101,16 @@ func (s *Store) GetCustomImage(ctx context.Context, id string) (CustomImage, err
 			return CustomImage{}, err
 		}
 		return CustomImage{
-			ID:          row.ID,
-			Name:        row.Name,
-			ProviderType: row.ProviderType,
-			DataJSON:    row.DataJson,
-			Description: row.Description,
+			ID:              row.ID,
+			Name:            row.Name,
+			ProviderType:    row.ProviderType,
+			DataJSON:        row.DataJson,
+			Description:     row.Description,
 			SourceMachineID: row.SourceMachineID.String,
-			CreatedAt:   row.CreatedAt,
-			UpdatedAt:   row.UpdatedAt,
+			CreatedByUserID: row.CreatedByUserID,
+			Visibility:      row.Visibility,
+			CreatedAt:       row.CreatedAt,
+			UpdatedAt:       row.UpdatedAt,
 		}, nil
 	default:
 		return CustomImage{}, unsupportedDriverError(s.driver)
@@ -124,6 +134,8 @@ func (s *Store) GetCustomImageByNameAndProviderType(ctx context.Context, name, p
 			DataJSON:        row.DataJson,
 			Description:     row.Description,
 			SourceMachineID: row.SourceMachineID.String,
+			CreatedByUserID: row.CreatedByUserID,
+			Visibility:      row.Visibility,
 			CreatedAt:       row.CreatedAt,
 			UpdatedAt:       row.UpdatedAt,
 		}, nil
@@ -142,6 +154,8 @@ func (s *Store) GetCustomImageByNameAndProviderType(ctx context.Context, name, p
 			DataJSON:        row.DataJson,
 			Description:     row.Description,
 			SourceMachineID: row.SourceMachineID.String,
+			CreatedByUserID: row.CreatedByUserID,
+			Visibility:      row.Visibility,
 			CreatedAt:       row.CreatedAt,
 			UpdatedAt:       row.UpdatedAt,
 		}, nil
@@ -150,42 +164,48 @@ func (s *Store) GetCustomImageByNameAndProviderType(ctx context.Context, name, p
 	}
 }
 
-func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJSON, description string) (CustomImage, error) {
+func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJSON, description, createdByUserID string) (CustomImage, error) {
 	id, err := randomID()
 	if err != nil {
 		return CustomImage{}, err
 	}
 	now := time.Now().UTC()
 	item := CustomImage{
-		ID:          id,
-		Name:        strings.TrimSpace(name),
-		ProviderType: strings.TrimSpace(runtimeType),
-		DataJSON:    dataJSON,
-		Description: strings.TrimSpace(description),
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:              id,
+		Name:            strings.TrimSpace(name),
+		ProviderType:    strings.TrimSpace(runtimeType),
+		DataJSON:        dataJSON,
+		Description:     strings.TrimSpace(description),
+		CreatedByUserID: createdByUserID,
+		Visibility:      "private",
+		CreatedAt:       now,
+		UpdatedAt:       now,
 	}
 
 	switch s.driver {
 	case DriverSQLite:
 		err = s.sqliteQueries.CreateCustomImage(ctx, sqlitesqlc.CreateCustomImageParams{
-			ID:          item.ID,
-			Name:        item.Name,
-			ProviderType: item.ProviderType,
-			DataJson:    item.DataJSON,
-			Description: item.Description,
-			CreatedAt:   item.CreatedAt,
-			UpdatedAt:   item.UpdatedAt,
+			ID:              item.ID,
+			Name:            item.Name,
+			ProviderType:    item.ProviderType,
+			DataJson:        item.DataJSON,
+			Description:     item.Description,
+			CreatedByUserID: item.CreatedByUserID,
+			Visibility:      item.Visibility,
+			CreatedAt:       item.CreatedAt,
+			UpdatedAt:       item.UpdatedAt,
 		})
 	case DriverPostgres:
 		err = s.pgQueries.CreateCustomImage(ctx, postgresqlsqlc.CreateCustomImageParams{
-			ID:          item.ID,
-			Name:        item.Name,
-			ProviderType: item.ProviderType,
-			DataJson:    item.DataJSON,
-			Description: item.Description,
-			CreatedAt:   item.CreatedAt,
-			UpdatedAt:   item.UpdatedAt,
+			ID:              item.ID,
+			Name:            item.Name,
+			ProviderType:    item.ProviderType,
+			DataJson:        item.DataJSON,
+			Description:     item.Description,
+			CreatedByUserID: item.CreatedByUserID,
+			Visibility:      item.Visibility,
+			CreatedAt:       item.CreatedAt,
+			UpdatedAt:       item.UpdatedAt,
 		})
 	default:
 		return CustomImage{}, unsupportedDriverError(s.driver)
@@ -199,7 +219,7 @@ func (s *Store) CreateCustomImage(ctx context.Context, name, runtimeType, dataJS
 	return item, nil
 }
 
-func (s *Store) UpdateCustomImage(ctx context.Context, id, name, runtimeType, dataJSON, description string) (CustomImage, bool, error) {
+func (s *Store) UpdateCustomImage(ctx context.Context, id, name, runtimeType, dataJSON, description, visibility string) (CustomImage, bool, error) {
 	now := time.Now().UTC()
 	var (
 		updated int64
@@ -208,21 +228,23 @@ func (s *Store) UpdateCustomImage(ctx context.Context, id, name, runtimeType, da
 	switch s.driver {
 	case DriverSQLite:
 		updated, err = s.sqliteQueries.UpdateCustomImage(ctx, sqlitesqlc.UpdateCustomImageParams{
-			ID:          id,
-			Name:        strings.TrimSpace(name),
+			ID:           id,
+			Name:         strings.TrimSpace(name),
 			ProviderType: strings.TrimSpace(runtimeType),
-			DataJson:    dataJSON,
-			Description: strings.TrimSpace(description),
-			UpdatedAt:   now,
+			DataJson:     dataJSON,
+			Description:  strings.TrimSpace(description),
+			Visibility:   visibility,
+			UpdatedAt:    now,
 		})
 	case DriverPostgres:
 		updated, err = s.pgQueries.UpdateCustomImage(ctx, postgresqlsqlc.UpdateCustomImageParams{
-			ID:          id,
-			Name:        strings.TrimSpace(name),
+			ID:           id,
+			Name:         strings.TrimSpace(name),
 			ProviderType: strings.TrimSpace(runtimeType),
-			DataJson:    dataJSON,
-			Description: strings.TrimSpace(description),
-			UpdatedAt:   now,
+			DataJson:     dataJSON,
+			Description:  strings.TrimSpace(description),
+			Visibility:   visibility,
+			UpdatedAt:    now,
 		})
 	default:
 		return CustomImage{}, false, unsupportedDriverError(s.driver)
@@ -266,14 +288,16 @@ func (s *Store) ListCustomImagesByProfileID(ctx context.Context, profileID strin
 		items := make([]CustomImage, 0, len(rows))
 		for _, row := range rows {
 			items = append(items, CustomImage{
-				ID:          row.ID,
-				Name:        row.Name,
-				ProviderType: row.ProviderType,
-				DataJSON:    row.DataJson,
-				Description: row.Description,
+				ID:              row.ID,
+				Name:            row.Name,
+				ProviderType:    row.ProviderType,
+				DataJSON:        row.DataJson,
+				Description:     row.Description,
 				SourceMachineID: row.SourceMachineID.String,
-				CreatedAt:   row.CreatedAt,
-				UpdatedAt:   row.UpdatedAt,
+				CreatedByUserID: row.CreatedByUserID,
+				Visibility:      row.Visibility,
+				CreatedAt:       row.CreatedAt,
+				UpdatedAt:       row.UpdatedAt,
 			})
 		}
 		return items, nil
@@ -285,14 +309,16 @@ func (s *Store) ListCustomImagesByProfileID(ctx context.Context, profileID strin
 		items := make([]CustomImage, 0, len(rows))
 		for _, row := range rows {
 			items = append(items, CustomImage{
-				ID:          row.ID,
-				Name:        row.Name,
-				ProviderType: row.ProviderType,
-				DataJSON:    row.DataJson,
-				Description: row.Description,
+				ID:              row.ID,
+				Name:            row.Name,
+				ProviderType:    row.ProviderType,
+				DataJSON:        row.DataJson,
+				Description:     row.Description,
 				SourceMachineID: row.SourceMachineID.String,
-				CreatedAt:   row.CreatedAt,
-				UpdatedAt:   row.UpdatedAt,
+				CreatedByUserID: row.CreatedByUserID,
+				Visibility:      row.Visibility,
+				CreatedAt:       row.CreatedAt,
+				UpdatedAt:       row.UpdatedAt,
 			})
 		}
 		return items, nil
@@ -389,7 +415,7 @@ func (s *Store) ListTemplateIDsByCustomImageID(ctx context.Context, customImageI
 	return s.ListProfileIDsByCustomImageID(ctx, customImageID)
 }
 
-func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, providerType, dataJSON, description, sourceMachineID, profileID string) (*CustomImage, error) {
+func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, providerType, dataJSON, description, sourceMachineID, profileID, createdByUserID string) (*CustomImage, error) {
 	id, err := randomID()
 	if err != nil {
 		return nil, err
@@ -410,6 +436,7 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 			DataJson:        dataJSON,
 			Description:     strings.TrimSpace(description),
 			SourceMachineID: sql.NullString{String: sourceMachineID, Valid: sourceMachineID != ""},
+			CreatedByUserID: createdByUserID,
 		}); err != nil {
 			if isCustomImageNameUniqueConstraintError(err) {
 				existing, fetchErr := s.GetCustomImageByNameAndProviderType(ctx, strings.TrimSpace(name), strings.TrimSpace(providerType))
@@ -421,7 +448,7 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 			return nil, err
 		}
 		if err := q.AssociateProfileCustomImage(ctx, sqlitesqlc.AssociateProfileCustomImageParams{
-			ProfileID:    profileID,
+			ProfileID:     profileID,
 			CustomImageID: id,
 		}); err != nil {
 			return nil, err
@@ -443,6 +470,7 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 			DataJson:        dataJSON,
 			Description:     strings.TrimSpace(description),
 			SourceMachineID: sql.NullString{String: sourceMachineID, Valid: sourceMachineID != ""},
+			CreatedByUserID: createdByUserID,
 		}); err != nil {
 			if isCustomImageNameUniqueConstraintError(err) {
 				existing, fetchErr := s.GetCustomImageByNameAndProviderType(ctx, strings.TrimSpace(name), strings.TrimSpace(providerType))
@@ -454,7 +482,7 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 			return nil, err
 		}
 		if err := q.AssociateProfileCustomImage(ctx, postgresqlsqlc.AssociateProfileCustomImageParams{
-			ProfileID:    profileID,
+			ProfileID:     profileID,
 			CustomImageID: id,
 		}); err != nil {
 			return nil, err
@@ -473,6 +501,89 @@ func (s *Store) CreateCustomImageFromMachine(ctx context.Context, name, provider
 	return &img, nil
 }
 
+func (s *Store) ListCustomImagesByUserOrShared(ctx context.Context, userID string) ([]CustomImage, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListCustomImagesByUserOrShared(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		items := make([]CustomImage, 0, len(rows))
+		for _, row := range rows {
+			items = append(items, CustomImage{
+				ID: row.ID, Name: row.Name, ProviderType: row.ProviderType,
+				DataJSON: row.DataJson, Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
+				CreatedByUserID: row.CreatedByUserID, Visibility: row.Visibility,
+				CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+			})
+		}
+		return items, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListCustomImagesByUserOrShared(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		items := make([]CustomImage, 0, len(rows))
+		for _, row := range rows {
+			items = append(items, CustomImage{
+				ID: row.ID, Name: row.Name, ProviderType: row.ProviderType,
+				DataJSON: row.DataJson, Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
+				CreatedByUserID: row.CreatedByUserID, Visibility: row.Visibility,
+				CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+			})
+		}
+		return items, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
+
+func (s *Store) ListCustomImagesByUserOrSharedAndProfileID(ctx context.Context, userID, profileID string) ([]CustomImage, error) {
+	switch s.driver {
+	case DriverSQLite:
+		rows, err := s.sqliteQueries.ListCustomImagesByUserOrSharedAndProfileID(ctx, sqlitesqlc.ListCustomImagesByUserOrSharedAndProfileIDParams{
+			ProfileID: profileID,
+			UserID:    userID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		items := make([]CustomImage, 0, len(rows))
+		for _, row := range rows {
+			items = append(items, CustomImage{
+				ID: row.ID, Name: row.Name, ProviderType: row.ProviderType,
+				DataJSON: row.DataJson, Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
+				CreatedByUserID: row.CreatedByUserID, Visibility: row.Visibility,
+				CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+			})
+		}
+		return items, nil
+	case DriverPostgres:
+		rows, err := s.pgQueries.ListCustomImagesByUserOrSharedAndProfileID(ctx, postgresqlsqlc.ListCustomImagesByUserOrSharedAndProfileIDParams{
+			ProfileID: profileID,
+			UserID:    userID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		items := make([]CustomImage, 0, len(rows))
+		for _, row := range rows {
+			items = append(items, CustomImage{
+				ID: row.ID, Name: row.Name, ProviderType: row.ProviderType,
+				DataJSON: row.DataJson, Description: row.Description,
+				SourceMachineID: row.SourceMachineID.String,
+				CreatedByUserID: row.CreatedByUserID, Visibility: row.Visibility,
+				CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+			})
+		}
+		return items, nil
+	default:
+		return nil, unsupportedDriverError(s.driver)
+	}
+}
 
 func isCustomImageNameUniqueConstraintError(err error) bool {
 	if err == nil {

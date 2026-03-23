@@ -73,7 +73,7 @@ func (s *imageConnectService) CreateCustomImage(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encode data"))
 	}
 
-	img, err := s.store.CreateCustomImage(ctx, name, runtimeType, string(dataJSON), req.Msg.GetDescription())
+	img, err := s.store.CreateCustomImage(ctx, name, runtimeType, string(dataJSON), req.Msg.GetDescription(), adminUserID)
 	if err != nil {
 		if errors.Is(err, db.ErrCustomImageNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("image with this name and runtime type already exists"))
@@ -137,7 +137,7 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encode data"))
 	}
 
-	img, updated, err := s.store.UpdateCustomImage(ctx, id, name, runtimeType, string(dataJSON), req.Msg.GetDescription())
+	img, updated, err := s.store.UpdateCustomImage(ctx, id, name, runtimeType, string(dataJSON), req.Msg.GetDescription(), "private")
 	if err != nil {
 		if errors.Is(err, db.ErrCustomImageNameAlreadyExists) {
 			return nil, connect.NewError(connect.CodeAlreadyExists, errors.New("image with this name and runtime type already exists"))
