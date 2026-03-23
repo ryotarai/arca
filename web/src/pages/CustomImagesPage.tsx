@@ -29,6 +29,7 @@ type ImageFormData = {
   description: string
   data: Record<string, string>
   templateIds: string[]
+  visibility: string
 }
 
 const emptyForm: ImageFormData = {
@@ -37,6 +38,7 @@ const emptyForm: ImageFormData = {
   description: '',
   data: {},
   templateIds: [],
+  visibility: 'private',
 }
 
 export function CustomImagesPage({ user }: CustomImagesPageProps) {
@@ -83,6 +85,7 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
           data: form.data,
           description: form.description,
           templateIds: form.templateIds,
+          visibility: form.visibility,
         })
       } else {
         await createCustomImage({
@@ -133,8 +136,28 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
       description: img.description,
       data: { ...img.data },
       templateIds: [...img.associatedTemplateIds],
+      visibility: img.visibility,
     })
     setShowForm(true)
+  }
+
+  const handleToggleVisibility = async (img: CustomImage) => {
+    const newVisibility = img.visibility === 'shared' ? 'private' : 'shared'
+    try {
+      await updateCustomImage({
+        id: img.id,
+        name: img.name,
+        templateType: img.templateType,
+        data: img.data,
+        description: img.description,
+        templateIds: img.associatedTemplateIds,
+        visibility: newVisibility,
+      })
+      toast.success(`Image visibility changed to ${newVisibility}.`)
+      await refresh()
+    } catch (e) {
+      toast.error(messageFromError(e))
+    }
   }
 
   const handleCreate = () => {
@@ -238,6 +261,20 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                 </div>
               )}
 
+              {editingId && (
+                <div className="space-y-2">
+                  <Label>Visibility</Label>
+                  <select
+                    value={form.visibility}
+                    onChange={(e) => setForm((p) => ({ ...p, visibility: e.target.value }))}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                  >
+                    <option value="private">Private</option>
+                    <option value="shared">Shared</option>
+                  </select>
+                </div>
+              )}
+
               {filteredProfiles.length > 0 && (
                 <div className="space-y-2">
                   <Label>Associated profiles</Label>
@@ -283,6 +320,8 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Description</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Profiles</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Source Machine</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created by</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Visibility</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -304,6 +343,16 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                           {img.sourceMachineId}
                         </Link>
                       ) : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{img.createdByUserId || '-'}</td>
+                    <td className="px-4 py-3">
+                      <Button
+                        variant={img.visibility === 'shared' ? 'default' : 'secondary'}
+                        size="sm"
+                        onClick={() => handleToggleVisibility(img)}
+                      >
+                        {img.visibility === 'shared' ? 'Shared' : 'Private'}
+                      </Button>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{img.createdAt ? new Date(img.createdAt).toLocaleDateString() : '-'}</td>
                     <td className="px-4 py-3 text-right">
