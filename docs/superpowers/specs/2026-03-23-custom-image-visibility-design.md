@@ -19,10 +19,16 @@ Add two columns to `custom_images`:
 | `created_by_user_id` | TEXT NOT NULL | `''` | Creator's user ID |
 | `visibility` | TEXT NOT NULL | `'private'` | `private` or `shared` |
 
+The global `UNIQUE(name, provider_type)` constraint is kept as-is. Name collisions across users are possible but acceptable — users receive a clear "name already exists" error and must choose a different name.
+
 ### Migration
 
 - New columns added with defaults.
 - Existing images get `created_by_user_id = ''` and `visibility = 'shared'` so they remain accessible to all users after migration.
+
+### Deleted users
+
+Images owned by a deleted user become orphaned (invisible to non-admin users since no user matches `created_by_user_id`). Admins can see and manage these images via the admin page and may clean them up or change visibility to `shared` as needed.
 
 ## Permission Model
 
@@ -74,17 +80,18 @@ string visibility = 7;
 
 - Admin-only (unchanged).
 - Sets `created_by_user_id` to the calling admin's user ID.
-- `visibility` defaults to `private`.
+- `visibility` defaults to `private`. No `visibility` field in the create request — admins use `UpdateCustomImage` to change visibility after creation.
 
 ### `CreateImageFromMachine`
 
 - Sets `created_by_user_id` to the calling user's ID.
 - `visibility` is always `private`.
+- **Implementation note:** The actual image record is created asynchronously by the image job worker (`image_job.go`), not directly in the RPC handler. The requesting user's ID must be stored in the job's `metadata_json` so the worker can set `created_by_user_id` when calling `CreateCustomImageFromMachine`.
 
 ### `UpdateCustomImage`
 
 - **Admin:** Can update all fields including `visibility` and profile associations.
-- **Regular user:** Can update `name` and `description` only, and only for their own images. Attempting to change `visibility`, profile associations, or provider data returns `PermissionDenied`. Attempting to edit another user's image returns `PermissionDenied`.
+- **Regular user:** Can update `name` and `description` only, and only for their own images. If the request includes changes to `visibility`, profile associations, or provider data, the handler rejects the entire request with `PermissionDenied`. Attempting to edit another user's image also returns `PermissionDenied`.
 
 ### `DeleteCustomImage`
 
@@ -102,6 +109,8 @@ string visibility = 7;
 
 - `ListCustomImagesByUserOrShared(userID)` — returns images where `created_by_user_id = ?` OR `visibility = 'shared'`, ordered by `created_at DESC`.
 - `ListCustomImagesByUserOrSharedAndProfileID(userID, profileID)` — same filter plus profile association join.
+
+Consider adding an index on `(visibility, created_by_user_id)` in the migration for query performance.
 
 ### Modified queries
 
@@ -123,7 +132,7 @@ string visibility = 7;
 - Own images: edit (name/description) and delete buttons.
 - Shared images: read-only (no edit/delete).
 - Visibility badge displayed per image (`Private` / `Shared`).
-- New navigation entry in sidebar/header.
+- New navigation entry in sidebar/header at route `/images`.
 
 ### `CreateMachinePage`
 
