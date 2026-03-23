@@ -166,6 +166,9 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 		if visibility == "" {
 			visibility = existing.Visibility
 		}
+		if visibility != "private" && visibility != "shared" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("visibility must be 'private' or 'shared'"))
+		}
 	} else {
 		// Non-admin: verify ownership
 		if existing.CreatedByUserID != result.UserID {
@@ -195,7 +198,7 @@ func (s *imageConnectService) UpdateCustomImage(ctx context.Context, req *connec
 		if existingData == nil {
 			existingData = make(map[string]string)
 		}
-		if reqData != nil && !mapsEqual(reqData, existingData) {
+		if len(reqData) > 0 && !mapsEqual(reqData, existingData) {
 			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("only admins can change image data"))
 		}
 
@@ -266,10 +269,13 @@ func (s *imageConnectService) DeleteCustomImage(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to get custom image"))
 	}
 
-	// Non-admin must own the image
+	// Non-admin must own the image and it must be private
 	if result.Role != db.UserRoleAdmin {
 		if img.CreatedByUserID != result.UserID {
 			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("you do not own this image"))
+		}
+		if img.Visibility == "shared" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("shared images cannot be deleted by non-admin users"))
 		}
 	}
 

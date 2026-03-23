@@ -76,9 +76,9 @@ export function MyImagesPage({ user }: MyImagesPageProps) {
         id: editingId,
         name: form.name,
         templateType: img.templateType,
-        data: { ...img.data },
+        data: {},
         description: form.description,
-        templateIds: [...img.associatedTemplateIds],
+        templateIds: [],
       })
       setEditingId(null)
       setForm({ name: '', description: '' })
