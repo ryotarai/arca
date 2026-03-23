@@ -20,6 +20,7 @@ import { AccessDeniedPage } from '@/pages/AccessDeniedPage'
 import { GroupsPage } from '@/pages/GroupsPage'
 import { AuditLogPage } from '@/pages/AuditLogPage'
 import { CustomImagesPage } from '@/pages/CustomImagesPage'
+import { MyImagesPage } from '@/pages/MyImagesPage'
 import { ServerLLMModelsPage } from '@/pages/ServerLLMModelsPage'
 import { AppLayout } from '@/pages/AppLayout'
 import { NonAdminModeBanner } from '@/components/NonAdminModeBanner'
@@ -151,6 +152,7 @@ export function App() {
           <Route path="/machines" element={<MachinesPage user={user} onLogout={handleLogout} baseDomain={setupStatus.baseDomain} domainPrefix={setupStatus.domainPrefix} />} />
           <Route path="/machines/create" element={<CreateMachinePage user={user} onLogout={handleLogout} />} />
           <Route path="/machines/:machineID" element={<MachineDetailPage user={user} baseDomain={setupStatus.baseDomain} domainPrefix={setupStatus.domainPrefix} />} />
+          <Route path="/images" element={<MyImagesPage user={user} onLogout={handleLogout} />} />
           <Route path="/users" element={<AdminUsersPage user={user} onLogout={handleLogout} />} />
           <Route path="/groups" element={<GroupsPage user={user} onLogout={handleLogout} />} />
           <Route path="/machine-profiles" element={<MachineProfilesListPage user={user} onLogout={handleLogout} />} />

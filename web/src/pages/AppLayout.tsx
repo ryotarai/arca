@@ -28,6 +28,7 @@ type AppLayoutProps = {
 
 const navItems = [
   { to: '/machines', label: 'Machines', icon: Cpu },
+  { to: '/images', label: 'Images', icon: Image },
   { to: '/settings', label: 'User settings', icon: Settings },
 ]
 
