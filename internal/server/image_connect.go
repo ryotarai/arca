@@ -301,8 +301,11 @@ func toCustomImageMessage(img db.CustomImage, templateIDs []string) *arcav1.Cust
 func validateCustomImageData(runtimeType string, data map[string]string) error {
 	switch runtimeType {
 	case "gce":
-		if strings.TrimSpace(data["image_project"]) == "" || strings.TrimSpace(data["image_family"]) == "" {
-			return errors.New("GCE images require image_project and image_family")
+		if strings.TrimSpace(data["image_project"]) == "" {
+			return errors.New("GCE images require image_project")
+		}
+		if strings.TrimSpace(data["image_name"]) == "" && strings.TrimSpace(data["image_family"]) == "" {
+			return errors.New("GCE images require image_name or image_family")
 		}
 	case "lxd":
 		if strings.TrimSpace(data["image_alias"]) == "" && strings.TrimSpace(data["image_fingerprint"]) == "" {
