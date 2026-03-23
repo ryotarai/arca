@@ -258,6 +258,8 @@ CREATE TABLE IF NOT EXISTS custom_images (
   data_json TEXT NOT NULL DEFAULT '{}',
   description TEXT NOT NULL DEFAULT '',
   source_machine_id TEXT,
+  created_by_user_id TEXT NOT NULL DEFAULT '',
+  visibility TEXT NOT NULL DEFAULT 'private',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(name, provider_type)
@@ -269,6 +271,7 @@ CREATE TABLE IF NOT EXISTS profile_custom_images (
   PRIMARY KEY (profile_id, custom_image_id)
 );
 CREATE INDEX IF NOT EXISTS idx_profile_custom_images_image ON profile_custom_images(custom_image_id);
+CREATE INDEX IF NOT EXISTS idx_custom_images_visibility_user ON custom_images(visibility, created_by_user_id);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,

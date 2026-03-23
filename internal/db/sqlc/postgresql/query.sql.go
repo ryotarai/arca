@@ -363,7 +363,7 @@ func (q *Queries) CreateAuthTicket(ctx context.Context, arg CreateAuthTicketPara
 }
 
 const createCustomImage = `-- name: CreateCustomImage :exec
-INSERT INTO custom_images (id, name, provider_type, data_json, description, created_at, updated_at)
+INSERT INTO custom_images (id, name, provider_type, data_json, description, created_by_user_id, visibility, created_at, updated_at)
 VALUES (
   $1,
   $2,
@@ -371,18 +371,22 @@ VALUES (
   $4,
   $5,
   $6,
-  $7
+  $7,
+  $8,
+  $9
 )
 `
 
 type CreateCustomImageParams struct {
-	ID           string
-	Name         string
-	ProviderType string
-	DataJson     string
-	Description  string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID              string
+	Name            string
+	ProviderType    string
+	DataJson        string
+	Description     string
+	CreatedByUserID string
+	Visibility      string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func (q *Queries) CreateCustomImage(ctx context.Context, arg CreateCustomImageParams) error {
@@ -392,6 +396,8 @@ func (q *Queries) CreateCustomImage(ctx context.Context, arg CreateCustomImagePa
 		arg.ProviderType,
 		arg.DataJson,
 		arg.Description,
+		arg.CreatedByUserID,
+		arg.Visibility,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -1177,7 +1183,7 @@ func (q *Queries) GetAdminViewMode(ctx context.Context, userID string) (string, 
 }
 
 const getCustomImage = `-- name: GetCustomImage :one
-SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_by_user_id, visibility, created_at, updated_at
 FROM custom_images
 WHERE id = $1
 LIMIT 1
@@ -1193,6 +1199,8 @@ func (q *Queries) GetCustomImage(ctx context.Context, id string) (CustomImage, e
 		&i.DataJson,
 		&i.Description,
 		&i.SourceMachineID,
+		&i.CreatedByUserID,
+		&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1200,7 +1208,7 @@ func (q *Queries) GetCustomImage(ctx context.Context, id string) (CustomImage, e
 }
 
 const getCustomImageByNameAndProviderType = `-- name: GetCustomImageByNameAndProviderType :one
-SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_by_user_id, visibility, created_at, updated_at
 FROM custom_images
 WHERE name = $1 AND provider_type = $2
 LIMIT 1
@@ -1221,6 +1229,8 @@ func (q *Queries) GetCustomImageByNameAndProviderType(ctx context.Context, arg G
 		&i.DataJson,
 		&i.Description,
 		&i.SourceMachineID,
+		&i.CreatedByUserID,
+		&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -2018,8 +2028,8 @@ func (q *Queries) HasAdminUser(ctx context.Context) (bool, error) {
 }
 
 const insertCustomImageWithSource = `-- name: InsertCustomImageWithSource :exec
-INSERT INTO custom_images (id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+INSERT INTO custom_images (id, name, provider_type, data_json, description, source_machine_id, created_by_user_id, visibility, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, 'private', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 `
 
 type InsertCustomImageWithSourceParams struct {
@@ -2029,6 +2039,7 @@ type InsertCustomImageWithSourceParams struct {
 	DataJson        string
 	Description     string
 	SourceMachineID sql.NullString
+	CreatedByUserID string
 }
 
 func (q *Queries) InsertCustomImageWithSource(ctx context.Context, arg InsertCustomImageWithSourceParams) error {
@@ -2039,6 +2050,7 @@ func (q *Queries) InsertCustomImageWithSource(ctx context.Context, arg InsertCus
 		arg.DataJson,
 		arg.Description,
 		arg.SourceMachineID,
+		arg.CreatedByUserID,
 	)
 	return err
 }
@@ -2282,7 +2294,7 @@ func (q *Queries) ListAuditLogsFiltered(ctx context.Context, arg ListAuditLogsFi
 }
 
 const listCustomImages = `-- name: ListCustomImages :many
-SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_by_user_id, visibility, created_at, updated_at
 FROM custom_images
 ORDER BY created_at DESC
 `
@@ -2303,6 +2315,8 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 			&i.DataJson,
 			&i.Description,
 			&i.SourceMachineID,
+			&i.CreatedByUserID,
+			&i.Visibility,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2320,7 +2334,7 @@ func (q *Queries) ListCustomImages(ctx context.Context) ([]CustomImage, error) {
 }
 
 const listCustomImagesByProfileID = `-- name: ListCustomImagesByProfileID :many
-SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, ci.created_at, ci.updated_at
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, ci.created_by_user_id, ci.visibility, ci.created_at, ci.updated_at
 FROM custom_images ci
 JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
 WHERE pci.profile_id = $1
@@ -2343,6 +2357,8 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 			&i.DataJson,
 			&i.Description,
 			&i.SourceMachineID,
+			&i.CreatedByUserID,
+			&i.Visibility,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -2360,7 +2376,7 @@ func (q *Queries) ListCustomImagesByProfileID(ctx context.Context, profileID str
 }
 
 const listCustomImagesByRuntimeType = `-- name: ListCustomImagesByRuntimeType :many
-SELECT id, name, provider_type, data_json, description, source_machine_id, created_at, updated_at
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_by_user_id, visibility, created_at, updated_at
 FROM custom_images
 WHERE provider_type = $1
 ORDER BY created_at DESC
@@ -2382,6 +2398,97 @@ func (q *Queries) ListCustomImagesByRuntimeType(ctx context.Context, providerTyp
 			&i.DataJson,
 			&i.Description,
 			&i.SourceMachineID,
+			&i.CreatedByUserID,
+			&i.Visibility,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCustomImagesByUserOrShared = `-- name: ListCustomImagesByUserOrShared :many
+SELECT id, name, provider_type, data_json, description, source_machine_id, created_by_user_id, visibility, created_at, updated_at
+FROM custom_images
+WHERE created_by_user_id = $1 OR visibility = 'shared'
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListCustomImagesByUserOrShared(ctx context.Context, userID string) ([]CustomImage, error) {
+	rows, err := q.db.QueryContext(ctx, listCustomImagesByUserOrShared, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CustomImage
+	for rows.Next() {
+		var i CustomImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ProviderType,
+			&i.DataJson,
+			&i.Description,
+			&i.SourceMachineID,
+			&i.CreatedByUserID,
+			&i.Visibility,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCustomImagesByUserOrSharedAndProfileID = `-- name: ListCustomImagesByUserOrSharedAndProfileID :many
+SELECT ci.id, ci.name, ci.provider_type, ci.data_json, ci.description, ci.source_machine_id, ci.created_by_user_id, ci.visibility, ci.created_at, ci.updated_at
+FROM custom_images ci
+JOIN profile_custom_images pci ON pci.custom_image_id = ci.id
+WHERE pci.profile_id = $1
+  AND (ci.created_by_user_id = $2 OR ci.visibility = 'shared')
+ORDER BY ci.name ASC
+`
+
+type ListCustomImagesByUserOrSharedAndProfileIDParams struct {
+	ProfileID string
+	UserID    string
+}
+
+func (q *Queries) ListCustomImagesByUserOrSharedAndProfileID(ctx context.Context, arg ListCustomImagesByUserOrSharedAndProfileIDParams) ([]CustomImage, error) {
+	rows, err := q.db.QueryContext(ctx, listCustomImagesByUserOrSharedAndProfileID, arg.ProfileID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CustomImage
+	for rows.Next() {
+		var i CustomImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ProviderType,
+			&i.DataJson,
+			&i.Description,
+			&i.SourceMachineID,
+			&i.CreatedByUserID,
+			&i.Visibility,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -3691,8 +3798,9 @@ SET name = $1,
     provider_type = $2,
     data_json = $3,
     description = $4,
-    updated_at = $5
-WHERE id = $6
+    visibility = $5,
+    updated_at = $6
+WHERE id = $7
 `
 
 type UpdateCustomImageParams struct {
@@ -3700,6 +3808,7 @@ type UpdateCustomImageParams struct {
 	ProviderType string
 	DataJson     string
 	Description  string
+	Visibility   string
 	UpdatedAt    time.Time
 	ID           string
 }
@@ -3710,6 +3819,7 @@ func (q *Queries) UpdateCustomImage(ctx context.Context, arg UpdateCustomImagePa
 		arg.ProviderType,
 		arg.DataJson,
 		arg.Description,
+		arg.Visibility,
 		arg.UpdatedAt,
 		arg.ID,
 	)

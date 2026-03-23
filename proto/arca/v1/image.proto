@@ -21,6 +21,8 @@ message CustomImage {
   repeated string associated_template_ids = 6;
   string created_at = 7;
   string source_machine_id = 8;
+  string created_by_user_id = 9;
+  string visibility = 10;
 }
 
 message ListCustomImagesRequest {}
@@ -48,6 +50,7 @@ message UpdateCustomImageRequest {
   map<string, string> data = 4;
   string description = 5;
   repeated string template_ids = 6;
+  string visibility = 7;
 }
 
 message UpdateCustomImageResponse {

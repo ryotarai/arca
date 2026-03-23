@@ -628,7 +628,10 @@ func (s *machineConnectService) CreateImageFromMachine(ctx context.Context, req 
 
 	// Build metadata JSON
 	description := strings.TrimSpace(req.Msg.GetDescription())
-	metadata := map[string]string{"image_name": imageName}
+	metadata := map[string]string{
+		"image_name":         imageName,
+		"requesting_user_id": userID,
+	}
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encode metadata"))

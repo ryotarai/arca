@@ -37,7 +37,8 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 
 	// Read initial params from job metadata.
 	var params struct {
-		ImageName string `json:"image_name"`
+		ImageName        string `json:"image_name"`
+		RequestingUserID string `json:"requesting_user_id"`
 	}
 	if err := json.Unmarshal([]byte(job.MetadataJSON), &params); err != nil {
 		return fmt.Errorf("parse job metadata: %w", err)
@@ -77,7 +78,7 @@ func (w *Worker) handleCreateImage(ctx context.Context, machine db.Machine, job 
 		Step("save", func(sCtx context.Context) error {
 			customImage, err := w.store.CreateCustomImageFromMachine(sCtx,
 				runner.Get("image_name"), machine.ProviderType, runner.Get("image_data"),
-				job.Description, machine.ID, machine.ProfileID)
+				job.Description, machine.ID, machine.ProfileID, params.RequestingUserID)
 			if err != nil {
 				return err
 			}
