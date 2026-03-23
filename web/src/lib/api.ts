@@ -1225,6 +1225,7 @@ export async function updateCustomImage(params: {
   data: Record<string, string>
   description: string
   templateIds: string[]
+  visibility?: string
 }): Promise<CustomImage> {
   const response = await imageClient.updateCustomImage(
     create(UpdateCustomImageRequestSchema, {
@@ -1234,6 +1235,7 @@ export async function updateCustomImage(params: {
       data: params.data,
       description: params.description,
       templateIds: params.templateIds,
+      ...(params.visibility !== undefined ? { visibility: params.visibility } : {}),
     }),
   )
   if (response.image == null) {
