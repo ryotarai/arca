@@ -208,6 +208,10 @@ export function CustomImagesPage({ user }: CustomImagesPageProps) {
                     <Input value={form.data.image_project ?? ''} onChange={(e) => setDataField('image_project', e.target.value)} placeholder="my-gcp-project" />
                   </div>
                   <div className="space-y-2">
+                    <Label>Image name</Label>
+                    <Input value={form.data.image_name ?? ''} onChange={(e) => setDataField('image_name', e.target.value)} placeholder="arca-user-my-image" />
+                  </div>
+                  <div className="space-y-2">
                     <Label>Image family</Label>
                     <Input value={form.data.image_family ?? ''} onChange={(e) => setDataField('image_family', e.target.value)} placeholder="my-custom-family" />
                   </div>
