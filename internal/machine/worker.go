@@ -394,7 +394,7 @@ func (w *Worker) processJob(ctx context.Context, job db.MachineJob) {
 			}
 		} else {
 			nextRunAt := nowUnix + retryDelaySeconds(job.Attempt)
-			w.emitEvent(ctx, machine.ID, job.ID, "info", "retry_scheduled", fmt.Sprintf("retry scheduled at unix=%d", nextRunAt))
+			w.emitEvent(ctx, machine.ID, job.ID, "info", "retry_scheduled", fmt.Sprintf("retry scheduled at %s", time.Unix(nextRunAt, 0).UTC().Format(time.RFC3339)))
 			_ = w.store.RequeueMachineJob(ctx, job.ID, nextRunAt, err.Error(), nowUnix)
 		}
 		return
