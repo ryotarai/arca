@@ -71,6 +71,8 @@ type CustomImage struct {
 	DataJson        string
 	Description     string
 	SourceMachineID sql.NullString
+	CreatedByUserID string
+	Visibility      string
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
