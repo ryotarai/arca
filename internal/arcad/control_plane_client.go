@@ -1,24 +1,16 @@
 package arcad
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
-)
 
-const (
-	getExposureByHostnameEndpoint  = "/arca.v1.ExposureService/GetMachineExposureByHostname"
-	exchangeArcadSessionEndpoint   = "/arca.v1.TicketService/ExchangeArcadSession"
-	validateArcadSessionEndpoint   = "/arca.v1.TicketService/ValidateArcadSession"
-	reportMachineReadinessEndpoint = "/arca.v1.ExposureService/ReportMachineReadiness"
-	getMachineLLMModelsEndpoint          = "/arca.v1.ExposureService/GetMachineLLMModels"
-	getMachineAgentGuidelineEndpoint     = "/arca.v1.ExposureService/GetMachineAgentGuideline"
+	"connectrpc.com/connect"
+	arcav1 "github.com/ryotarai/arca/internal/gen/arca/v1"
+	"github.com/ryotarai/arca/internal/gen/arca/v1/arcav1connect"
 )
 
 // Exposure describes host routing and visibility.
@@ -79,6 +71,9 @@ type HTTPControlPlaneClient struct {
 	machineID    string
 	machineToken string
 	httpClient   *http.Client
+
+	exposureClient arcav1connect.ExposureServiceClient
+	ticketClient   arcav1connect.TicketServiceClient
 }
 
 func NewHTTPControlPlaneClient(baseURL, authorizeURL, machineID, machineToken string, httpClient *http.Client) *HTTPControlPlaneClient {
@@ -90,238 +85,128 @@ func NewHTTPControlPlaneClient(baseURL, authorizeURL, machineID, machineToken st
 	if authorizeURL == "" {
 		authorizeURL = baseURL + "/console/authorize"
 	}
+
+	authInterceptor := newMachineAuthInterceptor(machineID, machineToken)
+	opts := []connect.ClientOption{connect.WithInterceptors(authInterceptor)}
+
 	return &HTTPControlPlaneClient{
-		baseURL:      baseURL,
-		authorizeURL: authorizeURL,
-		machineID:    machineID,
-		machineToken: machineToken,
-		httpClient:   httpClient,
+		baseURL:        baseURL,
+		authorizeURL:   authorizeURL,
+		machineID:      machineID,
+		machineToken:   machineToken,
+		httpClient:     httpClient,
+		exposureClient: arcav1connect.NewExposureServiceClient(httpClient, baseURL, opts...),
+		ticketClient:   arcav1connect.NewTicketServiceClient(httpClient, baseURL, opts...),
 	}
 }
 
 func (c *HTTPControlPlaneClient) GetExposureByHost(ctx context.Context, host string) (Exposure, error) {
-	payload := map[string]string{"hostname": host}
-	body, err := json.Marshal(payload)
+	resp, err := c.exposureClient.GetMachineExposureByHostname(ctx, connect.NewRequest(&arcav1.GetMachineExposureByHostnameRequest{
+		Hostname: host,
+	}))
 	if err != nil {
-		return Exposure{}, err
+		if connect.CodeOf(err) == connect.CodeNotFound {
+			return Exposure{}, ErrExposureNotFound
+		}
+		return Exposure{}, fmt.Errorf("exposure lookup failed: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+getExposureByHostnameEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return Exposure{}, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Arca-Machine-ID", c.machineID)
-	if strings.TrimSpace(c.machineToken) != "" {
-		req.Header.Set("Authorization", "Bearer "+c.machineToken)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return Exposure{}, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound {
-		return Exposure{}, ErrExposureNotFound
-	}
-	if resp.StatusCode != http.StatusOK {
-		return Exposure{}, fmt.Errorf("exposure lookup failed: status %d", resp.StatusCode)
-	}
-	var decoded struct {
-		Exposure *struct {
-			Hostname string `json:"hostname"`
-			Service  string `json:"service"`
-			Public   bool   `json:"public"`
-		} `json:"exposure"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return Exposure{}, fmt.Errorf("decode exposure: %w", err)
-	}
-	if decoded.Exposure == nil {
+	exposure := resp.Msg.GetExposure()
+	if exposure == nil {
 		return Exposure{}, fmt.Errorf("missing exposure in response")
 	}
-	exposure := Exposure{
-		Host:   strings.TrimSpace(decoded.Exposure.Hostname),
-		Target: strings.TrimSpace(decoded.Exposure.Service),
-		Public: decoded.Exposure.Public,
+	out := Exposure{
+		Host:   strings.TrimSpace(exposure.GetHostname()),
+		Target: strings.TrimSpace(exposure.GetService()),
 	}
-	if exposure.Host == "" {
-		exposure.Host = host
+	if out.Host == "" {
+		out.Host = host
 	}
-	return exposure, nil
+	return out, nil
 }
 
 func (c *HTTPControlPlaneClient) ExchangeArcadSession(ctx context.Context, host, token string) (ArcadSessionClaims, error) {
-	payload := map[string]string{
-		"token":    strings.TrimSpace(token),
-		"hostname": strings.TrimSpace(host),
-	}
-	body, err := json.Marshal(payload)
+	resp, err := c.ticketClient.ExchangeArcadSession(ctx, connect.NewRequest(&arcav1.ExchangeArcadSessionRequest{
+		Token:    strings.TrimSpace(token),
+		Hostname: strings.TrimSpace(host),
+	}))
 	if err != nil {
-		return ArcadSessionClaims{}, err
+		switch connect.CodeOf(err) {
+		case connect.CodeUnauthenticated, connect.CodePermissionDenied, connect.CodeInvalidArgument:
+			return ArcadSessionClaims{}, ErrInvalidTicket
+		}
+		return ArcadSessionClaims{}, fmt.Errorf("arcad session exchange failed: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+exchangeArcadSessionEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return ArcadSessionClaims{}, err
+
+	msg := resp.Msg
+	sessionID := strings.TrimSpace(msg.GetSessionId())
+	user := msg.GetUser()
+	userID := ""
+	userEmail := ""
+	if user != nil {
+		userID = strings.TrimSpace(user.GetId())
+		userEmail = strings.TrimSpace(user.GetEmail())
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Arca-Machine-ID", c.machineID)
-	if strings.TrimSpace(c.machineToken) != "" {
-		req.Header.Set("Authorization", "Bearer "+c.machineToken)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return ArcadSessionClaims{}, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest {
-		return ArcadSessionClaims{}, ErrInvalidTicket
-	}
-	if resp.StatusCode != http.StatusOK {
-		return ArcadSessionClaims{}, fmt.Errorf("arcad session exchange failed: status %d", resp.StatusCode)
-	}
-	var decoded map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return ArcadSessionClaims{}, fmt.Errorf("decode arcad session exchange: %w", err)
-	}
-	sessionID := firstNonEmptyString(
-		stringValue(decoded["sessionId"]),
-		stringValue(decoded["session_id"]),
-	)
-	userID := userIDFromPayload(decoded)
 	if sessionID == "" || userID == "" {
 		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session exchange response")
 	}
-	expiresAtUnix, _ := firstInt64Value(
-		decoded["expiresAtUnix"],
-		decoded["expires_at_unix"],
-	)
+
+	expiresAtUnix := msg.GetExpiresAtUnix()
 	expiresAt := time.Unix(expiresAtUnix, 0).UTC()
 	if expiresAtUnix <= 0 {
 		expiresAt = time.Now().Add(8 * time.Hour)
 	}
-	userEmail := userEmailFromPayload(decoded)
 	return ArcadSessionClaims{SessionID: sessionID, UserID: userID, UserEmail: userEmail, ExpiresAt: expiresAt}, nil
 }
 
 func (c *HTTPControlPlaneClient) ValidateArcadSession(ctx context.Context, host, path, sessionID string) (ArcadSessionClaims, error) {
-	payload := map[string]string{
-		"session_id": strings.TrimSpace(sessionID),
-		"hostname":   strings.TrimSpace(host),
-		"path":       strings.TrimSpace(path),
-	}
-	body, err := json.Marshal(payload)
+	resp, err := c.ticketClient.ValidateArcadSession(ctx, connect.NewRequest(&arcav1.ValidateArcadSessionRequest{
+		SessionId: strings.TrimSpace(sessionID),
+		Hostname:  strings.TrimSpace(host),
+		Path:      strings.TrimSpace(path),
+	}))
 	if err != nil {
-		return ArcadSessionClaims{}, err
+		switch connect.CodeOf(err) {
+		case connect.CodeUnauthenticated, connect.CodePermissionDenied, connect.CodeInvalidArgument, connect.CodeNotFound:
+			return ArcadSessionClaims{}, ErrInvalidSession
+		}
+		return ArcadSessionClaims{}, fmt.Errorf("arcad session validation failed: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+validateArcadSessionEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return ArcadSessionClaims{}, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Arca-Machine-ID", c.machineID)
-	if strings.TrimSpace(c.machineToken) != "" {
-		req.Header.Set("Authorization", "Bearer "+c.machineToken)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return ArcadSessionClaims{}, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusNotFound {
-		return ArcadSessionClaims{}, ErrInvalidSession
-	}
-	if resp.StatusCode != http.StatusOK {
-		return ArcadSessionClaims{}, fmt.Errorf("arcad session validation failed: status %d", resp.StatusCode)
-	}
-	var decoded map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return ArcadSessionClaims{}, fmt.Errorf("decode arcad session validation: %w", err)
-	}
-	userID := userIDFromPayload(decoded)
-	if userID == "" {
+
+	user := resp.Msg.GetUser()
+	if user == nil || strings.TrimSpace(user.GetId()) == "" {
 		return ArcadSessionClaims{}, fmt.Errorf("invalid arcad session validation response")
 	}
-	userEmail := userEmailFromPayload(decoded)
-	return ArcadSessionClaims{UserID: userID, UserEmail: userEmail}, nil
+	return ArcadSessionClaims{
+		UserID:    strings.TrimSpace(user.GetId()),
+		UserEmail: strings.TrimSpace(user.GetEmail()),
+	}, nil
 }
 
 func (c *HTTPControlPlaneClient) GetMachineLLMModels(ctx context.Context) ([]MachineLLMModel, error) {
-	body, err := json.Marshal(map[string]string{})
+	resp, err := c.exposureClient.GetMachineLLMModels(ctx, connect.NewRequest(&arcav1.GetMachineLLMModelsRequest{}))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get machine llm models failed: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+getMachineLLMModelsEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Arca-Machine-ID", c.machineID)
-	if strings.TrimSpace(c.machineToken) != "" {
-		req.Header.Set("Authorization", "Bearer "+c.machineToken)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("get machine llm models failed: status %d", resp.StatusCode)
-	}
-	var decoded struct {
-		Models []struct {
-			ConfigName       string `json:"configName"`
-			EndpointType     string `json:"endpointType"`
-			CustomEndpoint   string `json:"customEndpoint"`
-			ModelName        string `json:"modelName"`
-			APIKey           string `json:"apiKey"`
-			MaxContextTokens int32  `json:"maxContextTokens"`
-		} `json:"models"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return nil, fmt.Errorf("decode machine llm models: %w", err)
-	}
-	models := make([]MachineLLMModel, len(decoded.Models))
-	for i, m := range decoded.Models {
-		models[i] = MachineLLMModel{
-			ConfigName:       m.ConfigName,
-			EndpointType:     m.EndpointType,
-			CustomEndpoint:   m.CustomEndpoint,
-			ModelName:        m.ModelName,
-			APIKey:           m.APIKey,
-			MaxContextTokens: m.MaxContextTokens,
-		}
+	models := make([]MachineLLMModel, 0, len(resp.Msg.GetModels()))
+	for _, m := range resp.Msg.GetModels() {
+		models = append(models, MachineLLMModel{
+			ConfigName:       m.GetConfigName(),
+			EndpointType:     m.GetEndpointType(),
+			CustomEndpoint:   m.GetCustomEndpoint(),
+			ModelName:        m.GetModelName(),
+			APIKey:           m.GetApiKey(),
+			MaxContextTokens: m.GetMaxContextTokens(),
+		})
 	}
 	return models, nil
 }
 
 func (c *HTTPControlPlaneClient) GetMachineAgentGuideline(ctx context.Context) (string, error) {
-	body, err := json.Marshal(map[string]string{})
+	resp, err := c.exposureClient.GetMachineAgentGuideline(ctx, connect.NewRequest(&arcav1.GetMachineAgentGuidelineRequest{}))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get machine agent guideline failed: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+getMachineAgentGuidelineEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Arca-Machine-ID", c.machineID)
-	if strings.TrimSpace(c.machineToken) != "" {
-		req.Header.Set("Authorization", "Bearer "+c.machineToken)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("get machine agent guideline failed: status %d", resp.StatusCode)
-	}
-	var decoded struct {
-		Guideline string `json:"guideline"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return "", fmt.Errorf("decode machine agent guideline: %w", err)
-	}
-	return decoded.Guideline, nil
+	return resp.Msg.GetGuideline(), nil
 }
 
 func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {
@@ -329,107 +214,22 @@ func (c *HTTPControlPlaneClient) AuthorizeURL(target string) string {
 }
 
 func (c *HTTPControlPlaneClient) ReportMachineReadiness(ctx context.Context, ready bool, reason, containerID, arcadVersion string) (bool, error) {
-	payload := map[string]any{
-		"ready":         ready,
-		"reason":        strings.TrimSpace(reason),
-		"machine_id":    c.machineID,
-		"container_id":  strings.TrimSpace(containerID),
-		"arcad_version": strings.TrimSpace(arcadVersion),
-	}
-	body, err := json.Marshal(payload)
+	resp, err := c.exposureClient.ReportMachineReadiness(ctx, connect.NewRequest(&arcav1.ReportMachineReadinessRequest{
+		Ready:        ready,
+		Reason:       strings.TrimSpace(reason),
+		MachineId:    c.machineID,
+		ContainerId:  strings.TrimSpace(containerID),
+		ArcadVersion: strings.TrimSpace(arcadVersion),
+	}))
 	if err != nil {
-		return false, err
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+reportMachineReadinessEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return false, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Arca-Machine-ID", c.machineID)
-	if strings.TrimSpace(c.machineToken) != "" {
-		req.Header.Set("Authorization", "Bearer "+c.machineToken)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest {
-		return false, fmt.Errorf("report machine readiness unauthorized: status %d", resp.StatusCode)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("report machine readiness failed: status %d", resp.StatusCode)
-	}
-
-	var decoded map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
-		return false, fmt.Errorf("decode report machine readiness: %w", err)
-	}
-	accepted, ok := decoded["accepted"].(bool)
-	if !ok {
-		return false, fmt.Errorf("invalid report machine readiness response")
-	}
-	return accepted, nil
-}
-
-func userIDFromPayload(payload map[string]any) string {
-	user, ok := payload["user"].(map[string]any)
-	if !ok {
-		return ""
-	}
-	return stringValue(user["id"])
-}
-
-func userEmailFromPayload(payload map[string]any) string {
-	user, ok := payload["user"].(map[string]any)
-	if !ok {
-		return ""
-	}
-	return stringValue(user["email"])
-}
-
-func stringValue(v any) string {
-	s, ok := v.(string)
-	if !ok {
-		return ""
-	}
-	return strings.TrimSpace(s)
-}
-
-func firstNonEmptyString(values ...string) string {
-	for _, value := range values {
-		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			return trimmed
+		switch connect.CodeOf(err) {
+		case connect.CodeUnauthenticated, connect.CodePermissionDenied, connect.CodeInvalidArgument:
+			return false, fmt.Errorf("report machine readiness unauthorized: %w", err)
 		}
+		return false, fmt.Errorf("report machine readiness failed: %w", err)
 	}
-	return ""
+	return resp.Msg.GetAccepted(), nil
 }
 
-func firstInt64Value(values ...any) (int64, bool) {
-	for _, value := range values {
-		if parsed, ok := int64Value(value); ok {
-			return parsed, true
-		}
-	}
-	return 0, false
-}
-
-func int64Value(v any) (int64, bool) {
-	switch value := v.(type) {
-	case float64:
-		return int64(value), true
-	case int64:
-		return value, true
-	case int:
-		return int64(value), true
-	case string:
-		parsed, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
-		if err != nil {
-			return 0, false
-		}
-		return parsed, true
-	default:
-		return 0, false
-	}
-}
+// Compile-time guard ensuring HTTPControlPlaneClient implements ControlPlaneClient.
+var _ ControlPlaneClient = (*HTTPControlPlaneClient)(nil)
